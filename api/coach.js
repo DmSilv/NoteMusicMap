@@ -160,6 +160,13 @@ async function callGemini(cfg, summary, fetchImpl, timeoutMs = 8500) {
         },
       );
       if (r.status === 404 || r.status === 400) {
+        // A mensagem do Google não contém a chave; serve para diagnosticar (chave inválida, modelo, etc.).
+        let why = '';
+        try { why = String(((await r.json()).error || {}).message || '').slice(0, 160); } catch (_) { /* sem corpo */ }
+        console.error(`gemini ${r.status} (${model}): ${why}`);
+        if (/api key|API_KEY/i.test(why)) {
+          return { status: 502, error: 'Chave da API recusada pelo Gemini. Confira a variável na Vercel.' };
+        }
         last = { status: 502, error: 'Modelo indisponível.', model };
         continue; // tenta o próximo modelo
       }
