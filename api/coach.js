@@ -208,6 +208,9 @@ async function callGemini(cfg, summary, fetchImpl, timeoutMs = 8500) {
         continue; // tenta o próximo modelo
       }
       if (r.status === 429 || r.status === 503) {
+        let why = '';
+        try { why = String(((await r.json()).error || {}).message || '').slice(0, 300); } catch (_) { /* sem corpo */ }
+        console.error(`gemini ${r.status} (${model}): ${why}`);
         return { status: 429, error: 'busy', retryAfterMs: 15000 + Math.floor(Math.random() * 5000) };
       }
       if (r.status === 401 || r.status === 403) {
