@@ -1,5 +1,5 @@
 name: afina
-description: "Tom e Tempo: afinador, metrônomo e grade de entonação em português para instrumentistas de corda."
+description: "Notemusic: afinador, metrônomo e grade de entonação em português para instrumentistas de corda."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -44,6 +44,7 @@ dependencies:
   http: ^1.6.0
   qr_flutter: ^4.1.0
   share_plus: ^13.3.1
+  toastification: ^3.2.2
 
 dev_dependencies:
   flutter_test:

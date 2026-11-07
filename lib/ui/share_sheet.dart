@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import 'settings_page.dart' show kAppName;
 import 'theme.dart';
+import 'toast.dart';
 
 /// Endereço público do app (usado no celular; na web vale o endereço aberto).
 const String kShareUrl = String.fromEnvironment(
@@ -68,13 +69,16 @@ Future<void> showShareSheet(BuildContext context) {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () async {
-                    await Clipboard.setData(ClipboardData(text: link));
+                    var ok = true;
+                    try {
+                      await Clipboard.setData(ClipboardData(text: link))
+                          .timeout(const Duration(seconds: 2));
+                    } catch (_) {
+                      ok = false; // navegador negou a área de transferência
+                    }
                     if (c.mounted) {
-                      ScaffoldMessenger.of(c).showSnackBar(const SnackBar(
-                        content: Text('Link copiado'),
-                        behavior: SnackBarBehavior.floating,
-                        duration: Duration(milliseconds: 1800),
-                      ));
+                      showToast(c, ok ? 'Link copiado' : 'Não deu para copiar: selecione o link acima',
+                          icon: ok ? Icons.check_circle : Icons.info_outline);
                     }
                   },
                   icon: const Icon(Icons.link),

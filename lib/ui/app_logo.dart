@@ -2,9 +2,8 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-/// Logo do Tom e Tempo: um mostrador de afinador. O arco vai do azul (grave)
-/// ao laranja (agudo) passando pelo verde (afinado); o ponteiro branco aponta
-/// quase para o centro. Mesma geometria de tools/make_icons.mjs.
+/// Logo do Notemusic: um mostrador de afinador (arco verde, a cor do app) com
+/// uma nota musical branca no centro. Mesma geometria de tools/make_icons.mjs.
 class AppLogo extends StatelessWidget {
   final double size;
   final bool rounded;
@@ -12,7 +11,7 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-        label: 'Logo do Tom e Tempo',
+        label: 'Logo do Notemusic',
         image: true,
         child: SizedBox(width: size, height: size, child: CustomPaint(painter: _LogoPainter(rounded))),
       );
@@ -24,25 +23,17 @@ class _LogoPainter extends CustomPainter {
 
   static const _top = Color(0xFF17323C);
   static const _bottom = Color(0xFF0A141C);
-  static const _blue = Color(0xFF2E9BFF);
   static const _green = Color(0xFF1FE68F);
-  static const _orange = Color(0xFFFF9226);
-  static const _hub = Color(0xFF0F1B24);
 
   // Geometria (0..1), ângulos em graus com y para cima.
   static const _pvx = 0.5, _pvy = 0.60;
   static const _r = 0.29, _sw = 0.085;
   static const _a0 = 205.0, _a1 = -25.0;
-  static const _na = 84.0, _nl = 0.25, _nw = 0.038;
-  static const _hubR = 0.058, _hubIn = 0.022;
+  static const _hx = 0.455, _hy = 0.655, _hrx = 0.088, _hry = 0.061, _tilt = 22.0;
+  static const _nw = 0.042;
 
-  /// Azul → verde → laranja, misturando pelo matiz (sem passar por cinza).
-  static Color _arc(double t) {
-    final a = t < 0.5 ? _blue : _green;
-    final b = t < 0.5 ? _green : _orange;
-    final u = t < 0.5 ? t * 2 : (t - 0.5) * 2;
-    return HSLColor.lerp(HSLColor.fromColor(a), HSLColor.fromColor(b), u)!.toColor();
-  }
+  /// Arco de uma cor só: a cor de destaque do app.
+  static Color _arc(double t) => _green;
 
   @override
   void paint(Canvas canvas, Size s) {
@@ -83,20 +74,26 @@ class _LogoPainter extends CustomPainter {
     canvas.drawCircle(endPoint(_a0), _sw * w / 2, Paint()..color = _arc(0));
     canvas.drawCircle(endPoint(_a1), _sw * w / 2, Paint()..color = _arc(1));
 
-    // Ponteiro e cubo.
-    final tip = Offset(
-      (_pvx + _nl * math.cos(_na * math.pi / 180)) * w,
-      (_pvy - _nl * math.sin(_na * math.pi / 180)) * w,
-    );
-    canvas.drawLine(
-        center,
-        tip,
-        Paint()
-          ..color = Colors.white
-          ..strokeWidth = _nw * w
-          ..strokeCap = StrokeCap.round);
-    canvas.drawCircle(center, _hubR * w, Paint()..color = Colors.white);
-    canvas.drawCircle(center, _hubIn * w, Paint()..color = _hub);
+    // Nota musical (colcheia): cabeça inclinada, haste e bandeira.
+    final white = Paint()..color = Colors.white;
+    canvas.save();
+    canvas.translate(_hx * w, _hy * w);
+    canvas.rotate(-_tilt * math.pi / 180);
+    canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: 2 * _hrx * w, height: 2 * _hry * w), white);
+    canvas.restore();
+    final line = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = _nw * w
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    canvas.drawLine(Offset(0.531 * w, 0.645 * w), Offset(0.531 * w, 0.385 * w), line);
+    final flag = Path()
+      ..moveTo(0.531 * w, 0.385 * w)
+      ..lineTo(0.58 * w, 0.418 * w)
+      ..lineTo(0.617 * w, 0.47 * w)
+      ..lineTo(0.602 * w, 0.535 * w);
+    canvas.drawPath(flag, line);
   }
 
   @override

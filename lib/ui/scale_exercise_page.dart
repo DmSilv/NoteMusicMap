@@ -181,12 +181,24 @@ class ScaleExercisePage extends StatelessWidget {
         children: [
           SmoothNeedle(cents: onTarget ? cur?.cents : null, zone: zone),
           CorrectionHint(cents: onTarget ? cur?.cents : null, zone: zone),
-          if (cur != null && !onTarget)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text('Você está em ${noteName(cur.midi, app.cfg, withOctave: true)}; procure ${noteName(e.expected!, app.cfg, withOctave: true)}.',
-                  style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+          // Espaço reservado: a linha aparece/some só com opacidade, sem empurrar a tela.
+          SizedBox(
+            height: 40,
+            child: Center(
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 180),
+                opacity: (cur != null && !onTarget) ? 1 : 0,
+                child: Text(
+                  cur == null
+                      ? ' '
+                      : 'Você está em ${noteName(cur.midi, app.cfg, withOctave: true)}; procure ${noteName(e.expected!, app.cfg, withOctave: true)}.',
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  style: TextStyle(color: AppColors.textDim, fontSize: 13),
+                ),
+              ),
             ),
+          ),
         ],
       ),
     );

@@ -1,4 +1,4 @@
-// Gera a logo "Tom e Tempo" em PNG para web, Android e iOS, e um SVG.
+// Gera a logo "Notemusic" em PNG para web, Android e iOS, e um SVG.
 // Uso:  node tools/make_icons.mjs   (na raiz do projeto)
 // Sem dependências: rasteriza por geometria com supersampling 4x4.
 //
@@ -15,7 +15,11 @@ const PV = { x: 0.5, y: 0.60 }; // pivô do ponteiro
 const R = 0.29, SW = 0.085; // raio e espessura do arco
 const A0 = 205, A1 = -25; // do lado grave ao lado agudo (passa pelo topo)
 const NA = 84, NL = 0.25, NW = 0.038; // ponteiro: ângulo, comprimento, espessura
-const HUB = 0.058, HUB_IN = 0.022;
+// Nota musical (colcheia) no centro do mostrador.
+const NOTE_HEAD = { x: 0.455, y: 0.655, rx: 0.088, ry: 0.061, tilt: 22 }; // cabeça inclinada
+const NOTE_STEM = [{ x: 0.531, y: 0.645 }, { x: 0.531, y: 0.385 }]; // haste
+const NOTE_FLAG = [{ x: 0.531, y: 0.385 }, { x: 0.58, y: 0.418 }, { x: 0.617, y: 0.47 }, { x: 0.602, y: 0.535 }]; // bandeira
+const NOTE_W = 0.042; // espessura da haste e da bandeira
 const CORNER = 0.22;
 
 const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
@@ -39,9 +43,9 @@ function hsl2rgb([h, s, l]) {
   return [r + m, g + m, b + m].map((v) => v * 255);
 }
 const hslLerp = (a, b, t) => { const A = rgb2hsl(a), B = rgb2hsl(b); return hsl2rgb(A.map((v, i) => v + (B[i] - v) * t)); };
-/** Cor do arco em t=0..1: azul → verde → laranja, misturando pelo matiz. */
-function arcColor(t) {
-  return t < 0.5 ? hslLerp(hex(C.blue), hex(C.green), t * 2) : hslLerp(hex(C.green), hex(C.orange), (t - 0.5) * 2);
+/** Logo simples: arco de uma cor só, a mesma cor de destaque do app. */
+function arcColor() {
+  return hex(C.green);
 }
 const rad = (d) => (d * Math.PI) / 180;
 const pt = (a, r = R) => ({ x: PV.x + r * Math.cos(rad(a)), y: PV.y - r * Math.sin(rad(a)) });
@@ -79,12 +83,18 @@ function sample(x, y, variant) {
     const e = pt(ang);
     if (Math.hypot(px - e.x, py - e.y) <= SW / 2) col = arcColor(t);
   }
-  // ponteiro
-  const tip = pt(NA, NL);
-  if (distSeg(px, py, PV, tip) <= NW / 2) col = hex(C.needle);
-  // cubo do ponteiro
-  const dh = Math.hypot(px - PV.x, py - PV.y);
-  if (dh <= HUB) col = dh <= HUB_IN ? hex(C.hub) : hex(C.needle);
+  // nota musical
+  {
+    const t = rad(NOTE_HEAD.tilt);
+    const ddx = px - NOTE_HEAD.x, ddy = -(py - NOTE_HEAD.y);
+    const lx = ddx * Math.cos(t) + ddy * Math.sin(t);
+    const ly = -ddx * Math.sin(t) + ddy * Math.cos(t);
+    let on = (lx / NOTE_HEAD.rx) ** 2 + (ly / NOTE_HEAD.ry) ** 2 <= 1;
+    if (distSeg(px, py, NOTE_STEM[0], NOTE_STEM[1]) <= NOTE_W / 2) on = true;
+    for (let i = 0; i < NOTE_FLAG.length - 1 && !on; i++)
+      if (distSeg(px, py, NOTE_FLAG[i], NOTE_FLAG[i + 1]) <= NOTE_W / 2) on = true;
+    if (on) col = hex(C.needle);
+  }
   return [...col, 255];
 }
 
@@ -168,15 +178,15 @@ for (let i = 0; i < N; i++) {
   const p1 = pt(a1), p2 = pt(a2);
   segs += `<path d="M${(p1.x * S).toFixed(1)} ${(p1.y * S).toFixed(1)} A${R * S} ${R * S} 0 0 1 ${(p2.x * S).toFixed(1)} ${(p2.y * S).toFixed(1)}" stroke="${hexOf(arcColor((i + 0.5) / N))}" stroke-width="${SW * S}" fill="none"/>\n  `;
 }
-const e0 = pt(A0), e1 = pt(A1), tip = pt(NA, NL);
+const e0 = pt(A0), e1 = pt(A1);
 writeFileSync('assets/logo/logo.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${S} ${S}" width="${S}" height="${S}">
   <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.top}"/><stop offset="1" stop-color="${C.bottom}"/></linearGradient></defs>
   <rect width="${S}" height="${S}" rx="${CORNER * S}" fill="url(#g)"/>
-  ${segs}<circle cx="${e0.x * S}" cy="${e0.y * S}" r="${(SW / 2) * S}" fill="${C.blue}"/>
-  <circle cx="${e1.x * S}" cy="${e1.y * S}" r="${(SW / 2) * S}" fill="${C.orange}"/>
-  <line x1="${PV.x * S}" y1="${PV.y * S}" x2="${tip.x * S}" y2="${tip.y * S}" stroke="${C.needle}" stroke-width="${NW * S}" stroke-linecap="round"/>
-  <circle cx="${PV.x * S}" cy="${PV.y * S}" r="${HUB * S}" fill="${C.needle}"/>
-  <circle cx="${PV.x * S}" cy="${PV.y * S}" r="${HUB_IN * S}" fill="${C.hub}"/>
+  ${segs}<circle cx="${e0.x * S}" cy="${e0.y * S}" r="${(SW / 2) * S}" fill="${C.green}"/>
+  <circle cx="${e1.x * S}" cy="${e1.y * S}" r="${(SW / 2) * S}" fill="${C.green}"/>
+  <ellipse cx="${NOTE_HEAD.x * S}" cy="${NOTE_HEAD.y * S}" rx="${NOTE_HEAD.rx * S}" ry="${NOTE_HEAD.ry * S}" transform="rotate(${-NOTE_HEAD.tilt} ${NOTE_HEAD.x * S} ${NOTE_HEAD.y * S})" fill="${C.needle}"/>
+  <polyline points="${NOTE_STEM.map((p) => p.x * S + ',' + p.y * S).join(' ')}" stroke="${C.needle}" stroke-width="${NOTE_W * S}" stroke-linecap="round" fill="none"/>
+  <polyline points="${NOTE_FLAG.map((p) => p.x * S + ',' + p.y * S).join(' ')}" stroke="${C.needle}" stroke-width="${NOTE_W * S}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
 </svg>
 `);
 console.log('ok assets/logo/logo.svg');

@@ -1,4 +1,4 @@
-# Tom e Tempo (nome provisório até checar as lojas)
+# Notemusic
 
 Afinador, metrônomo, grade de entonação e registro de estudo, em português, sem login.
 Foco em instrumentos de corda (violino, viola, violoncelo, contrabaixo, violão, cavaquinho, ukulele, bandolim).
@@ -30,7 +30,7 @@ flutter run -d web-server --web-port=8099  # abrir http://127.0.0.1:8099
 - Nome, ícone e política de privacidade antes de publicar.
 
 ## Identidade e configurações
-- **Nome:** Tom e Tempo (Tom = afinador e grade; Tempo = metrônomo). Verificar disponibilidade nas lojas antes de publicar.
+- **Nome:** Notemusic (afinador, metrônomo, grade de entonação e estudo). Verificar disponibilidade nas lojas antes de publicar.
 - **Logo:** mostrador de afinador, com arco do azul (grave) ao laranja (agudo) pelo verde (afinado) e ponteiro branco. Fonte: `tools/make_icons.mjs`
   (`node tools/make_icons.mjs` regenera todos os ícones: web, Android, iOS e `assets/logo/logo.svg`).
 - **Configurações (engrenagem):** aparência (auto/claro/escuro), afinação (Lá, instrumento, sistema, transposição, bemóis),

@@ -222,6 +222,67 @@ class _GridPageState extends State<GridPage> {
   // =====================================================================
   // Seção 2: Escala
   // =====================================================================
+  /// "Lá♭" -> "Lá bemol" (leitura natural).
+  String _spoken(String n) => n.replaceAll('♭', ' bemol').replaceAll('♯', ' sustenido');
+
+  /// Opção da tônica: "Lá bemol (Sol sustenido)" nas teclas pretas, para achar rápido.
+  String _tonicLabel(int pc) {
+    final a = _spoken(noteName(pc + 60, app.cfg.copyWith(transpose: 0)));
+    final b = _spoken(noteName(pc + 60, app.cfg.copyWith(transpose: 0, preferFlats: !app.cfg.preferFlats)));
+    return a == b ? a : '$a  ·  $b';
+  }
+
+  /// "Escala de Fá Maior" / "Escala de Lá bemol menor harmônica".
+  String _scaleTitle(int tonicPc) {
+    final type = app.scaleType;
+    final tipo = switch (type) {
+      ScaleType.major => 'Maior',
+      ScaleType.chromatic => 'Cromática',
+      ScaleType.majorPentatonic => 'Pentatônica Maior',
+      _ => type.label.replaceFirst('Menor', 'menor'),
+    };
+    // Grafia usual das tonalidades: Lá bemol Maior, Fá sustenido menor etc.
+    final minor = type == ScaleType.naturalMinor ||
+        type == ScaleType.harmonicMinor ||
+        type == ScaleType.melodicMinor;
+    final flats = minor ? const {3, 10} : const {1, 3, 8, 10};
+    final nota = _spoken(noteName(tonicPc + 60,
+        app.cfg.copyWith(transpose: 0, preferFlats: flats.contains(tonicPc) || (app.preferFlats && !minor && tonicPc != 6))));
+    return type == ScaleType.chromatic ? 'Escala Cromática a partir de $nota' : 'Escala de $nota $tipo';
+  }
+
+  Widget _scaleHero(int tonicPc, TuningConfig names) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      decoration: BoxDecoration(
+        color: AppColors.accent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.6), width: 1.5),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('ESCALA ESCOLHIDA',
+              style: TextStyle(color: AppColors.textDim, fontSize: 11.5, letterSpacing: 1.1, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: Text(_scaleTitle(tonicPc),
+                key: ValueKey(_scaleTitle(tonicPc) + app.scaleOctaves.toString()),
+                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, height: 1.15)),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${app.scaleOctaves} ${app.scaleOctaves == 1 ? 'oitava' : 'oitavas'} · '
+            'começa em ${noteName(app.scaleTonicMidi, app.cfg, withOctave: true)}',
+            style: TextStyle(color: AppColors.textDim, fontSize: 13),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _scaleSection() {
     final tonicPc = app.scaleTonicMidi % 12;
     final names = app.cfg.copyWith(transpose: 0);
@@ -249,14 +310,16 @@ class _GridPageState extends State<GridPage> {
           ),
         ),
         const SizedBox(height: 10),
+        _scaleHero(tonicPc, names),
+        const SizedBox(height: 10),
         AppCard(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(
             children: [
-              _tile(Icons.music_note, 'Tônica (nota inicial)', noteName(tonicPc + 60, names),
+              _tile(Icons.music_note, 'Tônica (nota inicial)', _spoken(noteName(tonicPc + 60, names)),
                   () => _pick<int>(
                         'Tônica',
-                        [for (var pc = 0; pc < 12; pc++) (pc, noteName(pc + 60, names))],
+                        [for (var pc = 0; pc < 12; pc++) (pc, _tonicLabel(pc))],
                         tonicPc,
                         (pc) {
                           app.setScale(tonicPc: pc);

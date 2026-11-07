@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
@@ -18,6 +20,47 @@ class TunerPage extends StatefulWidget {
 class _TunerPageState extends State<TunerPage> {
   int? _playingString; // índice da corda cujo tom está tocando
   bool _playingA = false;
+
+  // Nota exibida com pequeno atraso na TROCA: a leitura só muda para outra nota
+  // depois de ela se manter estável por um instante. A agulha segue ao vivo.
+  static const Duration _noteDelay = Duration(milliseconds: 180);
+  String _shownName = '–';
+  String _shownSub = '';
+  String? _pendingKey;
+  DateTime _pendingSince = DateTime.now();
+  Timer? _settle;
+
+  /// Devolve (nome, sub) a exibir, segurando a nota anterior durante a transição.
+  (String, String) _steady(String name, String sub, bool hasNote) {
+    final key = '$name|$sub';
+    if (!hasNote) {
+      // Silêncio: limpa na hora (o rastreador já segura a nota por um tempo).
+      _pendingKey = null;
+      _shownName = name;
+      _shownSub = sub;
+      return (name, sub);
+    }
+    if (key == '$_shownName|$_shownSub' || _shownName == '–') {
+      _pendingKey = null;
+      _shownName = name;
+      _shownSub = sub;
+      return (name, sub);
+    }
+    if (_pendingKey != key) {
+      _pendingKey = key;
+      _pendingSince = DateTime.now();
+      _settle?.cancel();
+      _settle = Timer(_noteDelay + const Duration(milliseconds: 20), () {
+        if (mounted) setState(() {});
+      });
+    } else if (DateTime.now().difference(_pendingSince) >= _noteDelay) {
+      _pendingKey = null;
+      _shownName = name;
+      _shownSub = sub;
+      return (name, sub);
+    }
+    return (_shownName, _shownSub);
+  }
 
   AppState get app => widget.app;
 
@@ -89,6 +132,7 @@ class _TunerPageState extends State<TunerPage> {
 
   @override
   void dispose() {
+    _settle?.cancel();
     app.tone.stop();
     super.dispose();
   }
@@ -126,6 +170,7 @@ class _TunerPageState extends State<TunerPage> {
             sub = noteName(cur.midi, app.cfg, withOctave: true);
           }
         }
+        (name, sub) = _steady(name, sub, cur != null);
         final zone = app.zone.cents;
         final inZone = cents != null && cents.abs() <= zone;
         final color = cents == null ? AppColors.textDim : intonationColor(cents, zone);

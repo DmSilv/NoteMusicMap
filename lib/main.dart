@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:toastification/toastification.dart';
 
 import 'app_state.dart';
 import 'ui/app_logo.dart';
@@ -10,6 +11,7 @@ import 'ui/share_sheet.dart';
 import 'ui/metronome_page.dart';
 import 'ui/study_page.dart';
 import 'ui/theme.dart';
+import 'ui/toast.dart';
 import 'ui/tuner_page.dart';
 
 Future<void> main() async {
@@ -61,7 +63,7 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
             children: [
               const Center(child: AppLogo(size: 56)),
               const SizedBox(height: 14),
-              const Text('O Tom e Tempo usa:'),
+              const Text('O Notemusic usa:'),
               item(Icons.mic, 'Microfone',
                   'Para ouvir seu instrumento. O som é analisado no aparelho e nunca é gravado nem enviado.'),
               item(Icons.vibration, 'Vibração',
@@ -96,7 +98,7 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
             Center(child: AppLogo(size: 56)),
             SizedBox(height: 16),
             Text(
-              'Para dizer se a nota está afinada, o Tom e Tempo precisa ouvir seu instrumento.\n\n'
+              'Para dizer se a nota está afinada, o Notemusic precisa ouvir seu instrumento.\n\n'
               'O som é analisado no próprio aparelho e descartado na hora: nada é gravado nem enviado.',
             ),
           ],
@@ -121,28 +123,15 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
     }
     // Avisos curtos ao ligar/desligar funções.
     widget.app.onMessage = (msg) {
-      final m = _messengerKey.currentState;
-      if (m == null) return;
+      if (!mounted) return;
       final micOn = msg.startsWith('Microfone ligado');
       final micOff = msg.startsWith('Microfone desligado');
-      m
-        ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(
-          content: Row(children: [
-            if (micOn || micOff) ...[
-              Icon(micOn ? Icons.mic : Icons.mic_off,
-                  color: micOn ? AppColors.inTune : AppColors.textDim),
-              const SizedBox(width: 10),
-            ],
-            Expanded(child: Text(msg)),
-          ]),
-          duration: Duration(milliseconds: micOn ? 3200 : 2400),
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 84),
-          action: micOn
-              ? SnackBarAction(label: 'Desligar', onPressed: () => widget.app.stopListening())
-              : null,
-        ));
+      showToast(
+        context,
+        msg,
+        icon: micOn ? Icons.mic : (micOff ? Icons.mic_off : Icons.info_outline),
+        color: micOn ? AppColors.inTune : (micOff ? AppColors.textDim : null),
+      );
     };
   }
 
@@ -170,8 +159,9 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
           ThemeMode.system => platformDark,
         };
         final theme = buildTheme(dark: dark);
-        return MaterialApp(
-          title: 'Tom e Tempo',
+        return ToastificationWrapper(
+          child: MaterialApp(
+          title: 'Notemusic',
           debugShowCheckedModeBanner: false,
           scaffoldMessengerKey: _messengerKey,
           navigatorKey: _navKey,
@@ -183,7 +173,7 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
           builder: (context, child) =>
               KeyedSubtree(key: ValueKey(dark), child: child!),
           home: HomeShell(app: widget.app),
-        );
+        ));
       },
     );
   }

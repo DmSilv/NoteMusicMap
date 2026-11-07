@@ -7,7 +7,7 @@ import 'share_sheet.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
-const String kAppName = 'Tom e Tempo';
+const String kAppName = 'Notemusic';
 const String kAppVersion = '0.1 (protótipo)';
 
 /// Configurações do app, organizadas por assunto, com a área de permissões.
@@ -120,12 +120,60 @@ class SettingsPage extends StatelessWidget {
         onSelectionChanged: (s) => app.setThemeMode(s.first),
       );
 
+  /// Cabeçalho de subgrupo dentro de um cartão.
+  Widget _group(IconData icon, String title, {Widget? help}) => Padding(
+        padding: const EdgeInsets.only(top: 18, bottom: 6),
+        child: Row(children: [
+          Icon(icon, size: 20, color: AppColors.accent),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(title, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800)),
+          ),
+          ?help,
+        ]),
+      );
+
+  /// Opção em cartão: título, explicação curta e marca de selecionada.
+  Widget _choice(String title, String sub, bool selected, VoidCallback onTap) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Material(
+          color: selected ? AppColors.accent.withValues(alpha: 0.12) : AppColors.surface2,
+          borderRadius: BorderRadius.circular(14),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(14),
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                    color: selected ? AppColors.accent : Colors.transparent, width: 1.5),
+              ),
+              child: Row(children: [
+                Icon(selected ? Icons.radio_button_checked : Icons.radio_button_off,
+                    size: 22, color: selected ? AppColors.accent : AppColors.textDim),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                    const SizedBox(height: 2),
+                    Text(sub, style: TextStyle(color: AppColors.textDim, fontSize: 12.5, height: 1.25)),
+                  ]),
+                ),
+              ]),
+            ),
+          ),
+        ),
+      );
+
   Widget _tuning(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _label('Lá de referência', 'Orquestras costumam usar 442 ou 443 Hz. Mude só se o seu grupo usar outro.',
-            const HelpButton(title: 'Lá de referência', sections: Help.refA)),
+        // ---- 1. Básico ----
+        _group(Icons.tune, 'Básico',
+            help: const HelpButton(title: 'Lá de referência', sections: Help.refA)),
+        _label('Lá de referência', 'A maioria usa 440 Hz. Orquestras costumam usar 442 ou 443.'),
         Wrap(spacing: 6, runSpacing: 4, children: [
           for (final hz in [438.0, 440.0, 442.0, 443.0, 445.0])
             ChoiceChip(
@@ -141,41 +189,45 @@ class SettingsPage extends StatelessWidget {
           options: instrumentOptions(app.cfg),
           onChanged: (v) => app.setTuning(instrumentId: v),
         ),
-        _label('Som de referência (diapasão e cordas)',
-            'Puro é o som de um diapasão de verdade. Cheio ajuda a ouvir em alto-falantes pequenos.'),
-        Wrap(spacing: 6, runSpacing: 4, children: [
-          for (final e in const {
-            ToneTimbre.fork: 'Diapasão (puro)',
-            ToneTimbre.soft: 'Flauta (mais cheio)',
-          }.entries)
-            ChoiceChip(
-              label: Text(e.value),
-              selected: app.toneTimbre == e.key,
-              onSelected: (_) => app.setToneTimbre(e.key),
-            ),
-        ]),
-        _label('Sistema de afinação (modo cromático)',
-            'Só vale no modo Cromático. As cordas soltas usam a afinação própria do instrumento.',
-            const HelpButton(
+
+        // ---- 2. Sistema de afinação ----
+        const Divider(height: 28),
+        _group(Icons.straighten, 'Sistema de afinação',
+            help: const HelpButton(
                 title: 'Qual sistema de afinação?',
                 sections: Help.system,
                 footer: Help.systemFooter)),
-        Wrap(spacing: 6, runSpacing: 4, children: [
-          for (final e in const {
-            TuningSystem.equal: 'Igual',
-            TuningSystem.pythagorean: 'Pitagórico',
-            TuningSystem.just: 'Justo',
-          }.entries)
-            ChoiceChip(
-              label: Text(e.value),
-              selected: app.system == e.key,
-              onSelected: (_) => app.setTuning(system: e.key),
-            ),
-        ]),
-        const SizedBox(height: 6),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Text('Define como cada nota é medida no modo Cromático. As cordas soltas usam a afinação do próprio instrumento.',
+              style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+        ),
+        _choice('Igual', 'Padrão do piano e do violão. Boa para tocar com teclados.',
+            app.system == TuningSystem.equal, () => app.setTuning(system: TuningSystem.equal)),
+        _choice('Pitagórico', 'Melodias e escalas no violino, viola e violoncelo: notas "puxadas" para cima.',
+            app.system == TuningSystem.pythagorean, () => app.setTuning(system: TuningSystem.pythagorean)),
+        _choice('Justo', 'Acordes e conjunto: terças e quintas sem batimento.',
+            app.system == TuningSystem.just, () => app.setTuning(system: TuningSystem.just)),
         SystemAdvice(app: app),
+
+        // ---- 3. Som do diapasão ----
+        const Divider(height: 28),
+        _group(Icons.graphic_eq, 'Som de referência'),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Text('O som que o app toca quando você toca numa corda ou no Lá.',
+              style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+        ),
+        _choice('Diapasão (puro)', 'Som limpo, como um diapasão de verdade. Melhor para afinar de ouvido.',
+            app.toneTimbre == ToneTimbre.fork, () => app.setToneTimbre(ToneTimbre.fork)),
+        _choice('Flauta (mais cheio)', 'Soa mais forte em alto-falantes pequenos de celular.',
+            app.toneTimbre == ToneTimbre.soft, () => app.setToneTimbre(ToneTimbre.soft)),
+
+        // ---- 4. Nomes das notas ----
+        const Divider(height: 28),
+        _group(Icons.abc, 'Nomes das notas'),
         _label('Instrumento transpositor',
-            'Mostra os nomes das notas como estão escritos na partitura do seu instrumento.'),
+            'Mostra os nomes como estão escritos na partitura do seu instrumento.'),
         Wrap(spacing: 6, runSpacing: 4, children: [
           for (final e in const {
             0: 'Som real (dó)',

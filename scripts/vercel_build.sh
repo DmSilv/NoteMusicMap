@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build do Tom e Tempo (Flutter Web) para a Vercel.
+# Build do Notemusic (Flutter Web) para a Vercel.
 # A Vercel não tem o Flutter, então baixamos uma versão FIXA (a mesma testada
 # localmente) para o build ser reproduzível e não quebrar quando sair uma versão nova.
 set -euo pipefail
