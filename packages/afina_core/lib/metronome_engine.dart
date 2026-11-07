@@ -11,6 +11,7 @@
 ///  - o pico nunca passa de 1.0 (sem clipping, mesmo com cliques sobrepostos).
 library;
 
+import 'rhythm_challenge.dart';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
@@ -52,6 +53,9 @@ class MetronomeConfig {
   final TempoTrainer? trainer;
   final SilentBars? silent;
 
+  /// Modo desafio ("sabotagem"): surpresas temporárias de andamento e silêncio.
+  final ChallengeConfig? challenge;
+
   const MetronomeConfig({
     this.bpm = 100,
     this.beatsPerBar = 4,
@@ -65,6 +69,7 @@ class MetronomeConfig {
     this.countInBars = 0,
     this.trainer,
     this.silent,
+    this.challenge,
   });
 
   /// Cria a configuração com acentos padrão para [beats] tempos.
@@ -103,6 +108,7 @@ class MetronomeConfig {
     int? countInBars,
     Object? trainer = _keep,
     Object? silent = _keep,
+    Object? challenge = _keep,
   }) =>
       MetronomeConfig(
         bpm: bpm ?? this.bpm,
@@ -118,6 +124,7 @@ class MetronomeConfig {
             : trainer as TempoTrainer?,
         silent:
             identical(silent, _keep) ? this.silent : silent as SilentBars?,
+        challenge: identical(challenge, _keep) ? this.challenge : challenge as ChallengeConfig?,
       );
 }
 
@@ -132,8 +139,11 @@ class ClickEvent {
   final Accent accent;
   final bool audible;
   final double bpm;
+
+  /// Silêncio do modo desafio: nem som nem marcação na tela.
+  final bool hidden;
   const ClickEvent(this.sample, this.bar, this.beat, this.sub, this.accent,
-      this.audible, this.bpm);
+      this.audible, this.bpm, {this.hidden = false});
 }
 
 class _Voice {
@@ -146,7 +156,11 @@ class _Voice {
 class MetronomeEngine {
   final int sampleRate;
   MetronomeConfig _cfg;
-  double _bpm; // BPM efetivo (o trainer pode subir)
+  double _baseBpm; // BPM do treino de andamento (o original da pessoa, ou o que o trainer já subiu)
+  double _bpm; // BPM efetivo agora (o desafio pode alterar por alguns compassos)
+  RhythmChallenge? _challenge;
+  ChallengeBar _cb = ChallengeBar.normal;
+  final math.Random? _random;
 
   double _nextTick = 0;
   int _rendered = 0;
@@ -159,11 +173,31 @@ class MetronomeEngine {
   final List<ClickEvent> _events = [];
   final Map<String, Float32List> _waves = {};
 
-  MetronomeEngine(this.sampleRate, MetronomeConfig cfg)
+  MetronomeEngine(this.sampleRate, MetronomeConfig cfg, {math.Random? random})
       : _cfg = cfg,
-        _bpm = cfg.bpm {
+        _baseBpm = cfg.bpm,
+        _bpm = cfg.bpm,
+        _random = random {
     _bar = -cfg.countInBars;
+    _setupChallenge();
+    _applyChallenge();
   }
+
+  void _setupChallenge() {
+    final c = _cfg.challenge;
+    _challenge = (c != null && c.active) ? RhythmChallenge(c, random: _random) : null;
+    _cb = ChallengeBar.normal;
+  }
+
+  /// Pede ao desafio o que fazer no compasso atual e recalcula o andamento.
+  void _applyChallenge() {
+    final ch = _challenge;
+    _cb = (ch != null && _bar >= 0) ? ch.barFor(_bar) : ChallengeBar.normal;
+    _bpm = (_baseBpm * _cb.factor).clamp(20.0, 320.0).toDouble();
+  }
+
+  /// O que o desafio já fez nesta execução (mudanças de andamento e silêncios).
+  ChallengeStats get challengeStats => _challenge?.stats ?? const ChallengeStats(0, 0);
 
   MetronomeConfig get config => _cfg;
   double get currentBpm => _bpm;
@@ -172,10 +206,13 @@ class MetronomeEngine {
   /// Troca a configuração sem reiniciar. Vale a partir do próximo tick.
   void update(MetronomeConfig cfg) {
     final bpmChanged = cfg.bpm != _cfg.bpm;
+    final challengeChanged = cfg.challenge != _cfg.challenge;
     final beats = cfg.beatsPerBar;
     final subs = cfg.subdivision;
     _cfg = cfg;
-    if (bpmChanged) _bpm = cfg.bpm;
+    if (bpmChanged) _baseBpm = cfg.bpm;
+    if (challengeChanged) _setupChallenge();
+    if (bpmChanged || challengeChanged) _applyChallenge();
     if (_beat >= beats) _beat = 0;
     if (_sub >= subs) _sub = 0;
   }
@@ -297,10 +334,10 @@ class MetronomeEngine {
     // 1) Gera os ticks que caem neste bloco.
     while (_nextTick.round() < end) {
       final at = _nextTick.round();
-      final muted = _isMuted(_bar);
+      final muted = _isMuted(_bar) || _cb.muted;
       final accent = _accentFor(_beat, _sub);
       final audible = !muted && accent != Accent.mute;
-      _events.add(ClickEvent(at, _bar, _beat, _sub, accent, audible, _bpm));
+      _events.add(ClickEvent(at, _bar, _beat, _sub, accent, audible, _bpm, hidden: _cb.muted));
       if (audible) {
         final gain = switch (accent) {
           Accent.strong => 1.0,
@@ -346,9 +383,10 @@ class MetronomeEngine {
       _barsSinceStep++;
       if (_barsSinceStep >= t.everyBars) {
         _barsSinceStep = 0;
-        _bpm = math.min(t.maxBpm, _bpm + t.stepBpm);
+        _baseBpm = math.min(t.maxBpm, _baseBpm + t.stepBpm);
       }
     }
+    _applyChallenge(); // surpresas do modo desafio, sempre voltando ao andamento original
   }
 }
 

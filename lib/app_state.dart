@@ -29,6 +29,18 @@ const bool kDevDemo = bool.fromEnvironment('DEV_DEMO');
 /// Identificador desta versão (a Vercel grava o commit); vazio em builds locais.
 const String kBuildId = String.fromEnvironment('BUILD_ID');
 
+/// O último tempo marcado pelo metrônomo (para a tela acender a bolinha).
+class MetroBeat {
+  final int beat;
+  final int bar;
+  final Accent accent;
+
+  /// Silêncio do modo desafio: a tela não mostra nada.
+  final bool hidden;
+  const MetroBeat(this.beat, this.bar, this.accent, {this.hidden = false});
+  static const idle = MetroBeat(-1, -1, Accent.weak);
+}
+
 /// Jeito de marcar o tempo de estudo.
 enum StudyMode { pomodoro, stopwatch, custom }
 
@@ -138,6 +150,15 @@ class AppState extends ChangeNotifier {
     p.teacher = profile.teacher;
     p.recoveryShownAt = DateTime.now();
     profile = p;
+    // Os vínculos são da identidade: recomeça a lista de professores e deixa os alunos serem reavaliados.
+    myTeachers = [];
+    _unlinkStudents.clear();
+    _unlinkTeachers.clear();
+    for (final s in students) {
+      if (s.linkState != 'ended') s.linkState = null;
+    }
+    _saveLinks();
+    _saveTeacher();
     _repo?.saveProfile(profile);
     notifyListeners();
     return true;
@@ -212,7 +233,6 @@ class AppState extends ChangeNotifier {
         codeInput: code,
         ownCode: profile.shareCode,
         ownName: profile.name,
-        teacherCodes: teacherCodes,
         existing: students,
         exceptId: exceptId,
       );
@@ -230,8 +250,6 @@ class AppState extends ChangeNotifier {
     final c = formatShareCode(code);
     if (c == null) return 'Código inválido. Confira com o professor.';
     if (c == profile.shareCode) return 'Este é o seu próprio código: você não pode ser o seu próprio professor.';
-    final s = studentByCode(c);
-    if (s != null) return 'Este código é de ${s.name}, um aluno seu. Ele não pode ser o seu professor.';
     return null;
   }
 
@@ -240,8 +258,15 @@ class AppState extends ChangeNotifier {
     if (s == null) return;
     if (input != null && input.trim().isNotEmpty && checkStudentCode(input, exceptId: id) != null) return;
     final old = s.code;
+    final wasLinked = s.linkState == 'active' || s.linkState == 'pending';
     s.code = (input == null || input.trim().isEmpty) ? null : formatShareCode(input);
-    if (old != s.code) s.linkState = null;
+    if (old != s.code) {
+      if (old != null && wasLinked && linkEnabled) {
+        _unlinkStudents.add(old); // o código antigo deixa de ser aluno deste professor
+        _saveLinks();
+      }
+      s.linkState = null;
+    }
     _saveTeacher();
     notifyListeners();
     if (s.code != null && old != s.code) unawaited(linkStudentOnline(s));
@@ -258,7 +283,6 @@ class AppState extends ChangeNotifier {
                     name: 'x-validacao',
                     codeInput: okCode,
                     ownCode: profile.shareCode,
-                    teacherCodes: teacherCodes,
                     existing: students)
                 .code == null
             ? okCode
@@ -388,8 +412,12 @@ class AppState extends ChangeNotifier {
 
   /// Importa de um texto colado. Devolve o aviso para o usuário.
   String importMethods(String text) {
+    if (text.length > 300000) return 'Esse texto é grande demais. Importe em partes menores.';
     final found = parseMethodsText(text);
     if (found.isEmpty) return 'Não encontrei métodos nesse texto. Use um método por linha, ou "Método: lição 1; lição 2".';
+    if (found.length > 500 || found.fold<int>(0, (a, m) => a + m.lessons.length) > 8000) {
+      return 'Muitos itens de uma vez (máximo 500 métodos e 8000 lições). Importe em partes.';
+    }
     final r = mergeMethods(methodLibrary, found);
     _saveMethods();
     notifyListeners();
@@ -598,6 +626,23 @@ class AppState extends ChangeNotifier {
     unawaited(syncLinks());
   }
 
+  /// Melhor esforço: desfaz todos os vínculos deste perfil no servidor (ao apagar tudo),
+  /// para ninguém ficar vendo um professor/aluno que não existe mais.
+  Future<void> _unlinkAllOnline() async {
+    if (!linkEnabled || linkUnavailable) return;
+    try {
+      final own = profile.shareCode, secret = profile.secret;
+      final r = await links.sync(own, secret).timeout(const Duration(seconds: 6));
+      if (!r.ok) return;
+      for (final x in r.asTeacher) {
+        await links.unlink(own, secret, role: 'teacher', other: x.code).timeout(const Duration(seconds: 4));
+      }
+      for (final x in r.asStudent) {
+        await links.unlink(own, secret, role: 'student', other: x.code).timeout(const Duration(seconds: 4));
+      }
+    } catch (_) {}
+  }
+
   /// Atualiza tudo com o servidor: desfaz o que foi removido aqui, envia o que ficou
   /// pendente, e traz quem se vinculou a você (aparece sozinho na lista).
   Future<void> syncLinks() async {
@@ -754,15 +799,13 @@ class AppState extends ChangeNotifier {
   /// Importa um aluno colado (ou junta as sessões se o aluno já existe).
   /// Devolve uma mensagem para o usuário.
   String importStudentText(String text) {
+    if (text.length > 3000000) return 'Esse texto é grande demais para ser os dados de um aluno.';
     final imp = importStudent(text);
     if (imp == null || imp.name.isEmpty) return 'Não consegui ler esses dados. Cole o texto exatamente como foi copiado.';
     // Mesmas regras do cadastro: nada de aluno com o seu código ou o do seu professor.
     final c = imp.code;
     if (c != null && c == profile.shareCode) {
       return 'Esses dados têm o seu próprio código: você não pode ser aluno de si mesmo. Importação cancelada.';
-    }
-    if (c != null && teacherCodes.contains(c)) {
-      return 'Esses dados têm o código de um professor seu. Importação cancelada.';
     }
     // Mesmo código de um aluno já cadastrado = é a mesma pessoa: soma ao histórico dele.
     final sameCode = c == null ? null : studentByCode(c);
@@ -1646,6 +1689,16 @@ class AppState extends ChangeNotifier {
         subdivision: sub,
         sound: ClickSound.values[p.getInt('sound') ?? 0],
         groupSize: beats == 6 ? 3 : (beats == 7 ? 2 : null));
+    try {
+      final raw = p.getString('challenge');
+      if (raw != null) {
+        final j = jsonDecode(raw) as Map<String, dynamic>;
+        final cfg = ChallengeConfig.tryFrom(j['cfg']);
+        challengeOn = j['on'] == true;
+        challengeCfg = cfg ?? challengeCfg;
+        if (challengeOn) metro = metro.copyWith(challenge: challengeCfg);
+      }
+    } catch (_) {}
     final sd = p.getString('study');
     if (sd != null) {
       studySeconds = (jsonDecode(sd) as Map<String, dynamic>)
@@ -1801,7 +1854,7 @@ class AppState extends ChangeNotifier {
     _wake(true);
     micOn.value = true;
     if (kDevDemo && demoMode) FrameMeter.instance.start();
-    if (!demoMode) buzz(ms: 30);
+    if (!demoMode && hapticEnabled) buzz(ms: 30);
     say(demoMode
         ? 'Simulação de desenvolvimento ligada (sem som)'
         : 'Microfone ligado. Toque uma nota!');
@@ -1900,12 +1953,58 @@ class AppState extends ChangeNotifier {
   // ===================================================================
   // Metrônomo
   // ===================================================================
+  // ---------------- Modo desafio ("sabotagem") ----------------
+  /// Ligado: de surpresa o andamento muda ou o metrônomo cala por alguns compassos,
+  /// e sempre volta ao andamento configurado.
+  bool challengeOn = false;
+  ChallengeConfig challengeCfg = const ChallengeConfig();
+
+  void setChallenge({bool? on, ChallengeConfig? cfg}) {
+    if (on != null) challengeOn = on;
+    if (cfg != null) challengeCfg = cfg;
+    _prefs?.setString('challenge', jsonEncode({'on': challengeOn, 'cfg': challengeCfg.toJson()}));
+    setMetro(metro.copyWith(challenge: (challengeOn && challengeCfg.active) ? challengeCfg : null));
+  }
+
+  // ---------------- Eventos do metrônomo (tela e vibração) ----------------
+  /// O último tempo marcado. A tela acende a bolinha com isto.
+  final ValueNotifier<MetroBeat> metroBeat = ValueNotifier(MetroBeat.idle);
+  Timer? _metroPump;
+
+  /// Lê os cliques que chegaram à hora de soar e: avisa a tela e vibra. Fica no app (e não
+  /// na tela do metrônomo) para a vibração continuar quando a pessoa está em outra aba.
+  void _pumpMetro() {
+    final due = metroPlayer.dueEvents();
+    ClickEvent? last;
+    for (final ev in due) {
+      if (ev.sub == 0) last = ev;
+    }
+    if (last == null) return;
+    metroBeat.value = MetroBeat(last.beat, last.bar, last.accent, hidden: last.hidden);
+    // Várias de uma vez (o app ficou parado um instante): vibra uma vez só, no tempo mais recente.
+    if (hapticEnabled && last.audible && !last.hidden) {
+      buzz(ms: last.accent == Accent.strong ? 50 : 30);
+    }
+  }
+
   Future<void> toggleMetronome() async {
     if (metroPlayer.running) {
+      final st = metroPlayer.challengeStats;
+      _metroPump?.cancel();
+      _metroPump = null;
       await metroPlayer.stop();
+      metroBeat.value = MetroBeat.idle;
       _wake(listening);
+      if (metro.challenge != null && (st.tempoChanges + st.silences) > 0) {
+        final partes = [
+          if (st.tempoChanges > 0) '${st.tempoChanges} mudança${st.tempoChanges > 1 ? 's' : ''} de andamento',
+          if (st.silences > 0) '${st.silences} silêncio${st.silences > 1 ? 's' : ''}',
+        ];
+        say('Desafio concluído: ${partes.join(' e ')}.');
+      }
     } else {
       await metroPlayer.start(metro);
+      _metroPump = Timer.periodic(const Duration(milliseconds: 10), (_) => _pumpMetro());
       _wake(true);
     }
     notifyListeners();
@@ -1936,7 +2035,8 @@ class AppState extends ChangeNotifier {
         volume: metro.volume,
         countInBars: metro.countInBars,
         trainer: metro.trainer,
-        silent: metro.silent));
+        silent: metro.silent,
+        challenge: metro.challenge));
   }
 
   void setSubdivision(int s) {
@@ -1999,6 +2099,7 @@ class AppState extends ChangeNotifier {
   /// limpa o cache da página e recarrega, para pegar a versão mais nova.
   Future<void> resetEverything() async {
     await stopListening(quiet: true);
+    await _unlinkAllOnline();
     final p = _prefs ?? await SharedPreferences.getInstance();
     await p.clear();
     students = [];
@@ -2087,6 +2188,7 @@ class AppState extends ChangeNotifier {
     ai.dispose();
     feedback.dispose();
     links.dispose();
+    _metroPump?.cancel();
     _linkTimer?.cancel();
     dictation.dispose();
     _studyTimer?.cancel();

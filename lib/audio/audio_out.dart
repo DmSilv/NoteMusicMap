@@ -37,6 +37,9 @@ class MetronomePlayer {
   bool get running => _engine != null;
   double get currentBpm => _engine?.currentBpm ?? 0;
 
+  /// O que o modo desafio já fez nesta execução.
+  ChallengeStats get challengeStats => _engine?.challengeStats ?? const ChallengeStats(0, 0);
+
   Future<void> start(MetronomeConfig cfg) async {
     if (running) return;
     await ensureAudio();

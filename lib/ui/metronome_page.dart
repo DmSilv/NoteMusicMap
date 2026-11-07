@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
 import '../app_state.dart';
@@ -51,36 +50,13 @@ class MetronomePage extends StatefulWidget {
 
 class _MetronomePageState extends State<MetronomePage>
     with SingleTickerProviderStateMixin {
-  late final Ticker _ticker;
-  final ValueNotifier<_Beat> _beat = ValueNotifier(const _Beat(-1, -1, Accent.weak, 0));
   bool _showAdvanced = false;
 
   AppState get app => widget.app;
 
-  @override
-  void initState() {
-    super.initState();
-    _ticker = createTicker((elapsed) {
-      final due = app.metroPlayer.dueEvents();
-      if (due.isEmpty) return;
-      // Só o tempo (sub 0) acende o indicador; subdivisões não.
-      for (final ev in due) {
-        if (ev.sub == 0) {
-          _beat.value = _Beat(ev.beat, ev.bar, ev.accent, elapsed.inMicroseconds);
-          if (app.hapticEnabled && ev.audible) {
-            app.buzz(ms: ev.accent == Accent.strong ? 40 : 18);
-          }
-        }
-      }
-    })..start();
-  }
-
-  @override
-  void dispose() {
-    _ticker.dispose();
-    _beat.dispose();
-    super.dispose();
-  }
+  // Os cliques (e a vibração) são lidos pelo app, não por esta tela: assim continuam
+  // mesmo quando a pessoa está em outra aba. Aqui só se desenha o último tempo marcado.
+  ValueNotifier<MetroBeat> get _beat => app.metroBeat;
 
   void _applySig(_Sig s) {
     final m = app.metro;
@@ -95,6 +71,7 @@ class _MetronomePageState extends State<MetronomePage>
       countInBars: m.countInBars,
       trainer: m.trainer,
       silent: m.silent,
+      challenge: m.challenge,
     ));
   }
 
@@ -183,7 +160,7 @@ class _MetronomePageState extends State<MetronomePage>
             const SizedBox(height: 12),
             // ---- Indicador de tempos ----
             AppCard(
-              child: ValueListenableBuilder<_Beat>(
+              child: ValueListenableBuilder<MetroBeat>(
                 valueListenable: _beat,
                 builder: (context, b, _) => Column(
                   children: [
@@ -197,7 +174,7 @@ class _MetronomePageState extends State<MetronomePage>
                               child: _BeatDot(
                                 index: i,
                                 accent: m.accents[i],
-                                active: running && b.beat == i,
+                                active: running && !b.hidden && b.beat == i,
                                 flash: app.flashEnabled,
                                 onTap: () => app.cycleAccent(i),
                               ),
@@ -208,7 +185,11 @@ class _MetronomePageState extends State<MetronomePage>
                     const SizedBox(height: 8),
                     Text(
                       running
-                          ? (b.bar < 0 ? 'Contagem inicial' : 'Compasso ${b.bar + 1}')
+                          ? (b.hidden
+                              ? 'Continue no seu andamento…'
+                              : (b.bar < 0
+                                  ? 'Contagem inicial'
+                                  : (app.challengeOn ? 'Modo desafio' : 'Compasso ${b.bar + 1}')))
                           : 'Toque numa bolinha para mudar o acento (forte · médio · fraco · mudo)',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
@@ -405,9 +386,78 @@ class _MetronomePageState extends State<MetronomePage>
                 ],
               ),
             ),
+            const SizedBox(height: 12),
+            _challengeCard(m),
           ],
         );
       },
+    );
+  }
+
+  /// Modo desafio ("sabotagem"): surpresas temporárias para treinar o pulso interno.
+  Widget _challengeCard(MetronomeConfig m) {
+    final on = app.challengeOn;
+    final c = app.challengeCfg;
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            secondary: Icon(Icons.psychology_alt_outlined, color: on ? AppColors.accent : AppColors.textDim),
+            title: const Text('Modo desafio', style: TextStyle(fontWeight: FontWeight.w800)),
+            subtitle: Text(
+              'De surpresa, o metrônomo acelera, desacelera ou fica mudo por alguns compassos, e sempre volta '
+              'aos ${m.bpm.round()} BPM. Treina manter o tempo por dentro.',
+              style: const TextStyle(fontSize: 12.5),
+            ),
+            value: on,
+            onChanged: (v) => app.setChallenge(on: v),
+          ),
+          if (on) ...[
+            const SizedBox(height: 4),
+            Text('Intensidade', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+            const SizedBox(height: 4),
+            Wrap(spacing: 6, children: [
+              for (final (lv, label) in const [(1, 'Leve'), (2, 'Médio'), (3, 'Intenso')])
+                ChoiceChip(
+                  label: Text(label),
+                  selected: c.level == lv,
+                  onSelected: (_) => app.setChallenge(cfg: c.copyWith(level: lv)),
+                ),
+            ]),
+            const SizedBox(height: 4),
+            Text(
+              switch (c.level) {
+                1 => 'Mudanças pequenas (cerca de 10%), silêncios de 1 a 2 compassos, surpresas mais espaçadas.',
+                3 => 'Mudanças grandes (20 a 35%), silêncios de 2 a 4 compassos, surpresas frequentes.',
+                _ => 'Mudanças médias (12 a 22%), silêncios de 2 a 3 compassos.',
+              },
+              style: TextStyle(color: AppColors.textDim, fontSize: 12),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: const Text('Mudar o andamento'),
+              subtitle: const Text('Acelera ou desacelera por alguns compassos', style: TextStyle(fontSize: 12)),
+              value: c.tempoChanges,
+              onChanged: (v) => app.setChallenge(cfg: c.copyWith(tempoChanges: v)),
+            ),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              title: const Text('Ficar em silêncio'),
+              subtitle: const Text('Sem som e sem marcação na tela, depois volta de surpresa',
+                  style: TextStyle(fontSize: 12)),
+              value: c.silences,
+              onChanged: (v) => app.setChallenge(cfg: c.copyWith(silences: v)),
+            ),
+            if (!c.active)
+              Text('Ligue pelo menos uma surpresa para o desafio funcionar.',
+                  style: TextStyle(color: AppColors.sharp, fontSize: 12.5, fontWeight: FontWeight.w700)),
+          ],
+        ],
+      ),
     );
   }
 
@@ -467,14 +517,6 @@ class _MetronomePageState extends State<MetronomePage>
     );
     if (v != null) app.setBpm(v);
   }
-}
-
-class _Beat {
-  final int beat;
-  final int bar;
-  final Accent accent;
-  final int stamp;
-  const _Beat(this.beat, this.bar, this.accent, this.stamp);
 }
 
 class _BeatDot extends StatelessWidget {

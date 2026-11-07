@@ -659,10 +659,14 @@ Future<bool> _confirmDelete(BuildContext context, String title, String text) asy
 
 Future<void> _renameStudent(BuildContext context, AppState app, Student s) async {
   final n = await _askText(context, 'Renomear', 'Nome', initial: s.name, voice: app);
-  if (n != null && n.trim().isNotEmpty) {
-    s.name = n.trim();
-    app.setActiveStudent(app.activeStudentId); // salva e atualiza
+  if (n == null || n.trim().isEmpty) return;
+  final err = app.checkStudent(n, s.code ?? '', exceptId: s.id).name;
+  if (err != null) {
+    app.say(err);
+    return;
   }
+  s.name = n.trim();
+  app.setActiveStudent(app.activeStudentId); // salva e atualiza
 }
 
 Future<void> _editStudentCode(BuildContext context, AppState app, Student s) async {
