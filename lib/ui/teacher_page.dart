@@ -37,6 +37,173 @@ Future<String?> _askText(BuildContext context, String title, String label,
   return v;
 }
 
+/// "Novo aluno": nome (obrigatório) e código do aluno (opcional, o que ele vê em
+/// Configurações › Meu perfil). Devolve (nome, código) ou null se cancelar.
+Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app) async {
+  final name = TextEditingController();
+  final code = TextEditingController();
+  String? nameErr, codeErr;
+  final r = await showDialog<(String, String?)>(
+    context: context,
+    builder: (c) => StatefulBuilder(
+      builder: (c, setS) => AlertDialog(
+        title: const Text('Novo aluno'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: name,
+                autofocus: true,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(labelText: 'Nome do aluno', errorText: nameErr),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: code,
+                autocorrect: false,
+                textCapitalization: TextCapitalization.characters,
+                decoration: InputDecoration(
+                  labelText: 'Código do aluno (opcional)',
+                  hintText: 'K7QM-4TXD',
+                  helperText: 'O aluno vê o código em Configurações › Meu perfil.',
+                  helperMaxLines: 2,
+                  errorText: codeErr,
+                  errorMaxLines: 3,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancelar')),
+          FilledButton(
+            onPressed: () {
+              final n = name.text.trim();
+              final e = app.checkStudentCode(code.text);
+              if (n.isEmpty || e != null) {
+                setS(() {
+                  nameErr = n.isEmpty ? 'Digite o nome do aluno' : null;
+                  codeErr = e;
+                });
+                return;
+              }
+              Navigator.pop(c, (n, code.text.trim().isEmpty ? null : code.text));
+            },
+            child: const Text('Adicionar'),
+          ),
+        ],
+      ),
+    ),
+  );
+  name.dispose();
+  code.dispose();
+  return r;
+}
+
+/// Guia curto e didático do que a área do professor faz, aberto no primeiro acesso.
+class _HowItWorks extends StatelessWidget {
+  final bool open;
+  const _HowItWorks({required this.open});
+
+  static const _steps = <(IconData, String, String)>[
+    (
+      Icons.person_add_alt_1,
+      '1. Cadastre o aluno',
+      'Toque em "Novo aluno" e digite o nome. Se o aluno já usa o Notemusic, peça o código dele '
+          '(em Configurações › Meu perfil, algo como K7QM-4TXD) e digite no campo "Código do aluno". '
+          'Não precisa de e-mail nem de cadastro completo. O código é opcional e pode ser colocado depois, '
+          'no menu do aluno.'
+    ),
+    (
+      Icons.play_circle_outline,
+      '2. Escolha quem está em aula',
+      'Em "Aluno em aula agora" toque no nome. Cada exercício feito no app entra no histórico '
+          'desse aluno, e não no seu.'
+    ),
+    (
+      Icons.assignment_outlined,
+      '3. Passe tarefas',
+      'Abra o aluno e toque em "Nova tarefa": escolha a escala, as oitavas e a meta de acerto. '
+          'A tarefa é marcada como feita sozinha quando ele atinge a meta.'
+    ),
+    (
+      Icons.insights,
+      '4. Acompanhe a evolução',
+      'Na página do aluno você vê a média, o melhor resultado, a tendência e orientações automáticas '
+          'sobre as notas que ele mais desafina. Use "Anotar" para registrar suas observações.'
+    ),
+    (
+      Icons.ios_share,
+      '5. Compartilhe',
+      'No menu ⋮ do aluno: "Copiar relatório" (para enviar por mensagem ou e-mail), "Relatório com IA" '
+          'e "Copiar dados" para levar o aluno a outro aparelho (use "Importar dados de um aluno" lá).'
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          key: ValueKey(open), // reabre quando a lista fica vazia
+          initiallyExpanded: open,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 10),
+          childrenPadding: const EdgeInsets.fromLTRB(10, 0, 10, 12),
+          leading: Icon(Icons.help_outline, color: AppColors.accent),
+          title: const Text('Como funciona', style: TextStyle(fontWeight: FontWeight.w800)),
+          subtitle: Text('Cadastrar, acompanhar e compartilhar, passo a passo',
+              style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final (icon, title, text) in _steps)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(icon, size: 20, color: AppColors.textDim),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                          const SizedBox(height: 2),
+                          Text(text, style: const TextStyle(fontSize: 13, height: 1.3)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'Hoje: o código identifica o aluno na sua lista e tudo fica neste aparelho; o aluno ainda '
+                'não vê suas tarefas e orientações no app dele.\n\n'
+                'Em breve: ao digitar o código, o aluno recebe o seu pedido de acompanhamento, aceita, e '
+                'passa a ver no próprio app as tarefas, as suas orientações e o histórico dele. Nada é '
+                'compartilhado sem o aluno aceitar, e ele pode encerrar quando quiser.',
+                style: TextStyle(fontSize: 12.5, height: 1.35),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Área do professor: alunos, tarefas, observações e relatórios (tudo neste aparelho).
 class TeacherPage extends StatelessWidget {
   final AppState app;
@@ -82,6 +249,8 @@ class TeacherPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
+        _HowItWorks(open: app.students.isEmpty),
+        const SizedBox(height: 10),
         AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,8 +292,8 @@ class TeacherPage extends StatelessWidget {
         FilledButton.icon(
           style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
           onPressed: () async {
-            final n = await _askText(context, 'Novo aluno', 'Nome do aluno', action: 'Adicionar');
-            if (n != null && n.trim().isNotEmpty) app.addStudent(n);
+            final r = await _newStudentDialog(context, app);
+            if (r != null) app.addStudent(r.$1, code: r.$2);
           },
           icon: const Icon(Icons.person_add_alt_1),
           label: const Text('Novo aluno', style: TextStyle(fontWeight: FontWeight.w700)),
@@ -190,6 +359,9 @@ class TeacherPage extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(s.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                    if (s.code != null)
+                      Text('Código ${s.code}',
+                          style: TextStyle(color: AppColors.textDim, fontSize: 12, letterSpacing: 0.5)),
                     const SizedBox(height: 2),
                     Text(
                       sum.sessions == 0
@@ -305,6 +477,17 @@ class StudentPage extends StatelessWidget {
                     case 'data':
                       await Clipboard.setData(ClipboardData(text: exportStudent(s)));
                       app.say('Dados copiados: use "Importar" no outro aparelho');
+                    case 'code':
+                      final c = await _askText(context, 'Código do aluno', 'Código (ex.: K7QM-4TXD)',
+                          initial: s.code ?? '', action: 'Salvar');
+                      if (c != null) {
+                        final err = app.checkStudentCode(c, exceptId: s.id);
+                        if (err != null) {
+                          app.say(err);
+                        } else {
+                          app.setStudentCode(s.id, c);
+                        }
+                      }
                     case 'rename':
                       final n = await _askText(context, 'Renomear', 'Nome', initial: s.name);
                       if (n != null && n.trim().isNotEmpty) {
@@ -333,6 +516,7 @@ class StudentPage extends StatelessWidget {
                   PopupMenuItem(value: 'report', child: Text('Copiar relatório')),
                   PopupMenuItem(value: 'ai', child: Text('Relatório com IA')),
                   PopupMenuItem(value: 'data', child: Text('Copiar dados (para outro aparelho)')),
+                  PopupMenuItem(value: 'code', child: Text('Código do aluno')),
                   PopupMenuItem(value: 'rename', child: Text('Renomear')),
                   PopupMenuItem(value: 'delete', child: Text('Remover aluno')),
                 ],

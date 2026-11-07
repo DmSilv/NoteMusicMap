@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:afina_core/afina_core.dart';
 import 'package:test/test.dart';
 
@@ -23,6 +25,18 @@ void main() {
     expect(r.last, base);
     expect(r.recentAverage, closeTo((0.9 * 3 + 0.5 * 2) / 5, 1e-9));
     expect(r.trendPoints, closeTo(40, 1e-6));
+  });
+
+  test('código do aluno: guarda formatado, ignora inválido e é opcional', () {
+    final ok = Student(id: 'k', name: 'Kai', code: formatShareCode('k7qm4txd'));
+    // Código com verificação correta, gerado na hora.
+    final gen = newShareCode(Random(1));
+    final s = Student(id: 'k2', name: 'Kai', code: gen);
+    expect(Student.tryFrom(s.toJson())!.code, gen);
+    expect(ok.code, isNull); // 'k7qm4txd' não passa na verificação
+    final j = s.toJson()..['code'] = 'AAAA-AAAB';
+    expect(Student.tryFrom(j)!.code, isNull); // inválido não entra
+    expect(Student(id: 'n', name: 'Nina').toJson().containsKey('code'), isFalse);
   });
 
   test('sem sessões não inventa números', () {

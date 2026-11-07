@@ -4,6 +4,7 @@ library;
 
 import 'dart:convert';
 
+import 'identity.dart';
 import 'practice_coach.dart';
 
 class TeacherNote {
@@ -84,6 +85,11 @@ class Assignment {
 class Student {
   final String id;
   String name;
+
+  /// Código de identificação do aluno ("K7QM-4TXD"), se o aluno o informou.
+  /// Hoje só identifica o aluno na sua lista; é o gancho para o vínculo
+  /// automático (o aluno aceita o convite) quando houver sincronização.
+  String? code;
   final DateTime created;
   final List<TeacherNote> notes; // mais recente primeiro
   final List<Assignment> tasks;
@@ -92,6 +98,7 @@ class Student {
   Student({
     required this.id,
     required this.name,
+    this.code,
     DateTime? created,
     List<TeacherNote>? notes,
     List<Assignment>? tasks,
@@ -105,6 +112,7 @@ class Student {
         'v': 1,
         'id': id,
         'name': name,
+        if (code != null) 'code': code,
         'c': created.toIso8601String(),
         'notes': [for (final n in notes) n.toJson()],
         'tasks': [for (final t in tasks) t.toJson()],
@@ -116,6 +124,7 @@ class Student {
       return Student(
         id: j['id'] as String,
         name: ((j['name'] as String?) ?? 'Aluno').trim(),
+        code: formatShareCode((j['code'] as String?) ?? ''),
         created: DateTime.tryParse((j['c'] as String?) ?? ''),
         notes: [
           for (final n in (j['notes'] as List? ?? const []))

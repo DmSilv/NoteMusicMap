@@ -41,7 +41,9 @@ Notas: `sessions.id` vem do cliente (idempotência: reenviar não duplica). Nada
 
 ## 4. Regras de negócio e autorização
 1. Cada aluno tem **um `profileId` único**; o `shareCode` é único e verificável.
-2. **Vincular:** o professor gera convite (código/QR/link, uso único, 15 min). O aluno abre, vê "Fulano quer acompanhar seus exercícios", escolhe o que compartilha (sessões, afinação por nota, tarefas) e **aceita**. Alternativa: o aluno mostra o `shareCode` e o professor pede vínculo; o aluno aprova.
+2. **Vincular (decidido):** o professor só precisa do **código do aluno** (`shareCode`), sem cadastro completo. Ele digita o código ao criar o aluno (campo opcional já existe na Fase 1) e o servidor cria um **pedido pendente**. O aluno vê "Fulano quer acompanhar seus exercícios", escolhe o que compartilha (sessões, afinação por nota, tarefas) e **aceita**. Como o código é semipúblico, é o aceite do aluno que dá acesso, nunca o código. Alternativa para quem está presencialmente: convite do professor por QR/link de uso único (15 min).
+   - **O que o aluno vê depois do vínculo** ("Minhas aulas", Fase 3): as tarefas passadas, as orientações e observações que o professor marcou como visíveis (`visible_to_student`), o conteúdo/atividades compartilhados, e o próprio histórico e desempenho (que já são dele). Pode ver quem é o professor, o que está compartilhado e encerrar o vínculo.
+   - **Conteúdo das aulas:** nova tabela `lesson_items(id, teacher_id, student_id|group, kind[orientacao|atividade|material], title, body, created_at)`; o aluno só lê os que são dele.
 3. **Isolamento:** o professor lê apenas alunos com vínculo `active` e dentro dos `scopes`. Nunca vê outros alunos; aluno nunca vê outros alunos. Sem vínculo, 404 (não 403, para não revelar existência).
 4. **Revogação:** o aluno revoga a qualquer momento; vale na hora. O professor também pode encerrar. Dados antigos ficam com o aluno.
 5. **Professor não edita dados do aluno:** só cria tarefas e observações próprias. Sessões feitas "em aula" no aparelho do professor entram com `origin=teacher_device` e só são vinculadas ao perfil do aluno se o aluno aceitar.
@@ -92,7 +94,7 @@ Tokens guardados só como hash (SHA-256); segredo mostrado uma vez e guardado no
 
 ## 10. Decisões que preciso de você
 1. Plataforma: **Supabase** (recomendado) ou Postgres + auth própria?
-2. Quem inicia o vínculo: **professor convida** (padrão proposto) ou também o aluno pode pedir?
+2. ~~Quem inicia o vínculo~~ **Decidido:** o professor digita o código do aluno e o aluno aceita; convite por QR/link como alternativa presencial.
 3. O professor vê o **histórico anterior ao vínculo** só se o aluno liberar (proposto)?
 4. Haverá **alunos menores de idade**? (muda o consentimento).
 5. A sincronização começa **desligada** (proposto) ou ligada por padrão?

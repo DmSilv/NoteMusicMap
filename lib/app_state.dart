@@ -191,8 +191,43 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  Student addStudent(String name) {
-    final s = Student(id: DateTime.now().microsecondsSinceEpoch.toRadixString(36), name: name.trim());
+  /// Aluno que já está na lista com este código (ou null).
+  Student? studentByCode(String code) {
+    final c = formatShareCode(code);
+    if (c == null) return null;
+    for (final s in students) {
+      if (s.code == c) return s;
+    }
+    return null;
+  }
+
+  /// Confere um código digitado. Devolve o texto do problema, ou null se está certo
+  /// (vazio também está certo: o código é opcional). [exceptId] ignora o próprio aluno.
+  String? checkStudentCode(String input, {String? exceptId}) {
+    if (input.trim().isEmpty) return null;
+    final c = formatShareCode(input);
+    if (c == null) {
+      return 'Código inválido. Ele tem 8 letras e números, como K7QM-4TXD. Confira com o aluno.';
+    }
+    if (c == profile.shareCode) return 'Este é o seu próprio código.';
+    final other = studentByCode(c);
+    if (other != null && other.id != exceptId) return 'Este código já é de ${other.name}.';
+    return null;
+  }
+
+  void setStudentCode(String id, String? input) {
+    final s = studentById(id);
+    if (s == null) return;
+    s.code = (input == null || input.trim().isEmpty) ? null : formatShareCode(input);
+    _saveTeacher();
+    notifyListeners();
+  }
+
+  Student addStudent(String name, {String? code}) {
+    final s = Student(
+        id: DateTime.now().microsecondsSinceEpoch.toRadixString(36),
+        name: name.trim(),
+        code: (code == null || code.trim().isEmpty) ? null : formatShareCode(code));
     students.add(s);
     activeStudentId ??= s.id;
     _saveTeacher();

@@ -6,7 +6,6 @@ import 'app_logo.dart';
 import 'profile_page.dart';
 import 'ref_a_dialog.dart';
 import 'share_sheet.dart';
-import 'teacher_page.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -40,8 +39,7 @@ class SettingsPage extends StatelessWidget {
               _section('Grade', [_grid()]),
               _section('Estudo', [_study(context)]),
               _section('Permissões e privacidade', [_permissions(context)]),
-              _section('Meu perfil', [_profile(context)]),
-              _section('Professor', [_teacher(context)]),
+              _section('Perfil e professor', [_profileHub(context)]),
               _section('Sobre', [_about(context)]),
               _section('Problemas?', [_resetAll(context)]),
             ],
@@ -393,47 +391,25 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  /// Identidade sem cadastro: o código do usuário e a chave de recuperação.
-  Widget _profile(BuildContext context) {
+  /// Uma única entrada para perfil e professor. Tudo o que é de identidade e de
+  /// ensino mora na tela de destino (abas), sem repetir aqui.
+  Widget _profileHub(BuildContext context) {
     final p = app.profile;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Você já tem uma identidade, sem precisar de cadastro. Seu código: ',
-            style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
-        const SizedBox(height: 4),
-        Text(p.shareCode,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 2)),
-        if (p.recoveryShownAt == null) ...[
-          const SizedBox(height: 4),
-          Text('Guarde a chave de recuperação para não perder seu perfil.',
-              style: TextStyle(color: AppColors.sharp, fontSize: 12.5, fontWeight: FontWeight.w700)),
-        ],
-        const SizedBox(height: 10),
-        FilledButton.tonalIcon(
-          onPressed: () => Navigator.of(context)
-              .push(MaterialPageRoute<void>(builder: (_) => ProfilePage(app: app))),
-          icon: const Icon(Icons.badge_outlined),
-          label: const Text('Código e chave de recuperação'),
-        ),
-      ],
-    );
-  }
-
-  Widget _teacher(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _switch('Modo professor', 'Todos começam como aluno. Ligue se quiser cadastrar alunos, passar tarefas, anotar observações e gerar relatórios. Os dados ficam neste aparelho.',
-            app.teacherMode, app.setTeacherMode),
-        if (app.teacherMode)
-          FilledButton.tonalIcon(
-            onPressed: () => Navigator.of(context)
-                .push(MaterialPageRoute<void>(builder: (_) => TeacherPage(app: app))),
-            icon: const Icon(Icons.school_outlined),
-            label: const Text('Abrir a área do professor'),
-          ),
-      ],
+    final pending = p.recoveryShownAt == null;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: CircleAvatar(
+        backgroundColor: AppColors.accent.withValues(alpha: 0.18),
+        child: Icon(app.teacherMode ? Icons.school_outlined : Icons.badge_outlined, color: AppColors.accent),
+      ),
+      title: Text(p.name ?? 'Meu perfil', style: const TextStyle(fontWeight: FontWeight.w800)),
+      subtitle: Text(
+        'Código ${p.shareCode} · Modo professor ${app.teacherMode ? 'ligado' : 'desligado'}'
+        '${pending ? '\nGuarde a chave de recuperação' : ''}',
+        style: TextStyle(color: pending ? AppColors.sharp : AppColors.textDim, fontSize: 12.5),
+      ),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ProfilePage(app: app))),
     );
   }
 
