@@ -50,12 +50,12 @@ void main() {
       expect(s.sublist(8), [67, 65, 64, 62, 60, 59, 57]);
     });
 
-    test('a sequência sempre termina na tônica e nunca repete o topo', () {
+    test('a sequência sempre termina na nota inicial e nunca repete o topo', () {
       for (final t in ScaleType.values) {
         for (final o in [1, 2, 3]) {
           final s = scaleSequence(60, t, octaves: o);
-          expect(s.last, 60, reason: '$t $o');
-          final top = 60 + 12 * o;
+          expect(s.last, 60 + t.start, reason: '$t $o');
+          final top = 60 + t.start + 12 * o;
           expect(s.where((m) => m == top).length, 1, reason: '$t $o');
         }
       }

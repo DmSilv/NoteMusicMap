@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:toastification/toastification.dart';
 
 import 'app_state.dart';
@@ -39,18 +40,24 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
     final ctx = _navKey.currentContext;
     if (ctx == null || !mounted) return;
     Widget item(IconData i, String t, String d) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Icon(i, size: 24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(i, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text(t, style: const TextStyle(fontWeight: FontWeight.w700)),
                 Text(d, style: const TextStyle(fontSize: 13, height: 1.3)),
-              ]),
+              ],
             ),
-          ]),
-        );
+          ),
+        ],
+      ),
+    );
     final ok = await showDialog<bool>(
       context: ctx,
       barrierDismissible: false,
@@ -64,18 +71,33 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
               const Center(child: AppLogo(size: 56)),
               const SizedBox(height: 14),
               const Text('O Notemusic usa:'),
-              item(Icons.mic, 'Microfone',
-                  'Para ouvir seu instrumento. O som é analisado no aparelho e nunca é gravado nem enviado.'),
-              item(Icons.vibration, 'Vibração',
-                  'Na batida do metrônomo, no fim do timer e nas notas das escalas. Você pode desligar depois.'),
-              item(Icons.cloud_outlined, 'Internet (opcional)',
-                  'Só se você pedir a análise por IA. O resto funciona sem internet.'),
+              item(
+                Icons.mic,
+                'Microfone',
+                'Para ouvir seu instrumento. O som é analisado no aparelho e nunca é gravado nem enviado.',
+              ),
+              item(
+                Icons.vibration,
+                'Vibração',
+                'Na batida do metrônomo, no fim do timer e nas notas das escalas. Você pode desligar depois.',
+              ),
+              item(
+                Icons.cloud_outlined,
+                'Internet (opcional)',
+                'Só se você pedir a análise por IA. O resto funciona sem internet.',
+              ),
             ],
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Agora não')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Permitir')),
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Agora não'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Permitir'),
+          ),
         ],
       ),
     );
@@ -104,8 +126,14 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Agora não')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Continuar')),
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Agora não'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Continuar'),
+          ),
         ],
       ),
     );
@@ -134,8 +162,12 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
           showToast(
             context,
             msg,
-            icon: micOn ? Icons.mic : (micOff ? Icons.mic_off : Icons.info_outline),
-            color: micOn ? AppColors.inTune : (micOff ? AppColors.textDim : null),
+            icon: micOn
+                ? Icons.mic
+                : (micOff ? Icons.mic_off : Icons.info_outline),
+            color: micOn
+                ? AppColors.inTune
+                : (micOff ? AppColors.textDim : null),
           );
         })
         ..scheduleFrame();
@@ -157,8 +189,8 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
     return ListenableBuilder(
       listenable: widget.app.themeNotifier,
       builder: (context, _) {
-        final platformDark = WidgetsBinding
-                .instance.platformDispatcher.platformBrightness ==
+        final platformDark =
+            WidgetsBinding.instance.platformDispatcher.platformBrightness ==
             Brightness.dark;
         final dark = switch (widget.app.themeNotifier.value) {
           ThemeMode.dark => true,
@@ -168,19 +200,20 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
         final theme = buildTheme(dark: dark);
         return ToastificationWrapper(
           child: MaterialApp(
-          title: 'Notemusic',
-          debugShowCheckedModeBanner: false,
-          scaffoldMessengerKey: _messengerKey,
-          navigatorKey: _navKey,
-          theme: theme,
-          darkTheme: theme,
-          themeMode: dark ? ThemeMode.dark : ThemeMode.light,
-          // A chave recria a árvore ao trocar de tema: as cores do app são
-          // lidas de AppColors e precisam ser reavaliadas.
-          builder: (context, child) =>
-              KeyedSubtree(key: ValueKey(dark), child: child!),
-          home: HomeShell(app: widget.app),
-        ));
+            title: 'Notemusic',
+            debugShowCheckedModeBanner: false,
+            scaffoldMessengerKey: _messengerKey,
+            navigatorKey: _navKey,
+            theme: theme,
+            darkTheme: theme,
+            themeMode: dark ? ThemeMode.dark : ThemeMode.light,
+            // A chave recria a árvore ao trocar de tema: as cores do app são
+            // lidas de AppColors e precisam ser reavaliadas.
+            builder: (context, child) =>
+                KeyedSubtree(key: ValueKey(dark), child: child!),
+            home: HomeShell(app: widget.app),
+          ),
+        );
       },
     );
   }
@@ -204,9 +237,38 @@ class _HomeShellState extends State<HomeShell> {
   static const _titles = ['Afinador', 'Metrônomo', 'Grade', 'Estudo'];
 
   void _go(int i) => setState(() {
-        _index = i;
-        _visited.add(i);
-      });
+    _index = i;
+    _visited.add(i);
+  });
+
+  /// Botão voltar na tela principal: de outra aba, volta ao Afinador; no
+  /// Afinador, pergunta antes de sair do app.
+  Future<void> _onBack() async {
+    if (_index != 0) {
+      _go(0);
+      return;
+    }
+    final leave = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Sair do Notemusic?'),
+        content: const Text(
+          'Se estiver tocando ou estudando, o app para de ouvir.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c, false),
+            child: const Text('Ficar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Sair'),
+          ),
+        ],
+      ),
+    );
+    if (leave == true) SystemNavigator.pop();
+  }
 
   Widget _page(int i) {
     if (!_visited.contains(i)) return const SizedBox.shrink();
@@ -225,60 +287,87 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final app = widget.app;
-    return Scaffold(
-      appBar: AppBar(
-        titleSpacing: 14,
-        title: Row(children: [
-          const AppLogo(size: 30),
-          const SizedBox(width: 10),
-          Text(_titles[_index]),
-        ]),
-        actions: [
-          MicPill(app: app),
-          PomodoroPill(app: app, onTap: () => _go(3)),
-          // Só este botão reage à troca de tema, não a barra inteira.
-          ValueListenableBuilder<ThemeMode>(
-            valueListenable: app.themeNotifier,
-            builder: (context, mode, _) {
-              final (icon, tip) = switch (mode) {
-                ThemeMode.system => (Icons.brightness_auto, 'Tema: automático (toque para claro)'),
-                ThemeMode.light => (Icons.light_mode, 'Tema: claro (toque para escuro)'),
-                ThemeMode.dark => (Icons.dark_mode, 'Tema: escuro (toque para automático)'),
-              };
-              return IconButton(tooltip: tip, icon: Icon(icon), onPressed: app.cycleTheme);
-            },
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _onBack();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          titleSpacing: 14,
+          title: Row(
+            children: [
+              const AppLogo(size: 30),
+              const SizedBox(width: 10),
+              Text(_titles[_index]),
+            ],
           ),
-          IconButton(
-            tooltip: 'Compartilhar',
-            icon: const Icon(Icons.ios_share),
-            onPressed: () => showShareSheet(context),
-          ),
-          IconButton(
-            tooltip: 'Configurações',
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => SettingsPage(app: app)),
+          actions: [
+            MicPill(app: app),
+            PomodoroPill(app: app, onTap: () => _go(3)),
+            // Só este botão reage à troca de tema, não a barra inteira.
+            ValueListenableBuilder<ThemeMode>(
+              valueListenable: app.themeNotifier,
+              builder: (context, mode, _) {
+                final (icon, tip) = switch (mode) {
+                  ThemeMode.system => (
+                    Icons.brightness_auto,
+                    'Tema: automático (toque para claro)',
+                  ),
+                  ThemeMode.light => (
+                    Icons.light_mode,
+                    'Tema: claro (toque para escuro)',
+                  ),
+                  ThemeMode.dark => (
+                    Icons.dark_mode,
+                    'Tema: escuro (toque para automático)',
+                  ),
+                };
+                return IconButton(
+                  tooltip: tip,
+                  icon: Icon(icon),
+                  onPressed: app.cycleTheme,
+                );
+              },
             ),
-          ),
-        ],
-      ),
-      // IndexedStack mantém o estado de cada aba aberta (a grade e o metrônomo
-      // continuam). Só a aba visível escuta mudanças e se reconstrói.
-      body: SafeArea(
-        child: IndexedStack(
-          index: _index,
-          children: [for (var i = 0; i < 4; i++) _page(i)],
+            IconButton(
+              tooltip: 'Compartilhar',
+              icon: const Icon(Icons.ios_share),
+              onPressed: () => showShareSheet(context),
+            ),
+            IconButton(
+              tooltip: 'Configurações',
+              icon: const Icon(Icons.settings_outlined),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => SettingsPage(app: app)),
+              ),
+            ),
+          ],
         ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _index,
-        onDestinationSelected: _go,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.tune), label: 'Afinador'),
-          NavigationDestination(icon: Icon(Icons.timer_outlined), label: 'Metrônomo'),
-          NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'Grade'),
-          NavigationDestination(icon: Icon(Icons.insights), label: 'Estudo'),
-        ],
+        // IndexedStack mantém o estado de cada aba aberta (a grade e o metrônomo
+        // continuam). Só a aba visível escuta mudanças e se reconstrói.
+        body: SafeArea(
+          child: IndexedStack(
+            index: _index,
+            children: [for (var i = 0; i < 4; i++) _page(i)],
+          ),
+        ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _index,
+          onDestinationSelected: _go,
+          destinations: const [
+            NavigationDestination(icon: Icon(Icons.tune), label: 'Afinador'),
+            NavigationDestination(
+              icon: Icon(Icons.timer_outlined),
+              label: 'Metrônomo',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.grid_view_rounded),
+              label: 'Grade',
+            ),
+            NavigationDestination(icon: Icon(Icons.insights), label: 'Estudo'),
+          ],
+        ),
       ),
     );
   }

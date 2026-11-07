@@ -70,7 +70,7 @@ void main() {
 
     test('nota ouvida por menos que o tempo mínimo não conta', () {
       final e = make();
-      play(e, 55, 0.06); // 2 quadros: ruído
+      play(e, 55, 0.03); // 1 quadro: ruído
       play(e, 57, 0.5); // o Lá não pode fechar o Sol que quase não foi ouvido
       expect(e.index, 0);
     });

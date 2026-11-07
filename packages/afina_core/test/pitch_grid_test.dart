@@ -82,7 +82,7 @@ void main() {
       for (var i = 0; i < 6; i++) {
         t.update(pr(440), eq);
       }
-      for (var i = 0; i < 4; i++) {
+      for (var i = 0; i < 5; i++) {
         expect(t.update(null, eq), isNull);
       }
       expect(t.update(pr(440), eq), isNull); // precisa reconfirmar

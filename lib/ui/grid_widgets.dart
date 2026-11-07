@@ -53,7 +53,14 @@ class OctaveNav extends StatelessWidget {
             arrow(Icons.chevron_left, 'Oitava abaixo',
                 canDown ? () => app.shiftOctaves(-1) : null),
             const SizedBox(width: 8),
-            Expanded(child: _OctaveTrack(app: app)),
+            Expanded(
+              child: OctaveChips(
+                first: lo - 1,
+                last: hi - 1,
+                played: {for (final m in app.grid.playedMidis) (m ~/ 12) - 1},
+                onPick: app.goToOctave,
+              ),
+            ),
             const SizedBox(width: 8),
             arrow(Icons.chevron_right, 'Oitava acima',
                 canUp ? () => app.shiftOctaves(1) : null),
@@ -67,8 +74,8 @@ class OctaveNav extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              'Toque num número ou arraste para escolher as oitavas. '
-              'Oitava 4 é a do Lá 440 Hz.',
+              'Toque num número para escolher as oitavas; o pontinho marca onde você já tocou. '
+              'A oitava 4 é a do Lá 440 Hz.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textDim, fontSize: 12),
             ),
@@ -78,90 +85,100 @@ class OctaveNav extends StatelessWidget {
   }
 }
 
-class _OctaveTrack extends StatelessWidget {
-  final AppState app;
-  const _OctaveTrack({required this.app});
+/// Oitavas 0 a 8 como botões separados e grandes. As escolhidas (de [first] a
+/// [last]) ficam preenchidas; um pontinho embaixo do número marca as oitavas em
+/// que você já tocou alguma nota. Toque num número, ou arraste o dedo por cima,
+/// para escolher.
+class OctaveChips extends StatelessWidget {
+  final int first;
+  final int last;
+  final Set<int> played;
+  final ValueChanged<int> onPick;
+  const OctaveChips({
+    super.key,
+    required this.first,
+    required this.last,
+    required this.played,
+    required this.onPick,
+  });
 
   static const int _count = 9; // oitavas 0..8
 
   @override
   Widget build(BuildContext context) {
-    final (lo, hi) = app.gridOctaves;
-    final first = lo - 1; // rótulo da primeira oitava visível
-    final n = hi - lo + 1;
-
     return LayoutBuilder(builder: (context, box) {
-      final w = box.maxWidth;
-      final cell = w / _count;
+      final cell = box.maxWidth / _count;
 
-      void goTo(double dx) {
-        final label = (dx / cell).floor().clamp(0, _count - 1);
-        app.goToOctave(label);
-      }
+      void goTo(double dx) => onPick((dx / cell).floor().clamp(0, _count - 1));
 
       return Semantics(
-        label: 'Oitavas $first a ${hi - 1}. Toque ou arraste para mudar.',
+        label: first == last
+            ? 'Oitava $first. Toque num número para mudar.'
+            : 'Oitavas $first a $last. Toque num número para mudar.',
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTapDown: (d) => goTo(d.localPosition.dx),
           onHorizontalDragUpdate: (d) => goTo(d.localPosition.dx),
           child: SizedBox(
-            height: 44,
-            child: Stack(
+            height: 52,
+            child: Row(
               children: [
-                // trilho
-                Positioned.fill(
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: AppColors.surface2,
-                      borderRadius: BorderRadius.circular(14),
+                for (var label = 0; label < _count; label++)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: _chip(label),
                     ),
                   ),
-                ),
-                // janela das oitavas visíveis
-                AnimatedPositioned(
-                  duration: const Duration(milliseconds: 260),
-                  curve: Curves.easeOutCubic,
-                  left: first * cell,
-                  width: n * cell,
-                  top: 3,
-                  bottom: 3,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: AppColors.accent.withValues(alpha: 0.28),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.accent, width: 1.5),
-                    ),
-                  ),
-                ),
-                // números
-                Row(
-                  children: [
-                    for (var label = 0; label < _count; label++)
-                      Expanded(
-                        child: Center(
-                          child: Text(
-                            '$label',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: (label + 1 >= lo && label + 1 <= hi)
-                                  ? FontWeight.w800
-                                  : FontWeight.w500,
-                              color: (label + 1 >= lo && label + 1 <= hi)
-                                  ? AppColors.text
-                                  : AppColors.textDim,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
               ],
             ),
           ),
         ),
       );
     });
+  }
+
+  Widget _chip(int label) {
+    final on = label >= first && label <= last;
+    final isRef = label == 4; // oitava do Lá 440 Hz
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      decoration: BoxDecoration(
+        color: on ? AppColors.accent.withValues(alpha: 0.26) : AppColors.surface2,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: on ? AppColors.accent : Colors.transparent, width: 1.6),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            '$label',
+            style: TextStyle(
+              fontSize: 17,
+              height: 1.0,
+              fontWeight: on ? FontWeight.w800 : FontWeight.w600,
+              color: on ? AppColors.text : AppColors.textDim,
+            ),
+          ),
+          const SizedBox(height: 5),
+          // Pontinho = já tocou nessa oitava; "Lá" marca a oitava do Lá 440.
+          SizedBox(
+            height: 9,
+            child: played.contains(label)
+                ? Container(
+                    width: 6,
+                    height: 6,
+                    decoration: BoxDecoration(color: AppColors.accent, shape: BoxShape.circle),
+                  )
+                : (isRef
+                    ? Text('Lá',
+                        style: TextStyle(fontSize: 9, height: 1.0, color: AppColors.textDim))
+                    : null),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -467,6 +484,5 @@ Future<void> confirmResetGrid(BuildContext context, AppState app) async {
   );
   if (ok == true) {
     app.resetGrid();
-    app.say('Grade zerada');
   }
 }

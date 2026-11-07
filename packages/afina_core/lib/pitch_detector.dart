@@ -131,3 +131,30 @@ class McLeodPitchDetector {
     return PitchResult(freq, clarity.clamp(0.0, 1.0), rms);
   }
 }
+
+/// Ajuste do detector para o instrumento: janela curta e faixa de frequências
+/// estreita deixam a leitura bem mais RÁPIDA (notas rápidas) e barata.
+///
+/// O custo do detector cresce com (janela × maior período). Para um violino
+/// (Sol3 = 196 Hz) basta uma janela de 2048 amostras e período máximo de ~280
+/// amostras, contra 4096 e 1100 do ajuste geral: cerca de 7 vezes menos conta
+/// e uma leitura nova a cada ~17 ms em vez de ~35 ms.
+class DetectorProfile {
+  final int window;
+  final int hop;
+  final double minFreq;
+  final double maxFreq;
+  const DetectorProfile(this.window, this.hop, this.minFreq, this.maxFreq);
+
+  /// Perfil para um instrumento cuja nota mais grave tem [lowestHz]. A janela
+  /// cobre pelo menos 4 períodos da nota mais grave (com folga de 20% para
+  /// cordas desafinadas).
+  factory DetectorProfile.forLowest(double lowestHz, {int sampleRate = 44100}) {
+    final minF = (lowestHz * 0.8).clamp(25.0, 400.0).toDouble();
+    var w = 1024;
+    while (w < 4096 && w < 4 * sampleRate / minF) {
+      w *= 2;
+    }
+    return DetectorProfile(w, math.min(768, w ~/ 2), minF, 3200);
+  }
+}

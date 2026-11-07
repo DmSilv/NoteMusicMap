@@ -12,7 +12,7 @@ Foco em instrumentos de corda (violino, viola, violoncelo, contrabaixo, violão,
 
 ## Comandos (com o Flutter 3.47.9 no PATH)
 ```
-cd packages/afina_core && dart test        # 200 testes (precisão, ponteiro, troca de nota, escalas)
+cd packages/afina_core && dart test        # 216 testes (precisão, ponteiro, troca de nota, escalas)
 flutter analyze
 flutter run -d web-server --web-port=8099  # abrir http://127.0.0.1:8099
 ```
@@ -51,10 +51,13 @@ contagem de focos por dia ficam salvos no aparelho. O alarme exige o app aberto 
 - Antes de abrir o repositório ao público, escolher uma licença (hoje não há `LICENSE`: todos os direitos reservados).
 
 ## Grade: ponteiro vivo e troca de nota calma
-- **Ponteiro dentro do quadrado:** o quadrado da nota que está tocando ganha um ponteiro de afinador que se mexe com a afinação, e a cor do
-  quadrado acompanha o ponteiro (azul = grave, **verde no centro** = afinado, laranja = agudo). Em quadrados maiores aparecem o arco de escala,
-  a zona afinada e as marcas; ao travar na zona, a marca do centro acende e o eixo ganha um anel. Código: `lib/ui/cell_gauge.dart`.
-- **Movimento fluido:** o ponteiro é uma mola amortecida resolvida de forma exata (`NeedleSpring`, `packages/afina_core/lib/needle_spring.dart`),
+- **Cursor dentro do quadrado (estilo Tonemap):** o quadrado da nota que toca vira um afinador horizontal: fundo escuro, faixa do meio = zona
+  afinada, faixas laterais na cor viva (azul = grave, verde = afinado, laranja = agudo) e uma linha clara que desliza para o lado grave ou agudo.
+  Ao entrar na zona, a linha fica verde-menta e a zona acende. Código: `lib/ui/cell_gauge.dart`.
+- **Aba Grade:** um teclado de uma oitava (naturais embaixo, sustenidos/bemóis em cima, como num piano) com teclas grandes; a oitava acompanha a
+  nota que toca. O botão "Abrir grade em tela cheia" mostra várias oitavas de uma vez. Os ♯/♭ são desenhados à mão (`NoteLabel`), com o mesmo
+  tamanho e altura em qualquer aparelho. Seletor de oitavas 0 a 8 com botões separados e um pontinho nas oitavas em que você já tocou.
+- **Movimento fluido:** a linha é uma mola amortecida resolvida de forma exata (`NeedleSpring`, `packages/afina_core/lib/needle_spring.dart`),
   calculada a cada quadro da tela (60 fps ou mais) e independente da taxa de leituras do microfone; a cor sai da posição já suavizada.
   O desenho fica numa camada própria (`RepaintBoundary`) e o relógio só roda enquanto há movimento.
 - **Troca de nota calma:** só o DESTAQUE (nome, ponteiro e quadrado aceso) passa por um filtro (`NoteDisplayFilter`): a nota nova precisa se
@@ -63,9 +66,25 @@ contagem de focos por dia ficam salvos no aparelho. O alarme exige o app aberto 
 - **Animações do topo:** o nome da nota troca em "camadas" (a antiga sobe e some, a nova entra do lado oposto), a cor segue o desvio quadro a
   quadro e o número da dica desliza em vez de piscar.
 
+## Notas rápidas (violino)
+O detector usa um perfil por instrumento (`DetectorProfile`): para o violino, janela de 2048 amostras, faixa a partir de ~157 Hz e uma leitura nova
+a cada ~17 ms (antes 4096 amostras e ~35 ms). O estabilizador troca de nota assim que DUAS leituras seguidas concordam. Medido por simulação
+(`packages/afina_core/test/fast_notes_test.dart`, escala ligada com vibrato e ruído): notas de 100 ms passaram de 53% para 100% de reconhecimento e a
+latência caiu de ~125 ms para ~55 ms. No aparelho real ainda falta validar com o violino.
+
+## Taxa de atualização (120 Hz)
+- **Web:** o Flutter desenha a cada `requestAnimationFrame`, então acompanha a taxa da tela (120 Hz em telas de 120 Hz no Chrome do Android; o Safari do iPhone
+  limita páginas web a 60 Hz). Nada a configurar; nos testes o app chegou a 120 quadros por segundo com custo médio de ~3 ms por quadro.
+- **iOS (app):** a chave `CADisableMinimumFrameDurationOnPhone` já está no `Info.plist`, liberando 120 Hz nos iPhones ProMotion.
+- **Android (app):** alguns aparelhos limitam apps a 60 Hz; para pedir a maior taxa, usar o pacote `flutter_displaymode` (`setHighRefreshRate`). Não incluído ainda.
+- **Bateria:** o app só anima enquanto há movimento (os relógios param quando tudo assenta); a taxa maior só custa quando algo está mexendo.
+- **Medir:** em builds de teste (`--dart-define=DEV_DEMO=true`) o `FrameMeter` escreve no console o intervalo e o custo por quadro.
+
 ## Escalas guiadas, pontuação e treinador
 - **Escalas (estilo Flesch):** Grade › Escala. Tom, tipo (maior, menor natural/harmônica/melódica, pentatônica, cromática) e **1, 2 ou 3 oitavas**.
   O app guia nota por nota, subindo e descendo, e calcula a **taxa de acerto** (notas dentro da faixa de afinação).
+- **Arpejos (família do sistema de Carl Flesch):** Grade › Escala › Arpejos. Tríades maior e menor em posição fundamental e nas duas inversões,
+  7ª da dominante e 7ª diminuta, em 1, 2 e 3 oitavas, sobe e desce. A tônica escolhida é a raiz do acorde.
 - **Seguir meu ritmo (padrão) × Esperar cada nota:** no primeiro, toque a escala sem parar; cada nota vale quando você passa para a próxima
   (ou cala), o desvio é a **mediana** do que foi ouvido e notas fora do lugar só geram um aviso leve ("Ainda não é Lá3: suba um pouco").
   No segundo, o app espera você segurar cada nota até a barra encher. Troca no cartão da escala ou durante o exercício.
@@ -75,7 +94,7 @@ contagem de focos por dia ficam salvos no aparelho. O alarme exige o app aberto 
   O treinador por regras roda no aparelho. Já a **análise por IA** (opcional, com consentimento) é descrita abaixo.
 
 ## Análise por IA (Gemini via Vercel)
-Botão "Analisar com IA" no card Treinador. O app envia só o resumo numérico a `POST /api/coach`; a função da Vercel (`api/coach.js`)
+Botão "Analisar com IA" no card Treinador. A resposta segue um formato didático (visão geral, o que os números mostram, causas prováveis, plano da semana e exercício para amanhã), mostrado com títulos e tópicos. O app envia só o resumo numérico a `POST /api/coach`; a função da Vercel (`api/coach.js`)
 guarda a chave e chama o Gemini. Nada de áudio ou dados pessoais.
 - **Chave:** variável de ambiente `geminiAPI` na Vercel (também aceita `GEMINI_API_KEY`). Nunca vai para o repositório nem para o app. Depois de criar/alterar, faça **Redeploy**.
 - **Plano gratuito protegido:** intervalo mínimo por pessoa (20 s), 5 análises/dia por pessoa, teto global por minuto (8) e por dia (200). Ajustáveis (`AI_*`, veja `.env.example`).

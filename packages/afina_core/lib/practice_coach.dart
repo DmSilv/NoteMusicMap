@@ -267,8 +267,8 @@ String buildAiPrompt(
   final names = flats ? noteNamesFlat : noteNamesSharp;
   final recent = sessions.take(10).toList();
   final b = StringBuffer()
-    ..writeln('Sou instrumentista ($instrument) e pratico escalas com um afinador que mede o desvio de cada nota em cents (♯ = agudo, ♭ = grave).')
-    ..writeln('Analise meus resultados recentes e me dê, em português, 3 orientações práticas e gentis para melhorar a afinação.')
+    ..writeln('Sou instrumentista ($instrument) e pratico escalas e arpejos com um afinador que mede o desvio de cada nota em cents (♯ = agudo, ♭ = grave; 100 cents = 1 semitom).')
+    ..writeln('Analise meus resultados e monte a orientação no formato combinado (visão geral, o que os números mostram, causas prováveis, plano de estudo e exercício para amanhã).')
     ..writeln();
   if (recent.isEmpty) {
     b.writeln('(ainda não há sessões registradas)');
@@ -276,8 +276,42 @@ String buildAiPrompt(
   }
   b.writeln('Sessões (da mais recente para a mais antiga):');
   for (final s in recent) {
-    b.writeln('- ${s.title}: ${(s.accuracy * 100).round()}% das notas afinadas (tolerância ±${s.zone.round()} cents), desvio médio ${s.meanAbsCents.toStringAsFixed(1)} cents.');
+    final skipped = s.steps.where((x) => x.cents == null).length;
+    b.writeln('- ${s.title}: ${(s.accuracy * 100).round()}% das notas afinadas (tolerância ±${s.zone.round()} cents), '
+        'desvio médio ${s.meanAbsCents.toStringAsFixed(1)} cents${skipped > 0 ? ', $skipped nota(s) puladas' : ''}.');
   }
+
+  // Tendência: a sessão mais recente contra a mais antiga da lista.
+  if (recent.length >= 2) {
+    final d = (recent.first.accuracy - recent.last.accuracy) * 100;
+    b
+      ..writeln()
+      ..writeln('Tendência: ${d >= 0 ? 'subiu' : 'caiu'} ${d.abs().round()} pontos percentuais entre a sessão mais antiga e a mais recente listadas.');
+  }
+
+  // Subindo × descendo e por oitava do exercício.
+  final up = <double>[], down = <double>[];
+  final byOct = <int, List<double>>{};
+  for (final s in recent) {
+    for (final st in s.steps) {
+      final c = st.cents;
+      if (c == null) continue;
+      (st.ascending ? up : down).add(c);
+      byOct.putIfAbsent(st.octaveIndex, () => []).add(c);
+    }
+  }
+  if (up.isNotEmpty && down.isNotEmpty) {
+    b
+      ..writeln()
+      ..writeln('Desvio médio subindo: ${_mean(up).toStringAsFixed(1)} cents; descendo: ${_mean(down).toStringAsFixed(1)} cents.');
+  }
+  if (byOct.length > 1) {
+    final ks = byOct.keys.toList()..sort();
+    b.writeln('Desvio médio por oitava do exercício (0 = a mais grave): ${[
+      for (final k in ks) '$k: ${_mean(byOct[k]!).toStringAsFixed(1)}'
+    ].join('; ')}.');
+  }
+
   final byPc = <int, List<double>>{};
   for (final s in recent) {
     for (final st in s.steps) {
@@ -291,6 +325,17 @@ String buildAiPrompt(
   for (final k in keys) {
     final v = byPc[k]!;
     b.writeln('- ${names[k]}: ${_mean(v).toStringAsFixed(1)} (${v.length} leituras)');
+  }
+
+  // Observações que o próprio app já calculou (regras do treinador).
+  final tips = analyzePractice(sessions, flats: flats);
+  if (tips.isNotEmpty) {
+    b
+      ..writeln()
+      ..writeln('Observações automáticas do app (use como pistas, sem repetir palavra por palavra):');
+    for (final t in tips.take(5)) {
+      b.writeln('- ${t.text}');
+    }
   }
   return b.toString();
 }

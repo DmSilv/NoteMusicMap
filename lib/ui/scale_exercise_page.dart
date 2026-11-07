@@ -17,7 +17,7 @@ class ScaleExercisePage extends StatelessWidget {
   const ScaleExercisePage({super.key, required this.app});
 
   String get _title =>
-      '${noteName(app.scaleTonicMidi, app.cfg)} ${app.scaleType.label.toLowerCase()} · '
+      '${app.scaleType.display(noteName(app.scaleTonicMidi, app.cfg))} · '
       '${app.scaleOctaves} oitava${app.scaleOctaves > 1 ? 's' : ''}';
 
   @override

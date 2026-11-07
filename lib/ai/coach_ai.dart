@@ -33,7 +33,7 @@ class CoachAi extends ChangeNotifier {
   static const int maxAttempts = 5;
   static const int _clientDailyLimit = 5;
   static const Duration _cooldown = Duration(seconds: 20);
-  static const Duration _timeout = Duration(seconds: 25);
+  static const Duration _timeout = Duration(seconds: 58);
 
   Timer? _tick;
   bool _cancelled = false;

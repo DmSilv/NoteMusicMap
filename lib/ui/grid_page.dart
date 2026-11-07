@@ -2,7 +2,7 @@ import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
-import 'cell_gauge.dart';
+import 'grid_cell.dart';
 import 'grid_fullscreen.dart';
 import 'grid_widgets.dart';
 import 'note_widgets.dart';
@@ -27,6 +27,11 @@ class GridPage extends StatefulWidget {
 class _GridPageState extends State<GridPage> {
   int _section = 0; // 0 grade, 1 escala, 2 ajustes
   int? _selected;
+
+  /// Oitava (rótulo 0..8) mostrada no teclado. Acompanha a nota que toca,
+  /// a menos que o usuário tenha escolhido uma oitava há poucos segundos.
+  int _focus = 4;
+  DateTime _manualUntil = DateTime.fromMillisecondsSinceEpoch(0);
 
   AppState get app => widget.app;
 
@@ -70,11 +75,15 @@ class _GridPageState extends State<GridPage> {
   // Seção 1: Grade
   // =====================================================================
   Widget _gridSection() {
-    final (lo, hi) = app.gridOctaves;
     final cur = app.shown;
     final zone = app.zone.cents;
     final scale = app.scaleMode ? app.scaleNotes.toSet() : <int>{};
     final now = app.now;
+    final shownOct = cur == null ? null : (cur.midi ~/ 12) - 1;
+    if (shownOct != null && shownOct != _focus && DateTime.now().isAfter(_manualUntil)) {
+      _focus = shownOct;
+      _selected = null;
+    }
 
     return Column(
       children: [
@@ -135,16 +144,30 @@ class _GridPageState extends State<GridPage> {
             child: Text(app.micError!, style: TextStyle(color: AppColors.sharp)),
           ),
         const SizedBox(height: 10),
+        // Teclado da oitava: as notas naturais embaixo e os sustenidos/bemóis em
+        // cima, entre as teclas vizinhas, como num piano. Cada tecla é grande,
+        // com nome legível, e a da nota que toca vira um afinador horizontal.
         AppCard(
-          padding: const EdgeInsets.fromLTRB(8, 6, 8, 10),
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
           child: Column(
             children: [
               Row(
                 children: [
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
                   Expanded(
-                    child: Text('Oitavas ${lo - 1} a ${hi - 1}',
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Oitava $_focus',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                        Text(
+                          _focus == 4
+                              ? 'Dó4 a Si4 · inclui o Lá 440 Hz'
+                              : 'Dó$_focus a Si$_focus',
+                          style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+                        ),
+                      ],
+                    ),
                   ),
                   IconButton(
                     tooltip: 'O que significam as cores?',
@@ -161,76 +184,42 @@ class _GridPageState extends State<GridPage> {
                       if (mounted) setState(() => _selected = null);
                     },
                   ),
-                  IconButton(
-                    tooltip: 'Grade em tela cheia',
-                    visualDensity: VisualDensity.compact,
-                    style: IconButton.styleFrom(
-                        backgroundColor: AppColors.accent.withValues(alpha: 0.2)),
-                    icon: const Icon(Icons.fullscreen),
-                    onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                      fullscreenDialog: true,
-                      builder: (_) => GridFullscreen(app: app),
-                    )),
-                  ),
                 ],
               ),
-              Row(
-                children: [
-                  const SizedBox(width: 26),
-                  for (var pc = 0; pc < 12; pc++)
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          noteName(pc + 60, app.cfg.copyWith(transpose: 0)),
-                          style: TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textDim),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              for (var oct = hi; oct >= lo; oct--)
-                Row(
-                  children: [
-                    SizedBox(
-                      width: 26,
-                      child: Text('${oct - 1}',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 11, color: AppColors.textDim)),
-                    ),
-                    for (var pc = 0; pc < 12; pc++)
-                      Expanded(
-                        // Chave por nota: o ponteiro de cada quadrado mantém o
-                        // estado mesmo se a janela de oitavas deslizar.
-                        key: ValueKey(oct * 12 + pc),
-                        child: _cell(
-                          midi: oct * 12 + pc,
-                          now: now,
-                          zone: zone,
-                          playing: cur?.midi == oct * 12 + pc,
-                          liveCents: cur?.midi == oct * 12 + pc ? cur?.cents : null,
-                          silent: cur == null,
-                          inScale: scale.isEmpty || scale.contains(oct * 12 + pc),
-                          isTarget: scale.contains(oct * 12 + pc),
-                        ),
-                      ),
-                  ],
-                ),
-              if (_selected != null) _detail(_selected!, now),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
+              _keyboard(_focus, scale),
+              if (_selected != null && (_selected! ~/ 12) - 1 == _focus) _detail(_selected!, now),
+              const SizedBox(height: 12),
+              IntonationLegend(zone: zone, compact: true),
+              const SizedBox(height: 12),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: IntonationLegend(zone: zone, compact: true),
+                padding: const EdgeInsets.only(left: 4, bottom: 6),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Escolher a oitava',
+                      style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+                ),
               ),
-              const SizedBox(height: 6),
-              OctaveNav(
-                app: app,
-                compact: true,
-                showHint: true,
-                onMore: () => showOctaveSheet(context, app),
+              OctaveChips(
+                first: _focus,
+                last: _focus,
+                played: _playedOctaves(),
+                onPick: (label) => setState(() {
+                  _focus = label;
+                  _selected = null;
+                  _manualUntil = DateTime.now().add(const Duration(seconds: 8));
+                }),
+              ),
+              const SizedBox(height: 14),
+              FilledButton.tonalIcon(
+                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                  fullscreenDialog: true,
+                  builder: (_) => GridFullscreen(app: app),
+                )),
+                icon: const Icon(Icons.fullscreen),
+                label: const Text('Abrir grade em tela cheia (várias oitavas)',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
               ),
             ],
           ),
@@ -255,6 +244,14 @@ class _GridPageState extends State<GridPage> {
   /// "Escala de Fá Maior" / "Escala de Lá bemol menor harmônica".
   String _scaleTitle(int tonicPc) {
     final type = app.scaleType;
+    if (type.arpeggio) {
+      // Arpejos: grafia da raiz (Lá bemol, Fá sustenido) como nas tonalidades.
+      final minorChord = type.label.contains('menor');
+      final flatsA = minorChord ? const {3, 10} : const {1, 3, 8, 10};
+      final raiz = _spoken(noteName(tonicPc + 60,
+          app.cfg.copyWith(transpose: 0, preferFlats: flatsA.contains(tonicPc) || (app.preferFlats && !minorChord && tonicPc != 6))));
+      return type.display(raiz);
+    }
     final tipo = switch (type) {
       ScaleType.major => 'Maior',
       ScaleType.chromatic => 'Cromática',
@@ -283,7 +280,7 @@ class _GridPageState extends State<GridPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('ESCALA ESCOLHIDA',
+          Text(app.scaleType.arpeggio ? 'ARPEJO ESCOLHIDO' : 'ESCALA ESCOLHIDA',
               style: TextStyle(color: AppColors.textDim, fontSize: 11.5, letterSpacing: 1.1, fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
           AnimatedSwitcher(
@@ -295,9 +292,13 @@ class _GridPageState extends State<GridPage> {
           const SizedBox(height: 4),
           Text(
             '${app.scaleOctaves} ${app.scaleOctaves == 1 ? 'oitava' : 'oitavas'} · '
-            'começa em ${noteName(app.scaleTonicMidi, app.cfg, withOctave: true)}',
+            'começa em ${noteName(app.scaleTonicMidi + app.scaleType.start, app.cfg, withOctave: true)}',
             style: TextStyle(color: AppColors.textDim, fontSize: 13),
           ),
+          if (app.scaleType.hint.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(app.scaleType.hint, style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+          ],
         ],
       ),
     );
@@ -316,15 +317,29 @@ class _GridPageState extends State<GridPage> {
                 Icon(Icons.queue_music),
                 SizedBox(width: 8),
                 Expanded(
-                  child: Text('Escalas guiadas',
+                  child: Text('Escalas e arpejos guiados',
                       style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
                 ),
               ]),
               const SizedBox(height: 6),
               Text(
-                'Como no estudo de escalas de Carl Flesch: escolha o tom, o tipo e 1, 2 ou 3 oitavas. '
+                'Como no sistema de escalas de Carl Flesch: escolha o tom, o tipo e 1, 2 ou 3 oitavas. '
                 'O app mostra a próxima nota, sobe e desce com você e dá a taxa de acerto no fim.',
                 style: TextStyle(color: AppColors.textDim, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<bool>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: false, icon: Icon(Icons.trending_up), label: Text('Escalas')),
+                    ButtonSegment(value: true, icon: Icon(Icons.stacked_bar_chart), label: Text('Arpejos')),
+                  ],
+                  selected: {app.scaleType.arpeggio},
+                  onSelectionChanged: (v) => app.setScale(
+                      type: v.first ? ScaleType.majorTriad : ScaleType.major),
+                ),
               ),
             ],
           ),
@@ -348,14 +363,19 @@ class _GridPageState extends State<GridPage> {
                         },
                       )),
               const Divider(height: 1),
-              _tile(Icons.stacked_line_chart, 'Tipo de escala', app.scaleType.label,
+              _tile(Icons.stacked_line_chart,
+                  app.scaleType.arpeggio ? 'Tipo de arpejo' : 'Tipo de escala', app.scaleType.label,
                   () => _pick<ScaleType>(
-                        'Tipo de escala',
-                        [for (final t in ScaleType.values) (t, t.label)],
+                        app.scaleType.arpeggio ? 'Tipo de arpejo' : 'Tipo de escala',
+                        [
+                          for (final t in app.scaleType.arpeggio ? ScaleType.arpeggios : ScaleType.scales)
+                            (t, t.label)
+                        ],
                         app.scaleType,
                         (t) => app.setScale(type: t),
-                        hint:
-                            'Na menor melódica, a escala sobe com 6ª e 7ª maiores e desce como menor natural.',
+                        hint: app.scaleType.arpeggio
+                            ? 'Como em Flesch: tríades em posição fundamental e nas duas inversões, 7ª da dominante e 7ª diminuta, em 1, 2 e 3 oitavas.'
+                            : 'Na menor melódica, a escala sobe com 6ª e 7ª maiores e desce como menor natural.',
                       )),
               const Divider(height: 1),
               _tile(Icons.layers, 'Oitavas', '${app.scaleOctaves}',
@@ -641,62 +661,47 @@ class _GridPageState extends State<GridPage> {
   // =====================================================================
   // Células e relatório
   // =====================================================================
-  Widget _cell({
-    required int midi,
-    required double now,
-    required double zone,
-    required bool playing,
-    required double? liveCents,
-    required bool silent,
-    required bool inScale,
-    required bool isTarget,
-  }) {
-    final v = app.grid.view(midi, now);
-    var fill = AppColors.surface2;
-    if (v != null) {
-      final a = (0.5 + 0.5 * v.confidence) * v.alpha;
-      fill = Color.lerp(AppColors.surface2, intonationColor(v.avgCents, zone), a)!;
-    }
-    final dim = !inScale && v == null;
-    return Padding(
-      padding: const EdgeInsets.all(1.5),
-      child: GestureDetector(
-        onTap: () => setState(() => _selected = _selected == midi ? null : midi),
-        child: AspectRatio(
-          aspectRatio: 0.82,
-          // Transição lenta e suave: a cor "escorre" de uma para a outra.
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 750),
-            curve: Curves.easeInOutCubic,
-            decoration: BoxDecoration(
-              color: dim ? AppColors.surface.withValues(alpha: 0.6) : fill,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                color: playing
-                    ? AppColors.text
-                    : (isTarget && v == null ? AppColors.textDim : Colors.transparent),
-                width: playing ? 2.2 : 1,
-              ),
-            ),
-            // O quadrado da nota que toca ganha o ponteiro vivo (cor e ponteiro
-            // se mexem juntos; verde no centro).
-            child: Stack(
-              fit: StackFit.expand,
+  /// Oitavas (rótulos 0..8) em que já se tocou alguma nota.
+  Set<int> _playedOctaves() => {for (final m in app.grid.playedMidis) (m ~/ 12) - 1};
+
+  /// Teclado de uma oitava: 7 naturais embaixo, 5 acidentes em cima, entre elas.
+  Widget _keyboard(int focus, Set<int> scale) {
+    final base = (focus + 1) * 12;
+    Widget key(int pc) => GridCell(
+          app: app,
+          midi: base + pc,
+          scale: scale,
+          labelSize: 17,
+          radius: 12,
+          onTap: () => setState(() => _selected = _selected == base + pc ? null : base + pc),
+        );
+    const naturals = [0, 2, 4, 5, 7, 9, 11];
+    // Acidente entre a tecla i e a i+1 (não há entre Mi–Fá nem Si–Dó).
+    const between = [1, 3, null, 6, 8, 10];
+    return LayoutBuilder(builder: (context, box) {
+      final col = box.maxWidth / 7;
+      return Column(
+        children: [
+          SizedBox(
+            height: 58,
+            child: Row(
               children: [
-                if (isTarget && v == null)
-                  Center(child: Icon(Icons.circle, size: 5, color: AppColors.textDim)),
-                LiveCellLayer(
-                  cents: liveCents,
-                  zone: zone,
-                  radius: 4,
-                  silent: silent,
-                ),
+                SizedBox(width: col / 2),
+                for (final pc in between)
+                  SizedBox(width: col, child: pc == null ? null : key(pc)),
+                SizedBox(width: col / 2),
               ],
             ),
           ),
-        ),
-      ),
-    );
+          SizedBox(
+            height: 72,
+            child: Row(
+              children: [for (final pc in naturals) SizedBox(width: col, child: key(pc))],
+            ),
+          ),
+        ],
+      );
+    });
   }
 
   Widget _detail(int midi, double now) {
@@ -732,7 +737,7 @@ class _GridPageState extends State<GridPage> {
           padding: const EdgeInsets.all(20),
           children: [
             Text(
-              '${noteName(app.scaleTonicMidi, app.cfg)} ${app.scaleType.label.toLowerCase()}',
+              app.scaleType.display(noteName(app.scaleTonicMidi, app.cfg)),
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 4),

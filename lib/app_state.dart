@@ -100,13 +100,9 @@ class AppState extends ChangeNotifier {
         await ensureAudio();
       } catch (_) {}
     }
-    final wasIdle = pomo.phase == PomoPhase.idle;
     pomo.start(_nowMs);
     _runPomoTimer();
     _wake(true);
-    say(wasIdle
-        ? 'Foco iniciado: ${pomo.config.focusMin} min. Bons estudos!'
-        : 'Timer retomado');
     _savePomo();
     notifyListeners();
   }
@@ -116,7 +112,6 @@ class AppState extends ChangeNotifier {
     _pomoTimer?.cancel();
     _pomoTimer = null;
     _wake(listening || metroRunning);
-    say('Timer pausado');
     _savePomo();
     notifyListeners();
   }
@@ -134,7 +129,6 @@ class AppState extends ChangeNotifier {
     _pomoTimer?.cancel();
     _pomoTimer = null;
     _wake(listening || metroRunning);
-    say('Timer zerado');
     _savePomo();
     notifyListeners();
   }
@@ -376,11 +370,6 @@ class AppState extends ChangeNotifier {
   void setThemeMode(ThemeMode m) {
     themeMode = m;
     _prefs?.setInt('theme', m.index);
-    say(switch (m) {
-      ThemeMode.system => 'Tema automático: segue o seu celular',
-      ThemeMode.light => 'Tema claro',
-      ThemeMode.dark => 'Tema escuro',
-    });
     notifyListeners();
   }
 
@@ -435,11 +424,6 @@ class AppState extends ChangeNotifier {
   void cycleTheme() {
     const order = [ThemeMode.system, ThemeMode.light, ThemeMode.dark];
     themeMode = order[(order.indexOf(themeMode) + 1) % order.length];
-    say(switch (themeMode) {
-      ThemeMode.system => 'Tema automático: segue o seu celular',
-      ThemeMode.light => 'Tema claro',
-      ThemeMode.dark => 'Tema escuro',
-    });
     _prefs?.setInt('theme', themeMode.index);
     notifyListeners();
   }
@@ -484,7 +468,6 @@ class AppState extends ChangeNotifier {
 
   void setFollow(bool v) {
     gridFollow = v;
-    say(v ? 'A grade vai seguir a nota que você toca' : 'Seguir nota desligado');
     notifyListeners();
   }
 
@@ -498,14 +481,6 @@ class AppState extends ChangeNotifier {
   }
 
   void setMic({MicSensitivity? sensitivity, double? gain}) {
-    if (sensitivity != null && sensitivity != this.sensitivity) {
-      say(switch (sensitivity) {
-        MicSensitivity.rigorous => 'Captação rigorosa: só notas limpas e fortes',
-        MicSensitivity.normal => 'Captação normal',
-        MicSensitivity.free =>
-          'Captação livre: pega sons fracos e ruído; pode errar a oitava',
-      });
-    }
     if (sensitivity != null) this.sensitivity = sensitivity;
     if (gain != null) micGain = gain.clamp(1.0, 30.0);
     _applyMic();
@@ -568,9 +543,6 @@ class AppState extends ChangeNotifier {
     exerciseFlow = v;
     exercise?.flow = v; // vale já no exercício em andamento
     _prefs?.setBool('exFlow', v);
-    say(v
-        ? 'Seguindo o seu ritmo: toque a escala sem parar'
-        : 'Esperando cada nota: segure-a até a barra encher');
     notifyListeners();
   }
 
@@ -632,7 +604,7 @@ class AppState extends ChangeNotifier {
     final rec = SessionRecord(
       date: DateTime.now(),
       title:
-          '${noteName(scaleTonicMidi, cfg)} ${scaleType.label.toLowerCase()} · $scaleOctaves oitava${scaleOctaves > 1 ? 's' : ''}',
+          '${scaleType.display(noteName(scaleTonicMidi, cfg))} · $scaleOctaves oitava${scaleOctaves > 1 ? 's' : ''}',
       octaves: scaleOctaves,
       zone: zone.cents,
       accuracy: sc.accuracy,
@@ -666,7 +638,6 @@ class AppState extends ChangeNotifier {
   void setToneTimbre(ToneTimbre t) {
     tone.timbre = t;
     _prefs?.setInt('timbre', t.index);
-    say(t == ToneTimbre.fork ? 'Som de referência: diapasão (puro)' : 'Som de referência: flauta (mais cheio)');
     // Se estiver tocando, recomeça a mesma nota no novo timbre.
     if (tone.running) tone.play(tone.frequency);
     notifyListeners();
@@ -793,13 +764,6 @@ class AppState extends ChangeNotifier {
   }) {
     if (refA != null) this.refA = refA.clamp(400.0, 480.0);
     if (system != null) {
-      if (system != this.system) {
-        say(switch (system) {
-          TuningSystem.equal => 'Afinação igual (piano, violão)',
-          TuningSystem.pythagorean => 'Afinação pitagórica: ideal para melodias',
-          TuningSystem.just => 'Entonação justa: ideal para acordes',
-        });
-      }
       this.system = system;
     }
     if (tonicPc != null) this.tonicPc = tonicPc;
@@ -858,7 +822,10 @@ class AppState extends ChangeNotifier {
         src = DemoPitchSource(_demoScript());
       }
     } else {
-      src = MicPitchSource();
+      // Janela e passo ajustados ao instrumento: violino e afins leem a cada
+      // ~17 ms (notas rápidas), instrumentos graves usam janela maior.
+      src = MicPitchSource(
+          profile: DetectorProfile.forLowest(instrument.stringFreq(0, refA)));
     }
     final ok = await src.start();
     if (!demoMode) micGranted = ok;
@@ -883,8 +850,6 @@ class AppState extends ChangeNotifier {
   }
 
   Future<void> stopListening({bool quiet = false}) async {
-    final wasDemo = demo;
-    final wasOn = listening;
     await _sub?.cancel();
     _sub = null;
     await _source?.stop();
@@ -898,7 +863,6 @@ class AppState extends ChangeNotifier {
     level = 0;
     tracker.reset();
     _wake(metroRunning);
-    if (!quiet && wasOn) say(wasDemo ? 'Demonstração parada' : 'Microfone desligado');
     notifyListeners();
   }
 
@@ -960,11 +924,6 @@ class AppState extends ChangeNotifier {
     if (type != null) scaleType = type;
     if (octaves != null) scaleOctaves = octaves;
     if (enabled != null) {
-      if (enabled != scaleMode) {
-        say(enabled
-            ? 'Exercício de escala ligado: toque as notas marcadas na grade'
-            : 'Exercício de escala desligado');
-      }
       scaleMode = enabled;
     }
     notifyListeners();
@@ -986,11 +945,9 @@ class AppState extends ChangeNotifier {
     if (metroPlayer.running) {
       await metroPlayer.stop();
       _wake(listening);
-      say('Metrônomo parado');
     } else {
       await metroPlayer.start(metro);
       _wake(true);
-      say('Metrônomo ligado · ${metro.bpm.round()} BPM');
     }
     notifyListeners();
   }
@@ -1062,7 +1019,7 @@ class AppState extends ChangeNotifier {
     scaleSessions.insert(0, {
       'date': DateTime.now().toIso8601String(),
       'scale':
-          '${noteName(scaleTonicMidi, cfg)} ${scaleType.label.toLowerCase()}',
+          scaleType.display(noteName(scaleTonicMidi, cfg)),
       'accuracy': r.accuracy,
       'played': r.played,
       'total': r.notes.length,

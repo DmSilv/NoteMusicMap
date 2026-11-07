@@ -8,8 +8,15 @@ import 'package:flutter/scheduler.dart';
 import 'smooth_color.dart';
 import 'theme.dart';
 
-/// Nome de nota com o acidente (♯/♭) elevado e a oitava pequena embaixo,
-/// alinhados à linha de base: "Sol" + ♯ + 4. Largura sempre previsível.
+/// Nome de nota com o acidente (♯/♭) DESENHADO, elevado ao lado da letra, e a
+/// oitava pequena embaixo, tudo alinhado à linha de base: "Sol" + ♯ + 4.
+///
+/// O ♯ e o ♭ são traçados à mão (não vêm da fonte): assim têm sempre o mesmo
+/// tamanho, a mesma altura e o mesmo espaço em qualquer aparelho ou navegador,
+/// em vez de mudar conforme a fonte que o sistema escolhe para esses símbolos.
+/// Com [reserveAccidental], o espaço do acidente fica reservado mesmo nas
+/// notas naturais: a letra de "Sol" e de "Sol♯" ficam na mesma posição, e as
+/// colunas e linhas da grade ficam alinhadas.
 class NoteLabel extends StatelessWidget {
   /// Ex.: 'Sol♯' ou 'Dó'.
   final String name;
@@ -17,6 +24,7 @@ class NoteLabel extends StatelessWidget {
   final double size;
   final Color color;
   final FontWeight weight;
+  final bool reserveAccidental;
 
   const NoteLabel({
     super.key,
@@ -25,6 +33,7 @@ class NoteLabel extends StatelessWidget {
     required this.size,
     required this.color,
     this.weight = FontWeight.w800,
+    this.reserveAccidental = false,
   });
 
   /// Cria a partir de um número MIDI e da configuração de afinação.
@@ -36,6 +45,7 @@ class NoteLabel extends StatelessWidget {
     required double size,
     required Color color,
     FontWeight weight = FontWeight.w800,
+    bool reserveAccidental = false,
   }) {
     final shown = midi + cfg.transpose;
     return NoteLabel(
@@ -45,6 +55,7 @@ class NoteLabel extends StatelessWidget {
       size: size,
       color: color,
       weight: weight,
+      reserveAccidental: reserveAccidental,
     );
   }
 
@@ -52,9 +63,11 @@ class NoteLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasAcc = name.endsWith('♯') || name.endsWith('♭');
     final base = hasAcc ? name.substring(0, name.length - 1) : name;
-    final acc = hasAcc ? name.substring(name.length - 1) : null;
-    TextStyle st(double s, {FontWeight? w, Color? c}) => TextStyle(
-        fontSize: s, fontWeight: w ?? weight, color: c ?? color, height: 1.0);
+    final sharp = name.endsWith('♯');
+    final gh = size * 0.66; // altura do desenho do acidente
+    final gw = size * 0.38; // largura (a mesma para ♯ e ♭)
+    TextStyle st(double s, {FontWeight? w, Color? c}) =>
+        TextStyle(fontSize: s, fontWeight: w ?? weight, color: c ?? color, height: 1.0);
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -62,12 +75,24 @@ class NoteLabel extends StatelessWidget {
       textBaseline: TextBaseline.alphabetic,
       children: [
         Text(base, style: st(size)),
-        if (acc != null)
+        if (hasAcc || reserveAccidental)
           Padding(
-            padding: EdgeInsets.only(left: size * 0.03),
-            child: Transform.translate(
-              offset: Offset(0, -size * 0.30),
-              child: Text(acc, style: st(size * 0.64)),
+            padding: EdgeInsets.only(left: size * 0.04),
+            // A base do desenho fica na linha de base do texto; o deslocamento
+            // para cima (sem mexer no layout) o põe na altura das maiúsculas.
+            child: Baseline(
+              baseline: gh,
+              baselineType: TextBaseline.alphabetic,
+              child: Transform.translate(
+                offset: Offset(0, -size * 0.36),
+                child: SizedBox(
+                  width: gw,
+                  height: gh,
+                  child: hasAcc
+                      ? CustomPaint(painter: _AccidentalPainter(sharp: sharp, color: color))
+                      : null,
+                ),
+              ),
             ),
           ),
         if (octave != null)
@@ -75,12 +100,56 @@ class NoteLabel extends StatelessWidget {
             padding: EdgeInsets.only(left: size * 0.05),
             child: Transform.translate(
               offset: Offset(0, size * 0.10),
-              child: Text('$octave', style: st(size * 0.46, w: FontWeight.w700, c: color.withValues(alpha: 0.8))),
+              child: Text('$octave',
+                  style: st(size * 0.46, w: FontWeight.w700, c: color.withValues(alpha: 0.8))),
             ),
           ),
       ],
     );
   }
+}
+
+/// Desenha ♯ ou ♭ numa caixa de proporção fixa.
+class _AccidentalPainter extends CustomPainter {
+  final bool sharp;
+  final Color color;
+  _AccidentalPainter({required this.sharp, required this.color});
+
+  @override
+  void paint(Canvas canvas, Size s) {
+    final w = s.width, h = s.height;
+    final t = h * 0.085; // espessura dos traços finos
+    final stroke = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = t
+      ..strokeCap = StrokeCap.butt
+      ..strokeJoin = StrokeJoin.round;
+    if (sharp) {
+      // duas hastes e duas barras inclinadas (mais grossas), como no pentagrama
+      canvas.drawLine(Offset(w * 0.33, h * 0.12), Offset(w * 0.33, h), stroke);
+      canvas.drawLine(Offset(w * 0.71, 0), Offset(w * 0.71, h * 0.88), stroke);
+      final bar = Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = t * 1.7
+        ..strokeCap = StrokeCap.butt;
+      canvas.drawLine(Offset(0, h * 0.40), Offset(w, h * 0.27), bar);
+      canvas.drawLine(Offset(0, h * 0.76), Offset(w, h * 0.63), bar);
+    } else {
+      // haste + barriga arredondada na parte de baixo
+      final x = w * 0.22;
+      canvas.drawLine(Offset(x, 0), Offset(x, h), stroke);
+      final bowl = Path()
+        ..moveTo(x, h * 0.62)
+        ..cubicTo(w * 0.55, h * 0.40, w * 1.02, h * 0.50, w * 0.92, h * 0.74)
+        ..cubicTo(w * 0.84, h * 0.92, w * 0.50, h * 0.98, x, h);
+      canvas.drawPath(bowl, stroke..strokeWidth = t * 1.15);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_AccidentalPainter old) => old.sharp != sharp || old.color != color;
 }
 
 /// Desvio em cents: símbolo ♯/♭ + número, alinhados. O número "rola" até o

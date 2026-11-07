@@ -32,17 +32,28 @@ abstract class PitchSource {
 /// Microfone real. Todo o processamento é local; nada é gravado nem enviado.
 class MicPitchSource implements PitchSource {
   static const _sr = 44100;
-  static const _window = 4096;
-  static const _hop = 1536; // ~35 ms entre leituras (mais fluido)
+
+  /// Janela de análise e passo entre leituras (amostras). O perfil do
+  /// instrumento escolhe valores curtos para notas agudas (leitura rápida).
+  final int _window;
+  final int _hop;
 
   final AudioRecorder _rec = AudioRecorder();
   final StreamController<PitchFrame> _ctl = StreamController.broadcast();
   StreamSubscription<Uint8List>? _sub;
-  late final McLeodPitchDetector _det =
-      McLeodPitchDetector(sampleRate: _sr, windowSize: _window);
+  late final McLeodPitchDetector _det;
+  late final Float64List _ring = Float64List(_window);
+  late final Float64List _scratch = Float64List(_window);
 
-  final Float64List _ring = Float64List(_window);
-  final Float64List _scratch = Float64List(_window);
+  MicPitchSource({DetectorProfile profile = const DetectorProfile(4096, 1536, 40, 2200)})
+      : _window = profile.window,
+        _hop = profile.hop {
+    _det = McLeodPitchDetector(
+        sampleRate: _sr,
+        windowSize: profile.window,
+        minFreq: profile.minFreq,
+        maxFreq: profile.maxFreq);
+  }
   int _w = 0;
   int _filled = 0;
   int _sinceDetect = 0;

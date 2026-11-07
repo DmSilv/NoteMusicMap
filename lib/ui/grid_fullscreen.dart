@@ -1,12 +1,9 @@
-import 'dart:math' as math;
-import 'dart:ui' show lerpDouble;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../app_state.dart';
-import 'cell_gauge.dart';
+import 'grid_cell.dart';
 import 'grid_widgets.dart';
 import 'needle.dart';
 import 'note_widgets.dart';
@@ -237,7 +234,7 @@ class _GridFullscreenState extends State<GridFullscreen> {
     final scale = app.scaleMode ? app.scaleNotes.toSet() : <int>{};
     final octs = [for (var o = lo; o <= hi; o++) o]; // grave → agudo
     final pcs = [for (var p = 0; p < 12; p++) p];
-    Widget cell(int midi) => Expanded(child: _Cell(app: app, midi: midi, scale: scale));
+    Widget cell(int midi) => Expanded(child: GridCell(app: app, midi: midi, scale: scale));
 
     if (landscape) {
       return Column(children: [
@@ -260,137 +257,4 @@ class _GridFullscreenState extends State<GridFullscreen> {
           onPressed: () => setState(() => _showControls = true),
         ),
       );
-}
-
-class _Cell extends StatelessWidget {
-  final AppState app;
-  final int midi;
-  final Set<int> scale;
-  const _Cell({required this.app, required this.midi, required this.scale});
-
-  @override
-  Widget build(BuildContext context) {
-    final zone = app.zone.cents;
-    final v = app.grid.view(midi, app.now);
-    final cur = app.shown;
-    final playing = cur?.midi == midi;
-    final inScale = scale.isEmpty || scale.contains(midi);
-    final isTarget = scale.contains(midi);
-
-    var fill = AppColors.surface2;
-    if (v != null) {
-      final a = (0.5 + 0.5 * v.confidence) * v.alpha;
-      fill = Color.lerp(AppColors.surface2, intonationColor(v.avgCents, zone), a)!;
-    }
-    final dim = !inScale && v == null;
-    // Texto sempre legível: ajusta o fundo da célula se o contraste ficar baixo.
-    var dark = AppColors.textDim;
-    if (v != null) {
-      final leg = legibleCell(fill);
-      fill = leg.fill;
-      dark = leg.text;
-    }
-    final inTune = v != null && v.avgCents.abs() <= zone;
-    final labelColor = v == null ? (dim ? AppColors.outline : AppColors.textDim) : dark;
-
-    return Padding(
-      padding: const EdgeInsets.all(2),
-      // Cor e borda animam juntas: nada "pula" entre leituras. Por cima fica a
-      // camada viva, que só aparece no quadrado da nota que está tocando.
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 750),
-        curve: Curves.easeInOutCubic,
-        decoration: BoxDecoration(
-          color: dim ? AppColors.surface.withValues(alpha: 0.5) : fill,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: playing
-                ? AppColors.text
-                : (isTarget && v == null ? AppColors.textDim : Colors.transparent),
-            width: playing ? 3 : 1.2,
-          ),
-        ),
-        child: LayoutBuilder(
-          builder: (context, box) {
-            // Quadrado largo (ex.: grade em pé): o nome da nota fica à esquerda e
-            // o mostrador ocupa o resto, com ponteiro bem maior. Quadrado alto ou
-            // quase quadrado: o nome fica em cima e o mostrador embaixo.
-            final wide = box.maxWidth >= 50 && box.maxWidth >= box.maxHeight * 1.6;
-            final sideW = math.min(46.0, box.maxWidth * 0.46);
-            return LiveCellLayer(
-              cents: playing ? cur?.cents : null,
-              zone: zone,
-              radius: 7,
-              detailed: true,
-              labelBand: wide ? 0 : 24,
-              labelLeft: wide ? sideW : 0,
-              silent: cur == null,
-              builder: (context, live, ink) {
-                // `live` (0..1) comanda tudo junto: o nome da nota vai para o canto
-                // (ou o topo), a seta de histórico some e a cor do texto acompanha
-                // o fundo vivo.
-                final color = Color.lerp(labelColor, ink, live)!;
-                final weight = FontWeight.lerp(
-                    v == null ? FontWeight.w500 : FontWeight.w800, FontWeight.w800, live)!;
-                final ax = wide ? lerpDouble(0, -0.92, live)! : 0.0;
-                final ay = wide ? lerpDouble(-0.34, -0.05, live)! : lerpDouble(-0.34, -0.86, live)!;
-                final labelW = wide ? lerpDouble(box.maxWidth, sideW - 4, live)! : box.maxWidth;
-                return Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Align(
-                      alignment: Alignment(ax, ay),
-                      child: SizedBox(
-                        width: labelW,
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          alignment: wide && live > 0.5 ? Alignment.centerLeft : Alignment.center,
-                          child: Padding(
-                            padding: const EdgeInsets.all(3),
-                            // Nome da nota com ♯/♭ elevado e oitava pequena, alinhados.
-                            child: NoteLabel.midi(midi, app.cfg,
-                                size: 17, weight: weight, color: color),
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (v != null)
-                      Align(
-                        alignment: const Alignment(0, 0.58),
-                        child: Opacity(
-                          opacity: (1 - live).clamp(0.0, 1.0),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                inTune
-                                    ? Icons.check
-                                    : (v.avgCents < 0 ? Icons.arrow_upward : Icons.arrow_downward),
-                                size: 13,
-                                color: dark,
-                              ),
-                              // Só o símbolo (♯ agudo / ♭ grave): o número não ajuda aqui.
-                              if (!inTune)
-                                Padding(
-                                  padding: const EdgeInsets.only(left: 2),
-                                  child: Text(v.avgCents > 0 ? '♯' : '♭',
-                                      style: TextStyle(
-                                          fontSize: 15,
-                                          height: 1.0,
-                                          fontWeight: FontWeight.w800,
-                                          color: dark)),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              },
-            );
-          },
-        ),
-      ),
-    );
-  }
 }

@@ -22,10 +22,11 @@ List<int> scaleSequence(int tonicMidi, ScaleType t,
     {int octaves = 1, bool descend = true}) {
   final up = scaleMidis(tonicMidi, t, octaves: octaves);
   if (!descend) return up;
+  final base = tonicMidi + t.start;
   final down = <int>[];
   for (var o = octaves - 1; o >= 0; o--) {
     for (final s in t.downSteps.reversed) {
-      down.add(tonicMidi + 12 * o + s);
+      down.add(base + 12 * o + s);
     }
   }
   return [...up, ...down];
@@ -148,9 +149,9 @@ class ScaleExercise {
     required int octaves,
     required this.zone,
     this.holdSeconds = 0.5,
-    this.settleSeconds = 0.12,
+    this.settleSeconds = 0.08,
     bool flow = false,
-    this.flowMinSeconds = 0.10,
+    this.flowMinSeconds = 0.05,
     this.flowReleaseSeconds = 0.22,
     this.flowLastSeconds = 0.45,
   })  : _flow = flow,

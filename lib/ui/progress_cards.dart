@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../ai/coach_ai.dart';
 import '../app_state.dart';
+import 'markdown_lite.dart';
 import 'scale_exercise_page.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -372,7 +373,7 @@ class _AiSection extends StatelessWidget {
                   color: AppColors.surface2,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: SelectableText(ai.text!, style: const TextStyle(height: 1.4)),
+                child: MarkdownLite(ai.text!),
               ),
               const SizedBox(height: 6),
               Text('Gerado por IA: pode errar. Use como sugestão, junto com o seu professor.',
