@@ -134,3 +134,10 @@ Tokens guardados só como hash (SHA-256); segredo mostrado uma vez e guardado no
 - **Segurança, limites conhecidos:** o código é semipúblico, então quem souber o código de um aluno pode criar um vínculo com ele (aparece na lista do aluno, que pode encerrar). Por isso **nenhum dado do aluno** passa por esse vínculo ainda: histórico, tarefas e observações continuam locais. O compartilhamento deles exigirá autorização explícita do aluno (próxima etapa), e um "bloquear professor".
 - **Aluno removido pelo professor:** o vínculo é desfeito no servidor (e some da lista do aluno). **Aluno que encerra:** fica na lista do professor com o selo "Encerrado pelo aluno", e o histórico local é mantido.
 - **Para ligar em produção:** criar o Upstash Redis (já listado em `.env.example`). Cota gratuita: confira o limite diário de comandos do plano; com muitos usuários com a tela aberta, considere o plano pago ou migrar o vínculo para o Postgres (Supabase).
+
+## 15. Instalar no celular (feito)
+- **Aviso fixo no alto da tela inicial** ("Instale o Notemusic no celular" + botão Instalar), só no navegador, em celular/tablet (ou no computador, quando o navegador libera a instalação) e enquanto o app não estiver instalado. "X" esconde por 7 dias; se a pessoa recusa a janela do navegador, esconde por 3 dias; "Já instalei" ou instalar de fato esconde de vez. Também há **Configurações › Sobre › Instalar no celular**.
+- **Chrome/Edge (Android e computador):** o app guarda o evento `beforeinstallprompt` (script no `index.html`) e o botão abre a janela de instalação do navegador com um toque.
+- **iPhone/iPad e navegadores sem a janela (Firefox, outros):** o botão mostra o passo a passo (Compartilhar › Adicionar à Tela de Início; ou menu ⋮ › Instalar app). A Apple não permite instalar com um toque.
+- **Manifesto:** `id`, `lang pt-BR`, categorias; já tinha ícones 192/512 e maskable, `display: standalone` e service worker do Flutter.
+- **Fora do escopo:** app de loja (Play Store/App Store). O app nativo existe no projeto (Android/iOS), mas publicar nas lojas exige contas de desenvolvedor, ícones/capturas e revisão; é um passo separado.

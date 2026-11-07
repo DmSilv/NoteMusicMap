@@ -7,6 +7,7 @@ import 'ui/app_logo.dart';
 import 'ui/status_strip.dart';
 import 'ui/teacher_page.dart' show handleIncomingStudentCode;
 import 'ui/grid_page.dart';
+import 'ui/install_banner.dart';
 import 'ui/profile_page.dart' show ProfilePage, handleIncomingTeacherCode;
 import 'ui/settings_page.dart';
 import 'ui/share_sheet.dart';
@@ -378,6 +379,8 @@ class _HomeShellState extends State<HomeShell> {
             children: [
               // Microfone e Pomodoro ativos: faixa própria, longe do título.
               StatusStrip(app: app, onPomodoro: () => _go(3)),
+              // "Instale o Notemusic no celular": só no navegador, enquanto não instalou.
+              InstallBanner(app: app),
               Expanded(
                 child: IndexedStack(
                   index: _index,

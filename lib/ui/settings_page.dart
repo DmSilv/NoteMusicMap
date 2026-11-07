@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'app_logo.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+
+import '../platform/web_install.dart' show webIsStandalone;
 import 'feedback_sheet.dart';
+import 'install_banner.dart';
 import 'profile_page.dart';
 import 'qr_scan_page.dart';
 import 'ref_a_dialog.dart';
@@ -568,6 +572,19 @@ class SettingsPage extends StatelessWidget {
           style: TextStyle(color: AppColors.textDim),
         ),
         const SizedBox(height: 12),
+        // Instalar no celular (só no navegador e enquanto não está instalado).
+        if (kIsWeb && !webIsStandalone()) ...[
+          FilledButton.icon(
+            onPressed: () => runInstall(context, app),
+            icon: const Icon(Icons.install_mobile),
+            label: const Text('Instalar no celular', style: TextStyle(fontWeight: FontWeight.w700)),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 10),
+            child: Text('Coloca o Notemusic na tela inicial: abre em tela cheia, como um app, e funciona sem internet.',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+          ),
+        ],
         FilledButton.icon(
           onPressed: () async {
             final ok = await _confirm(context, 'Atualizar o app?',

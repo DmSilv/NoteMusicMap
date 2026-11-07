@@ -24,6 +24,7 @@
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Notemusic">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
@@ -33,6 +34,20 @@
 
   <title>Notemusic</title>
   <link rel="manifest" href="manifest.json">
+  <!-- Instalar como app: o Chrome do Android avisa uma vez que dá para instalar; guardamos o aviso
+       para o botão "Instalar" do app poder abrir a janela de instalação com um toque. -->
+  <script>
+    window.__nmInstall = null;
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      window.__nmInstall = e;
+      window.dispatchEvent(new Event('nm-install-ready'));
+    });
+    window.addEventListener('appinstalled', function () {
+      window.__nmInstall = null;
+      window.dispatchEvent(new Event('nm-installed'));
+    });
+  </script>
   <!-- Motor de áudio (SoLoud) para a web -->
   <script src="assets/packages/flutter_soloud/web/init_soloud.js" defer></script>
 </head>

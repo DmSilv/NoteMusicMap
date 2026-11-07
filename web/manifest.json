@@ -1,6 +1,9 @@
 {
+    "id": "/",
     "name": "Notemusic",
     "short_name": "Notemusic",
+    "lang": "pt-BR",
+    "categories": ["music", "education"],
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0F1419",

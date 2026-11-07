@@ -1096,6 +1096,25 @@ class AppState extends ChangeNotifier {
     return micGranted == true;
   }
 
+  // ---------------- Instalar no celular (aviso da tela inicial) ----------------
+  /// Esconde o aviso até este instante (ms).
+  int installHideUntil = 0;
+
+  /// A pessoa já instalou (ou disse que instalou): não mostrar mais.
+  bool installDone = false;
+
+  void hideInstall({int days = 3}) {
+    installHideUntil = DateTime.now().add(Duration(days: days)).millisecondsSinceEpoch;
+    _prefs?.setInt('install_hide', installHideUntil);
+    notifyListeners();
+  }
+
+  void markInstalled() {
+    installDone = true;
+    _prefs?.setBool('install_done', true);
+    notifyListeners();
+  }
+
   // ---------------- Câmera (só para ler QR) ----------------
   /// null = ainda não pedida; true = a câmera abriu; false = o usuário negou.
   bool? cameraGranted;
@@ -1644,6 +1663,8 @@ class AppState extends ChangeNotifier {
     await _loadTeacher(p);
     _loadLinks(p);
     cameraGranted = p.getBool('cam_granted');
+    installHideUntil = p.getInt('install_hide') ?? 0;
+    installDone = p.getBool('install_done') ?? false;
     _readIncomingCode();
     _scheduleUpdateChecks();
     // Mostra o estado real das permissões sem abrir nenhum pedido do sistema.
