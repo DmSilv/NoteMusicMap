@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'app_logo.dart';
+import 'profile_page.dart';
 import 'ref_a_dialog.dart';
 import 'share_sheet.dart';
 import 'teacher_page.dart';
@@ -39,6 +40,7 @@ class SettingsPage extends StatelessWidget {
               _section('Grade', [_grid()]),
               _section('Estudo', [_study(context)]),
               _section('Permissões e privacidade', [_permissions(context)]),
+              _section('Meu perfil', [_profile(context)]),
               _section('Professor', [_teacher(context)]),
               _section('Sobre', [_about(context)]),
               _section('Problemas?', [_resetAll(context)]),
@@ -391,11 +393,38 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
+  /// Identidade sem cadastro: o código do usuário e a chave de recuperação.
+  Widget _profile(BuildContext context) {
+    final p = app.profile;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Você já tem uma identidade, sem precisar de cadastro. Seu código: ',
+            style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+        const SizedBox(height: 4),
+        Text(p.shareCode,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 2)),
+        if (p.recoveryShownAt == null) ...[
+          const SizedBox(height: 4),
+          Text('Guarde a chave de recuperação para não perder seu perfil.',
+              style: TextStyle(color: AppColors.sharp, fontSize: 12.5, fontWeight: FontWeight.w700)),
+        ],
+        const SizedBox(height: 10),
+        FilledButton.tonalIcon(
+          onPressed: () => Navigator.of(context)
+              .push(MaterialPageRoute<void>(builder: (_) => ProfilePage(app: app))),
+          icon: const Icon(Icons.badge_outlined),
+          label: const Text('Código e chave de recuperação'),
+        ),
+      ],
+    );
+  }
+
   Widget _teacher(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _switch('Modo professor', 'Cadastre alunos, passe tarefas, anote observações e gere relatórios. Tudo fica neste aparelho.',
+        _switch('Modo professor', 'Todos começam como aluno. Ligue se quiser cadastrar alunos, passar tarefas, anotar observações e gerar relatórios. Os dados ficam neste aparelho.',
             app.teacherMode, app.setTeacherMode),
         if (app.teacherMode)
           FilledButton.tonalIcon(

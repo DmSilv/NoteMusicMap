@@ -266,6 +266,8 @@ test('config lê as chaves pelos nomes aceitos', () => {
   assert.equal(config({ geminiAPI: 'k' }).keys.gemini, 'k');
   assert.equal(config({ GEMINI_API_KEY: 'z' }).keys.gemini, 'z');
   assert.equal(config({ CLAUDE_API_KEY: 'c' }).keys.anthropic, 'c');
+  assert.equal(config({ CHATGPYAPI: 'o' }).keys.openai, 'o'); // nome usado na Vercel
+  assert.equal(config({ OPENAI_API_KEY: 'a', CHATGPYAPI: 'b' }).keys.openai, 'a');
   assert.deepEqual(config({}).keys, {});
   assert.equal(config({ AI_RPM_GROQ: '33' }).rpm.groq, 33);
 });

@@ -16,6 +16,7 @@ import 'dev/frame_meter.dart';
 import 'audio/audio_out.dart';
 import 'platform/hard_reset.dart';
 import 'audio/pitch_source.dart';
+import 'data/repository.dart';
 import 'package:afina_core/afina_core.dart';
 
 /// Ativa a simulação de execução (sem som), só para testes: --dart-define=DEV_DEMO=true.
@@ -100,8 +101,48 @@ class AppState extends ChangeNotifier {
   double get pomoProgress => pomo.progress(_nowMs);
   int get pomoToday => pomoDays[dayKey(DateTime.now())] ?? 0;
 
+  // ---------------- Perfil (identidade sem cadastro) ----------------
+  /// Dados do perfil (sessões, alunos) passam por aqui. Hoje é local; na nuvem
+  /// será outro [Repository], sem mexer nas telas.
+  Repository? _repo;
+
+  /// Quem é você neste app: id, código e a capacidade "professor". Todo mundo
+  /// começa como aluno; o modo professor é só uma chave a mais, no mesmo perfil.
+  Profile profile = Profile.create(math.Random.secure());
+
+  void setProfileName(String? name) {
+    final n = name?.trim();
+    profile.name = (n == null || n.isEmpty) ? null : n;
+    _repo?.saveProfile(profile);
+    notifyListeners();
+  }
+
+  /// Anota que o usuário viu/copiou a chave de recuperação (para o lembrete sumir).
+  void markRecoveryShown() {
+    profile.recoveryShownAt = DateTime.now();
+    _repo?.saveProfile(profile);
+    notifyListeners();
+  }
+
+  /// Assume um perfil a partir da chave de recuperação. O histórico e os alunos
+  /// que já estão neste aparelho continuam e passam a ser deste perfil.
+  /// Devolve false se a chave estiver errada. O modo professor deste aparelho
+  /// não muda.
+  bool restoreProfile(String key) {
+    final p = profileFromRecoveryKey(key);
+    if (p == null) return false;
+    p.teacher = profile.teacher;
+    p.recoveryShownAt = DateTime.now();
+    profile = p;
+    _repo?.saveProfile(profile);
+    notifyListeners();
+    return true;
+  }
+
   // ---------------- Área do professor (local, sem login) ----------------
-  bool teacherMode = false;
+  /// A capacidade "professor" mora no perfil (desligada por padrão).
+  bool get teacherMode => profile.teacher;
+  set teacherMode(bool v) => profile.teacher = v;
   String? teacherPinHash;
   String teacherSalt = 'nm';
   bool teacherUnlocked = false; // vale só nesta abertura do app
@@ -230,13 +271,13 @@ class AppState extends ChangeNotifier {
   void _saveTeacher() {
     final p = _prefs;
     if (p == null) return;
-    p.setBool('teacherMode', teacherMode);
+    _repo?.saveProfile(profile);
     if (teacherPinHash == null) {
       p.remove('teacherPin');
     } else {
       p.setString('teacherPin', teacherPinHash!);
     }
-    p.setString('students', jsonEncode([for (final s in students) s.toJson()]));
+    _repo?.saveStudents(students);
     if (activeStudentId == null) {
       p.remove('activeStudent');
     } else {
@@ -244,21 +285,10 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  void _loadTeacher(SharedPreferences p) {
-    teacherMode = p.getBool('teacherMode') ?? false;
+  Future<void> _loadTeacher(SharedPreferences p) async {
     teacherPinHash = p.getString('teacherPin');
     activeStudentId = p.getString('activeStudent');
-    try {
-      final j = p.getString('students');
-      students = j == null
-          ? []
-          : [
-              for (final x in (jsonDecode(j) as List))
-                ?Student.tryFrom((x as Map).cast<String, dynamic>())
-            ];
-    } catch (_) {
-      students = [];
-    }
+    students = await _repo!.loadStudents();
   }
 
   // ---------------- Estudo: cronômetro e tempo personalizado ----------------
@@ -888,7 +918,11 @@ class AppState extends ChangeNotifier {
     if (e == null) return;
     exerciseDone = true;
     final sc = e.score;
+    // No modo demonstração não se guarda histórico (não é a execução do músico).
+    final student = (!demo && teacherMode) ? activeStudent : null;
     final rec = SessionRecord(
+      id: newUuid(math.Random.secure()),
+      origin: student != null ? kOriginTeacherDevice : kOriginSelf,
       date: DateTime.now(),
       title:
           '${scaleType.display(noteName(scaleTonicMidi, cfg))} · $scaleOctaves oitava${scaleOctaves > 1 ? 's' : ''}',
@@ -902,8 +936,6 @@ class AppState extends ChangeNotifier {
       ],
     );
     lastSession = rec;
-    // No modo demonstração não se guarda histórico (não é a execução do músico).
-    final student = (!demo && teacherMode) ? activeStudent : null;
     if (student != null) {
       // Aula com aluno: o exercício vai para o histórico dele (não para o seu).
       student.sessions.insert(0, rec);
@@ -925,7 +957,7 @@ class AppState extends ChangeNotifier {
     } else if (!demo) {
       sessionRecords.insert(0, rec);
       if (sessionRecords.length > 200) sessionRecords.removeRange(200, sessionRecords.length);
-      _prefs?.setString('sessions2', jsonEncode([for (final r in sessionRecords) r.toJson()]));
+      _repo?.saveSessions(sessionRecords);
       say('Exercício concluído: ${(sc.accuracy * 100).round()}% de acerto. Salvo no histórico.');
     } else {
       say('Fim da demonstração. Ela não entra no seu histórico.');
@@ -1046,16 +1078,12 @@ class AppState extends ChangeNotifier {
     if (ss != null) {
       scaleSessions = (jsonDecode(ss) as List).cast<Map<String, dynamic>>();
     }
-    final s2 = p.getString('sessions2');
-    if (s2 != null) {
-      sessionRecords = [
-        for (final j in (jsonDecode(s2) as List))
-          ?SessionRecord.tryFromJson((j as Map).cast<String, dynamic>())
-      ];
-    }
+    final repo = _repo = LocalRepository(p);
+    profile = await repo.loadOrCreateProfile();
+    sessionRecords = await repo.loadSessions();
     _loadPomo(p);
     _loadClocks(p);
-    _loadTeacher(p);
+    await _loadTeacher(p);
     _scheduleUpdateChecks();
     // Mostra o estado real das permissões sem abrir nenhum pedido do sistema.
     if (onboarded) {
@@ -1393,7 +1421,6 @@ class AppState extends ChangeNotifier {
     await p.clear();
     students = [];
     activeStudentId = null;
-    teacherMode = false;
     teacherPinHash = null;
     teacherUnlocked = false;
     stopwatch.reset();

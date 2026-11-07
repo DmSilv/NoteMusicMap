@@ -6,8 +6,8 @@ const crypto = require('node:crypto');
 /** Nomes aceitos para a chave de cada serviço (o primeiro preenchido vale). */
 const PROVIDER_KEYS = {
   gemini: ['geminiAPI', 'GEMINI_API_KEY', 'GEMINI_API', 'GOOGLE_API_KEY'],
-  openai: ['OPENAI_API_KEY', 'openaiAPI'],
-  anthropic: ['ANTHROPIC_API_KEY', 'anthropicAPI', 'CLAUDE_API_KEY'],
+  openai: ['OPENAI_API_KEY', 'openaiAPI', 'CHATGPYAPI', 'chatgpyAPI', 'CHATGPTAPI', 'chatgptAPI', 'CHATGPT_API_KEY'],
+  anthropic: ['ANTHROPIC_API_KEY', 'anthropicAPI', 'CLAUDE_API_KEY', 'claudeAPI', 'CLAUDEAPI'],
   groq: ['GROQ_API_KEY', 'groqAPI'],
   openrouter: ['OPENROUTER_API_KEY', 'openrouterAPI'],
   mistral: ['MISTRAL_API_KEY', 'mistralAPI'],

@@ -37,7 +37,27 @@ class StepRecord {
       );
 }
 
+/// Quem executou o exercício: o próprio dono do perfil ou o aparelho do
+/// professor (aula). Hoje só marca a origem; no futuro decide o vínculo.
+const String kOriginSelf = 'self';
+const String kOriginTeacherDevice = 'teacher_device';
+
+/// Id estável para sessões antigas (sem id): mesma data e título → mesmo id em
+/// qualquer aparelho, então reenviar não duplica. Só aritmética pequena (web).
+String legacySessionId(DateTime date, String title) {
+  var h = 7;
+  for (final c in title.codeUnits) {
+    h = (h * 31 + c) % 2147483647;
+  }
+  return 'L${date.microsecondsSinceEpoch.toRadixString(36)}-${h.toRadixString(36)}';
+}
+
 class SessionRecord {
+  /// Identificador único e permanente (UUID v4; "L…" nas sessões antigas).
+  /// A sessão nunca é editada depois de salva, só acrescentada: por isso o id
+  /// torna a sincronização futura idempotente.
+  final String id;
+  final String origin;
   final DateTime date;
 
   /// Ex.: "Sol maior · 2 oitavas".
@@ -48,7 +68,9 @@ class SessionRecord {
   final double meanAbsCents;
   final List<StepRecord> steps;
 
-  const SessionRecord({
+  SessionRecord({
+    String? id,
+    this.origin = kOriginSelf,
     required this.date,
     required this.title,
     required this.octaves,
@@ -56,10 +78,12 @@ class SessionRecord {
     required this.accuracy,
     required this.meanAbsCents,
     required this.steps,
-  });
+  }) : id = id ?? legacySessionId(date, title);
 
   Map<String, dynamic> toJson() => {
         'v': 2,
+        'id': id,
+        if (origin != kOriginSelf) 'origin': origin,
         'date': date.toIso8601String(),
         'title': title,
         'oct': octaves,
@@ -73,6 +97,8 @@ class SessionRecord {
     try {
       if (j['v'] != 2) return null; // formato antigo (relatório simples)
       return SessionRecord(
+        id: j['id'] as String?,
+        origin: (j['origin'] as String?) ?? kOriginSelf,
         date: DateTime.parse(j['date'] as String),
         title: (j['title'] as String?) ?? 'Escala',
         octaves: (j['oct'] as num?)?.toInt() ?? 1,

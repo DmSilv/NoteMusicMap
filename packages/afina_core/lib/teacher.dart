@@ -214,11 +214,12 @@ Student? importStudent(String text) {
   }
 }
 
-/// Junta sessões novas ([extra]) às existentes sem duplicar (mesma data e título).
+/// Junta sessões novas ([extra]) às existentes sem duplicar (mesmo id, ou mesma
+/// data e título para dados antigos).
 int mergeSessions(List<SessionRecord> into, List<SessionRecord> extra) {
   var added = 0;
   for (final e in extra) {
-    final dup = into.any((s) => s.date == e.date && s.title == e.title);
+    final dup = into.any((s) => s.id == e.id || (s.date == e.date && s.title == e.title));
     if (!dup) {
       into.add(e);
       added++;
