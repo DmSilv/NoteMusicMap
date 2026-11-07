@@ -60,3 +60,4 @@ key.properties
 # Dependências do Node usadas só por ferramentas locais
 node_modules/
 !.env.example
+divulgacao/

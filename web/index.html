@@ -18,7 +18,17 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Afinador, metrônomo e grade de entonação para instrumentistas de corda.">
+  <meta name="description" content="Afinador, metrônomo com modo desafio, grade de afinação e controle de estudo para quem toca instrumento de corda. Grátis, sem cadastro e sem anúncios.">
+
+  <!-- Prévia do link (WhatsApp, Instagram, Telegram, Facebook…) -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Notemusic">
+  <meta property="og:locale" content="pt_BR">
+  <meta property="og:title" content="Notemusic: afinador, metrônomo e estudo para instrumentos de corda">
+  <meta property="og:description" content="Grátis, sem cadastro e sem anúncios. Afinador em tempo real, metrônomo com modo desafio, grade de afinação e controle de estudo.">
+  <meta property="og:image" content="https://notemusicmap.vercel.app/icons/Icon-512.png">
+  <meta property="og:url" content="https://notemusicmap.vercel.app/">
+  <meta name="twitter:card" content="summary">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#101418">
 
@@ -47,6 +57,23 @@
       window.__nmInstall = null;
       window.dispatchEvent(new Event('nm-installed'));
     });
+  </script>
+  <!-- Funcionar sem internet: service worker próprio. Depois de carregar, pede para guardar tudo o que a página já baixou. -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').then(function () {
+          return navigator.serviceWorker.ready;
+        }).then(function (reg) {
+          setTimeout(function () {
+            var urls = performance.getEntriesByType('resource').map(function (e) { return e.name; });
+            urls.push(location.origin + '/');
+            var sw = reg.active || navigator.serviceWorker.controller;
+            if (sw) sw.postMessage({ precache: urls });
+          }, 8000);
+        }).catch(function () { /* sem service worker o app funciona igual, só precisa de internet */ });
+      });
+    }
   </script>
   <!-- Motor de áudio (SoLoud) para a web -->
   <script src="assets/packages/flutter_soloud/web/init_soloud.js" defer></script>

@@ -18,6 +18,10 @@ import 'widgets.dart';
 const String kAppName = 'Notemusic';
 const String kAppVersion = '0.1 (protótipo)';
 
+/// E-mail de contato mostrado na política de privacidade. Defina a variável `CONTACT_EMAIL`
+/// na Vercel (e faça um novo deploy); vazio, o app orienta a usar o botão Avaliar o app.
+const String kContactEmail = String.fromEnvironment('CONTACT_EMAIL');
+
 /// Configurações do app, organizadas por assunto, com a área de permissões.
 class SettingsPage extends StatelessWidget {
   final AppState app;
@@ -691,10 +695,10 @@ class SettingsPage extends StatelessWidget {
             const Text('Política de privacidade',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
-            Text('Resumo para o usuário (rascunho, a revisar antes de publicar)',
+            Text('Atualizada em novembro de 2026',
                 style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
             const SizedBox(height: 14),
-            for (final p in const [
+            for (final p in [
               ('O que o app usa', 'O microfone, somente enquanto você toca em "Ouvir", para identificar a altura das notas.'),
               ('O que acontece com o som', 'É analisado em tempo real no próprio aparelho e descartado em seguida. Nenhum áudio é gravado, guardado ou enviado.'),
               ('O que fica salvo', 'Suas configurações, o tempo de estudo e as escalas que você salvar. Tudo fica apenas neste aparelho.'),
@@ -704,6 +708,12 @@ class SettingsPage extends StatelessWidget {
               ('Nota e pesquisa rápida (opcional)', 'Só se você tocar em Enviar. Vão a sua resposta, a versão do app e um código do aparelho que o servidor embaralha, sem nome, e-mail nem áudio. Você pode ignorar o convite.'),
               ('Seu perfil e o vínculo online', 'O app cria no seu aparelho um código de identificação, sem cadastro. Seu histórico, tarefas e observações ficam só neste aparelho. Se você ligar o Vínculo online (ou vincular alguém lendo um QR), o servidor passa a guardar apenas o seu código, um apelido opcional, um resumo criptográfico do seu segredo e a lista de vínculos com as datas. Nada de exercícios, áudio ou observações. Você pode encerrar um vínculo a qualquer momento.'),
               ('Conta e dados pessoais', 'Não há login, cadastro, anúncios nem rastreamento. O app não pede nome, e-mail nem localização.'),
+              (
+                'Contato e seus direitos',
+                kContactEmail.isEmpty
+                    ? 'Para dúvidas ou pedidos sobre os seus dados (acesso, correção ou exclusão), escreva em Configurações › Sobre › Avaliar o app (campo de comentário). Os dados do perfil ficam só no seu aparelho; os do vínculo online (códigos e apelidos) saem do servidor quando você encerra o vínculo ou usa Apagar tudo.'
+                    : 'Para dúvidas ou pedidos sobre os seus dados (acesso, correção ou exclusão), escreva para $kContactEmail. Os dados do perfil ficam só no seu aparelho; os do vínculo online (códigos e apelidos) saem do servidor quando você encerra o vínculo ou usa Apagar tudo.',
+              ),
               ('Como apagar', 'Em Configurações › Estudo › Apagar histórico, ou desinstalando o app.'),
               ('Menores de idade', 'Como não coleta dados pessoais, o app é adequado para todas as idades.'),
             ]) ...[

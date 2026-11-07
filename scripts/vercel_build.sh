@@ -24,7 +24,7 @@ flutter pub get
 
 echo ">> Compilando para a web (release)"
 BUILD_ID="${VERCEL_GIT_COMMIT_SHA:-local}"
-flutter build web --release --dart-define=BUILD_ID="$BUILD_ID"
+flutter build web --release --dart-define=BUILD_ID="$BUILD_ID" --dart-define=CONTACT_EMAIL="${CONTACT_EMAIL:-}"
 printf "%s" "$BUILD_ID" > build/web/build-id.txt
 
 echo ">> Pronto: build/web"

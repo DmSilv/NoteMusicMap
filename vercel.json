@@ -36,7 +36,7 @@
       ]
     },
     {
-      "source": "/(index.html|flutter_service_worker.js|flutter_bootstrap.js|version.json|manifest.json)",
+      "source": "/(index.html|flutter_service_worker.js|flutter_bootstrap.js|sw.js|version.json|manifest.json)",
       "headers": [
         {
           "key": "Cache-Control",

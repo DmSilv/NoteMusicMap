@@ -1,0 +1,82 @@
+// Service worker do Notemusic: faz o app abrir e funcionar SEM internet depois da primeira visita
+// e cumpre o requisito de "app instalável" dos navegadores.
+//
+// Estratégia: rede primeiro, cache como reserva. Com internet o app é sempre a versão mais
+// nova (e a checagem de versão do app continua valendo); sem internet usa o que ficou guardado.
+// A API (/api/*) e o arquivo de versão nunca passam pelo cache.
+'use strict';
+
+const CACHE = 'notemusic-v1';
+
+self.addEventListener('install', () => self.skipWaiting());
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    (async () => {
+      for (const k of await caches.keys()) {
+        if (k !== CACHE) await caches.delete(k);
+      }
+      await self.clients.claim();
+    })(),
+  );
+});
+
+function cacheable(url) {
+  if (url.origin !== self.location.origin) return false;
+  const p = url.pathname;
+  return !(p.startsWith('/api/') || p === '/build-id.txt' || p.endsWith('/sw.js'));
+}
+
+async function guardar(cache, req, res) {
+  try {
+    if (res && res.status === 200 && res.type === 'basic') await cache.put(req, res.clone());
+  } catch (_) {
+    /* sem espaço ou resposta parcial: ignora */
+  }
+}
+
+async function redePrimeiro(req) {
+  const cache = await caches.open(CACHE);
+  try {
+    const res = await fetch(req);
+    await guardar(cache, req, res);
+    return res;
+  } catch (err) {
+    const hit =
+      (await cache.match(req, { ignoreSearch: true })) ||
+      (req.mode === 'navigate' ? (await cache.match('/')) || (await cache.match('/index.html')) : undefined);
+    if (hit) return hit;
+    throw err;
+  }
+}
+
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
+  if (!cacheable(url)) return;
+  event.respondWith(redePrimeiro(req));
+});
+
+// A página manda a lista de tudo o que já carregou; guardamos para o modo sem internet
+// funcionar já na primeira vez (sem esperar uma segunda visita).
+self.addEventListener('message', (event) => {
+  const data = event.data || {};
+  if (!Array.isArray(data.precache)) return;
+  event.waitUntil(
+    (async () => {
+      const cache = await caches.open(CACHE);
+      for (const raw of data.precache) {
+        try {
+          const url = new URL(raw);
+          if (!cacheable(url)) continue;
+          if (await cache.match(url.href, { ignoreSearch: false })) continue;
+          const res = await fetch(url.href);
+          await guardar(cache, url.href, res);
+        } catch (_) {
+          /* esse arquivo fica para depois */
+        }
+      }
+    })(),
+  );
+});
