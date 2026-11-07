@@ -72,6 +72,28 @@ void main() {
     expect(profileFromRecoveryKey(''), isNull);
   });
 
+  group('leitura de QR e links', () {
+    final code = newShareCode(Random(21));
+    final low = code.toLowerCase();
+
+    test('link do aluno, link do professor, notemusic: e código puro', () {
+      final a = parseScannedCode('https://notemusicmap.vercel.app/?aluno=$code')!;
+      expect((a.code, a.kind), (code, 'aluno'));
+      final p = parseScannedCode('https://exemplo.com/?x=1&professor=$low')!;
+      expect((p.code, p.kind), (code, 'professor'));
+      expect(parseScannedCode('notemusic:$code')!.kind, 'codigo');
+      expect(parseScannedCode('  $low ')!.code, code);
+    });
+
+    test('lixo, código com erro e links sem código viram null', () {
+      expect(parseScannedCode(''), isNull);
+      expect(parseScannedCode('https://notemusicmap.vercel.app/'), isNull);
+      expect(parseScannedCode('https://x.com/?aluno=ABCD-1234'), isNull);
+      expect(parseScannedCode('olá mundo'), isNull);
+      expect(parseScannedCode('AAAA-AAAB'), isNull);
+    });
+  });
+
   test('perfil: salvar e ler preserva tudo, inclusive professor ligado', () {
     final p = Profile.create(Random(2), now: DateTime(2026, 11, 7))
       ..name = 'Ana'

@@ -26,6 +26,10 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>O Notemusic usa o microfone para ouvir seu instrumento e mostrar se a nota está afinada. O som é analisado no aparelho e nunca é gravado nem enviado.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>O Notemusic usa a câmera só para ler o QR de um aluno ou de um professor. Nenhuma imagem é gravada nem enviada.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>O Notemusic usa o reconhecimento de fala só quando você toca no microfone de um campo de texto, para escrever o que você dita (por exemplo, observações para o aluno).</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

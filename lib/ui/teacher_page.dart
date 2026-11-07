@@ -4,7 +4,10 @@ import 'package:flutter/services.dart';
 
 import '../app_state.dart';
 import '../ai/coach_ai.dart';
+import 'dictation_button.dart';
 import 'markdown_lite.dart';
+import 'methods_page.dart';
+import 'qr_scan_page.dart';
 import 'scale_exercise_page.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -13,7 +16,7 @@ String _day(DateTime d) =>
     '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
 
 Future<String?> _askText(BuildContext context, String title, String label,
-    {String initial = '', bool multiline = false, String action = 'Salvar'}) async {
+    {String initial = '', bool multiline = false, String action = 'Salvar', AppState? voice}) async {
   final ctl = TextEditingController(text: initial);
   final v = await showDialog<String>(
     context: context,
@@ -25,7 +28,11 @@ Future<String?> _askText(BuildContext context, String title, String label,
         minLines: multiline ? 3 : 1,
         maxLines: multiline ? 8 : 1,
         textCapitalization: TextCapitalization.sentences,
-        decoration: InputDecoration(labelText: label),
+        decoration: InputDecoration(
+          labelText: label,
+          // Microfone para ditar (só onde o texto é livre).
+          suffixIcon: voice == null ? null : DictationButton(app: voice, controller: ctl),
+        ),
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancelar')),
@@ -57,7 +64,11 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
                 controller: name,
                 autofocus: true,
                 textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(labelText: 'Nome do aluno', errorText: nameErr),
+                decoration: InputDecoration(
+                  labelText: 'Nome do aluno',
+                  errorText: nameErr,
+                  suffixIcon: DictationButton(app: app, controller: name),
+                ),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -67,10 +78,22 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
                 decoration: InputDecoration(
                   labelText: 'Código do aluno (opcional)',
                   hintText: 'K7QM-4TXD',
-                  helperText: 'O aluno vê o código em Configurações › Meu perfil.',
-                  helperMaxLines: 2,
+                  helperText: 'Toque na câmera para ler o QR do aluno, ou digite o código (ele vê no perfil).',
+                  helperMaxLines: 3,
                   errorText: codeErr,
                   errorMaxLines: 3,
+                  suffixIcon: IconButton(
+                    tooltip: 'Ler QR do aluno',
+                    icon: const Icon(Icons.qr_code_scanner),
+                    onPressed: () async {
+                      final s = await scanShareCode(c, title: 'Ler QR do aluno', want: 'aluno');
+                      if (s == null) return;
+                      setS(() {
+                        code.text = s.code;
+                        codeErr = null;
+                      });
+                    },
+                  ),
                 ),
               ),
             ],
@@ -451,6 +474,32 @@ class _TeacherPageState extends State<TeacherPage> {
           label: const Text('Novo aluno', style: TextStyle(fontWeight: FontWeight.w700)),
         ),
         const SizedBox(height: 8),
+        FilledButton.tonalIcon(
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+          onPressed: () async {
+            final s = await scanShareCode(context, title: 'Ler QR do aluno', want: 'aluno');
+            if (s == null || !context.mounted) return;
+            final known = app.studentByCode(s.code);
+            if (known != null) {
+              app.say('${known.name} já está na sua lista.');
+              return;
+            }
+            final r = await _newStudentDialog(context, app, code0: s.code);
+            if (r != null) app.addStudent(r.$1, code: r.$2);
+          },
+          icon: const Icon(Icons.qr_code_scanner),
+          label: const Text('Ler QR do aluno', style: TextStyle(fontWeight: FontWeight.w700)),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: () => Navigator.of(context)
+              .push(MaterialPageRoute<void>(builder: (_) => MethodsPage(app: app))),
+          icon: const Icon(Icons.library_books_outlined),
+          label: Text(app.methodLibrary.isEmpty
+              ? 'Meus métodos e lições'
+              : 'Meus métodos e lições (${app.methodLibrary.length})'),
+        ),
+        const SizedBox(height: 8),
         OutlinedButton.icon(
           onPressed: () async {
             final t = await _askText(context, 'Importar aluno',
@@ -594,7 +643,7 @@ Future<bool> _confirmDelete(BuildContext context, String title, String text) asy
 }
 
 Future<void> _renameStudent(BuildContext context, AppState app, Student s) async {
-  final n = await _askText(context, 'Renomear', 'Nome', initial: s.name);
+  final n = await _askText(context, 'Renomear', 'Nome', initial: s.name, voice: app);
   if (n != null && n.trim().isNotEmpty) {
     s.name = n.trim();
     app.setActiveStudent(app.activeStudentId); // salva e atualiza
@@ -980,11 +1029,7 @@ class StudentPage extends StatelessWidget {
     final note = TextEditingController(text: edit?.note ?? '');
     String? subjectErr;
     final isEdit = edit != null;
-    final methods = [
-      ...app.recentMethods(),
-      for (final m in kMethodSuggestions)
-        if (!app.recentMethods().contains(m)) m
-    ];
+    final methods = app.methodNames();
 
     String subjectLabel() => switch (kind) {
           TaskKind.method => 'Método ou livro',
@@ -1059,10 +1104,12 @@ class StudentPage extends StatelessWidget {
                   TextField(
                     controller: subject,
                     textCapitalization: TextCapitalization.sentences,
-                    decoration: InputDecoration(labelText: subjectLabel(), errorText: subjectErr),
-                    onChanged: (_) {
-                      if (subjectErr != null) setS(() => subjectErr = null);
-                    },
+                    decoration: InputDecoration(
+                      labelText: subjectLabel(),
+                      errorText: subjectErr,
+                      suffixIcon: DictationButton(app: app, controller: subject),
+                    ),
+                    onChanged: (_) => setS(() => subjectErr = null),
                   ),
                   if (kind == TaskKind.method) ...[
                     const SizedBox(height: 6),
@@ -1077,14 +1124,48 @@ class StudentPage extends StatelessWidget {
                           }),
                         ),
                     ]),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => Navigator.of(context)
+                            .push(MaterialPageRoute<void>(builder: (_) => MethodsPage(app: app)))
+                            .then((_) => setS(() {})),
+                        icon: const Icon(Icons.library_books_outlined, size: 18),
+                        label: const Text('Meus métodos e lições'),
+                      ),
+                    ),
                   ],
                   if (detailLabel() != null) ...[
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 4),
                     TextField(
                       controller: detail,
                       textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(labelText: detailLabel()),
+                      decoration: InputDecoration(
+                        labelText: detailLabel(),
+                        suffixIcon: DictationButton(app: app, controller: detail),
+                      ),
                     ),
+                    // Lições já cadastradas para o método escolhido: um toque preenche.
+                    // (escuta o campo: o texto também muda por ditado, sem passar pelo onChanged)
+                    if (kind == TaskKind.method)
+                      ListenableBuilder(
+                        listenable: subject,
+                        builder: (context, _) {
+                          final lessons = findMethod(app.methodLibrary, subject.text)?.lessons ?? const <String>[];
+                          if (lessons.isEmpty) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Wrap(spacing: 6, runSpacing: 0, children: [
+                              for (final l in lessons.take(12))
+                                ActionChip(
+                                  label: Text(l),
+                                  visualDensity: VisualDensity.compact,
+                                  onPressed: () => detail.text = l,
+                                ),
+                            ]),
+                          );
+                        },
+                      ),
                   ],
                 ],
                 const SizedBox(height: 14),
@@ -1094,11 +1175,12 @@ class StudentPage extends StatelessWidget {
                   maxLines: 5,
                   maxLength: 500,
                   textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Observações (opcional)',
                     alignLabelWithHint: true,
-                    helperText: 'O que merece atenção ou estudar mais. Dica: toque no microfone do teclado para ditar.',
+                    helperText: 'O que merece atenção ou estudar mais. Toque no microfone para ditar.',
                     helperMaxLines: 3,
+                    suffixIcon: DictationButton(app: app, controller: note),
                   ),
                 ),
               ],
@@ -1187,7 +1269,7 @@ class StudentPage extends StatelessWidget {
             const Expanded(child: Text('Observações', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
             TextButton.icon(
               onPressed: () async {
-                final t = await _askText(context, 'Nova observação', 'O que anotar?', multiline: true);
+                final t = await _askText(context, 'Nova observação', 'O que anotar?', multiline: true, voice: app);
                 if (t != null) app.addTeacherNote(s, t);
               },
               icon: const Icon(Icons.edit_note),

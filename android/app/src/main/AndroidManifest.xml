@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Microfone: necessário para o afinador e a grade. O áudio é analisado no aparelho e nunca é gravado nem enviado. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- Câmera: só para ler o QR de alunos e professores. Não é obrigatória para instalar. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
     <!-- Mantém a tela acesa durante o estudo (wakelock). -->
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
     <!-- Vibração: batida do metrônomo, fim do Pomodoro e passos das escalas. Concedida na instalação. -->
@@ -47,6 +51,10 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Ditado por voz (speech_to_text): permite achar o reconhecedor de fala do aparelho. -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
         </intent>
     </queries>
 </manifest>

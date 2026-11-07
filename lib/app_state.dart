@@ -18,6 +18,7 @@ import 'platform/hard_reset.dart';
 import 'audio/pitch_source.dart';
 import 'data/repository.dart';
 import 'feedback/feedback_service.dart';
+import 'voice/dictation.dart';
 import 'package:afina_core/afina_core.dart';
 
 /// Ativa a simulação de execução (sem som), só para testes: --dart-define=DEV_DEMO=true.
@@ -290,6 +291,7 @@ class AppState extends ChangeNotifier {
             octaves: octaves,
             goal: goal,
             created: DateTime.now()));
+    if (kind == TaskKind.method) _learnFromTask(subject, detail);
     _saveTeacher();
     notifyListeners();
   }
@@ -299,28 +301,99 @@ class AppState extends ChangeNotifier {
     final i = s.tasks.indexWhere((t) => t.id == id);
     if (i < 0) return;
     s.tasks[i] = s.tasks[i].copyWith(subject: subject?.trim(), detail: detail?.trim(), note: note?.trim());
+    if (s.tasks[i].kind == TaskKind.method) _learnFromTask(s.tasks[i].subject, s.tasks[i].detail);
     _saveTeacher();
     notifyListeners();
   }
 
-  /// Métodos já usados pelo professor (os mais recentes primeiro), para sugerir de novo.
-  List<String> recentMethods() {
-    final seen = <String>[];
-    final all = [for (final s in students) ...s.tasks]..sort((a, b) => b.created.compareTo(a.created));
-    for (final t in all) {
-      if (t.kind == TaskKind.method && t.subject.isNotEmpty && !seen.contains(t.subject)) seen.add(t.subject);
-    }
-    return seen;
+  // ---------------- Biblioteca de métodos e lições ----------------
+  /// Métodos do professor, cada um com as suas lições. Cresce sozinha com o que
+  /// ele digita nas tarefas e também por cadastro e importação.
+  List<MethodEntry> methodLibrary = [];
+
+  /// Nomes para sugerir numa tarefa: os do professor primeiro, depois os conhecidos.
+  List<String> methodNames() => [
+        for (final m in methodLibrary) m.name,
+        for (final m in kMethodSuggestions)
+          if (findMethod(methodLibrary, m) == null) m,
+      ];
+
+  void _saveMethods() => _repo?.saveMethods(methodLibrary);
+
+  /// Cadastra um método (com lições, uma por linha ou separadas por ';'). false se o nome está vazio.
+  bool addMethod(String name, [String lessonsText = '']) {
+    if (name.trim().isEmpty) return false;
+    final lessons = lessonsText.split(RegExp(r'[;\n]')).map((l) => l.trim()).where((l) => l.isNotEmpty);
+    final r = mergeMethods(methodLibrary, [MethodEntry(name, lessons.toList())]);
+    _saveMethods();
+    notifyListeners();
+    return !r.nothing;
+  }
+
+  void renameMethod(MethodEntry m, String name, String lessonsText) {
+    final n = name.trim();
+    if (n.isEmpty) return;
+    m.name = n;
+    m.lessons
+      ..clear()
+      ..addAll(MethodEntry.tryFrom({'name': n, 'lessons': lessonsText.split(RegExp(r'[;\n]'))})?.lessons ?? []);
+    _saveMethods();
+    notifyListeners();
+  }
+
+  void removeMethod(MethodEntry m) {
+    methodLibrary.remove(m);
+    _saveMethods();
+    notifyListeners();
+  }
+
+  /// Importa de um texto colado. Devolve o aviso para o usuário.
+  String importMethods(String text) {
+    final found = parseMethodsText(text);
+    if (found.isEmpty) return 'Não encontrei métodos nesse texto. Use um método por linha, ou "Método: lição 1; lição 2".';
+    final r = mergeMethods(methodLibrary, found);
+    _saveMethods();
+    notifyListeners();
+    if (r.nothing) return 'Esses métodos e lições já estavam na sua lista.';
+    return 'Importado: ${r.methods} método${r.methods == 1 ? '' : 's'} novo${r.methods == 1 ? '' : 's'} '
+        'e ${r.lessons} lição${r.lessons == 1 ? '' : 'ões'}.';
+  }
+
+  String exportMethods() => exportMethodsText(methodLibrary);
+  String exportMethodsAsJson() => exportMethodsJson(methodLibrary);
+
+  /// A biblioteca aprende com a tarefa passada (método e lição novos entram sozinhos).
+  void _learnFromTask(String method, String lesson) {
+    if (learnMethod(methodLibrary, method, lesson).nothing) return;
+    _saveMethods();
   }
 
   // ---------------- Código do aluno vindo de um QR/link ----------------
   /// Código lido de `?aluno=K7QM-4TXD` na abertura do app (ou null).
   String? incomingStudentCode;
 
+  /// Código de professor lido de `?professor=…` na abertura do app (ou null).
+  String? incomingTeacherCode;
+
+  /// Código do professor do próprio usuário (lido do QR dele ou digitado). Por
+  /// enquanto fica só neste aparelho; o pedido de vínculo segue quando houver sincronização.
+  String? myTeacherCode;
+
+  void setMyTeacherCode(String? code) {
+    myTeacherCode = code == null ? null : formatShareCode(code);
+    if (myTeacherCode == null) {
+      _prefs?.remove('my_teacher');
+    } else {
+      _prefs?.setString('my_teacher', myTeacherCode!);
+    }
+    notifyListeners();
+  }
+
   void _readIncomingCode() {
     if (!kIsWeb) return;
-    final raw = Uri.base.queryParameters['aluno'];
-    if (raw != null) incomingStudentCode = formatShareCode(raw);
+    final q = Uri.base.queryParameters;
+    if (q['aluno'] != null) incomingStudentCode = formatShareCode(q['aluno']!);
+    if (q['professor'] != null) incomingTeacherCode = formatShareCode(q['professor']!);
   }
 
   void toggleAssignment(Student s, String id) {
@@ -377,6 +450,7 @@ class AppState extends ChangeNotifier {
     teacherPinHash = p.getString('teacherPin');
     activeStudentId = p.getString('activeStudent');
     students = await _repo!.loadStudents();
+    methodLibrary = await _repo!.loadMethods();
   }
 
   // ---------------- Estudo: cronômetro e tempo personalizado ----------------
@@ -716,6 +790,11 @@ class AppState extends ChangeNotifier {
 
   /// Nota do app e pesquisa rápida.
   final FeedbackService feedback = FeedbackService();
+
+  /// Escrita por voz nos campos de texto.
+  late final Dictation dictation = Dictation()
+    ..beforeListen = (() async => stopListening(quiet: true))
+    ..onMessage = say;
 
   /// Nota em DESTAQUE na grade (nome, ponteiro e quadrado aceso). É a leitura
   /// bruta [current] passada por um filtro que troca de nota com calma: a grade
@@ -1146,6 +1225,7 @@ class AppState extends ChangeNotifier {
     onboarded = p.getBool('onboarded') ?? false;
     await ai.load();
     await feedback.load(p);
+    await dictation.load(p);
     tone.setVolume(p.getDouble('toneVol') ?? 0.9);
     tone.timbre = ToneTimbre.values[(p.getInt('timbre') ?? 0).clamp(0, ToneTimbre.values.length - 1)];
     sensitivity = MicSensitivity.values[p.getInt('sens') ?? 1];
@@ -1177,6 +1257,7 @@ class AppState extends ChangeNotifier {
     _loadPomo(p);
     _loadClocks(p);
     await _loadTeacher(p);
+    myTeacherCode = p.getString('my_teacher');
     _readIncomingCode();
     _scheduleUpdateChecks();
     // Mostra o estado real das permissões sem abrir nenhum pedido do sistema.
@@ -1514,6 +1595,7 @@ class AppState extends ChangeNotifier {
     final p = _prefs ?? await SharedPreferences.getInstance();
     await p.clear();
     students = [];
+    methodLibrary = [];
     activeStudentId = null;
     teacherPinHash = null;
     teacherUnlocked = false;
@@ -1597,6 +1679,7 @@ class AppState extends ChangeNotifier {
   void dispose() {
     ai.dispose();
     feedback.dispose();
+    dictation.dispose();
     _studyTimer?.cancel();
     _saveStudy();
     super.dispose();

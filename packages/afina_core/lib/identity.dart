@@ -88,6 +88,34 @@ String? formatShareCode(String input) {
   return '${s.substring(0, 4)}-${s.substring(4)}';
 }
 
+/// O que um QR ou link lido contém: o [code] (já formatado) e de quem é.
+class ScannedCode {
+  final String code;
+
+  /// 'aluno' (QR do aluno), 'professor' (QR do professor) ou 'codigo' (só o código).
+  final String kind;
+  const ScannedCode(this.code, this.kind);
+}
+
+/// Entende o que a câmera leu (ou o que a pessoa colou): um link com
+/// `?aluno=` ou `?professor=`, `notemusic:CÓDIGO`, ou o próprio código.
+/// Devolve null se não for um código válido.
+ScannedCode? parseScannedCode(String raw) {
+  final t = raw.trim();
+  if (t.isEmpty) return null;
+  final u = Uri.tryParse(t);
+  if (u != null && u.hasQuery) {
+    for (final k in const ['aluno', 'professor']) {
+      final v = u.queryParameters[k];
+      final c = v == null ? null : formatShareCode(v);
+      if (c != null) return ScannedCode(c, k);
+    }
+  }
+  final stripped = t.toLowerCase().startsWith('notemusic:') ? t.substring(10) : t;
+  final c = formatShareCode(stripped);
+  return c == null ? null : ScannedCode(c, 'codigo');
+}
+
 class Profile {
   final String id;
   final String secret; // 64 caracteres hex

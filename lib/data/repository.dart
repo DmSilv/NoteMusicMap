@@ -23,6 +23,10 @@ abstract class Repository {
   /// Alunos do professor (cada um com tarefas, notas e sessões).
   Future<List<Student>> loadStudents();
   Future<void> saveStudents(List<Student> students);
+
+  /// Biblioteca de métodos e lições do professor.
+  Future<List<MethodEntry>> loadMethods();
+  Future<void> saveMethods(List<MethodEntry> methods);
 }
 
 /// Guarda tudo no aparelho (SharedPreferences). Funciona sem rede.
@@ -91,5 +95,23 @@ class LocalRepository implements Repository {
   @override
   Future<void> saveStudents(List<Student> students) async {
     await _p.setString(studentsKey, jsonEncode([for (final s in students) s.toJson()]));
+  }
+
+  static const methodsKey = 'methods';
+
+  @override
+  Future<List<MethodEntry>> loadMethods() async {
+    final raw = _p.getString(methodsKey);
+    if (raw == null) return [];
+    try {
+      return [for (final x in (jsonDecode(raw) as List)) ?MethodEntry.tryFrom(x)];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  @override
+  Future<void> saveMethods(List<MethodEntry> methods) async {
+    await _p.setString(methodsKey, jsonEncode([for (final m in methods) m.toJson()]));
   }
 }

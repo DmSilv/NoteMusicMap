@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import '../feedback/feedback_service.dart';
+import 'dictation_button.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -109,8 +110,11 @@ class _RatingSheetState extends State<_RatingSheet> {
               minLines: 2,
               maxLines: 4,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(
-                  labelText: 'Quer contar o motivo? (opcional)', alignLabelWithHint: true),
+              decoration: InputDecoration(
+                labelText: 'Quer contar o motivo? (opcional)',
+                alignLabelWithHint: true,
+                suffixIcon: DictationButton(app: widget.app, controller: _comment),
+              ),
             ),
             Text(_privacy, style: TextStyle(color: AppColors.textDim, fontSize: 12)),
             const SizedBox(height: 12),
@@ -189,7 +193,10 @@ class _SurveySheetState extends State<_SurveySheet> {
               minLines: 2,
               maxLines: 4,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(hintText: 'Escreva em poucas palavras'),
+              decoration: InputDecoration(
+                hintText: 'Escreva em poucas palavras',
+                suffixIcon: DictationButton(app: widget.app, controller: _improve),
+              ),
             ),
             Text(_privacy, style: TextStyle(color: AppColors.textDim, fontSize: 12)),
             const SizedBox(height: 12),

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../app_state.dart';
+import 'qr_scan_page.dart';
 import 'share_sheet.dart' show shareLink;
 import 'teacher_page.dart';
 import 'theme.dart';
@@ -148,9 +149,107 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
           ),
+          if (app.teacherMode) ...[
+            const SizedBox(height: 12),
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Seu QR de professor',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Seus alunos leem este QR em Meu perfil › Meu professor. Eles também podem digitar o código.',
+                    style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+                  ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: SelectableText(
+                      app.profile.shareCode,
+                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: 3),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                      child: QrImageView(
+                        data: '${shareLink()}/?professor=${app.profile.shareCode}',
+                        size: 150,
+                        padding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  /// Aluno: registra o professor lendo o QR dele ou digitando o código.
+  Widget _myTeacherCard(BuildContext context) {
+    final code = app.myTeacherCode;
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Icon(Icons.school_outlined, color: AppColors.accent),
+            const SizedBox(width: 8),
+            const Expanded(
+              child: Text('Meu professor', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+            ),
+          ]),
+          const SizedBox(height: 4),
+          if (code == null) ...[
+            Text(
+              'Tem professor que usa o Notemusic? Leia o QR dele (ou digite o código) para registrá-lo.',
+              style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+            ),
+            const SizedBox(height: 10),
+            Wrap(spacing: 8, runSpacing: 6, children: [
+              FilledButton.tonalIcon(
+                onPressed: () async {
+                  final s = await scanShareCode(context, title: 'Ler QR do professor', want: 'professor');
+                  if (s != null) _registerTeacher(s.code);
+                },
+                icon: const Icon(Icons.qr_code_scanner),
+                label: const Text('Ler QR do professor'),
+              ),
+            ]),
+          ] else ...[
+            Text(code, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 2)),
+            const SizedBox(height: 4),
+            Text(
+              'Código registrado neste aparelho. Quando a sincronização estiver disponível, o professor receberá '
+              'o seu pedido e você escolherá o que compartilhar. Nada é enviado até lá.',
+              style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () => app.setMyTeacherCode(null),
+              icon: const Icon(Icons.link_off, size: 18),
+              label: const Text('Remover'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _registerTeacher(String code) {
+    if (code == app.profile.shareCode) {
+      app.say('Este é o seu próprio código.');
+      return;
+    }
+    app.setMyTeacherCode(code);
+    app.say('Professor registrado.');
   }
 
   Widget _profileTab() {
@@ -231,6 +330,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
               ),
             ),
+            const SizedBox(height: 12),
+            _myTeacherCard(context),
             const SizedBox(height: 12),
             AppCard(
               child: Column(
@@ -366,5 +467,37 @@ class _ProfilePageState extends State<ProfilePage> {
         );
       },
     );
+  }
+}
+
+/// Chamado ao abrir o app por um link/QR de professor (`?professor=K7QM-4TXD`):
+/// pergunta se é o professor do usuário e registra.
+Future<void> handleIncomingTeacherCode(BuildContext context, AppState app) async {
+  final code = app.incomingTeacherCode;
+  if (code == null) return;
+  app.incomingTeacherCode = null;
+  if (code == app.profile.shareCode) {
+    app.say('Este é o seu próprio código.');
+    return;
+  }
+  if (app.myTeacherCode == code) {
+    app.say('Este professor já está registrado.');
+    return;
+  }
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: const Text('Código de professor'),
+      content: Text('O código $code foi lido. Registrar como o seu professor? '
+          'Fica só neste aparelho até a sincronização existir; nada é enviado agora.'),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Agora não')),
+        FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Registrar')),
+      ],
+    ),
+  );
+  if (ok == true) {
+    app.setMyTeacherCode(code);
+    app.say('Professor registrado.');
   }
 }

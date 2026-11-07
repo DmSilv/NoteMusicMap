@@ -1,6 +1,7 @@
 library;
 
 export 'identity.dart';
+export 'methods.dart';
 export 'metronome_engine.dart';
 export 'needle_spring.dart';
 export 'note_display.dart';
