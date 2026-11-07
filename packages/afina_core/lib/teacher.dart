@@ -211,6 +211,73 @@ class Student {
   }
 }
 
+/// Problemas encontrados ao cadastrar um aluno (null = sem problema naquele campo).
+class StudentEntryCheck {
+  final String? name;
+  final String? code;
+  const StudentEntryCheck(this.name, this.code);
+  bool get ok => name == null && code == null;
+}
+
+String _nameKey(String s) => s.trim().toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+
+/// Regras de cadastro de aluno (valem ao digitar, ao ler QR, ao editar o código
+/// e ao importar):
+/// - o código tem de ser válido e **não pode ser o do próprio professor**;
+/// - não pode ser o código do professor do próprio usuário;
+/// - o código e o nome não podem repetir os de outro aluno (a não ser que os
+///   dois tenham códigos diferentes: aí são pessoas distintas de mesmo nome);
+/// - sem código, o nome não pode ser o seu próprio nome de perfil.
+/// [exceptId] é o aluno que está sendo editado (ele não conta como repetido).
+StudentEntryCheck checkStudentEntry({
+  required String name,
+  required String codeInput,
+  required String ownCode,
+  String? ownName,
+  String? teacherCode,
+  required List<Student> existing,
+  String? exceptId,
+}) {
+  String? codeErr;
+  final typed = codeInput.trim();
+  final code = typed.isEmpty ? null : formatShareCode(typed);
+  if (typed.isNotEmpty) {
+    if (code == null) {
+      codeErr = 'Código inválido. Ele tem 8 letras e números, como K7QM-4TXD. Confira com o aluno.';
+    } else if (code == ownCode) {
+      codeErr = 'Este é o seu próprio código: você não pode ser aluno de si mesmo. Peça o código do aluno.';
+    } else if (teacherCode != null && code == teacherCode) {
+      codeErr = 'Este é o código do seu professor. Ele não pode ser cadastrado como seu aluno.';
+    } else {
+      for (final s in existing) {
+        if (s.id != exceptId && s.code == code) {
+          codeErr = 'Este código já é de ${s.name}.';
+          break;
+        }
+      }
+    }
+  }
+
+  String? nameErr;
+  final n = _nameKey(name);
+  if (n.isEmpty) {
+    nameErr = 'Digite o nome do aluno.';
+  } else if (code == null && ownName != null && _nameKey(ownName) == n) {
+    nameErr = 'Este é o seu nome. Para estudar você mesmo, use o app normalmente: não precisa se cadastrar '
+        'como aluno. Se for outra pessoa com o mesmo nome, acrescente o sobrenome.';
+  } else {
+    for (final s in existing) {
+      if (s.id == exceptId || _nameKey(s.name) != n) continue;
+      final bothHaveCodes = code != null && s.code != null;
+      if (!bothHaveCodes) {
+        nameErr = 'Já existe um aluno com este nome. Acrescente o sobrenome, ou use o código para diferenciar.';
+        break;
+      }
+    }
+  }
+  return StudentEntryCheck(nameErr, codeErr);
+}
+
 class StudentSummary {
   final int sessions;
 

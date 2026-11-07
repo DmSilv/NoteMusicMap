@@ -76,7 +76,7 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
                 autocorrect: false,
                 textCapitalization: TextCapitalization.characters,
                 decoration: InputDecoration(
-                  labelText: 'Código do aluno (opcional)',
+                  labelText: 'Código do aluno',
                   hintText: 'K7QM-4TXD',
                   helperText: 'Toque na câmera para ler o QR do aluno, ou digite o código (ele vê no perfil).',
                   helperMaxLines: 3,
@@ -86,7 +86,11 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
                     tooltip: 'Ler QR do aluno',
                     icon: const Icon(Icons.qr_code_scanner),
                     onPressed: () async {
-                      final s = await scanShareCode(c, title: 'Ler QR do aluno', want: 'aluno');
+                      final s = await scanShareCode(c,
+                          title: 'Ler QR do aluno',
+                          want: 'aluno',
+                          check: (code) => app.checkStudent('aluno', code).code,
+                          onCamera: app.setCameraStatus);
                       if (s == null) return;
                       setS(() {
                         code.text = s.code;
@@ -104,11 +108,12 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
           FilledButton(
             onPressed: () {
               final n = name.text.trim();
-              final e = app.checkStudentCode(code.text);
-              if (n.isEmpty || e != null) {
+              // Regras: nada de aluno com o seu próprio código/nome, nem repetido.
+              final r = app.checkStudent(n, code.text);
+              if (!r.ok) {
                 setS(() {
-                  nameErr = n.isEmpty ? 'Digite o nome do aluno' : null;
-                  codeErr = e;
+                  nameErr = r.name;
+                  codeErr = r.code;
                 });
                 return;
               }
@@ -131,13 +136,14 @@ Future<void> handleIncomingStudentCode(BuildContext context, AppState app) async
   final code = app.incomingStudentCode;
   if (code == null) return;
   app.incomingStudentCode = null;
-  if (code == app.profile.shareCode) {
-    app.say('Este é o seu próprio código.');
-    return;
-  }
   final known = app.studentByCode(code);
   if (known != null) {
     app.say('${known.name} já está na sua lista.');
+    return;
+  }
+  final problem = app.checkStudent('aluno', code).code; // próprio código, professor etc.
+  if (problem != null) {
+    app.say(problem);
     return;
   }
   if (!app.teacherMode) {
@@ -477,13 +483,10 @@ class _TeacherPageState extends State<TeacherPage> {
         FilledButton.tonalIcon(
           style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
           onPressed: () async {
-            final s = await scanShareCode(context, title: 'Ler QR do aluno', want: 'aluno');
+            final s = await scanShareCode(context,
+                title: 'Ler QR do aluno', want: 'aluno', check: (code) => app.checkStudent('aluno', code).code,
+                          onCamera: app.setCameraStatus);
             if (s == null || !context.mounted) return;
-            final known = app.studentByCode(s.code);
-            if (known != null) {
-              app.say('${known.name} já está na sua lista.');
-              return;
-            }
             final r = await _newStudentDialog(context, app, code0: s.code);
             if (r != null) app.addStudent(r.$1, code: r.$2);
           },

@@ -10,16 +10,30 @@ import 'theme.dart';
 ///
 /// [want] limita o que vale: 'aluno' (QR do aluno), 'professor' (QR do
 /// professor) ou null para qualquer código.
-Future<ScannedCode?> scanShareCode(BuildContext context, {required String title, String? want}) {
+///
+/// [check] confere o código lido com as regras do app (ex.: não ser o próprio
+/// código): devolve o problema a mostrar, ou null se está certo. [onCamera]
+/// avisa se a câmera abriu (true) ou foi negada (false), para a tela de permissões.
+Future<ScannedCode?> scanShareCode(
+  BuildContext context, {
+  required String title,
+  String? want,
+  String? Function(String code)? check,
+  void Function(bool granted)? onCamera,
+}) {
   return Navigator.of(context).push<ScannedCode>(
-    MaterialPageRoute(builder: (_) => QrScanPage(title: title, want: want), fullscreenDialog: true),
+    MaterialPageRoute(
+        builder: (_) => QrScanPage(title: title, want: want, check: check, onCamera: onCamera),
+        fullscreenDialog: true),
   );
 }
 
 class QrScanPage extends StatefulWidget {
   final String title;
   final String? want;
-  const QrScanPage({super.key, required this.title, this.want});
+  final String? Function(String code)? check;
+  final void Function(bool granted)? onCamera;
+  const QrScanPage({super.key, required this.title, this.want, this.check, this.onCamera});
 
   @override
   State<QrScanPage> createState() => _QrScanPageState();
@@ -33,9 +47,29 @@ class _QrScanPageState extends State<QrScanPage> {
   final TextEditingController _typed = TextEditingController();
   String? _message;
   bool _done = false;
+  bool? _reported;
+
+  @override
+  void initState() {
+    super.initState();
+    _cam.addListener(_onCamera);
+  }
+
+  /// Conta à tela de permissões se a câmera abriu ou foi negada.
+  void _onCamera() {
+    final s = _cam.value;
+    final bool? now = s.error?.errorCode == MobileScannerErrorCode.permissionDenied
+        ? false
+        : (s.isRunning ? true : null);
+    if (now != null && now != _reported) {
+      _reported = now;
+      widget.onCamera?.call(now);
+    }
+  }
 
   @override
   void dispose() {
+    _cam.removeListener(_onCamera);
     _cam.dispose();
     _typed.dispose();
     super.dispose();
@@ -53,6 +87,11 @@ class _QrScanPageState extends State<QrScanPage> {
       setState(() => _message = s.kind == 'aluno'
           ? 'Este é o QR de um aluno. Aqui é preciso o QR do professor.'
           : 'Este é o QR de um professor. Aqui é preciso o QR do aluno.');
+      return;
+    }
+    final problem = widget.check?.call(s.code);
+    if (problem != null) {
+      setState(() => _message = problem);
       return;
     }
     _done = true;

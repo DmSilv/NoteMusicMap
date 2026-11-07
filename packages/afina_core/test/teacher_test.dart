@@ -39,6 +39,60 @@ void main() {
     expect(Student(id: 'n', name: 'Nina').toJson().containsKey('code'), isFalse);
   });
 
+  group('regras de cadastro de aluno', () {
+    final own = newShareCode(Random(31));
+    final teacher = newShareCode(Random(32));
+    final other = newShareCode(Random(33));
+    final list = [Student(id: 'a', name: 'Ana Souza', code: other), Student(id: 'b', name: 'Bruno')];
+
+    StudentEntryCheck check(String name, String code, {String? ownName, String? teacherCode, String? except}) =>
+        checkStudentEntry(
+            name: name,
+            codeInput: code,
+            ownCode: own,
+            ownName: ownName,
+            teacherCode: teacherCode,
+            existing: list,
+            exceptId: except);
+
+    test('não deixa cadastrar o próprio código (qualquer forma de escrever)', () {
+      for (final v in [own, own.toLowerCase(), own.replaceAll('-', ' ')]) {
+        final r = check('Eu mesmo', v);
+        expect(r.code, contains('próprio código'));
+        expect(r.ok, isFalse);
+      }
+    });
+
+    test('não deixa cadastrar o próprio nome quando não há código', () {
+      expect(check('  maria  LIMA ', '', ownName: 'Maria Lima').name, contains('seu nome'));
+      // Com código de outra pessoa, o mesmo nome é permitido (pessoa diferente).
+      expect(check('Maria Lima', newShareCode(Random(40)), ownName: 'Maria Lima').ok, isTrue);
+      // Sem nome de perfil definido, não há o que comparar.
+      expect(check('Maria Lima', '').ok, isTrue);
+    });
+
+    test('não deixa o professor do usuário virar aluno', () {
+      expect(check('Prof', teacher, teacherCode: teacher).code, contains('seu professor'));
+    });
+
+    test('código e nome repetidos', () {
+      expect(check('Carla', other).code, 'Este código já é de Ana Souza.');
+      expect(check('ana  souza', '').name, contains('Já existe'));
+      // Editar o próprio aluno não conta como repetido.
+      expect(check('Ana Souza', other, except: 'a').ok, isTrue);
+      // Mesmo nome, mas os dois têm códigos diferentes: pessoas distintas.
+      expect(check('Ana Souza', newShareCode(Random(41))).ok, isTrue);
+      // Mesmo nome e o novo não tem código: bloqueia.
+      expect(check('Ana Souza', '').name, isNotNull);
+    });
+
+    test('código inválido e nome vazio', () {
+      expect(check('Davi', 'ABCD-1234').code, contains('inválido'));
+      expect(check('   ', '').name, 'Digite o nome do aluno.');
+      expect(check('Davi', '').ok, isTrue);
+    });
+  });
+
   group('tipos de tarefa', () {
     test('tarefa de método guarda assunto, detalhe e observação; título junta os dois', () {
       expect(Assignment.titleFor('Suzuki · Livro 2', 'Lição 5'), 'Suzuki · Livro 2 · Lição 5');

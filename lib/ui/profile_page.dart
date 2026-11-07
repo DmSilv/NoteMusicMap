@@ -216,7 +216,13 @@ class _ProfilePageState extends State<ProfilePage> {
             Wrap(spacing: 8, runSpacing: 6, children: [
               FilledButton.tonalIcon(
                 onPressed: () async {
-                  final s = await scanShareCode(context, title: 'Ler QR do professor', want: 'professor');
+                  final s = await scanShareCode(
+                    context,
+                    title: 'Ler QR do professor',
+                    want: 'professor',
+                    check: app.checkTeacherCode,
+                    onCamera: app.setCameraStatus,
+                  );
                   if (s != null) _registerTeacher(s.code);
                 },
                 icon: const Icon(Icons.qr_code_scanner),
@@ -244,8 +250,9 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _registerTeacher(String code) {
-    if (code == app.profile.shareCode) {
-      app.say('Este é o seu próprio código.');
+    final problem = app.checkTeacherCode(code);
+    if (problem != null) {
+      app.say(problem);
       return;
     }
     app.setMyTeacherCode(code);
@@ -476,12 +483,13 @@ Future<void> handleIncomingTeacherCode(BuildContext context, AppState app) async
   final code = app.incomingTeacherCode;
   if (code == null) return;
   app.incomingTeacherCode = null;
-  if (code == app.profile.shareCode) {
-    app.say('Este é o seu próprio código.');
-    return;
-  }
   if (app.myTeacherCode == code) {
     app.say('Este professor já está registrado.');
+    return;
+  }
+  final problem = app.checkTeacherCode(code);
+  if (problem != null) {
+    app.say(problem);
     return;
   }
   final ok = await showDialog<bool>(

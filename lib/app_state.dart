@@ -15,6 +15,7 @@ import 'ai/coach_ai.dart';
 import 'dev/frame_meter.dart';
 import 'audio/audio_out.dart';
 import 'platform/hard_reset.dart';
+import 'platform/web_vibrate.dart';
 import 'audio/pitch_source.dart';
 import 'data/repository.dart';
 import 'feedback/feedback_service.dart';
@@ -203,33 +204,61 @@ class AppState extends ChangeNotifier {
     return null;
   }
 
-  /// Confere um código digitado. Devolve o texto do problema, ou null se está certo
+  /// Confere o cadastro de um aluno (nome e código) com as regras do núcleo:
+  /// não pode ser você mesmo, nem o seu professor, nem repetir outro aluno.
+  StudentEntryCheck checkStudent(String name, String code, {String? exceptId}) => checkStudentEntry(
+        name: name,
+        codeInput: code,
+        ownCode: profile.shareCode,
+        ownName: profile.name,
+        teacherCode: myTeacherCode,
+        existing: students,
+        exceptId: exceptId,
+      );
+
+  /// Só o código (ao editar o código de um aluno). Devolve o problema, ou null se está certo
   /// (vazio também está certo: o código é opcional). [exceptId] ignora o próprio aluno.
   String? checkStudentCode(String input, {String? exceptId}) {
     if (input.trim().isEmpty) return null;
-    final c = formatShareCode(input);
-    if (c == null) {
-      return 'Código inválido. Ele tem 8 letras e números, como K7QM-4TXD. Confira com o aluno.';
-    }
-    if (c == profile.shareCode) return 'Este é o seu próprio código.';
-    final other = studentByCode(c);
-    if (other != null && other.id != exceptId) return 'Este código já é de ${other.name}.';
+    final name = (exceptId == null ? null : studentById(exceptId)?.name) ?? 'aluno';
+    return checkStudent(name, input, exceptId: exceptId).code;
+  }
+
+  /// Confere um código de professor antes de registrá-lo como "meu professor".
+  String? checkTeacherCode(String code) {
+    final c = formatShareCode(code);
+    if (c == null) return 'Código inválido. Confira com o professor.';
+    if (c == profile.shareCode) return 'Este é o seu próprio código: você não pode ser o seu próprio professor.';
+    final s = studentByCode(c);
+    if (s != null) return 'Este código é de ${s.name}, um aluno seu. Ele não pode ser o seu professor.';
     return null;
   }
 
   void setStudentCode(String id, String? input) {
     final s = studentById(id);
     if (s == null) return;
+    if (input != null && input.trim().isNotEmpty && checkStudentCode(input, exceptId: id) != null) return;
     s.code = (input == null || input.trim().isEmpty) ? null : formatShareCode(input);
     _saveTeacher();
     notifyListeners();
   }
 
+  /// Cadastra o aluno. Quem chama deve validar antes com [checkStudent]; por segurança,
+  /// um código que não passa nas regras (por exemplo, o seu próprio) é descartado aqui.
   Student addStudent(String name, {String? code}) {
+    final okCode = (code == null || code.trim().isEmpty) ? null : formatShareCode(code);
     final s = Student(
         id: DateTime.now().microsecondsSinceEpoch.toRadixString(36),
         name: name.trim(),
-        code: (code == null || code.trim().isEmpty) ? null : formatShareCode(code));
+        code: okCode != null && checkStudentEntry(
+                    name: 'x-validacao',
+                    codeInput: okCode,
+                    ownCode: profile.shareCode,
+                    teacherCode: myTeacherCode,
+                    existing: students)
+                .code == null
+            ? okCode
+            : null);
     students.add(s);
     activeStudentId ??= s.id;
     _saveTeacher();
@@ -415,7 +444,17 @@ class AppState extends ChangeNotifier {
   String importStudentText(String text) {
     final imp = importStudent(text);
     if (imp == null || imp.name.isEmpty) return 'Não consegui ler esses dados. Cole o texto exatamente como foi copiado.';
-    final cur = studentById(imp.id);
+    // Mesmas regras do cadastro: nada de aluno com o seu código ou o do seu professor.
+    final c = imp.code;
+    if (c != null && c == profile.shareCode) {
+      return 'Esses dados têm o seu próprio código: você não pode ser aluno de si mesmo. Importação cancelada.';
+    }
+    if (c != null && c == myTeacherCode) {
+      return 'Esses dados têm o código do seu professor. Importação cancelada.';
+    }
+    // Mesmo código de um aluno já cadastrado = é a mesma pessoa: soma ao histórico dele.
+    final sameCode = c == null ? null : studentByCode(c);
+    final cur = studentById(imp.id) ?? sameCode;
     if (cur == null) {
       students.add(imp);
       activeStudentId ??= imp.id;
@@ -745,13 +784,45 @@ class AppState extends ChangeNotifier {
     return micGranted == true;
   }
 
+  // ---------------- Câmera (só para ler QR) ----------------
+  /// null = ainda não pedida; true = a câmera abriu; false = o usuário negou.
+  bool? cameraGranted;
+
+  void setCameraStatus(bool granted) {
+    if (cameraGranted == granted) return;
+    cameraGranted = granted;
+    _prefs?.setBool('cam_granted', granted);
+    notifyListeners();
+  }
+
   // ---------------- Vibração ----------------
   /// null = ainda não verificado.
   bool? vibrationAvailable;
 
+  /// Por que não vibra (texto para o usuário), quando [vibrationAvailable] é false.
+  String vibrationWhy() {
+    if (kIsWeb) {
+      if (webIsIos()) {
+        return 'iPhone e iPad: a Apple não deixa sites e apps da tela inicial vibrarem. Só um app da App Store poderia.';
+      }
+      if (!webVibrationSupported()) {
+        return 'Este navegador ou aparelho não oferece vibração a sites. No celular Android, use o Chrome; '
+            'computadores não vibram.';
+      }
+    }
+    return 'Este aparelho não tem motor de vibração.';
+  }
+
+  /// A vibração existe neste aparelho? No app (Android/iOS) pergunta ao sistema;
+  /// na web usa a API do navegador (o Chrome do Android tem; iPhone e computador não).
+  Future<bool> _vibrationExists() async {
+    if (kIsWeb) return webVibrationSupported();
+    return Vibration.hasVibrator();
+  }
+
   Future<bool> checkVibration() async {
     try {
-      vibrationAvailable = await Vibration.hasVibrator();
+      vibrationAvailable = await _vibrationExists();
     } catch (_) {
       vibrationAvailable = false;
     }
@@ -763,9 +834,11 @@ class AppState extends ChangeNotifier {
   /// Se o aparelho não tiver motor de vibração, usa o toque tátil do sistema.
   Future<void> buzz({int ms = 25, List<int>? pattern}) async {
     try {
-      vibrationAvailable ??= await Vibration.hasVibrator();
+      vibrationAvailable ??= await _vibrationExists();
       if (vibrationAvailable == true) {
-        if (pattern != null) {
+        if (kIsWeb) {
+          webVibrate(pattern ?? [ms]);
+        } else if (pattern != null) {
           await Vibration.vibrate(pattern: pattern);
         } else {
           await Vibration.vibrate(duration: ms);
@@ -780,8 +853,8 @@ class AppState extends ChangeNotifier {
     await checkVibration();
     await buzz(pattern: const [0, 160, 110, 160]);
     say(vibrationAvailable == true
-        ? 'Vibração testada: você deve ter sentido duas pulsações'
-        : 'Este aparelho/navegador não tem vibração. O app segue funcionando sem ela.');
+        ? 'Vibração testada: você deve ter sentido duas pulsações. Se não sentiu, veja se o celular não está no modo silencioso ou economia de bateria.'
+        : vibrationWhy());
   }
 
   // ---------------- Primeiro uso ----------------
@@ -1258,6 +1331,7 @@ class AppState extends ChangeNotifier {
     _loadClocks(p);
     await _loadTeacher(p);
     myTeacherCode = p.getString('my_teacher');
+    cameraGranted = p.getBool('cam_granted');
     _readIncomingCode();
     _scheduleUpdateChecks();
     // Mostra o estado real das permissões sem abrir nenhum pedido do sistema.

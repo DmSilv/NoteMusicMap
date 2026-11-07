@@ -5,6 +5,7 @@ import '../app_state.dart';
 import 'app_logo.dart';
 import 'feedback_sheet.dart';
 import 'profile_page.dart';
+import 'qr_scan_page.dart';
 import 'ref_a_dialog.dart';
 import 'share_sheet.dart';
 import 'theme.dart';
@@ -458,8 +459,14 @@ class SettingsPage extends StatelessWidget {
     };
     final (vibIcon, vibColor, vibStatus) = switch (v) {
       true => (Icons.check_circle, AppColors.inTune, 'Disponível neste aparelho'),
-      false => (Icons.remove_circle_outline, AppColors.textDim, 'Indisponível aqui (no navegador só o Chrome do Android vibra; iPhone e computador não. O app funciona sem)'),
+      false => (Icons.remove_circle_outline, AppColors.textDim, 'Indisponível aqui. ${app.vibrationWhy()} O app funciona sem'),
       null => (Icons.help_outline, AppColors.textDim, 'Ainda não verificado'),
+    };
+    final cam = app.cameraGranted;
+    final (camIcon, camColor, camStatus) = switch (cam) {
+      true => (Icons.check_circle, AppColors.inTune, 'Liberada'),
+      false => (Icons.cancel, AppColors.sharp, 'Sem permissão'),
+      null => (Icons.help_outline, AppColors.textDim, 'Ainda não pedida'),
     };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -472,7 +479,8 @@ class SettingsPage extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.w700)),
         ),
         const SizedBox(height: 4),
-        Text('Pede o microfone e testa a vibração de uma vez, para você não ser interrompido depois.',
+        Text('Pede o microfone e testa a vibração de uma vez, para você não ser interrompido depois. '
+            'A câmera é pedida só quando você lê um QR (use o botão dela abaixo para liberar antes).',
             style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
         const Divider(height: 24),
         ListTile(
@@ -490,6 +498,25 @@ class SettingsPage extends StatelessWidget {
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
               'Para liberar depois de negar: no celular, abra Configurações › Apps › $kAppName › Permissões › Microfone. '
+              'No navegador, use o cadeado ao lado do endereço.',
+              style: TextStyle(color: AppColors.sharp, fontSize: 12.5),
+            ),
+          ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(camIcon, color: camColor, size: 30),
+          title: const Text('Câmera', style: TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: Text('$camStatus · só para ler o QR de alunos e professores (você também pode digitar o código)'),
+          trailing: FilledButton.tonal(
+            onPressed: () => scanShareCode(context, title: 'Testar a câmera', onCamera: app.setCameraStatus),
+            child: Text(cam == true ? 'Testar' : 'Permitir'),
+          ),
+        ),
+        if (cam == false)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              'Para liberar depois de negar: no celular, abra Configurações › Apps › $kAppName › Permissões › Câmera. '
               'No navegador, use o cadeado ao lado do endereço.',
               style: TextStyle(color: AppColors.sharp, fontSize: 12.5),
             ),
