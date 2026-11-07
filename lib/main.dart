@@ -4,8 +4,7 @@ import 'package:toastification/toastification.dart';
 
 import 'app_state.dart';
 import 'ui/app_logo.dart';
-import 'ui/mic_pill.dart';
-import 'ui/pomodoro_card.dart';
+import 'ui/status_strip.dart';
 import 'ui/grid_page.dart';
 import 'ui/settings_page.dart';
 import 'ui/share_sheet.dart';
@@ -303,8 +302,6 @@ class _HomeShellState extends State<HomeShell> {
             ],
           ),
           actions: [
-            MicPill(app: app),
-            PomodoroPill(app: app, onTap: () => _go(3)),
             // Só este botão reage à troca de tema, não a barra inteira.
             ValueListenableBuilder<ThemeMode>(
               valueListenable: app.themeNotifier,
@@ -347,9 +344,17 @@ class _HomeShellState extends State<HomeShell> {
         // IndexedStack mantém o estado de cada aba aberta (a grade e o metrônomo
         // continuam). Só a aba visível escuta mudanças e se reconstrói.
         body: SafeArea(
-          child: IndexedStack(
-            index: _index,
-            children: [for (var i = 0; i < 4; i++) _page(i)],
+          child: Column(
+            children: [
+              // Microfone e Pomodoro ativos: faixa própria, longe do título.
+              StatusStrip(app: app, onPomodoro: () => _go(3)),
+              Expanded(
+                child: IndexedStack(
+                  index: _index,
+                  children: [for (var i = 0; i < 4; i++) _page(i)],
+                ),
+              ),
+            ],
           ),
         ),
         bottomNavigationBar: NavigationBar(

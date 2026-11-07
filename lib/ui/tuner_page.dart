@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import 'package:afina_core/afina_core.dart';
 import 'perf.dart';
+import 'ref_a_dialog.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -377,7 +378,7 @@ class _TunerPageState extends State<TunerPage> {
           // Cinco botões de largura igual: sempre cabem, em qualquer tela.
           Row(
             children: [
-              for (final hz in [438.0, 440.0, 442.0, 443.0, 445.0])
+              for (final hz in const [415.0, 432.0, 440.0, 442.0, 443.0])
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 3),
@@ -405,11 +406,18 @@ class _TunerPageState extends State<TunerPage> {
                 onPressed: () => app.setTuning(refA: app.refA - 1),
                 icon: const Icon(Icons.remove_circle_outline),
               ),
-              SizedBox(
-                width: 110,
-                child: Text('${app.refA.toStringAsFixed(0)} Hz',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+              InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () => showRefADialog(context, app),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Text('${app.refA == app.refA.roundToDouble() ? app.refA.toStringAsFixed(0) : app.refA.toStringAsFixed(1)} Hz',
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                    const SizedBox(width: 6),
+                    Icon(Icons.edit, size: 15, color: AppColors.textDim),
+                  ]),
+                ),
               ),
               IconButton(
                 tooltip: 'Mais 1 Hz',

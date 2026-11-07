@@ -37,6 +37,42 @@ class ToneLoop {
       1200 * math.log(effectiveHz / requestedHz) / math.ln2;
 }
 
+/// Pico máximo do trecho gerado (deixa uma folga para não estourar).
+const double kTonePeak = 0.92;
+
+/// 0..1: quanto reforçar os harmônicos de uma nota grave (1 = Sol3 e abaixo,
+/// 0 = a partir de ~420 Hz).
+double lowNoteStrength(double freq) =>
+    ((420.0 / freq - 1.0) / 1.1).clamp(0.0, 1.0).toDouble();
+
+/// Ponderação A (IEC 61672), em dB: aproxima como o ouvido percebe o volume.
+double aWeightDb(double f) {
+  final f2 = f * f;
+  const c1 = 20.6 * 20.6, c2 = 107.7 * 107.7, c3 = 737.9 * 737.9, c4 = 12194.0 * 12194.0;
+  final ra = (c4 * f2 * f2) / ((f2 + c1) * math.sqrt((f2 + c2) * (f2 + c3)) * (f2 + c4));
+  return 20 * math.log(ra) / math.ln10 + 2.0;
+}
+
+/// Volume percebido (dB, ponderado em A) de um trecho gerado por [buildToneLoop],
+/// medido pelas amplitudes dos harmônicos (via DFT nos múltiplos da fundamental).
+double toneLoudnessDb(ToneLoop loop) {
+  final n = loop.samples.length;
+  var power = 0.0;
+  for (var h = 1; h <= 8; h++) {
+    final hz = loop.effectiveHz * h;
+    if (hz >= loop.sampleRate / 2) break;
+    var re = 0.0, im = 0.0;
+    final k = 2 * math.pi * loop.cycles * h / n;
+    for (var i = 0; i < n; i++) {
+      re += loop.samples[i] * math.cos(k * i);
+      im += loop.samples[i] * math.sin(k * i);
+    }
+    final amp = 2 * math.sqrt(re * re + im * im) / n;
+    power += amp * amp / 2 * math.pow(10, aWeightDb(hz) / 10);
+  }
+  return 10 * math.log(math.max(power, 1e-12)) / math.ln10;
+}
+
 /// Gera o trecho para [freq] Hz. Escolhe o número de ciclos cujo comprimento
 /// (em amostras inteiras) deixa a frequência obtida o mais perto possível da
 /// pedida, com no máximo [maxSeconds] de duração.
@@ -45,6 +81,7 @@ ToneLoop buildToneLoop(
   int sampleRate = 44100,
   ToneTimbre timbre = ToneTimbre.fork,
   double maxSeconds = 2.0,
+  bool boostLow = true,
 }) {
   final maxCycles = math.max(1, (freq * maxSeconds).floor());
   var bestN = 1;
@@ -63,11 +100,22 @@ ToneLoop buildToneLoop(
     if (err < 1e-5 && l >= sampleRate ~/ 4) break; // < 0,02 cent
   }
 
+  // Notas graves quase não saem no alto-falante do celular (que corta abaixo de
+  // ~350 Hz). Reforçamos os harmônicos 2 a 5: o ouvido "completa" o grave
+  // (fundamental ausente), a altura continua a mesma e o som fica bem mais
+  // audível. Acima de ~420 Hz nada muda (senoide pura).
+  final s = boostLow ? lowNoteStrength(freq) : 0.0;
   final partials = switch (timbre) {
-    ToneTimbre.fork => const [1.0],
-    ToneTimbre.soft => const [1.0, 0.22, 0.08, 0.03],
+    ToneTimbre.fork => [1.0 - 0.45 * s, 0.9 * s, 0.8 * s, 0.55 * s, 0.3 * s],
+    ToneTimbre.soft => [1.0 - 0.35 * s, 0.22 + 0.75 * s, 0.08 + 0.6 * s, 0.03 + 0.4 * s, 0.2 * s],
     ToneTimbre.violin => const [1.0, 0.70, 0.50, 0.35, 0.20, 0.12],
   };
+  // Fases espalhadas (estilo Schroeder) quando há reforço: o pico da onda fica
+  // menor para a mesma energia, então dá para soar mais alto sem estourar.
+  final phases = [
+    for (var h = 1; h <= partials.length; h++)
+      (s > 0 && timbre != ToneTimbre.violin) ? -math.pi * h * h / partials.length : 0.0
+  ];
   final out = Float32List(bestL);
   var peak = 0.0;
   for (var i = 0; i < bestL; i++) {
@@ -76,12 +124,12 @@ ToneLoop buildToneLoop(
     var v = 0.0;
     for (var h = 0; h < partials.length; h++) {
       // não deixa harmônicos passarem de Nyquist
-      if (freq * (h + 1) < sampleRate / 2) v += partials[h] * math.sin((h + 1) * ph);
+      if (freq * (h + 1) < sampleRate / 2) v += partials[h] * math.sin((h + 1) * ph + phases[h]);
     }
     out[i] = v;
     if (v.abs() > peak) peak = v.abs();
   }
-  final g = peak > 0 ? 0.9 / peak : 1.0;
+  final g = peak > 0 ? kTonePeak / peak : 1.0;
   for (var i = 0; i < bestL; i++) {
     out[i] *= g;
   }

@@ -106,6 +106,17 @@ class _GridPageState extends State<GridPage> {
                   children: [
                     NeedleGauge(cents: cur?.cents, zone: zone),
                     CorrectionHint(cents: cur?.cents, zone: zone),
+                    // Altura fixa: a frequência aparece e some sem mexer no layout.
+                    if (app.showFreq)
+                      SizedBox(
+                        height: 16,
+                        child: Text(
+                          cur == null
+                              ? ' '
+                              : '${cur.freq.toStringAsFixed(1)} Hz · alvo ${cur.target.toStringAsFixed(1)} Hz',
+                          style: TextStyle(color: AppColors.textDim, fontSize: 12),
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -224,7 +235,47 @@ class _GridPageState extends State<GridPage> {
             ],
           ),
         ),
+        const SizedBox(height: 8),
+        _settingsSummary(),
       ],
+    );
+  }
+
+  /// Resumo dos ajustes ativos ("Lá 440 Hz · Igual · Intermediário (±5)"); toque para mudar.
+  Widget _settingsSummary() {
+    final hz = app.refA == app.refA.roundToDouble()
+        ? app.refA.toStringAsFixed(0)
+        : app.refA.toStringAsFixed(1);
+    final sys = switch (app.system) {
+      TuningSystem.equal => 'Igual',
+      TuningSystem.pythagorean => 'Pitagórico',
+      TuningSystem.just => 'Justo',
+    };
+    final lvl = switch (app.zone) {
+      ZoneLevel.beginner => 'Iniciante (±10)',
+      ZoneLevel.intermediate => 'Intermediário (±5)',
+      ZoneLevel.advanced => 'Avançado (±3)',
+    };
+    final tr = app.transpose == 0 ? '' : ' · transpõe ${app.transpose > 0 ? '+' : ''}${app.transpose}';
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () => setState(() => _section = 2),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.tune, size: 15, color: AppColors.textDim),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text('Lá $hz Hz · $sys · $lvl$tr',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+            ),
+            Icon(Icons.chevron_right, size: 16, color: AppColors.textDim),
+          ],
+        ),
+      ),
     );
   }
 
@@ -415,12 +466,11 @@ class _GridPageState extends State<GridPage> {
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: SwitchListTile(
             secondary: Icon(Icons.play_circle_outline, color: AppColors.textDim),
-            title: const Text('Seguir meu ritmo', style: TextStyle(fontWeight: FontWeight.w700)),
+            title: const Text('Execução livre', style: TextStyle(fontWeight: FontWeight.w700)),
             subtitle: Text(
               app.exerciseFlow
-                  ? 'Toque a escala sem parar: o app acompanha cada nota sem pedir para segurar. '
-                      'Se a nota ainda não for a certa, aparece um aviso leve (suba ou desça).'
-                  : 'Desligado: o app espera você segurar cada nota até a barra encher antes de seguir.',
+                  ? 'Toque qualquer nota da escala, em qualquer ordem: o app reconhece e valida a afinação de cada uma, com aviso de suba ou desça.'
+                  : 'Desligado (guiado): uma nota por vez; a próxima só aparece quando a atual estiver afinada e segurada.',
               style: const TextStyle(fontSize: 12.5),
             ),
             value: app.exerciseFlow,

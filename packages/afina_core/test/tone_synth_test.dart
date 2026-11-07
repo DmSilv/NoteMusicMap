@@ -30,7 +30,9 @@ void main() {
         final stepAcrossLoop = (b - a).abs();
         expect(stepAcrossLoop, lessThanOrEqualTo(stepInside * 1.6 + 1e-3),
             reason: '$f Hz $tb: degrau na emenda $stepAcrossLoop vs $stepInside');
-        expect(b.abs(), lessThan(1e-9)); // começa em fase zero
+        if (lowNoteStrength(f) == 0 || tb == ToneTimbre.violin) {
+          expect(b.abs(), lessThan(1e-9)); // senoide pura começa em fase zero
+        }
       }
     }
   });
@@ -42,7 +44,7 @@ void main() {
       for (final s in t.samples) {
         if (s.abs() > peak) peak = s.abs();
       }
-      expect(peak, closeTo(0.9, 0.01));
+      expect(peak, closeTo(kTonePeak, 0.01));
     }
   });
 
@@ -60,7 +62,7 @@ void main() {
       return 2 * math.sqrt(re * re + im * im) / n;
     }
 
-    expect(amp(1), closeTo(0.9, 0.01));
+    expect(amp(1), closeTo(kTonePeak, 0.01));
     expect(amp(2), lessThan(0.005));
     expect(amp(3), lessThan(0.005));
   });
@@ -99,7 +101,7 @@ void main() {
       final v = bd.getInt16(44 + i * 2, Endian.little).abs();
       if (v > maxV) maxV = v;
     }
-    expect(maxV, closeTo(0.9 * 32767, 400));
+    expect(maxV, closeTo(kTonePeak * 32767, 400));
   });
 
   test('desempenho: gerar o tom mais pesado em menos de 100 ms', () {
@@ -147,6 +149,72 @@ void chimeTests() {
       final up = buildChime(endOfFocus: false);
       expect(hz(down, 0.03, 0.25), greaterThan(hz(down, 0.40, 0.60)));
       expect(hz(up, 0.03, 0.25), lessThan(hz(up, 0.40, 0.60)));
+    });
+  });
+
+  group('notas graves audíveis (Sol3 no celular)', () {
+    const strings = {'Sol3': 195.9954, 'Ré4': 293.6648, 'Lá4': 440.0, 'Mi5': 659.2551};
+
+    test('o reforço só age abaixo de ~420 Hz', () {
+      expect(lowNoteStrength(195.9954), 1.0);
+      expect(lowNoteStrength(293.6648), inInclusiveRange(0.2, 0.6));
+      expect(lowNoteStrength(440), 0.0);
+      expect(lowNoteStrength(659.2551), 0.0);
+    });
+
+    test('Sol3 fica pelo menos 4 dB mais forte (percebido) do que a senoide pura', () {
+      final puro = toneLoudnessDb(buildToneLoop(195.9954, boostLow: false));
+      final novo = toneLoudnessDb(buildToneLoop(195.9954));
+      expect(novo - puro, greaterThan(4.0));
+    });
+
+    test('a diferença de volume entre as cordas cai (de ~9 dB para menos de 6 dB)', () {
+      double spread(bool boost) {
+        final v = [
+          for (final f in strings.values) toneLoudnessDb(buildToneLoop(f, boostLow: boost))
+        ];
+        return v.reduce(math.max) - v.reduce(math.min);
+      }
+
+      expect(spread(false), greaterThan(8));
+      expect(spread(true), lessThan(6));
+    });
+
+    test('qualidade: nunca estoura e a fundamental continua presente', () {
+      for (final tb in [ToneTimbre.fork, ToneTimbre.soft]) {
+        for (final f in strings.values) {
+          final t = buildToneLoop(f, timbre: tb);
+          var peak = 0.0;
+          for (final x in t.samples) {
+            peak = math.max(peak, x.abs());
+          }
+          expect(peak, lessThanOrEqualTo(0.95));
+          // fundamental com pelo menos 20% do pico
+          var re = 0.0, im = 0.0;
+          final n = t.samples.length;
+          for (var i = 0; i < n; i++) {
+            final ph = 2 * math.pi * t.cycles * i / n;
+            re += t.samples[i] * math.cos(ph);
+            im += t.samples[i] * math.sin(ph);
+          }
+          expect(2 * math.sqrt(re * re + im * im) / n, greaterThan(0.2 * peak), reason: '$f $tb');
+          // e a altura continua exata
+          expect(t.centsError(f).abs(), lessThan(0.5));
+        }
+      }
+    });
+
+    test('o laço continua sem emenda com o reforço', () {
+      final t = buildToneLoop(195.9954);
+      final n = t.samples.length;
+      final a = t.samples[n - 1], b = t.samples[0], c = t.samples[1];
+      expect((b - a).abs(), lessThanOrEqualTo((c - b).abs() * 1.6 + 1e-3));
+    });
+
+    test('a ponderação A é a esperada (referência: 1 kHz = 0 dB)', () {
+      expect(aWeightDb(1000), closeTo(0, 0.2));
+      expect(aWeightDb(100), closeTo(-19.1, 0.3));
+      expect(aWeightDb(200), closeTo(-10.9, 0.3));
     });
   });
 }

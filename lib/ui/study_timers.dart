@@ -1,0 +1,318 @@
+import 'package:afina_core/afina_core.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import '../app_state.dart';
+import 'pomodoro_card.dart';
+import 'theme.dart';
+import 'widgets.dart';
+
+/// Bloco "Como você quer estudar?": submenu com Pomodoro, Cronômetro e Meu
+/// tempo, cada um com uma explicação curta de quando usar.
+class StudyTimerSection extends StatelessWidget {
+  final AppState app;
+  const StudyTimerSection({super.key, required this.app});
+
+  static const _info = {
+    StudyMode.pomodoro: (
+      Icons.local_fire_department_outlined,
+      'Pomodoro: foco e descanso em ciclos',
+      'Estude 25 minutos concentrado, descanse 5 e repita; a cada 4 ciclos há uma pausa maior. '
+          'Bom para manter a concentração e não esquecer de descansar.'
+    ),
+    StudyMode.stopwatch: (
+      Icons.av_timer,
+      'Cronômetro: só contar o seu tempo',
+      'Mede quanto tempo você estudou, sem alarme e sem ciclos. Toque em Iniciar ao começar e em '
+          'Pausar ao terminar. Bom para quem prefere estudar livremente.'
+    ),
+    StudyMode.custom: (
+      Icons.hourglass_bottom,
+      'Meu tempo: sessão com duração escolhida',
+      'Você define a duração (por exemplo, 40 minutos) e o app avisa no fim. Sem ciclos de '
+          'descanso. Bom para ensaios e para estudos com hora marcada.'
+    ),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: app,
+      builder: (context, _) {
+        final m = app.studyMode;
+        final (icon, title, text) = _info[m]!;
+        return Column(
+          children: [
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Como você quer estudar?',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 4),
+                  Text('Escolha um jeito de marcar o seu tempo. O que você estuda entra no total de hoje.',
+                      style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<StudyMode>(
+                      showSelectedIcon: false,
+                      style: const ButtonStyle(
+                        visualDensity: VisualDensity.compact,
+                        textStyle: WidgetStatePropertyAll(
+                            TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                        padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 6)),
+                      ),
+                      segments: const [
+                        ButtonSegment(value: StudyMode.pomodoro, label: Text('Pomodoro')),
+                        ButtonSegment(value: StudyMode.stopwatch, label: Text('Cronômetro')),
+                        ButtonSegment(value: StudyMode.custom, label: Text('Meu tempo')),
+                      ],
+                      selected: {m},
+                      onSelectionChanged: (s) => app.setStudyMode(s.first),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: Container(
+                      key: ValueKey(m),
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.accent.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(icon, color: AppColors.accent),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                                const SizedBox(height: 3),
+                                Text(text, style: const TextStyle(fontSize: 13, height: 1.3)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            switch (m) {
+              StudyMode.pomodoro => PomodoroCard(app: app),
+              StudyMode.stopwatch => _StopwatchCard(app: app),
+              StudyMode.custom => _CustomCard(app: app),
+            },
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _StopwatchCard extends StatelessWidget {
+  final AppState app;
+  const _StopwatchCard({required this.app});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = app.stopwatch;
+    return AppCard(
+      child: ListenableBuilder(
+        listenable: app.pomoLive,
+        builder: (context, _) {
+          final ms = c.elapsedMs(DateTime.now().millisecondsSinceEpoch);
+          return Column(
+            children: [
+              Text(c.running ? 'Contando seu estudo…' : (ms > 0 ? 'Pausado' : 'Pronto para começar'),
+                  style: TextStyle(color: AppColors.textDim)),
+              const SizedBox(height: 6),
+              Text(formatClock(ms),
+                  style: const TextStyle(
+                      fontSize: 56,
+                      fontWeight: FontWeight.w800,
+                      fontFeatures: [FontFeature.tabularFigures()])),
+              const SizedBox(height: 12),
+              _clockButtons(app, c, startLabel: ms > 0 ? 'Continuar' : 'Iniciar'),
+              const SizedBox(height: 6),
+              Text('O tempo vai para o seu total de hoje enquanto o cronômetro roda.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _CustomCard extends StatelessWidget {
+  final AppState app;
+  const _CustomCard({required this.app});
+
+  Future<void> _other(BuildContext context) async {
+    final ctl = TextEditingController(text: '${app.customMinutes}');
+    final v = await showDialog<int>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Quantos minutos?'),
+        content: TextField(
+          controller: ctl,
+          autofocus: true,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          decoration: const InputDecoration(suffixText: 'min', helperText: 'De 1 a 600 minutos'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancelar')),
+          FilledButton(
+              onPressed: () => Navigator.pop(c, int.tryParse(ctl.text)), child: const Text('Aplicar')),
+        ],
+      ),
+    );
+    ctl.dispose();
+    if (v != null && v > 0) app.setCustomMinutes(v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = app.customClock;
+    const presets = [15, 30, 45, 60, 90];
+    return AppCard(
+      child: ListenableBuilder(
+        listenable: app.pomoLive,
+        builder: (context, _) {
+          final now = DateTime.now().millisecondsSinceEpoch;
+          final left = c.remainingMs(now);
+          final done = c.finished(now);
+          return Column(
+            children: [
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                alignment: WrapAlignment.center,
+                children: [
+                  for (final m in presets)
+                    ChoiceChip(
+                      label: Text('$m min'),
+                      selected: app.customMinutes == m,
+                      onSelected: c.running ? null : (_) => app.setCustomMinutes(m),
+                    ),
+                  ChoiceChip(
+                    avatar: const Icon(Icons.edit, size: 15),
+                    label: Text(presets.contains(app.customMinutes) ? 'Outro…' : '${app.customMinutes} min'),
+                    selected: !presets.contains(app.customMinutes),
+                    onSelected: c.running ? null : (_) => _other(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(
+                  done
+                      ? 'Sessão concluída! Bom trabalho.'
+                      : (c.running ? 'Estudando…' : (c.elapsedMs(now) > 0 ? 'Pausado' : 'Pronto para começar')),
+                  style: TextStyle(color: done ? AppColors.inTune : AppColors.textDim)),
+              const SizedBox(height: 6),
+              Text(formatClock(left),
+                  style: const TextStyle(
+                      fontSize: 56,
+                      fontWeight: FontWeight.w800,
+                      fontFeatures: [FontFeature.tabularFigures()])),
+              const SizedBox(height: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  minHeight: 8,
+                  value: c.progress(now),
+                  backgroundColor: AppColors.surface2,
+                  color: AppColors.accent,
+                ),
+              ),
+              const SizedBox(height: 12),
+              _clockButtons(app, c,
+                  startLabel: c.elapsedMs(now) > 0 && !done ? 'Continuar' : 'Iniciar', done: done),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Iniciar/Pausar + Zerar.
+Widget _clockButtons(AppState app, StudyClock c, {required String startLabel, bool done = false}) {
+  return Row(
+    children: [
+      Expanded(
+        flex: 2,
+        child: FilledButton.icon(
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+          onPressed: done
+              ? () => app.clockReset(c)
+              : (c.running ? () => app.clockPause(c) : () => app.clockStart(c)),
+          icon: Icon(done ? Icons.replay : (c.running ? Icons.pause : Icons.play_arrow)),
+          label: Text(done ? 'Nova sessão' : (c.running ? 'Pausar' : startLabel),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        ),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+          onPressed: () => app.clockReset(c),
+          icon: const Icon(Icons.restart_alt),
+          label: const Text('Zerar'),
+        ),
+      ),
+    ],
+  );
+}
+
+/// Aviso na faixa de status quando o cronômetro ou o tempo personalizado rodam.
+class ClockPill extends StatelessWidget {
+  final AppState app;
+  final VoidCallback onTap;
+  const ClockPill({super.key, required this.app, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final sw = app.stopwatch.running;
+    final cu = app.customClock.running;
+    if (!sw && !cu) return const SizedBox.shrink();
+    final text = cu ? formatClock(app.customClock.remainingMs(now)) : formatClock(app.stopwatch.elapsedMs(now));
+    final color = AppColors.accent;
+    return Padding(
+      padding: const EdgeInsets.only(right: 4),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.16),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withValues(alpha: 0.7)),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(cu ? Icons.hourglass_bottom : Icons.av_timer, size: 16, color: color),
+            const SizedBox(width: 4),
+            Text(text,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                    fontFeatures: [FontFeature.tabularFigures()])),
+          ]),
+        ),
+      ),
+    );
+  }
+}

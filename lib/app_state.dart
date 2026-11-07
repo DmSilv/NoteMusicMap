@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/services.dart' show HapticFeedback;
 import 'package:vibration/vibration.dart';
 import 'package:flutter/material.dart' show ThemeMode;
@@ -19,6 +20,12 @@ import 'package:afina_core/afina_core.dart';
 
 /// Ativa a simulação de execução (sem som), só para testes: --dart-define=DEV_DEMO=true.
 const bool kDevDemo = bool.fromEnvironment('DEV_DEMO');
+
+/// Identificador desta versão (a Vercel grava o commit); vazio em builds locais.
+const String kBuildId = String.fromEnvironment('BUILD_ID');
+
+/// Jeito de marcar o tempo de estudo.
+enum StudyMode { pomodoro, stopwatch, custom }
 
 enum TunerMode { strings, chromatic }
 
@@ -92,6 +99,275 @@ class AppState extends ChangeNotifier {
   int get pomoRemainingMs => pomo.remainingMs(_nowMs);
   double get pomoProgress => pomo.progress(_nowMs);
   int get pomoToday => pomoDays[dayKey(DateTime.now())] ?? 0;
+
+  // ---------------- Área do professor (local, sem login) ----------------
+  bool teacherMode = false;
+  String? teacherPinHash;
+  String teacherSalt = 'nm';
+  bool teacherUnlocked = false; // vale só nesta abertura do app
+  List<Student> students = [];
+  String? activeStudentId;
+
+  Student? get activeStudent {
+    for (final s in students) {
+      if (s.id == activeStudentId) return s;
+    }
+    return null;
+  }
+
+  Student? studentById(String id) {
+    for (final s in students) {
+      if (s.id == id) return s;
+    }
+    return null;
+  }
+
+  void setTeacherMode(bool v) {
+    teacherMode = v;
+    if (!v) {
+      activeStudentId = null; // sem modo professor, tudo volta a ser do próprio usuário
+      teacherUnlocked = false;
+    }
+    _saveTeacher();
+    notifyListeners();
+  }
+
+  bool get teacherLocked => teacherPinHash != null && !teacherUnlocked;
+
+  bool unlockTeacher(String pin) {
+    final ok = teacherPinHash != null && hashPin(pin, teacherSalt) == teacherPinHash;
+    if (ok) {
+      teacherUnlocked = true;
+      notifyListeners();
+    }
+    return ok;
+  }
+
+  void setTeacherPin(String? pin) {
+    teacherPinHash = (pin == null || pin.isEmpty) ? null : hashPin(pin, teacherSalt);
+    teacherUnlocked = true;
+    _saveTeacher();
+    notifyListeners();
+  }
+
+  Student addStudent(String name) {
+    final s = Student(id: DateTime.now().microsecondsSinceEpoch.toRadixString(36), name: name.trim());
+    students.add(s);
+    activeStudentId ??= s.id;
+    _saveTeacher();
+    notifyListeners();
+    return s;
+  }
+
+  void removeStudent(String id) {
+    students.removeWhere((s) => s.id == id);
+    if (activeStudentId == id) activeStudentId = null;
+    _saveTeacher();
+    notifyListeners();
+  }
+
+  void setActiveStudent(String? id) {
+    activeStudentId = id;
+    _saveTeacher();
+    notifyListeners();
+  }
+
+  void addTeacherNote(Student s, String text) {
+    if (text.trim().isEmpty) return;
+    s.notes.insert(0, TeacherNote(DateTime.now(), text.trim()));
+    _saveTeacher();
+    notifyListeners();
+  }
+
+  void addAssignment(Student s, {required String title, required int scaleTypeIndex, required int tonicPc, required int octaves, required double goal}) {
+    s.tasks.insert(
+        0,
+        Assignment(
+            id: DateTime.now().microsecondsSinceEpoch.toRadixString(36),
+            title: title,
+            scaleTypeIndex: scaleTypeIndex,
+            tonicPc: tonicPc,
+            octaves: octaves,
+            goal: goal,
+            created: DateTime.now()));
+    _saveTeacher();
+    notifyListeners();
+  }
+
+  void toggleAssignment(Student s, String id) {
+    final i = s.tasks.indexWhere((t) => t.id == id);
+    if (i < 0) return;
+    s.tasks[i] = s.tasks[i].copyWith(done: !s.tasks[i].done);
+    _saveTeacher();
+    notifyListeners();
+  }
+
+  void removeAssignment(Student s, String id) {
+    s.tasks.removeWhere((t) => t.id == id);
+    _saveTeacher();
+    notifyListeners();
+  }
+
+  /// Importa um aluno colado (ou junta as sessões se o aluno já existe).
+  /// Devolve uma mensagem para o usuário.
+  String importStudentText(String text) {
+    final imp = importStudent(text);
+    if (imp == null || imp.name.isEmpty) return 'Não consegui ler esses dados. Cole o texto exatamente como foi copiado.';
+    final cur = studentById(imp.id);
+    if (cur == null) {
+      students.add(imp);
+      activeStudentId ??= imp.id;
+      _saveTeacher();
+      notifyListeners();
+      return '${imp.name} adicionado com ${imp.sessions.length} sessões.';
+    }
+    final n = mergeSessions(cur.sessions, imp.sessions);
+    _saveTeacher();
+    notifyListeners();
+    return '$n sessões novas somadas ao histórico de ${cur.name}.';
+  }
+
+  void _saveTeacher() {
+    final p = _prefs;
+    if (p == null) return;
+    p.setBool('teacherMode', teacherMode);
+    if (teacherPinHash == null) {
+      p.remove('teacherPin');
+    } else {
+      p.setString('teacherPin', teacherPinHash!);
+    }
+    p.setString('students', jsonEncode([for (final s in students) s.toJson()]));
+    if (activeStudentId == null) {
+      p.remove('activeStudent');
+    } else {
+      p.setString('activeStudent', activeStudentId!);
+    }
+  }
+
+  void _loadTeacher(SharedPreferences p) {
+    teacherMode = p.getBool('teacherMode') ?? false;
+    teacherPinHash = p.getString('teacherPin');
+    activeStudentId = p.getString('activeStudent');
+    try {
+      final j = p.getString('students');
+      students = j == null
+          ? []
+          : [
+              for (final x in (jsonDecode(j) as List))
+                ?Student.tryFrom((x as Map).cast<String, dynamic>())
+            ];
+    } catch (_) {
+      students = [];
+    }
+  }
+
+  // ---------------- Estudo: cronômetro e tempo personalizado ----------------
+  StudyMode studyMode = StudyMode.pomodoro;
+  final StudyClock stopwatch = StudyClock();
+  final StudyClock customClock = StudyClock(countdownMs: 30 * 60000);
+  int customMinutes = 30;
+  Timer? _clockTimer;
+
+  /// Algum relógio manual (cronômetro ou tempo personalizado) está rodando.
+  bool get manualClockActive => stopwatch.running || customClock.running;
+
+  void setStudyMode(StudyMode m) {
+    studyMode = m;
+    _prefs?.setInt('studyMode', m.index);
+    notifyListeners();
+  }
+
+  StudyClock clockFor(StudyMode m) => m == StudyMode.stopwatch ? stopwatch : customClock;
+
+  Future<void> clockStart(StudyClock c) async {
+    if (identical(c, customClock)) {
+      try {
+        await ensureAudio(); // o toque libera o áudio para o aviso do fim
+      } catch (_) {}
+    }
+    c.start(_nowMs);
+    _runClockTimer();
+    _wake(true);
+    _saveClocks();
+    notifyListeners();
+  }
+
+  void clockPause(StudyClock c) {
+    c.pause(_nowMs);
+    if (!manualClockActive) {
+      _clockTimer?.cancel();
+      _clockTimer = null;
+      _wake(listening || metroRunning);
+    }
+    _saveClocks();
+    pomoTick.value++;
+    notifyListeners();
+  }
+
+  void clockReset(StudyClock c) {
+    c.reset();
+    if (!manualClockActive) {
+      _clockTimer?.cancel();
+      _clockTimer = null;
+      _wake(listening || metroRunning);
+    }
+    _saveClocks();
+    pomoTick.value++;
+    notifyListeners();
+  }
+
+  void setCustomMinutes(int m) {
+    customMinutes = m.clamp(1, 600);
+    customClock.setCountdown(customMinutes * 60000);
+    _prefs?.setInt('customMin', customMinutes);
+    _saveClocks();
+    pomoTick.value++;
+    notifyListeners();
+  }
+
+  void _runClockTimer() {
+    _clockTimer?.cancel();
+    _clockTimer = Timer.periodic(const Duration(milliseconds: 500), (_) {
+      final done = customClock.tick(_nowMs);
+      pomoTick.value++;
+      if (done) {
+        say('Sessão de $customMinutes min concluída! Bom trabalho.');
+        if (pomoChime) {
+          _chime.play(endOfFocus: true, volume: pomoVolume).catchError((_) {});
+        }
+        if (pomoVibrate) buzz(pattern: const [0, 260, 120, 260]);
+        _saveClocks();
+      }
+      if (!manualClockActive) {
+        _clockTimer?.cancel();
+        _clockTimer = null;
+        _wake(listening || metroRunning);
+        notifyListeners();
+      }
+    });
+  }
+
+  void _saveClocks() {
+    final p = _prefs;
+    if (p == null) return;
+    p.setString('clock_sw', jsonEncode(stopwatch.toJson(_nowMs)));
+    p.setString('clock_custom', jsonEncode(customClock.toJson(_nowMs)));
+  }
+
+  void _loadClocks(SharedPreferences p) {
+    studyMode = StudyMode.values[(p.getInt('studyMode') ?? 0).clamp(0, StudyMode.values.length - 1)];
+    customMinutes = (p.getInt('customMin') ?? 30).clamp(1, 600);
+    try {
+      final sw = p.getString('clock_sw');
+      if (sw != null) stopwatch.restore(jsonDecode(sw) as Map<String, dynamic>, _nowMs);
+      final cu = p.getString('clock_custom');
+      if (cu != null) customClock.restore(jsonDecode(cu) as Map<String, dynamic>, _nowMs);
+    } catch (_) {}
+    if (customClock.countdownMs != customMinutes * 60000) {
+      customClock.setCountdown(customMinutes * 60000);
+    }
+    if (manualClockActive) _runClockTimer();
+  }
 
   Future<void> pomoStart() async {
     // O toque do usuário libera o áudio no navegador, para o alarme tocar depois.
@@ -397,6 +673,8 @@ class AppState extends ChangeNotifier {
     dailyGoalMinutes = 20;
     flashEnabled = true;
     hapticEnabled = true;
+    keepAwake = true;
+    showFreq = true;
     sensitivity = MicSensitivity.normal;
     micGain = 1.0;
     outputLatencyMs = 0;
@@ -573,6 +851,15 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Execução livre: o músico decide quando acabou (botão "Concluir").
+  void finishExerciseNow() {
+    final e = exercise;
+    if (e == null || e.finished) return;
+    e.finish();
+    _finishExercise();
+    liveTick.value++;
+  }
+
   void skipExerciseNote() {
     final e = exercise;
     if (e == null || e.finished) return;
@@ -610,13 +897,32 @@ class AppState extends ChangeNotifier {
       accuracy: sc.accuracy,
       meanAbsCents: sc.meanAbsCents,
       steps: [
-        for (final r in e.results)
+        for (final r in e.finalResults)
           StepRecord(r.midi, r.ascending, r.octaveIndex, r.skipped ? null : r.cents)
       ],
     );
     lastSession = rec;
     // No modo demonstração não se guarda histórico (não é a execução do músico).
-    if (!demo) {
+    final student = (!demo && teacherMode) ? activeStudent : null;
+    if (student != null) {
+      // Aula com aluno: o exercício vai para o histórico dele (não para o seu).
+      student.sessions.insert(0, rec);
+      if (student.sessions.length > 200) student.sessions.removeRange(200, student.sessions.length);
+      var tasksDone = 0;
+      for (var i = 0; i < student.tasks.length; i++) {
+        final t = student.tasks[i];
+        if (!t.done &&
+            t.scaleTypeIndex == scaleType.index &&
+            t.tonicPc == scaleTonicMidi % 12 &&
+            t.octaves == scaleOctaves &&
+            sc.accuracy >= t.goal) {
+          student.tasks[i] = t.copyWith(done: true);
+          tasksDone++;
+        }
+      }
+      _saveTeacher();
+      say('${student.name}: ${(sc.accuracy * 100).round()}% de acerto. Salvo no histórico do aluno${tasksDone > 0 ? ' e tarefa concluída!' : '.'}');
+    } else if (!demo) {
       sessionRecords.insert(0, rec);
       if (sessionRecords.length > 200) sessionRecords.removeRange(200, sessionRecords.length);
       _prefs?.setString('sessions2', jsonEncode([for (final r in sessionRecords) r.toJson()]));
@@ -633,6 +939,22 @@ class AppState extends ChangeNotifier {
   final TonePlayer tone = TonePlayer();
 
 
+  /// Volume do diapasão (0,2 a 1).
+  double get toneVolume => tone.volume;
+  void setToneVolume(double v) {
+    tone.setVolume(v);
+    _prefs?.setDouble('toneVol', tone.volume);
+    notifyListeners();
+  }
+
+  /// Toca o Sol3 por um instante para o músico ajustar o volume.
+  Future<void> testLowTone() async {
+    await tone.play(195.9954);
+    Future<void>.delayed(const Duration(milliseconds: 1800), () {
+      if ((tone.frequency - 195.9954).abs() < 0.01) tone.stop();
+    });
+  }
+
   /// Timbre do som de referência (diapasão puro ou mais cheio).
   ToneTimbre get toneTimbre => tone.timbre;
   void setToneTimbre(ToneTimbre t) {
@@ -646,6 +968,25 @@ class AppState extends ChangeNotifier {
   final TapTempo _tap = TapTempo();
   bool flashEnabled = true;
   bool hapticEnabled = true;
+
+  /// Mantém a tela acesa enquanto ouve, toca o metrônomo ou usa o timer.
+  bool keepAwake = true;
+
+  /// Mostra a frequência (Hz) na grade.
+  bool showFreq = true;
+
+  void setKeepAwake(bool v) {
+    keepAwake = v;
+    _prefs?.setBool('keepAwake', v);
+    _wake(listening || metroRunning);
+    notifyListeners();
+  }
+
+  void setShowFreq(bool v) {
+    showFreq = v;
+    _prefs?.setBool('showFreq', v);
+    notifyListeners();
+  }
 
   // ---------------- Estudo ----------------
   Map<String, double> studySeconds = {}; // yyyy-MM-dd -> segundos
@@ -680,11 +1021,14 @@ class AppState extends ChangeNotifier {
     micRationaleSeen = p.getBool('micRationale') ?? false;
     onboarded = p.getBool('onboarded') ?? false;
     await ai.load();
+    tone.setVolume(p.getDouble('toneVol') ?? 0.9);
     tone.timbre = ToneTimbre.values[(p.getInt('timbre') ?? 0).clamp(0, ToneTimbre.values.length - 1)];
     sensitivity = MicSensitivity.values[p.getInt('sens') ?? 1];
     micGain = p.getDouble('gain') ?? 1.0;
     flashEnabled = p.getBool('flash') ?? true;
     hapticEnabled = p.getBool('haptic') ?? true;
+    keepAwake = p.getBool('keepAwake') ?? true;
+    showFreq = p.getBool('showFreq') ?? true;
     final bpm = p.getDouble('bpm') ?? 100;
     final beats = p.getInt('beats') ?? 4;
     final sub = p.getInt('sub') ?? 1;
@@ -710,6 +1054,9 @@ class AppState extends ChangeNotifier {
       ];
     }
     _loadPomo(p);
+    _loadClocks(p);
+    _loadTeacher(p);
+    _scheduleUpdateChecks();
     // Mostra o estado real das permissões sem abrir nenhum pedido do sistema.
     if (onboarded) {
       checkMicPermission(request: false, announce: false);
@@ -739,6 +1086,8 @@ class AppState extends ChangeNotifier {
     await p.setDouble('goal', dailyGoalMinutes);
     await p.setBool('flash', flashEnabled);
     await p.setBool('haptic', hapticEnabled);
+    await p.setBool('keepAwake', keepAwake);
+    await p.setBool('showFreq', showFreq);
     await p.setDouble('bpm', metro.bpm);
     await p.setInt('beats', metro.beatsPerBar);
     await p.setInt('sub', metro.subdivision);
@@ -762,7 +1111,7 @@ class AppState extends ChangeNotifier {
     bool? flashEnabled,
     bool? hapticEnabled,
   }) {
-    if (refA != null) this.refA = refA.clamp(400.0, 480.0);
+    if (refA != null) this.refA = refA.clamp(380.0, 480.0);
     if (system != null) {
       this.system = system;
     }
@@ -1000,7 +1349,8 @@ class AppState extends ChangeNotifier {
 
   void _studyTick() {
     // Conta como estudo: metrônomo ligado, ou nota tocada nos últimos 3 s.
-    final active = metroPlayer.running || (listening && !demo && now - _lastNoteSeen < 3);
+    final manual = manualClockActive || (pomo.running && pomo.phase == PomoPhase.focus);
+    final active = manual || metroPlayer.running || (listening && !demo && now - _lastNoteSeen < 3);
     if (!active) return;
     final k = dayKey(DateTime.now());
     studySeconds[k] = (studySeconds[k] ?? 0) + 1;
@@ -1041,6 +1391,17 @@ class AppState extends ChangeNotifier {
     await stopListening(quiet: true);
     final p = _prefs ?? await SharedPreferences.getInstance();
     await p.clear();
+    students = [];
+    activeStudentId = null;
+    teacherMode = false;
+    teacherPinHash = null;
+    teacherUnlocked = false;
+    stopwatch.reset();
+    customClock.setCountdown(30 * 60000);
+    customMinutes = 30;
+    studyMode = StudyMode.pomodoro;
+    _clockTimer?.cancel();
+    _clockTimer = null;
     ai.clear();
     await ai.load();
     studySeconds.clear();
@@ -1052,7 +1413,44 @@ class AppState extends ChangeNotifier {
     await clearWebCachesAndReload();
   }
 
+  /// true quando o servidor já tem uma versão mais nova que a deste aparelho.
+  bool updateAvailable = false;
+  Timer? _updateTimer;
+
+  /// Pergunta ao servidor qual é a versão publicada (web instalada no celular
+  /// costuma ficar presa na antiga). Falhas de rede são ignoradas.
+  Future<void> checkForUpdate() async {
+    if (!kIsWeb || kBuildId.isEmpty || kBuildId == 'local') return;
+    try {
+      final r = await http
+          .get(Uri.base.resolve('/build-id.txt?t=${DateTime.now().millisecondsSinceEpoch}'))
+          .timeout(const Duration(seconds: 8));
+      final id = r.statusCode == 200 ? r.body.trim() : '';
+      final newer = id.isNotEmpty && id.length < 80 && !id.contains('<') && id != kBuildId;
+      if (newer && !updateAvailable) {
+        updateAvailable = true;
+        say('Há uma versão nova do app. Toque em Configurações › Atualizar o app.');
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
+
+  void _scheduleUpdateChecks() {
+    _updateTimer?.cancel();
+    Future<void>.delayed(const Duration(seconds: 10), checkForUpdate);
+    _updateTimer = Timer.periodic(const Duration(minutes: 20), (_) => checkForUpdate());
+  }
+
+  /// Busca a versão mais nova do app (web/PWA) sem apagar dados. Devolve false
+  /// quando não se aplica (celular/desktop nativo: atualiza pela loja).
+  Future<bool> updateApp() async {
+    final ok = await updateWebAppAndReload();
+    if (!ok) say('Este app se atualiza pela loja de aplicativos.');
+    return ok;
+  }
+
   Future<void> clearHistory() async {
+    ai.clear(); // a análise por IA guardada também sai
     studySeconds.clear();
     scaleSessions.clear();
     await _prefs?.remove('study');
@@ -1066,7 +1464,7 @@ class AppState extends ChangeNotifier {
   /// ignoradas: o app funciona igual, só a tela pode apagar.
   Future<void> _wake(bool on) async {
     try {
-      if (on) {
+      if (on && keepAwake) {
         await WakelockPlus.enable();
       } else {
         await WakelockPlus.disable();

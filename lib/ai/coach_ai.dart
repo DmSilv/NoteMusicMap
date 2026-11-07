@@ -30,6 +30,15 @@ class CoachAi extends ChangeNotifier {
   int attempt = 0;
   bool consent = false;
 
+  /// Resultado do último pedido de qualquer tipo (relatório do professor etc.).
+  String? lastResult;
+  String? lastKind;
+
+  /// Quem respondeu ("Gemini", "Claude"...) e a posição na fila, se houver.
+  String? provider;
+  int? queuePosition;
+  String? _ticket; // lugar reservado na fila do servidor
+
   static const int maxAttempts = 5;
   static const int _clientDailyLimit = 5;
   static const Duration _cooldown = Duration(seconds: 20);
@@ -90,7 +99,7 @@ class CoachAi extends ChangeNotifier {
   }
 
   /// Pede a análise. [summary] é o texto só com números (sem áudio).
-  Future<void> ask(String summary) async {
+  Future<void> ask(String summary, {String kind = 'session_summary'}) async {
     if (busy) return;
     final ep = _endpoint();
     if (ep == null) {
@@ -115,6 +124,9 @@ class CoachAi extends ChangeNotifier {
     _cancelled = false;
     attempt = 0;
     message = null;
+    _ticket = null;
+    queuePosition = null;
+    provider = null;
     final id = await _deviceId();
 
     while (!_cancelled && attempt < maxAttempts) {
@@ -127,13 +139,20 @@ class CoachAi extends ChangeNotifier {
             .post(
               ep,
               headers: {'Content-Type': 'application/json', 'X-Device-Id': id},
-              body: jsonEncode({'summary': summary}),
+              body: jsonEncode({'summary': summary, 'kind': kind, if (_ticket != null) 'ticket': _ticket}),
             )
             .timeout(_timeout);
         final data = _json(r.body);
         if (r.statusCode == 200 && data['text'] is String) {
-          text = data['text'] as String;
-          (await _p).setString('ai_last_text', text!);
+          lastResult = data['text'] as String;
+          lastKind = kind;
+          provider = (data['label'] ?? data['provider']) as String?;
+          _ticket = null;
+          queuePosition = null;
+          if (kind == 'session_summary') {
+            text = lastResult;
+            (await _p).setString('ai_last_text', text!);
+          }
           await _countUse();
           phase = AiPhase.done;
           notifyListeners();
@@ -148,6 +167,11 @@ class CoachAi extends ChangeNotifier {
             return;
           }
           final ms = (data['retryAfterMs'] as num?)?.toInt() ?? 15000;
+          if (why == 'queued') {
+            // O servidor guardou o nosso lugar: voltamos na hora marcada, com o bilhete.
+            _ticket = data['ticket'] as String?;
+            queuePosition = (data['position'] as num?)?.toInt() ?? queuePosition;
+          }
           await _waitInQueue(ms, why == 'cooldown');
           continue;
         }
@@ -176,7 +200,8 @@ class CoachAi extends ChangeNotifier {
   /// Espera na fila com contagem regressiva (e um pouco de aleatoriedade para
   /// vários aparelhos não voltarem todos no mesmo instante).
   Future<void> _waitInQueue(int ms, bool fast) async {
-    final jitter = math.Random().nextInt(2500);
+    // Com lugar reservado na fila não precisa de sorteio; sem ele, sim.
+    final jitter = math.Random().nextInt(_ticket != null ? 400 : 2500);
     var remaining = ((ms.clamp(1000, 90000) + jitter) / 1000).ceil();
     phase = AiPhase.queued;
     queuedSeconds = remaining;

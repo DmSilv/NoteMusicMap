@@ -108,3 +108,24 @@ O motor de áudio (SoLoud) tem versão multi-thread que isola o som da interface
 `Cross-Origin-Opener-Policy: same-origin` e `Cross-Origin-Embedder-Policy: require-corp` (já em `vercel.json`).
 Sem isso, qualquer travada da tela vira chiado. Medido: 97 de 185 janelas de som com saltos sem os cabeçalhos; 0 de 185 com eles.
 Nos apps de Android e iOS o áudio já roda em thread própria, sem esse problema.
+
+## Escalas: guiado e execução livre
+- **Guiado:** uma nota por vez; a próxima só aparece quando a atual estiver **afinada (±zona) e segurada** por meio segundo. A taxa de acerto mede a **primeira tentativa**.
+- **Execução livre:** toque **qualquer nota da escala, em qualquer ordem**; o app reconhece cada nota e valida a afinação (painel de notas colorido). Concluir quando quiser.
+- Orientação em banner grande ("SUBA", "DESÇA", "AFINADA") que fica na tela por mais tempo.
+
+## Estudo e professor
+- **Estudo:** Pomodoro, Cronômetro e "Meu tempo" (sessão de duração escolhida), com explicação de quando usar; os dois últimos somam no total do dia.
+- **Modo professor (local, sem login):** alunos, aluno em aula, tarefas com meta, observações, relatório em texto e com IA (sem nome e sem observações), copiar/importar dados, senha opcional de 4 números.
+
+## IA com vários serviços e fila (api/)
+- `api/coach.js` escolhe o serviço pelo **tipo de pedido** (`session_summary`, `teacher_report`, `study_plan`, `question`) e pela **disponibilidade**; serviços com problema ficam de quarentena e o pedido troca para o próximo.
+- Serviços (ativos se houver chave na Vercel): Gemini (`geminiAPI`), OpenAI, Claude, Groq, OpenRouter, Mistral. Veja `.env.example`.
+- **Fila justa entre aparelhos:** cada serviço tem um limite por minuto; cada pedido reserva o próximo horário livre. Se a espera for longa, o servidor devolve um **bilhete assinado** e o app volta na hora marcada, mantendo o lugar. Com Upstash Redis a fila vale entre todas as instâncias.
+- `GET /api/ai-status` mostra quais serviços estão ativos e a espera de cada um (sem chaves). Testes: `node --test api/coach.test.js`.
+
+## Atualização do app instalado
+- Configurações › **Atualizar o app** limpa o cache do site e recarrega sem apagar seus dados. O app também avisa sozinho quando há versão nova (a Vercel grava `build-id.txt`).
+
+## Outros
+- Diapasão mais audível nas notas graves (reforço de harmônicos + volume ajustável), Lá digitável e transpositores completos, chaves "Manter a tela acesa" e "Mostrar frequência", resumo dos ajustes na grade, faixa de status (microfone, Pomodoro e cronômetros) abaixo da barra superior.

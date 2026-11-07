@@ -113,7 +113,8 @@ void main() {
       final e = make();
       hold(e, 55, 1, 0.6); // afinada (±5)
       hold(e, 57, -3, 0.6); // afinada
-      hold(e, 59, -14, 0.6); // fora
+      hold(e, 59, -14, 0.5); // 1ª tentativa fora da faixa...
+      hold(e, 59, 0, 0.7); // ...corrige e só então avança
       e.skip(); // pulada
       final sc = e.score;
       expect(sc.inTune, 2);

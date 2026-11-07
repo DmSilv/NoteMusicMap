@@ -5,6 +5,9 @@ import 'theme.dart';
 
 /// Aviso curto no TOPO da tela: aparece deslizando, some sozinho e pode ser
 /// arrastado para dispensar. Não cobre os botões de baixo nem exige toque.
+/// Altura extra (px) que a faixa de status ocupa; os alertas descem esse tanto.
+double kToastExtraTop = 0;
+
 void showToast(
   BuildContext context,
   String message, {
@@ -40,7 +43,7 @@ void _show(String message, IconData icon, Color accent, Duration duration) {
     foregroundColor: AppColors.text,
     borderRadius: BorderRadius.circular(16),
     borderSide: BorderSide(color: accent.withValues(alpha: 0.55)),
-    margin: const EdgeInsets.fromLTRB(16, 64, 16, 0), // abaixo da barra superior
+    margin: EdgeInsets.fromLTRB(16, 64 + kToastExtraTop, 16, 0), // abaixo da barra e da faixa de status
     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
     showProgressBar: false,
     closeButton: ToastCloseButton(showType: CloseButtonShowType.none),

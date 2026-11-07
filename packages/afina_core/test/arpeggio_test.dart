@@ -66,7 +66,7 @@ void main() {
       expect(ScaleType.naturalMinor.display('Lá'), 'Lá menor natural');
     });
 
-    test('o exercício guiado funciona com arpejos (modo seguir o ritmo)', () {
+    test('o exercício funciona com arpejos (execução livre)', () {
       final e = ScaleExercise(
           tonicMidi: 55, type: ScaleType.majorTriad1, octaves: 1, zone: 5, flow: true);
       expect(e.sequence.first, 59); // Si3 = 3ª de Sol
@@ -78,6 +78,8 @@ void main() {
       for (var i = 0; i < 10; i++) {
         e.feed(midi: null, cents: 0, clarity: 0, dt: 0.03);
       }
+      expect(e.allPlayed, isTrue);
+      e.finish();
       expect(e.finished, isTrue);
       expect(e.score.accuracy, 1.0);
     });

@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'app_logo.dart';
+import 'ref_a_dialog.dart';
 import 'share_sheet.dart';
+import 'teacher_page.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -26,13 +28,18 @@ class SettingsPage extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 28),
             children: [
               _header(),
-              _section('Aparência', [_appearance()]),
+              _section('Aparência', [
+                _appearance(),
+                const SizedBox(height: 6),
+                _switch('Manter a tela acesa', 'Evita apagar enquanto você ouve, usa o metrônomo ou o timer.', app.keepAwake, app.setKeepAwake),
+              ]),
               _section('Afinação', [_tuning(context)]),
               _section('Microfone', [MicSettingsContent(app: app)]),
               _section('Metrônomo', [_metronome()]),
               _section('Grade', [_grid()]),
               _section('Estudo', [_study(context)]),
               _section('Permissões e privacidade', [_permissions(context)]),
+              _section('Professor', [_teacher(context)]),
               _section('Sobre', [_about(context)]),
               _section('Problemas?', [_resetAll(context)]),
             ],
@@ -175,12 +182,13 @@ class SettingsPage extends StatelessWidget {
             help: const HelpButton(title: 'Lá de referência', sections: Help.refA)),
         _label('Lá de referência', 'A maioria usa 440 Hz. Orquestras costumam usar 442 ou 443.'),
         Wrap(spacing: 6, runSpacing: 4, children: [
-          for (final hz in [438.0, 440.0, 442.0, 443.0, 445.0])
+          for (final hz in const [415.0, 432.0, 440.0, 442.0, 443.0])
             ChoiceChip(
               label: Text('${hz.round()} Hz'),
               selected: app.refA == hz,
               onSelected: (_) => app.setTuning(refA: hz),
             ),
+          refAOtherChip(context, app, const [415.0, 432.0, 440.0, 442.0, 443.0]),
         ]),
         _label('Instrumento padrão'),
         PickerField<String>(
@@ -222,25 +230,42 @@ class SettingsPage extends StatelessWidget {
             app.toneTimbre == ToneTimbre.fork, () => app.setToneTimbre(ToneTimbre.fork)),
         _choice('Flauta (mais cheio)', 'Soa mais forte em alto-falantes pequenos de celular.',
             app.toneTimbre == ToneTimbre.soft, () => app.setToneTimbre(ToneTimbre.soft)),
+        _label('Volume do diapasão: ${(app.toneVolume * 100).round()}%',
+            'Notas graves (como o Sol3) ganham reforço automático para aparecerem no alto-falante do celular.'),
+        Slider(
+          min: 0.2,
+          max: 1.0,
+          value: app.toneVolume.clamp(0.2, 1.0),
+          onChanged: app.setToneVolume,
+        ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton.icon(
+            onPressed: app.testLowTone,
+            icon: const Icon(Icons.volume_up),
+            label: const Text('Testar com o Sol3'),
+          ),
+        ),
 
         // ---- 4. Nomes das notas ----
         const Divider(height: 28),
         _group(Icons.abc, 'Nomes das notas'),
         _label('Instrumento transpositor',
             'Mostra os nomes como estão escritos na partitura do seu instrumento.'),
-        Wrap(spacing: 6, runSpacing: 4, children: [
-          for (final e in const {
-            0: 'Som real (dó)',
-            2: 'Si♭ (clarinete, trompete)',
-            9: 'Mi♭ (sax alto)',
-            7: 'Fá (trompa)',
-          }.entries)
-            ChoiceChip(
-              label: Text(e.value),
-              selected: app.transpose == e.key,
-              onSelected: (_) => app.setTuning(transpose: e.key),
-            ),
-        ]),
+        PickerField<int>(
+          label: 'Transpositor',
+          value: app.transpose,
+          options: const [
+            OptionItem(0, 'Som real (dó)', subtitle: 'Violino, viola, cello, piano, flauta, oboé'),
+            OptionItem(2, 'Si♭', subtitle: 'Clarinete, trompete, sax soprano e tenor'),
+            OptionItem(3, 'Lá', subtitle: 'Clarinete em Lá'),
+            OptionItem(5, 'Sol', subtitle: 'Flauta alto'),
+            OptionItem(7, 'Fá', subtitle: 'Trompa, corne inglês'),
+            OptionItem(9, 'Mi♭', subtitle: 'Sax alto e barítono'),
+            OptionItem(12, 'Oitava acima', subtitle: 'Violão, guitarra e contrabaixo (escritos uma oitava acima)'),
+          ],
+          onChanged: (v) => app.setTuning(transpose: v),
+        ),
         const SizedBox(height: 4),
         _switch('Usar bemóis (♭)', 'Mostra Si♭ em vez de Lá♯, por exemplo.', app.preferFlats,
             (v) => app.setTuning(preferFlats: v)),
@@ -296,6 +321,7 @@ class SettingsPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _switch('Mostrar frequência na grade', 'Mostra os Hz da nota que você toca, ao lado da dica.', app.showFreq, app.setShowFreq),
         _label('Nível de exigência', 'Largura da faixa verde (afinado).'),
         Wrap(spacing: 6, runSpacing: 4, children: [
           for (final e in const {
@@ -361,6 +387,23 @@ class SettingsPage extends StatelessWidget {
           icon: const Icon(Icons.delete_outline),
           label: const Text('Apagar histórico de estudo'),
         ),
+      ],
+    );
+  }
+
+  Widget _teacher(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _switch('Modo professor', 'Cadastre alunos, passe tarefas, anote observações e gere relatórios. Tudo fica neste aparelho.',
+            app.teacherMode, app.setTeacherMode),
+        if (app.teacherMode)
+          FilledButton.tonalIcon(
+            onPressed: () => Navigator.of(context)
+                .push(MaterialPageRoute<void>(builder: (_) => TeacherPage(app: app))),
+            icon: const Icon(Icons.school_outlined),
+            label: const Text('Abrir a área do professor'),
+          ),
       ],
     );
   }
@@ -492,6 +535,24 @@ class SettingsPage extends StatelessWidget {
           style: TextStyle(color: AppColors.textDim),
         ),
         const SizedBox(height: 12),
+        FilledButton.icon(
+          onPressed: () async {
+            final ok = await _confirm(context, 'Atualizar o app?',
+                'O app busca a versão mais nova e reinicia. Seus ajustes e seu histórico são mantidos.',
+                'Atualizar');
+            if (ok) await app.updateApp();
+          },
+          icon: const Icon(Icons.system_update),
+          label: Text(app.updateAvailable ? 'Atualizar agora (versão nova!)' : 'Atualizar o app',
+              style: const TextStyle(fontWeight: FontWeight.w700)),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 4, bottom: 10),
+          child: Text(
+            'Instalou no celular e parece desatualizado? Toque aqui para buscar a versão mais nova. Versão atual: $kAppVersion.',
+            style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+          ),
+        ),
         FilledButton.tonalIcon(
           onPressed: () => showShareSheet(context),
           icon: const Icon(Icons.qr_code_2),

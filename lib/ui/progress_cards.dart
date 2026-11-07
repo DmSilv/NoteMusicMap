@@ -341,8 +341,10 @@ class _AiSection extends StatelessWidget {
               ])
             else if (ai.phase == AiPhase.queued)
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('Muita gente usando agora. Você está na fila: nova tentativa em ${ai.queuedSeconds}s '
-                    '(tentativa ${ai.attempt}/${CoachAi.maxAttempts}).'),
+                Text(ai.queuePosition != null
+                    ? 'Muita gente usando agora. Você é o ${ai.queuePosition}º da fila: sua vez em ${ai.queuedSeconds}s.'
+                    : 'Muita gente usando agora. Você está na fila: nova tentativa em ${ai.queuedSeconds}s '
+                        '(tentativa ${ai.attempt}/${CoachAi.maxAttempts}).'),
                 const SizedBox(height: 8),
                 OutlinedButton(onPressed: ai.cancel, child: const Text('Cancelar')),
               ])
@@ -376,7 +378,7 @@ class _AiSection extends StatelessWidget {
                 child: MarkdownLite(ai.text!),
               ),
               const SizedBox(height: 6),
-              Text('Gerado por IA: pode errar. Use como sugestão, junto com o seu professor.',
+              Text('Gerado por IA${ai.provider == null ? '' : ' (${ai.provider})'}: pode errar. Use como sugestão, junto com o seu professor.',
                   style: TextStyle(color: AppColors.textDim, fontSize: 11.5)),
             ],
           ],

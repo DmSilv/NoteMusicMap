@@ -1,11 +1,11 @@
 import 'package:afina_core/afina_core.dart';
 import 'package:test/test.dart';
 
-/// Sol maior, 1 oitava, no modo escolhido.
+/// Sol maior, 1 oitava.
 ScaleExercise make({bool flow = true, double zone = 5}) => ScaleExercise(
     tonicMidi: 55, type: ScaleType.major, octaves: 1, zone: zone, flow: flow);
 
-/// Toca [midi] por [seconds] (quadros de 30 ms). Devolve os resultados concluídos.
+/// Toca [midi] por [seconds] (quadros de 30 ms). Devolve os resultados novos.
 List<StepResult> play(ScaleExercise e, int? midi, double seconds,
     {double cents = 0, double clarity = 0.95}) {
   final out = <StepResult>[];
@@ -17,193 +17,181 @@ List<StepResult> play(ScaleExercise e, int? midi, double seconds,
 }
 
 void main() {
-  group('modo "seguir meu ritmo"', () {
-    test('toca a escala sem parar e conclui todas as notas, sem segurar nenhuma', () {
+  group('execução livre (qualquer nota da escala, em qualquer ordem)', () {
+    test('toca fora de ordem e o app reconhece e valida todas', () {
       final e = make();
-      // cada nota por só 0,25 s, uma colada na outra (o modo "esperar" exigiria 0,5 s)
-      for (final m in e.sequence) {
+      expect(e.freeNotes, [55, 57, 59, 60, 62, 64, 66, 67]);
+      // ordem embaralhada, pulando e voltando
+      for (final m in [62, 55, 66, 59, 67, 57, 60, 64]) {
         play(e, m, 0.25, cents: 2);
+        play(e, null, 0.3);
       }
-      play(e, null, 0.3); // terminou de tocar: a última nota fecha no silêncio
+      expect(e.allPlayed, isTrue);
+      expect(e.board.length, 8);
+      expect(e.score.accuracy, 1.0);
+      expect(e.finished, isFalse); // quem conclui é o botão
+      e.finish();
       expect(e.finished, isTrue);
-      expect(e.results.length, e.sequence.length);
-      expect(e.results.every((r) => !r.skipped), isTrue);
     });
 
-    test('o modo clássico não anda com notas tão curtas (diferença entre os modos)', () {
-      final e = make(flow: false);
-      for (final m in e.sequence) {
-        play(e, m, 0.25, cents: 2);
-      }
-      expect(e.finished, isFalse);
-    });
-
-    test('a nota só vale quando você passa para a próxima da escala', () {
-      final e = make();
-      expect(play(e, 55, 0.6), isEmpty); // Sol segurado: ainda não fecha
-      expect(e.index, 0);
-      final done = play(e, 57, 0.1); // chegou no Lá (a próxima)
-      expect(done.length, 1);
-      expect(done.first.midi, 55);
-      expect(e.index, 1);
-      expect(e.expected, 57);
-    });
-
-    test('o quadro da troca já conta para a nota nova', () {
-      final e = make();
-      play(e, 55, 0.3);
-      e.feed(midi: 57, cents: -4, clarity: 0.9, dt: 0.03);
-      expect(e.index, 1);
-      expect(e.hearing, isFalse); // ainda abaixo do tempo mínimo
-      play(e, 57, 0.2, cents: -4);
-      expect(e.hearing, isTrue);
-    });
-
-    test('nota errada é ignorada: não avança nem estraga a atual', () {
-      final e = make();
+    test('mostra a afinação de cada nota (desafinada vira "fora")', () {
+      final e = make(zone: 5);
       play(e, 55, 0.3, cents: 1);
-      play(e, 56, 0.5); // meio-tom errado
-      play(e, 59, 0.5); // uma nota longe
-      expect(e.index, 0);
-      expect(e.results, isEmpty);
+      play(e, null, 0.3);
+      play(e, 59, 0.3, cents: -14);
+      play(e, null, 0.3);
+      expect(e.board[55]!.cents, closeTo(1, 0.5));
+      expect(e.board[59]!.cents, closeTo(-14, 0.5));
+      final s = e.score;
+      expect(s.inTune, 1);
+      expect(s.played, 2);
+      expect(s.total, 8);
     });
 
-    test('nota ouvida por menos que o tempo mínimo não conta', () {
+    test('nota fora da escala é ignorada e gera aviso', () {
       final e = make();
-      play(e, 55, 0.03); // 1 quadro: ruído
-      play(e, 57, 0.5); // o Lá não pode fechar o Sol que quase não foi ouvido
-      expect(e.index, 0);
+      play(e, 56, 0.5); // Sol♯ não é da escala
+      expect(e.board, isEmpty);
+      final c = e.cue(56, 10)!;
+      expect(c.inScale, isFalse);
+      expect(c.expectedMidi, anyOf(55, 57)); // a mais próxima da escala
+      expect(e.cue(57, 0), isNull); // nota da escala: sem aviso
     });
 
-    test('silêncio depois da nota a conclui; silêncio curto, não', () {
+    test('nota ouvida por menos que o mínimo não conta', () {
       final e = make();
-      play(e, 55, 0.4);
-      play(e, null, 0.12); // respirou
-      expect(e.index, 0);
-      play(e, 55, 0.2); // continuou na mesma nota
-      expect(e.index, 0);
-      final r = play(e, null, 0.3); // parou de verdade
-      expect(r.length, 1);
-      expect(e.index, 1);
+      play(e, 55, 0.03);
+      expect(e.board, isEmpty);
     });
 
-    test('a última nota conclui depois de ouvida por um tempo (não há "próxima")', () {
+    test('o quadro da nota atualiza ao vivo enquanto ela soa', () {
       final e = make();
-      for (var i = 0; i < e.sequence.length - 1; i++) {
-        play(e, e.sequence[i], 0.25);
-      }
-      expect(e.finished, isFalse);
-      play(e, e.sequence.last, 0.3); // chegou na última (a penúltima fecha agora)
-      expect(e.expected, e.sequence.last);
-      expect(e.finished, isFalse); // 0,3 s ainda não basta para a última
-      play(e, e.sequence.last, 0.3);
-      expect(e.finished, isTrue);
+      final first = play(e, 60, 0.3, cents: 3);
+      expect(first.length, 1); // só a 1ª medida devolve resultado (vibração)
+      expect(e.currentFreeMidi, 60);
+      expect(e.hearing, isTrue);
+      play(e, 60, 0.5, cents: 3); // segurando: não vira outra tentativa
+      expect(e.board[60]!.attempts, 1);
     });
 
-    test('mede pela MEDIANA: a transição entre notas não estraga o desvio', () {
+    test('tocar de novo depois do silêncio é outra tentativa e vale a última', () {
       final e = make();
-      // 0,45 s afinado em +3 e depois 0,09 s arrastando para a próxima nota (+48)
+      play(e, 62, 0.3, cents: 15);
+      play(e, null, 0.4);
+      expect(e.board[62]!.cents, closeTo(15, 0.5));
+      play(e, 62, 0.4, cents: 1);
+      expect(e.board[62]!.attempts, 2);
+      expect(e.board[62]!.cents, closeTo(1, 1.5));
+      expect(e.score.inTune, 1);
+    });
+
+    test('trocar direto de nota (sem silêncio) também fecha a anterior', () {
+      final e = make();
+      play(e, 55, 0.3, cents: 2);
+      play(e, 57, 0.3, cents: -2);
+      expect(e.board.keys, containsAll([55, 57]));
+      expect(e.currentFreeMidi, 57);
+    });
+
+    test('mede pela mediana: arrasto para outra nota não estraga o desvio', () {
+      final e = make();
       play(e, 55, 0.45, cents: 3);
       play(e, 55, 0.09, cents: 48);
-      play(e, 57, 0.1);
-      expect(e.results.single.cents, closeTo(3, 0.5));
+      expect(e.board[55]!.cents, closeTo(3, 0.5));
     });
 
-    test('ignora o começo instável da nota', () {
+    test('a sugestão é a nota mais grave ainda não tocada (sem obrigar ordem)', () {
       final e = make();
-      play(e, 55, 0.09, cents: -40); // ataque ainda assentando
-      play(e, 55, 0.45, cents: 2);
-      play(e, 57, 0.1);
-      expect(e.results.single.cents, closeTo(2, 0.5));
-    });
-
-    test('nota bem curta usa tudo o que ouviu', () {
-      final e = make();
-      play(e, 55, 0.15, cents: 6);
-      play(e, 57, 0.1);
-      expect(e.results.single.cents, closeTo(6, 0.5));
-    });
-
-    test('a taxa de acerto continua contando só o que ficou dentro da zona', () {
-      final e = make(zone: 5);
-      var i = 0;
-      for (final m in e.sequence) {
-        play(e, m, 0.3, cents: i.isEven ? 1 : 12); // metade afinada, metade fora
-        i++;
-      }
+      expect(e.expected, 55);
+      play(e, 60, 0.3);
+      expect(e.expected, 55);
       play(e, null, 0.3);
-      final s = e.score;
-      expect(s.total, e.sequence.length);
-      expect(s.inTune, (e.sequence.length / 2).ceil());
-      expect(s.accuracy, closeTo(s.inTune / s.total, 1e-9));
-    });
-
-    test('pular nota funciona e conta contra o acerto', () {
-      final e = make();
       play(e, 55, 0.3);
-      e.skip();
-      expect(e.results.last.skipped, isTrue);
       expect(e.expected, 57);
-      expect(e.hearing, isFalse);
     });
 
-    test('trocar de modo no meio recomeça só a nota em andamento', () {
+    test('resultados finais saem em ordem do grave ao agudo, só o que foi tocado', () {
       final e = make();
+      play(e, 64, 0.3, cents: 1);
+      play(e, null, 0.3);
+      play(e, 57, 0.3, cents: -2);
+      play(e, null, 0.3);
+      expect([for (final r in e.finalResults) r.midi], [57, 64]);
+    });
+
+    test('pular não existe no modo livre; trocar de modo recomeça só a nota atual', () {
+      final e = make();
+      expect(e.skip(), isNull);
       play(e, 55, 0.3);
-      play(e, 57, 0.3);
-      expect(e.index, 1);
       e.flow = false;
-      expect(e.flow, isFalse);
-      play(e, 57, 0.3); // modo clássico: 0,3 s não basta
-      expect(e.index, 1);
-      play(e, 57, 0.3); // 0,6 s no total: agora vale
-      expect(e.index, 2);
+      expect(e.currentFreeMidi, isNull);
+      expect(e.board.containsKey(55), isTrue); // o que já foi medido fica
+      expect(e.expected, 55); // guiado: começa na primeira da sequência
+    });
+
+    test('arpejo: só as notas do arpejo são alvo', () {
+      final e = ScaleExercise(
+          tonicMidi: 55, type: ScaleType.majorTriad1, octaves: 1, zone: 5, flow: true);
+      expect(e.freeNotes.length, lessThan(8));
+      play(e, 57, 0.3); // Lá não é do arpejo de Sol
+      expect(e.board, isEmpty);
     });
   });
 
-  group('aviso leve (a nota ainda não é a esperada)', () {
-    test('nada a avisar quando é a nota certa, silêncio ou fim', () {
-      final e = make();
-      expect(e.cue(55, 10), isNull);
-      expect(e.cue(null, 0), isNull);
+  group('modo guiado: a nota só muda quando está afinada', () {
+    test('fora da faixa a barra não anda e a nota não avança', () {
+      final e = make(flow: false);
+      play(e, 55, 2.0, cents: 12); // sempre 12 cents alta
+      expect(e.index, 0);
+      expect(e.holdProgress, 0);
+      expect(e.tunedNow, isFalse);
     });
 
-    test('nota abaixo da esperada: precisa SUBIR', () {
-      final e = make(); // espera Sol (55)
-      final c = e.cue(54, 20)!; // Fá♯ 20 cents acima = 80 abaixo do Sol
-      expect(c.offCents, closeTo(-80, 1e-9));
-      expect(c.goUp, isTrue);
+    test('ajustando para dentro da faixa e segurando, avança', () {
+      final e = make(flow: false);
+      play(e, 55, 0.6, cents: -15); // chegou baixa
+      expect(e.index, 0);
+      final done = play(e, 55, 0.8, cents: 1); // corrigiu
+      expect(done.length, 1);
+      expect(e.index, 1);
+      expect(e.expected, 57);
+    });
+
+    test('a taxa de acerto mede a PRIMEIRA tentativa, não a nota já corrigida', () {
+      final e = make(flow: false, zone: 5);
+      play(e, 55, 0.6, cents: -15); // primeira tentativa baixa
+      play(e, 55, 0.8, cents: 0); // corrigiu e avançou
+      play(e, 57, 0.8, cents: 1); // acertou de primeira
+      expect(e.results.length, 2);
+      expect(e.results[0].cents, closeTo(-15, 1));
+      expect(e.results[1].cents, closeTo(1, 1));
+      expect(e.score.inTune, 1);
+    });
+
+    test('o progresso só cresce afinada e perde um pouco ao desafinar', () {
+      final e = make(flow: false);
+      play(e, 55, 0.3, cents: 1);
+      final a = e.holdProgress;
+      expect(a, greaterThan(0.4));
+      expect(e.tunedNow, isTrue);
+      play(e, 55, 0.2, cents: 20); // desafinou
+      expect(e.holdProgress, lessThan(a));
+    });
+
+    test('nota errada não conta e gera aviso com direção', () {
+      final e = make(flow: false);
+      play(e, 54, 0.5, cents: 20);
+      expect(e.index, 0);
+      final c = e.cue(54, 20)!;
+      expect(c.goUp, isTrue); // precisa SUBIR até o Sol
       expect(c.near, isTrue);
-      expect(c.amount, 1);
     });
 
-    test('nota acima da esperada: precisa DESCER', () {
-      final e = make();
-      final c = e.cue(56, -30)!; // 70 acima do Sol
-      expect(c.goUp, isFalse);
-      expect(c.amount, 0); // "um pouco"
-    });
-
-    test('longe demais não é "um pouco": perto vira falso', () {
-      final e = make();
-      expect(e.cue(60, 0)!.near, isFalse);
-      expect(e.cue(60, 0)!.amount, 2);
-    });
-
-    test('diz se a nota ouvida é da escala ou não', () {
-      final e = make(); // Sol maior: Fá♯ é da escala, Fá natural não
-      expect(e.cue(66, 0)!.inScale, isTrue); // Fá♯5
-      expect(e.cue(65, 0)!.inScale, isFalse); // Fá5
-    });
-
-    test('depois de terminar não há mais aviso', () {
-      final e = make();
-      for (final m in e.sequence) {
-        play(e, m, 0.25);
-      }
-      play(e, null, 0.3);
-      expect(e.finished, isTrue);
-      expect(e.cue(55, 0), isNull);
+    test('pular continua valendo e conta contra a taxa de acerto', () {
+      final e = make(flow: false);
+      e.skip();
+      expect(e.results.single.skipped, isTrue);
+      expect(e.index, 1);
     });
   });
 }

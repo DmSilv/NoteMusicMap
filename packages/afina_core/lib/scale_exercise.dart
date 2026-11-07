@@ -98,14 +98,29 @@ class _Sample {
   const _Sample(this.t, this.cents, this.w);
 }
 
+/// Resultado de uma nota no modo livre (a última vez que foi tocada).
+class FreeNote {
+  final int midi;
+
+  /// Desvio (cents) pela mediana do que foi ouvido na última vez.
+  final double cents;
+
+  /// Quantas vezes a nota foi tocada.
+  final int attempts;
+  final double seconds;
+  const FreeNote(this.midi, this.cents, this.attempts, this.seconds);
+}
+
 class ScaleExercise {
   final List<int> sequence;
   final int upCount;
   final int tonicMidi;
   final double zone;
 
-  /// true = "seguir meu ritmo" (sem exigir segurar a nota). Pode ser trocado
-  /// durante o exercício; a nota em andamento recomeça.
+  /// true = EXECUÇÃO LIVRE: toque qualquer nota da escala, em qualquer ordem,
+  /// e o app valida a afinação de cada uma. false = GUIADO: uma nota por vez,
+  /// e a próxima só vem quando a atual ficar afinada. Pode ser trocado durante
+  /// o exercício; a nota em andamento recomeça.
   bool _flow;
   bool get flow => _flow;
   set flow(bool v) {
@@ -114,33 +129,41 @@ class ScaleExercise {
     _resetCurrent();
   }
 
-  /// Tempo (s) sobre a nota certa para dá-la como tocada (modo "esperar").
+  /// Modo guiado: tempo (s) SEGUIDO dentro da faixa "afinado" para a nota valer.
   final double holdSeconds;
 
-  /// Tempo inicial ignorado na média (a altura ainda está assentando).
+  /// Tempo inicial ignorado na medida (a altura ainda está assentando).
   final double settleSeconds;
 
-  /// Modo "seguir meu ritmo": tempo mínimo (s) ouvindo a nota esperada para
-  /// ela valer. Notas mais curtas que isso não contam (provável ruído).
+  /// Modo guiado: janela (s) depois do assentar usada como "primeira tentativa".
+  final double landingSeconds;
+
+  /// Modo livre: tempo mínimo (s) ouvindo uma nota para ela contar.
   final double flowMinSeconds;
 
-  /// Modo "seguir meu ritmo": silêncio (s) que encerra a nota em andamento.
+  /// Modo livre: silêncio (s) que encerra a nota em andamento (tocar de novo
+  /// a mesma nota depois disso conta como outra tentativa).
   final double flowReleaseSeconds;
-
-  /// Modo "seguir meu ritmo": a ÚLTIMA nota não tem "próxima" para encerrá-la;
-  /// conclui depois de ouvida por este tempo (s).
-  final double flowLastSeconds;
 
   int index = 0;
   final List<StepResult> results = [];
 
-  // modo "esperar"
-  double _sum = 0, _w = 0, _time = 0;
+  // ---- modo guiado ----
+  double _time = 0; // s ouvindo a nota esperada
+  double _run = 0; // s seguidos afinada
+  bool _tunedNow = false;
+  final List<_Sample> _landing = [];
 
-  // modo "seguir meu ritmo"
-  double _heard = 0; // s ouvindo a nota esperada
+  // ---- modo livre ----
+  late final List<int> freeNotes; // notas distintas da escala, do grave ao agudo
+  final Map<int, FreeNote> board = {};
+  int? _curMidi;
+  double _heard = 0; // s ouvindo a nota atual
   double _silence = 0; // s de silêncio seguidos
+  bool _counted = false;
   final List<_Sample> _samples = [];
+  bool _done = false;
+
   late final Set<int> _scalePcs;
 
   ScaleExercise({
@@ -150,32 +173,69 @@ class ScaleExercise {
     required this.zone,
     this.holdSeconds = 0.5,
     this.settleSeconds = 0.08,
+    this.landingSeconds = 0.45,
     bool flow = false,
     this.flowMinSeconds = 0.05,
     this.flowReleaseSeconds = 0.22,
-    this.flowLastSeconds = 0.45,
   })  : _flow = flow,
         sequence = scaleSequence(tonicMidi, type, octaves: octaves),
         upCount = scaleMidis(tonicMidi, type, octaves: octaves).length {
     _scalePcs = {for (final m in sequence) m % 12};
+    freeNotes = ({...sequence}.toList()..sort());
   }
 
-  bool get finished => index >= sequence.length;
-  int? get expected => finished ? null : sequence[index];
-  bool get ascendingNow => index < upCount;
-  double get progress => sequence.isEmpty ? 0 : index / sequence.length;
+  bool get finished => _flow ? _done : index >= sequence.length;
 
-  /// 0..1 de quanto da nota atual já foi segurado (modo "esperar").
-  double get holdProgress => (_time / holdSeconds).clamp(0.0, 1.0);
+  /// Modo livre: encerra o exercício (botão "Concluir").
+  void finish() => _done = true;
 
-  /// true quando o microfone está ouvindo a nota esperada agora (modo "seguir
-  /// meu ritmo"), depois do tempo mínimo.
-  bool get hearing => _flow && _heard >= flowMinSeconds && _silence == 0;
+  /// Nota pedida agora. No modo guiado é a da vez; no livre é só uma sugestão
+  /// (a mais grave ainda não tocada), sem obrigar nenhuma ordem.
+  int? get expected {
+    if (finished) return null;
+    if (!_flow) return sequence[index];
+    for (final m in freeNotes) {
+      if (!board.containsKey(m)) return m;
+    }
+    return null;
+  }
+
+  bool get ascendingNow => _flow ? true : index < upCount;
+  double get progress {
+    if (_flow) return freeNotes.isEmpty ? 0 : board.length / freeNotes.length;
+    return sequence.isEmpty ? 0 : index / sequence.length;
+  }
+
+  /// Modo livre: todas as notas da escala já foram tocadas ao menos uma vez.
+  bool get allPlayed => _flow && board.length == freeNotes.length;
+
+  /// Modo livre: nota que está soando agora (da escala), ou null.
+  int? get currentFreeMidi => _curMidi;
+
+  /// 0..1 de quanto já foi segurado AFINADO (modo guiado).
+  double get holdProgress => _flow ? 0 : (_run / holdSeconds).clamp(0.0, 1.0);
+
+  /// Modo guiado: o último quadro estava na nota certa E dentro da faixa afinada.
+  bool get tunedNow => !_flow && _tunedNow;
+
+  /// true quando o microfone está ouvindo uma nota da escala (modo livre).
+  bool get hearing => _flow && _curMidi != null && _heard >= flowMinSeconds && _silence == 0;
 
   int _octaveOf(int midi) => ((midi - tonicMidi) / 12).floor().clamp(0, 99);
 
-  /// Alimente com a nota estável detectada (ou null). Devolve o resultado
-  /// quando a nota esperada é concluída.
+  /// Resultados para guardar no histórico: a sequência (guiado) ou a última
+  /// medida de cada nota (livre).
+  List<StepResult> get finalResults {
+    if (!_flow) return results;
+    return [
+      for (final m in freeNotes)
+        if (board[m] != null)
+          StepResult(m, true, _octaveOf(m), board[m]!.cents, board[m]!.seconds, false)
+    ];
+  }
+
+  /// Alimente com a nota estável detectada (ou null). Devolve um resultado
+  /// quando uma nota é concluída (guiado) ou medida pela primeira vez (livre).
   StepResult? feed({
     required int? midi,
     required double cents,
@@ -183,78 +243,101 @@ class ScaleExercise {
     required double dt,
   }) {
     if (finished) return null;
-    return _flow ? _feedFlow(midi, cents, clarity, dt) : _feedHold(midi, cents, clarity, dt);
+    return _flow ? _feedFree(midi, cents, clarity, dt) : _feedHold(midi, cents, clarity, dt);
+  }
+
+  int _nearestScaleNote(int m) {
+    var best = freeNotes.first;
+    for (final n in freeNotes) {
+      if ((n - m).abs() < (best - m).abs()) best = n;
+    }
+    return best;
   }
 
   /// Aviso leve para a nota [heardMidi] (com desvio [heardCents] em relação a
-  /// ela mesma): devolve null se não há o que avisar (silêncio, nota certa ou
-  /// exercício terminado).
+  /// ela mesma): devolve null se não há o que avisar. No modo guiado, avisa
+  /// quando a nota ouvida não é a da vez; no livre, só quando não é da escala.
   NoteCue? cue(int? heardMidi, double heardCents) {
+    if (finished || heardMidi == null) return null;
+    if (_flow) {
+      if (freeNotes.contains(heardMidi)) return null;
+      final near = _nearestScaleNote(heardMidi);
+      return NoteCue(heardMidi, near, (heardMidi - near) * 100.0 + heardCents,
+          _scalePcs.contains(heardMidi % 12));
+    }
     final exp = expected;
-    if (exp == null || heardMidi == null || heardMidi == exp) return null;
+    if (exp == null || heardMidi == exp) return null;
     final off = (heardMidi - exp) * 100.0 + heardCents;
     return NoteCue(heardMidi, exp, off, _scalePcs.contains(heardMidi % 12));
   }
 
-  // ---------------- modo "esperar cada nota" ----------------
+  // ---------------- modo guiado: só avança afinada ----------------
   StepResult? _feedHold(int? midi, double cents, double clarity, double dt) {
-    if (midi != expected) return null; // outras notas são ignoradas
-    _time += dt;
-    if (_time > settleSeconds) {
-      final w = clarity.clamp(0.0, 1.0) * dt;
-      _sum += cents.clamp(-100.0, 100.0) * w;
-      _w += w;
-    }
-    if (_time < holdSeconds) return null;
-    final avg = _w > 0 ? _sum / _w : cents;
-    return _complete(StepResult(sequence[index], ascendingNow,
-        _octaveOf(sequence[index]), avg, _time, false));
-  }
-
-  // ---------------- modo "seguir meu ritmo" ----------------
-  StepResult? _feedFlow(int? midi, double cents, double clarity, double dt) {
-    final exp = sequence[index];
-    if (midi == exp) {
-      _silence = 0;
-      _heard += dt;
-      if (_samples.length < 600) {
-        _samples.add(_Sample(_heard, cents.clamp(-100.0, 100.0),
-            (clarity.clamp(0.05, 1.0)) * dt));
-      }
-      // A última nota não tem "próxima" para encerrá-la.
-      if (index == sequence.length - 1 && _heard >= flowLastSeconds) {
-        return _completeFlow();
-      }
+    _tunedNow = false;
+    if (midi != expected) {
+      // Saiu da nota: perde um pouco do que tinha segurado.
+      _run = (_run - dt).clamp(0.0, double.infinity);
       return null;
     }
+    _time += dt;
+    // "Primeira tentativa": o que se ouviu logo depois de a altura assentar.
+    if (_time > settleSeconds && _time <= settleSeconds + landingSeconds) {
+      _landing.add(_Sample(_time, cents.clamp(-100.0, 100.0), clarity.clamp(0.05, 1.0) * dt));
+    }
+    final inZone = cents.abs() <= zone;
+    _tunedNow = inZone;
+    if (inZone) {
+      _run += dt;
+    } else {
+      _run = (_run - dt * 1.5).clamp(0.0, double.infinity);
+    }
+    if (_run < holdSeconds) return null;
+    final land = _landing.isNotEmpty ? _weightedMedian(_landing) : cents;
+    return _complete(StepResult(
+        sequence[index], ascendingNow, _octaveOf(sequence[index]), land, _time, false));
+  }
+
+  // ---------------- modo livre: qualquer nota da escala ----------------
+  StepResult? _feedFree(int? midi, double cents, double clarity, double dt) {
     if (midi == null) {
       _silence += dt;
-      // O som parou depois de a nota ter sido ouvida: dá por concluída.
-      if (_heard >= flowMinSeconds && _silence >= flowReleaseSeconds) {
-        return _completeFlow();
-      }
+      if (_silence >= flowReleaseSeconds) _endRun();
       return null;
     }
-    // Ouviu OUTRA nota.
     _silence = 0;
-    final next = index + 1 < sequence.length ? sequence[index + 1] : null;
-    if (_heard >= flowMinSeconds && midi == next) {
-      // Passou para a próxima da escala: fecha esta e já conta este quadro
-      // para a nova nota.
-      final r = _completeFlow();
-      if (!finished) _feedFlow(midi, cents, clarity, dt);
-      return r;
+    if (!freeNotes.contains(midi)) {
+      _endRun(); // nota fora da escala: não conta (a tela avisa)
+      return null;
     }
-    return null; // nota errada ou de passagem: só ignora (a tela dá um aviso)
+    if (midi != _curMidi) {
+      _endRun();
+      _curMidi = midi;
+    }
+    _heard += dt;
+    if (_samples.length < 400) {
+      _samples.add(_Sample(_heard, cents.clamp(-100.0, 100.0), clarity.clamp(0.05, 1.0) * dt));
+    }
+    if (_heard < flowMinSeconds) return null;
+    // Mediana até agora, sem o começo instável quando há dados suficientes.
+    var use = _samples.where((s) => s.t > settleSeconds).toList();
+    if (use.length < 3) use = List.of(_samples);
+    final med = _weightedMedian(use);
+    final prev = board[midi];
+    final first = !_counted;
+    _counted = true;
+    board[midi] = FreeNote(midi, med, (prev?.attempts ?? 0) + (first ? 1 : 0),
+        _heard);
+    if (!first) return null;
+    final r = StepResult(midi, true, _octaveOf(midi), med, _heard, false);
+    results.add(r);
+    return r;
   }
 
-  StepResult _completeFlow() {
-    // Mediana ponderada dos desvios, sem o começo (a altura ainda assenta).
-    var use = _samples.where((s) => s.t > settleSeconds).toList();
-    if (use.length < 3) use = List.of(_samples); // nota curta: usa tudo
-    final cents = use.isEmpty ? 0.0 : _weightedMedian(use);
-    return _complete(StepResult(sequence[index], ascendingNow,
-        _octaveOf(sequence[index]), cents, _heard, false));
+  void _endRun() {
+    _curMidi = null;
+    _heard = 0;
+    _counted = false;
+    _samples.clear();
   }
 
   static double _weightedMedian(List<_Sample> v) {
@@ -269,17 +352,19 @@ class ScaleExercise {
     return s.last.cents;
   }
 
-  /// Pula a nota atual (conta como não afinada).
+  /// Pula a nota atual (modo guiado; conta como não afinada).
   StepResult? skip() {
-    if (finished) return null;
+    if (finished || _flow) return null;
     return _complete(StepResult(
         sequence[index], ascendingNow, _octaveOf(sequence[index]), null, 0, true));
   }
 
   void _resetCurrent() {
-    _sum = _w = _time = 0;
-    _heard = _silence = 0;
-    _samples.clear();
+    _time = _run = 0;
+    _tunedNow = false;
+    _landing.clear();
+    _endRun();
+    _silence = 0;
   }
 
   StepResult _complete(StepResult r) {
@@ -292,6 +377,16 @@ class ScaleExercise {
   ExerciseScore get score {
     var inTune = 0, played = 0;
     var sumAbs = 0.0;
+    if (_flow) {
+      for (final n in board.values) {
+        played++;
+        sumAbs += n.cents.abs();
+        if (n.cents.abs() <= zone) inTune++;
+      }
+      final total = freeNotes.length;
+      final acc = total == 0 ? 0.0 : inTune / total;
+      return ExerciseScore(acc, played == 0 ? 0 : sumAbs / played, inTune, played, total);
+    }
     for (final r in results) {
       if (r.skipped || r.cents == null) continue;
       played++;

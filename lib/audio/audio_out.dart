@@ -130,7 +130,18 @@ class TonePlayer {
   ToneTimbre timbre = ToneTimbre.fork;
 
   /// Volume de 0 a 1.
-  double volume = 0.6;
+  double volume = 0.9;
+
+  /// Muda o volume (0,2 a 1) na hora, mesmo com o tom tocando.
+  void setVolume(double v) {
+    volume = v.clamp(0.2, 1.0).toDouble();
+    final h = _handle;
+    if (h != null) {
+      try {
+        SoLoud.instance.setVolume(h, volume);
+      } catch (_) {}
+    }
+  }
 
   final Map<String, AudioSource> _cache = {};
   final List<String> _cacheOrder = [];

@@ -23,7 +23,9 @@ flutter precache --web
 flutter pub get
 
 echo ">> Compilando para a web (release)"
-flutter build web --release
+BUILD_ID="${VERCEL_GIT_COMMIT_SHA:-local}"
+flutter build web --release --dart-define=BUILD_ID="$BUILD_ID"
+printf "%s" "$BUILD_ID" > build/web/build-id.txt
 
 echo ">> Pronto: build/web"
 ls -la build/web | head -20
