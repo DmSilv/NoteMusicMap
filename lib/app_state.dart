@@ -4,14 +4,19 @@ import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
+import 'package:vibration/vibration.dart';
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:record/record.dart' show AudioRecorder;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
+import 'ai/coach_ai.dart';
 import 'audio/audio_out.dart';
 import 'audio/pitch_source.dart';
 import 'package:afina_core/afina_core.dart';
+
+/// Ativa a simulação de execução (sem som), só para testes: --dart-define=DEV_DEMO=true.
+const bool kDevDemo = bool.fromEnvironment('DEV_DEMO');
 
 enum TunerMode { strings, chromatic }
 
@@ -184,7 +189,7 @@ class AppState extends ChangeNotifier {
         if (pomoChime) {
           _chime.play(endOfFocus: focusEnded, volume: pomoVolume).catchError((_) {});
         }
-        if (pomoVibrate) HapticFeedback.mediumImpact();
+        if (pomoVibrate) buzz(pattern: const [0, 260, 120, 260]);
       }
     }
   }
@@ -257,20 +262,84 @@ class AppState extends ChangeNotifier {
   bool micRationaleSeen = false;
 
   /// Pede (ou confirma) a permissão do microfone e guarda o resultado.
-  Future<bool> checkMicPermission() async {
+  /// Com [request] false só consulta, sem abrir o pedido do sistema.
+  Future<bool> checkMicPermission({bool request = true, bool announce = true}) async {
     final r = AudioRecorder();
     try {
-      micGranted = await r.hasPermission();
+      micGranted = await r.hasPermission(request: request);
     } catch (_) {
       micGranted = false;
     } finally {
       await r.dispose();
     }
-    say(micGranted == true
-        ? 'Microfone liberado'
-        : 'Microfone sem permissão. Libere nas configurações do aparelho ou do navegador.');
+    if (announce) {
+      say(micGranted == true
+          ? 'Microfone liberado'
+          : 'Microfone sem permissão. Libere nas configurações do aparelho ou do navegador.');
+    }
     notifyListeners();
     return micGranted == true;
+  }
+
+  // ---------------- Vibração ----------------
+  /// null = ainda não verificado.
+  bool? vibrationAvailable;
+
+  Future<bool> checkVibration() async {
+    try {
+      vibrationAvailable = await Vibration.hasVibrator();
+    } catch (_) {
+      vibrationAvailable = false;
+    }
+    notifyListeners();
+    return vibrationAvailable == true;
+  }
+
+  /// Vibra por [ms] milissegundos ou segundo um [pattern] (espera, vibra, espera…).
+  /// Se o aparelho não tiver motor de vibração, usa o toque tátil do sistema.
+  Future<void> buzz({int ms = 25, List<int>? pattern}) async {
+    try {
+      vibrationAvailable ??= await Vibration.hasVibrator();
+      if (vibrationAvailable == true) {
+        if (pattern != null) {
+          await Vibration.vibrate(pattern: pattern);
+        } else {
+          await Vibration.vibrate(duration: ms);
+        }
+        return;
+      }
+    } catch (_) {}
+    HapticFeedback.selectionClick();
+  }
+
+  Future<void> testVibration() async {
+    await checkVibration();
+    await buzz(pattern: const [0, 160, 110, 160]);
+    say(vibrationAvailable == true
+        ? 'Vibração testada: você deve ter sentido duas pulsações'
+        : 'Este aparelho/navegador não tem vibração. O app segue funcionando sem ela.');
+  }
+
+  // ---------------- Primeiro uso ----------------
+  /// Análise por IA do treinador (opcional, via Vercel).
+  final CoachAi ai = CoachAi();
+
+  bool onboarded = false;
+
+  void markOnboarded() {
+    onboarded = true;
+    _prefs?.setBool('onboarded', true);
+  }
+
+  /// Pede de uma vez tudo o que o app usa: microfone e vibração.
+  Future<void> requestAllPermissions() async {
+    await checkMicPermission(announce: false);
+    await checkVibration();
+    if (vibrationAvailable == true) await buzz(pattern: const [0, 120, 90, 120]);
+    say(micGranted == true
+        ? 'Tudo pronto: microfone liberado${vibrationAvailable == true ? ' e vibração disponível' : ''}.'
+        : 'Microfone sem permissão. Você pode liberar depois em Configurações.');
+    notifyListeners();
   }
 
   // ---------------- Metrônomo: latência ----------------
@@ -512,7 +581,7 @@ class AppState extends ChangeNotifier {
       dt: dt,
     );
     if (r != null) {
-      if (hapticEnabled) HapticFeedback.selectionClick();
+      if (hapticEnabled) buzz(ms: 18);
       if (e.finished) _finishExercise();
     }
   }
@@ -553,10 +622,6 @@ class AppState extends ChangeNotifier {
   final MetronomePlayer metroPlayer = MetronomePlayer();
   final TonePlayer tone = TonePlayer();
 
-  /// Violino virtual da demonstração (som próprio, timbre rico, volume moderado).
-  final TonePlayer demoTone = TonePlayer()
-    ..timbre = ToneTimbre.violin
-    ..volume = 0.45;
 
   /// Timbre do som de referência (diapasão puro ou mais cheio).
   ToneTimbre get toneTimbre => tone.timbre;
@@ -600,6 +665,8 @@ class AppState extends ChangeNotifier {
     outputLatencyMs = p.getDouble('latency') ?? 0;
     metroPlayer.outputLatencyMs = outputLatencyMs;
     micRationaleSeen = p.getBool('micRationale') ?? false;
+    onboarded = p.getBool('onboarded') ?? false;
+    await ai.load();
     tone.timbre = ToneTimbre.values[(p.getInt('timbre') ?? 0).clamp(0, ToneTimbre.values.length - 1)];
     sensitivity = MicSensitivity.values[p.getInt('sens') ?? 1];
     micGain = p.getDouble('gain') ?? 1.0;
@@ -630,6 +697,11 @@ class AppState extends ChangeNotifier {
       ];
     }
     _loadPomo(p);
+    // Mostra o estado real das permissões sem abrir nenhum pedido do sistema.
+    if (onboarded) {
+      checkMicPermission(request: false, announce: false);
+      checkVibration();
+    }
     grid = PitchGrid(history: history, holdSeconds: holdSeconds);
     _studyTimer = Timer.periodic(const Duration(seconds: 1), (_) => _studyTick());
     notifyListeners();
@@ -731,16 +803,8 @@ class AppState extends ChangeNotifier {
     demo = demoMode;
     PitchSource src;
     if (demoMode) {
-      // A demonstração TOCA o violino virtual (o microfone real nunca toca nada).
-      final d = DemoPitchSource(_demoScript());
-      d.onNote = (f) {
-        if (f == null) {
-          demoTone.stop();
-        } else {
-          demoTone.play(f);
-        }
-      };
-      src = d;
+      // Simulação silenciosa, só para desenvolvimento (kDevDemo): não toca nada.
+      src = DemoPitchSource(_demoScript());
     } else {
       src = MicPitchSource();
     }
@@ -758,7 +822,7 @@ class AppState extends ChangeNotifier {
     _sub = src.frames.listen(_onFrame);
     _wake(true);
     say(demoMode
-        ? 'Demonstração ligada: um violino virtual toca uma escala'
+        ? 'Simulação de desenvolvimento ligada (sem som)'
         : 'Microfone ligado. Toque uma nota!');
     notifyListeners();
   }
@@ -970,6 +1034,7 @@ class AppState extends ChangeNotifier {
 
   @override
   void dispose() {
+    ai.dispose();
     _studyTimer?.cancel();
     _saveStudy();
     super.dispose();

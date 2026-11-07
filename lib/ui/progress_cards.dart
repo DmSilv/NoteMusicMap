@@ -1,6 +1,7 @@
 import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
+import '../ai/coach_ai.dart';
 import '../app_state.dart';
 import 'scale_exercise_page.dart';
 import 'theme.dart';
@@ -269,8 +270,8 @@ class CoachCard extends StatelessWidget {
           ]),
           const SizedBox(height: 4),
           Text(
-            'Analisa as suas últimas escalas e aponta o que ajustar. A análise é feita no seu aparelho: '
-            'nada sai daqui.',
+            'Analisa as suas últimas escalas e aponta o que ajustar. As dicas abaixo são calculadas no '
+            'seu aparelho; a análise por IA é opcional.',
             style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
           ),
           const SizedBox(height: 10),
@@ -280,20 +281,106 @@ class CoachCard extends StatelessWidget {
           else ...[
             for (final i in app.insights) InsightTile(insight: i),
             const Divider(height: 24),
-            Text(
-              'Quer uma conversa mais livre? Copie um resumo (só números, sem áudio nem dados pessoais) '
-              'e cole numa IA de sua escolha.',
-              style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: () => copyAiSummary(app),
-              icon: const Icon(Icons.copy),
-              label: const Text('Copiar resumo para uma IA'),
-            ),
+            _AiSection(app: app),
           ],
         ],
       ),
+    );
+  }
+}
+
+/// Análise por IA (opcional): consentimento, fila e limites.
+class _AiSection extends StatelessWidget {
+  final AppState app;
+  const _AiSection({required this.app});
+
+  Future<void> _ask(BuildContext context) async {
+    final ai = app.ai;
+    if (!ai.consent) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: const Text('Análise por IA'),
+          content: const Text(
+              'Para gerar a análise, o app envia à IA (Gemini, do Google) um resumo só com números: '
+              'desvios de afinação por nota, escalas e taxas de acerto.\n\n'
+              'Nunca vão áudio, nome ou qualquer dado pessoal. Dá para usar até 5 vezes por dia.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Agora não')),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Autorizar e analisar')),
+          ],
+        ),
+      );
+      if (ok != true) return;
+      await ai.setConsent(true);
+    }
+    await ai.ask(app.aiSummary());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: app.ai,
+      builder: (context, _) {
+        final ai = app.ai;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Análise por IA: pede ao Gemini orientações em linguagem natural sobre os seus últimos exercícios. '
+              'Só números são enviados, nunca áudio. Opcional e precisa de internet.',
+              style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+            ),
+            const SizedBox(height: 8),
+            if (ai.phase == AiPhase.sending)
+              const Row(children: [
+                SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+                SizedBox(width: 10),
+                Expanded(child: Text('Analisando seus exercícios…')),
+              ])
+            else if (ai.phase == AiPhase.queued)
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Muita gente usando agora. Você está na fila: nova tentativa em ${ai.queuedSeconds}s '
+                    '(tentativa ${ai.attempt}/${CoachAi.maxAttempts}).'),
+                const SizedBox(height: 8),
+                OutlinedButton(onPressed: ai.cancel, child: const Text('Cancelar')),
+              ])
+            else
+              Wrap(spacing: 8, runSpacing: 8, children: [
+                FilledButton.icon(
+                  onPressed: () => _ask(context),
+                  icon: const Icon(Icons.auto_awesome),
+                  label: Text(ai.text == null ? 'Analisar com IA' : 'Analisar de novo'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () => copyAiSummary(app),
+                  icon: const Icon(Icons.copy),
+                  label: const Text('Copiar resumo'),
+                ),
+              ]),
+            if (ai.phase == AiPhase.failed && ai.message != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(ai.message!, style: TextStyle(color: AppColors.sharp, fontSize: 13)),
+              ),
+            if (ai.text != null && !ai.busy) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.surface2,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: SelectableText(ai.text!, style: const TextStyle(height: 1.4)),
+              ),
+              const SizedBox(height: 6),
+              Text('Gerado por IA: pode errar. Use como sugestão, junto com o seu professor.',
+                  style: TextStyle(color: AppColors.textDim, fontSize: 11.5)),
+            ],
+          ],
+        );
+      },
     );
   }
 }

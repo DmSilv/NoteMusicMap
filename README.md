@@ -56,7 +56,17 @@ contagem de focos por dia ficam salvos no aparelho. O alarme exige o app aberto 
 - **Histórico:** cada exercício vira um registro (gráfico de evolução, média, melhor resultado e variação) na aba Estudo.
 - **Treinador:** análise por regras, feita no aparelho (`practice_coach.dart`): viés por nota ("suas notas Mi estão ficando baixas"),
   subida × descida, registro agudo, cansaço, tendência. Opcional: copiar um resumo (só números) para colar numa IA de conversa.
-  Não há chamada a nenhuma IA: nada sai do aparelho.
+  O treinador por regras roda no aparelho. Já a **análise por IA** (opcional, com consentimento) é descrita abaixo.
+
+## Análise por IA (Gemini via Vercel)
+Botão "Analisar com IA" no card Treinador. O app envia só o resumo numérico a `POST /api/coach`; a função da Vercel (`api/coach.js`)
+guarda a chave e chama o Gemini. Nada de áudio ou dados pessoais.
+- **Chave:** variável de ambiente `geminiAPI` na Vercel (também aceita `GEMINI_API_KEY`). Nunca vai para o repositório nem para o app. Depois de criar/alterar, faça **Redeploy**.
+- **Plano gratuito protegido:** intervalo mínimo por pessoa (20 s), 5 análises/dia por pessoa, teto global por minuto (8) e por dia (200). Ajustáveis (`AI_*`, veja `.env.example`).
+- **Fila:** se o servidor estiver cheio (429), o app espera com contagem regressiva e tenta de novo sozinho (até 5 vezes, com variação aleatória); dá para cancelar.
+- **Contadores:** em memória por padrão; para valores exatos entre instâncias, ligue o Upstash Redis (`UPSTASH_REDIS_REST_URL/TOKEN`).
+- **Celular:** gere o app com `--dart-define=API_BASE=https://SEU-DOMINIO.vercel.app`.
+- Testes da função: `node --test api/coach.test.js`.
 
 ## Áudio no navegador (importante)
 O motor de áudio (SoLoud) tem versão multi-thread que isola o som da interface. Ela só liga se o site enviar

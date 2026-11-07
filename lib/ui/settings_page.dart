@@ -313,19 +313,36 @@ class SettingsPage extends StatelessWidget {
 
   Widget _permissions(BuildContext context) {
     final g = app.micGranted;
-    final (icon, color, status) = switch (g) {
+    final v = app.vibrationAvailable;
+    final (micIcon, micColor, micStatus) = switch (g) {
       true => (Icons.check_circle, AppColors.inTune, 'Liberado'),
       false => (Icons.cancel, AppColors.sharp, 'Sem permissão'),
+      null => (Icons.help_outline, AppColors.textDim, 'Ainda não verificado'),
+    };
+    final (vibIcon, vibColor, vibStatus) = switch (v) {
+      true => (Icons.check_circle, AppColors.inTune, 'Disponível neste aparelho'),
+      false => (Icons.remove_circle_outline, AppColors.textDim, 'Indisponível aqui (o app funciona sem)'),
       null => (Icons.help_outline, AppColors.textDim, 'Ainda não verificado'),
     };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        FilledButton.icon(
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+          onPressed: app.requestAllPermissions,
+          icon: const Icon(Icons.verified_user_outlined),
+          label: const Text('Permitir tudo o que o app usa',
+              style: TextStyle(fontWeight: FontWeight.w700)),
+        ),
+        const SizedBox(height: 4),
+        Text('Pede o microfone e testa a vibração de uma vez, para você não ser interrompido depois.',
+            style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+        const Divider(height: 24),
         ListTile(
           contentPadding: EdgeInsets.zero,
-          leading: Icon(icon, color: color, size: 30),
+          leading: Icon(micIcon, color: micColor, size: 30),
           title: const Text('Microfone', style: TextStyle(fontWeight: FontWeight.w700)),
-          subtitle: Text('$status · necessário para o afinador e a grade'),
+          subtitle: Text('$micStatus · necessário para o afinador, a grade e as escalas'),
           trailing: FilledButton.tonal(
             onPressed: app.checkMicPermission,
             child: Text(g == true ? 'Verificar' : 'Permitir'),
@@ -340,12 +357,23 @@ class SettingsPage extends StatelessWidget {
               style: TextStyle(color: AppColors.sharp, fontSize: 12.5),
             ),
           ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(vibIcon, color: vibColor, size: 30),
+          title: const Text('Vibração', style: TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: Text('$vibStatus · batida do metrônomo, fim do Pomodoro e notas das escalas'),
+          trailing: FilledButton.tonal(
+            onPressed: app.testVibration,
+            child: const Text('Testar'),
+          ),
+        ),
+        _switch('Vibrar na batida e nas escalas', 'Liga ou desliga a vibração do metrônomo e dos exercícios.',
+            app.hapticEnabled, (x) => app.setTuning(hapticEnabled: x)),
         const Divider(height: 20),
         _info(Icons.screen_lock_portrait, 'Tela sempre acesa',
             'Usada enquanto você estuda para a tela não apagar. Não exige permissão.'),
-        _info(Icons.vibration, 'Vibração', 'Usa o motor de vibração do aparelho. Não exige permissão.'),
-        _info(Icons.wifi_off, 'Sem internet e sem conta',
-            'O app não envia nada para fora e não tem login nem anúncios.'),
+        _info(Icons.cloud_outlined, 'Internet (só para a análise por IA)',
+            'O app funciona sem internet. Ela só é usada se você pedir a análise por IA, e mesmo assim só vão números de afinação, nunca áudio.'),
         _info(Icons.shield_outlined, 'Seu áudio fica com você',
             'O som é analisado no próprio aparelho e descartado na hora. Nada é gravado nem enviado.'),
         const SizedBox(height: 4),
@@ -447,6 +475,7 @@ class SettingsPage extends StatelessWidget {
               ('O que o app usa', 'O microfone, somente enquanto você toca em "Ouvir", para identificar a altura das notas.'),
               ('O que acontece com o som', 'É analisado em tempo real no próprio aparelho e descartado em seguida. Nenhum áudio é gravado, guardado ou enviado.'),
               ('O que fica salvo', 'Suas configurações, o tempo de estudo e as escalas que você salvar. Tudo fica apenas neste aparelho.'),
+              ('Análise por IA (opcional)', 'Só se você tocar em "Analisar com IA" no Treinador, e depois de autorizar. O app envia um resumo só com números (desvios por nota e taxas de acerto) ao Gemini, do Google, por um servidor intermediário que guarda a chave e limita o uso. Nunca vão áudio, nome ou localização.'),
               ('Conta e dados pessoais', 'Não há login, cadastro, anúncios nem rastreamento. O app não pede nome, e-mail nem localização.'),
               ('Como apagar', 'Em Configurações › Estudo › Apagar histórico, ou desinstalando o app.'),
               ('Menores de idade', 'Como não coleta dados pessoais, o app é adequado para todas as idades.'),

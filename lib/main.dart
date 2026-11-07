@@ -30,6 +30,55 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
       GlobalKey<ScaffoldMessengerState>();
   final GlobalKey<NavigatorState> _navKey = GlobalKey<NavigatorState>();
 
+  /// Boas-vindas com os acessos de que o app precisa (só na primeira abertura).
+  Future<void> _onboarding() async {
+    final ctx = _navKey.currentContext;
+    if (ctx == null || !mounted) return;
+    Widget item(IconData i, String t, String d) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(i, size: 24),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(t, style: const TextStyle(fontWeight: FontWeight.w700)),
+                Text(d, style: const TextStyle(fontSize: 13, height: 1.3)),
+              ]),
+            ),
+          ]),
+        );
+    final ok = await showDialog<bool>(
+      context: ctx,
+      barrierDismissible: false,
+      builder: (c) => AlertDialog(
+        title: const Text('Vamos deixar tudo pronto'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Center(child: AppLogo(size: 56)),
+              const SizedBox(height: 14),
+              const Text('O Tom e Tempo usa:'),
+              item(Icons.mic, 'Microfone',
+                  'Para ouvir seu instrumento. O som é analisado no aparelho e nunca é gravado nem enviado.'),
+              item(Icons.vibration, 'Vibração',
+                  'Na batida do metrônomo, no fim do timer e nas notas das escalas. Você pode desligar depois.'),
+              item(Icons.cloud_outlined, 'Internet (opcional)',
+                  'Só se você pedir a análise por IA. O resto funciona sem internet.'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Agora não')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Permitir')),
+        ],
+      ),
+    );
+    widget.app.markOnboarded();
+    if (ok == true) await widget.app.requestAllPermissions();
+  }
+
   /// Explica para que o microfone é usado antes do primeiro pedido do sistema.
   Future<bool> _micRationale() async {
     final ctx = _navKey.currentContext;
@@ -64,6 +113,10 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     widget.app.askMicRationale = _micRationale;
+    // Primeiro uso: pede de uma vez tudo o que o app precisa.
+    if (!widget.app.onboarded) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _onboarding());
+    }
     // Avisos curtos ao ligar/desligar funções.
     widget.app.onMessage = (msg) {
       final m = _messengerKey.currentState;

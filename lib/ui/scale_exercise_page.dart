@@ -116,12 +116,14 @@ class ScaleExercisePage extends StatelessWidget {
             icon: const Icon(Icons.mic),
             label: const Text('Ouvir meu instrumento', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           ),
-          const SizedBox(height: 8),
-          TextButton.icon(
-            onPressed: () => app.startExercise(demoMode: true),
-            icon: const Icon(Icons.play_circle_outline),
-            label: const Text('Ver como funciona (violino virtual)'),
-          ),
+          if (kDevDemo) ...[
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () => app.startExercise(demoMode: true),
+              icon: const Icon(Icons.play_circle_outline),
+              label: const Text('[dev] Simular (silencioso)'),
+            ),
+          ],
         ],
       ),
     );

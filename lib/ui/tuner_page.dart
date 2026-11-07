@@ -256,13 +256,12 @@ class _TunerPageState extends State<TunerPage> {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(app.micError!, style: TextStyle(color: AppColors.sharp)),
               ),
-            TextButton.icon(
-              onPressed: () => app.listening && app.demo ? app.stopListening() : app.startListening(demoMode: true),
-              icon: const Icon(Icons.play_circle_outline, size: 18),
-              label: Text(app.listening && app.demo
-                  ? 'Parar demonstração'
-                  : 'Demonstração (sem instrumento)'),
-            ),
+            if (kDevDemo)
+              TextButton.icon(
+                onPressed: () => app.listening && app.demo ? app.stopListening() : app.startListening(demoMode: true),
+                icon: const Icon(Icons.play_circle_outline, size: 18),
+                label: const Text('[dev] Simulação silenciosa'),
+              ),
             const SizedBox(height: 4),
             MicSettingsCard(app: app),
             const SizedBox(height: 12),

@@ -319,16 +319,17 @@ class _GridPageState extends State<GridPage> {
           label: const Text('Iniciar exercício guiado',
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
         ),
-        TextButton.icon(
-          onPressed: () {
-            app.startExercise(demoMode: true);
-            Navigator.of(context).push(MaterialPageRoute<void>(
-              builder: (_) => ScaleExercisePage(app: app),
-            ));
-          },
-          icon: const Icon(Icons.play_circle_outline),
-          label: const Text('Ver como funciona (violino virtual)'),
-        ),
+        if (kDevDemo)
+          TextButton.icon(
+            onPressed: () {
+              app.startExercise(demoMode: true);
+              Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => ScaleExercisePage(app: app),
+              ));
+            },
+            icon: const Icon(Icons.play_circle_outline),
+            label: const Text('[dev] Simular exercício (silencioso)'),
+          ),
         const SizedBox(height: 6),
         AppCard(
           child: Column(
@@ -436,14 +437,7 @@ class _GridPageState extends State<GridPage> {
               _tile(Icons.mic_none, 'Captação do microfone',
                   '${app.sensitivity.label} · ganho ${app.micGain.toStringAsFixed(app.micGain < 10 ? 1 : 0)}×',
                   _micSheet),
-              const Divider(height: 1),
-              _tile(
-                  Icons.play_circle_outline,
-                  app.listening && app.demo ? 'Parar demonstração' : 'Demonstração',
-                  'Violino virtual toca uma escala desafinada',
-                  () => app.listening && app.demo
-                      ? app.stopListening()
-                      : app.startListening(demoMode: true)),
+
               const Divider(height: 1),
               _tile(Icons.restart_alt, 'Zerar a grade', 'Apaga as cores acumuladas',
                   () => confirmResetGrid(context, app)),

@@ -68,7 +68,7 @@ class _MetronomePageState extends State<MetronomePage>
         if (ev.sub == 0) {
           _beat.value = _Beat(ev.beat, ev.bar, ev.accent, elapsed.inMicroseconds);
           if (app.hapticEnabled && ev.audible) {
-            HapticFeedback.selectionClick();
+            app.buzz(ms: ev.accent == Accent.strong ? 40 : 18);
           }
         }
       }

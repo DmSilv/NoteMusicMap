@@ -3,6 +3,8 @@
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <!-- Mantém a tela acesa durante o estudo (wakelock). -->
     <uses-permission android:name="android.permission.WAKE_LOCK"/>
+    <!-- Vibração: batida do metrônomo, fim do Pomodoro e passos das escalas. Concedida na instalação. -->
+    <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-feature android:name="android.hardware.microphone" android:required="false"/>
     <application
         android:label="Tom e Tempo"
