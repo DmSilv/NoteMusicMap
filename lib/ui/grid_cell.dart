@@ -7,6 +7,14 @@ import 'cell_gauge.dart';
 import 'note_widgets.dart';
 import 'theme.dart';
 
+/// Sustenido/bemol (teclas pretas): Dó♯, Ré♯, Fá♯, Sol♯, Lá♯.
+bool _isAccidental(int midi) => const {1, 3, 6, 8, 10}.contains(midi % 12);
+
+/// Dá a [c] um tom azul-ardósia leve (brilho parecido, para não sumir no
+/// fundo do cartão nem competir com as cores de afinação).
+Color _accidentalTone(Color c) =>
+    Color.lerp(c, AppColors.dark ? const Color(0xFF2B4766) : const Color(0xFFB4C9E2), 0.65)!;
+
 /// Um quadrado da grade: nota, cor do histórico e, na nota que toca, o afinador
 /// horizontal vivo. Usado na grade em tela cheia e no teclado do cartão da aba.
 class GridCell extends StatelessWidget {
@@ -35,10 +43,15 @@ class GridCell extends StatelessWidget {
     final inScale = scale.isEmpty || scale.contains(midi);
     final isTarget = scale.contains(midi);
 
-    var fill = AppColors.surface2;
+    // Sustenidos/bemóis (teclas pretas do piano) ganham um tom azulado leve,
+    // diferente das notas naturais. Só muda o fundo sem histórico; as cores de afinação
+    // continuam iguais, porque elas carregam o significado.
+    final accidental = _isAccidental(midi);
+    final restFill = accidental ? _accidentalTone(AppColors.surface2) : AppColors.surface2;
+    var fill = restFill;
     if (v != null) {
       final a = (0.5 + 0.5 * v.confidence) * v.alpha;
-      fill = Color.lerp(AppColors.surface2, intonationColor(v.avgCents, zone), a)!;
+      fill = Color.lerp(restFill, intonationColor(v.avgCents, zone), a)!;
     }
     final dim = !inScale && v == null;
     // Texto sempre legível: ajusta o fundo da célula se o contraste ficar baixo.
@@ -59,7 +72,9 @@ class GridCell extends StatelessWidget {
         duration: const Duration(milliseconds: 750),
         curve: Curves.easeInOutCubic,
         decoration: BoxDecoration(
-          color: dim ? AppColors.surface.withValues(alpha: 0.5) : fill,
+          color: dim
+              ? (accidental ? _accidentalTone(AppColors.surface) : AppColors.surface).withValues(alpha: 0.5)
+              : fill,
           borderRadius: BorderRadius.circular(radius),
           border: Border.all(
             color: playing
