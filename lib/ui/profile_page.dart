@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../app_state.dart';
+import 'share_sheet.dart' show shareLink;
 import 'teacher_page.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -196,11 +197,19 @@ class _ProfilePageState extends State<ProfilePage> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: QrImageView(
-                        data: 'notemusic:${p.shareCode}',
+                        // Link, não só o código: a câmera comum do celular do professor abre o app já com ele.
+                        data: '${shareLink()}/?aluno=${p.shareCode}',
                         size: 150,
                         padding: EdgeInsets.zero,
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Mostre este QR ao seu professor: ele aponta a câmera do celular e o Notemusic '
+                    'abre já com o seu código.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
                   ),
                   const SizedBox(height: 10),
                   OutlinedButton.icon(

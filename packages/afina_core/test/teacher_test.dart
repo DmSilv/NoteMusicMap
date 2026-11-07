@@ -39,6 +39,68 @@ void main() {
     expect(Student(id: 'n', name: 'Nina').toJson().containsKey('code'), isFalse);
   });
 
+  group('tipos de tarefa', () {
+    test('tarefa de método guarda assunto, detalhe e observação; título junta os dois', () {
+      expect(Assignment.titleFor('Suzuki · Livro 2', 'Lição 5'), 'Suzuki · Livro 2 · Lição 5');
+      expect(Assignment.titleFor('Mazas', ''), 'Mazas');
+      final a = Assignment(
+          id: 'm1',
+          title: Assignment.titleFor('Suzuki', 'Lição 5'),
+          kind: TaskKind.method,
+          subject: 'Suzuki',
+          detail: 'Lição 5',
+          note: 'Cuidar do arco na corda Ré',
+          created: DateTime(2026, 11, 8));
+      final b = Assignment.tryFrom(a.toJson())!;
+      expect(b.kind, TaskKind.method);
+      expect(b.isScale, isFalse);
+      expect(b.subject, 'Suzuki');
+      expect(b.detail, 'Lição 5');
+      expect(b.note, 'Cuidar do arco na corda Ré');
+      expect(b.title, 'Suzuki · Lição 5');
+    });
+
+    test('tarefa de escala antiga (sem tipo) continua lida como escala', () {
+      final j = {'id': 'old', 'title': 'Sol maior · 1 oitava', 'st': 0, 'pc': 7, 'oct': 1, 'goal': 0.8, 'done': false, 'c': '2026-10-01T10:00:00.000'};
+      final a = Assignment.tryFrom(j)!;
+      expect(a.kind, TaskKind.scale);
+      expect(a.isScale, isTrue);
+      expect(a.tonicPc, 7);
+      expect(a.toJson().containsKey('kind'), isFalse); // escala não pesa no JSON
+    });
+
+    test('editar muda o título de método, mas não o de escala', () {
+      final m = Assignment(id: 'a', title: 'Suzuki', kind: TaskKind.method, subject: 'Suzuki', created: DateTime(2026));
+      final m2 = m.copyWith(detail: 'Lição 7');
+      expect(m2.title, 'Suzuki · Lição 7');
+      final s = Assignment(id: 'b', title: 'Sol maior · 1 oitava', tonicPc: 7, created: DateTime(2026));
+      expect(s.copyWith(note: 'devagar').title, 'Sol maior · 1 oitava');
+      expect(s.copyWith(note: 'devagar').note, 'devagar');
+    });
+
+    test('relatório lista método, lição e observação; escala mostra a meta', () {
+      final st = Student(id: 'r', name: 'Rui', tasks: [
+        Assignment(id: 't1', title: 'Sol maior · 1 oitava', tonicPc: 7, goal: 0.8, created: DateTime(2026)),
+        Assignment(
+            id: 't2',
+            title: 'Suzuki · Lição 5',
+            kind: TaskKind.method,
+            subject: 'Suzuki',
+            detail: 'Lição 5',
+            note: 'Rever o 3º dedo',
+            created: DateTime(2026)),
+      ]);
+      final r = studentReport(st);
+      expect(r, contains('Sol maior · 1 oitava (meta 80%)'));
+      expect(r, contains('Método e lição: Suzuki · Lição 5'));
+      expect(r, contains('Observação: Rever o 3º dedo'));
+    });
+
+    test('há sugestões de métodos', () {
+      expect(kMethodSuggestions, contains('Suzuki'));
+    });
+  });
+
   test('sem sessões não inventa números', () {
     final r = summarizeStudent(Student(id: 'b', name: 'Bia'));
     expect(r.sessions, 0);

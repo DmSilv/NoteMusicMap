@@ -98,3 +98,19 @@ Tokens guardados só como hash (SHA-256); segredo mostrado uma vez e guardado no
 3. O professor vê o **histórico anterior ao vínculo** só se o aluno liberar (proposto)?
 4. Haverá **alunos menores de idade**? (muda o consentimento).
 5. A sincronização começa **desligada** (proposto) ou ligada por padrão?
+
+## 11. Melhorias da área do professor (vínculo por QR, tarefas, voz)
+
+**Feito (sem servidor):**
+- **QR do aluno = link** `https://…/?aluno=K7QM-4TXK`. A câmera comum do celular do professor abre o app (web/PWA) já com o código; o app abre o cadastro "Novo aluno" com o código preenchido (liga o modo professor se preciso). O app valida o código (verificação) e avisa se já está na lista ou se é o próprio código.
+- **Tipos de tarefa:** escala/arpejo (medida pelo app, concluída sozinha), **método e lição** (ex.: Suzuki · Livro 2 · Lição 5, com sugestões Suzuki, Ševčík, Kayser, Wohlfahrt, Mazas, Schradieck, Kreutzer, Dont, Flesch, Hanon e os métodos já usados), **repertório** (peça + trecho/compassos) e **outra atividade**. Todas têm **observações livres** (o que merece atenção, o que estudar mais) e podem ser editadas. Só a escala é auto-concluída; as demais o professor marca.
+- **Ditado por voz:** o teclado do celular (Android/iOS) já tem microfone para ditar em qualquer campo; o formulário avisa isso. Não há botão de voz próprio ainda.
+- **Privacidade:** o relatório por IA nunca leva texto livre (título, lição, observação): só números e o tipo da tarefa.
+
+**Planejado (precisa de plugin nativo e teste em aparelho):**
+1. **Leitor de QR dentro do app** (`mobile_scanner`): botão "Ler QR do aluno" em "Novo aluno" para o professor que não usa a câmera do sistema. Pede permissão da câmera; a web usa a câmera do navegador. Aceita o mesmo link e o texto `notemusic:CÓDIGO`.
+2. **Botão de voz no app** (`speech_to_text`): microfone ao lado dos campos de observação e lição, para web (Chrome/Edge/Safari), Android e iOS. Transcrição fica no aparelho/navegador; nada é enviado pelo app.
+3. **Visão do aluno ("Minhas aulas")**: depende da nuvem (Fase 2/3). Ao aceitar o vínculo, o aluno vê tarefas (inclusive método/lição/repertório), as observações que o professor marcar como visíveis e o próprio histórico; pode marcar uma tarefa como feita ("estudei") e o professor vê.
+4. **Biblioteca de métodos do professor**: lições e repertório reutilizáveis entre alunos (hoje só o nome do método é sugerido de novo).
+
+**Navegação (princípios):** um único caminho para cada coisa (perfil e professor pelo ícone da barra; área do professor → aluno → tarefas/observações); mesma linguagem nos botões ("Nova tarefa", "Anotar", "Gerenciar"); explicações curtas dentro da própria tela (guia "Como funciona", dicas nos campos); o aluno nunca vê ferramentas de professor.

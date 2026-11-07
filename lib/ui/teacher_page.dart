@@ -39,9 +39,9 @@ Future<String?> _askText(BuildContext context, String title, String label,
 
 /// "Novo aluno": nome (obrigatório) e código do aluno (opcional, o que ele vê em
 /// Configurações › Meu perfil). Devolve (nome, código) ou null se cancelar.
-Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app) async {
+Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app, {String? code0}) async {
   final name = TextEditingController();
-  final code = TextEditingController();
+  final code = TextEditingController(text: code0 ?? '');
   String? nameErr, codeErr;
   final r = await showDialog<(String, String?)>(
     context: context,
@@ -102,6 +102,44 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app)
   return r;
 }
 
+/// Chamado ao abrir o app por um link/QR de aluno (`?aluno=K7QM-4TXD`): leva o
+/// professor direto ao cadastro, com o código já preenchido.
+Future<void> handleIncomingStudentCode(BuildContext context, AppState app) async {
+  final code = app.incomingStudentCode;
+  if (code == null) return;
+  app.incomingStudentCode = null;
+  if (code == app.profile.shareCode) {
+    app.say('Este é o seu próprio código.');
+    return;
+  }
+  final known = app.studentByCode(code);
+  if (known != null) {
+    app.say('${known.name} já está na sua lista.');
+    return;
+  }
+  if (!app.teacherMode) {
+    final on = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Código de aluno recebido'),
+        content: Text('O código $code foi lido. Para cadastrar e acompanhar este aluno, ligue o modo professor '
+            '(você continua usando o app normalmente como aluno).'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Agora não')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Ligar e adicionar')),
+        ],
+      ),
+    );
+    if (on != true || !context.mounted) return;
+    app.setTeacherMode(true);
+  }
+  final r = await _newStudentDialog(context, app, code0: code);
+  if (r != null) {
+    app.addStudent(r.$1, code: r.$2);
+    app.say('${r.$1} foi adicionado à sua lista.');
+  }
+}
+
 /// Guia curto e didático do que a área do professor faz, aberto no primeiro acesso.
 class _HowItWorks extends StatelessWidget {
   final bool open;
@@ -111,10 +149,10 @@ class _HowItWorks extends StatelessWidget {
     (
       Icons.person_add_alt_1,
       '1. Cadastre o aluno',
-      'Toque em "Novo aluno" e digite o nome. Se o aluno já usa o Notemusic, peça o código dele '
-          '(em Configurações › Meu perfil, algo como K7QM-4TXD) e digite no campo "Código do aluno". '
-          'Não precisa de e-mail nem de cadastro completo. O código é opcional e pode ser colocado depois, '
-          'no menu do aluno.'
+      'Mais rápido: peça ao aluno para abrir o perfil dele (ícone no topo do app) e aponte a câmera '
+          'do seu celular para o QR. O Notemusic abre já com o código e você só confirma o nome. '
+          'Também dá para digitar o código (algo como K7QM-4TXD) em "Novo aluno", ou cadastrar só pelo nome '
+          'e colocar o código depois, no menu do aluno. Não precisa de e-mail nem de cadastro completo.'
     ),
     (
       Icons.play_circle_outline,
@@ -125,8 +163,10 @@ class _HowItWorks extends StatelessWidget {
     (
       Icons.assignment_outlined,
       '3. Passe tarefas',
-      'Abra o aluno e toque em "Nova tarefa": escolha a escala, as oitavas e a meta de acerto. '
-          'A tarefa é marcada como feita sozinha quando ele atinge a meta.'
+      'Abra o aluno e toque em "Nova tarefa". Escolha o tipo: escala ou arpejo (com meta de acerto, '
+          'concluída sozinha), método e lição (ex.: Suzuki · Lição 5), repertório ou outra atividade. '
+          'Em todas há um campo de observações para o que merece atenção; use o microfone do teclado para ditar. '
+          'Toque numa tarefa para editar.'
     ),
     (
       Icons.insights,
@@ -747,7 +787,13 @@ class StudentPage extends StatelessWidget {
       if (ok != true) return;
       await app.ai.setConsent(true);
     }
-    final anon = Student(id: 'x', name: 'o aluno', sessions: s.sessions, tasks: s.tasks);
+    // Só números e tipos: texto livre (título, lição, observação) pode ter nomes e não sai do aparelho.
+    final anon = Student(id: 'x', name: 'o aluno', sessions: s.sessions, tasks: [
+      for (final t in s.tasks)
+        t.isScale
+            ? t.copyWith(note: '')
+            : Assignment(id: t.id, title: t.kind.label, kind: t.kind, done: t.done, created: t.created),
+    ]);
     app.ai.ask('${studentReport(anon, flats: app.preferFlats)}\n\n${buildAiPrompt(s.sessions, instrument: app.instrument.name, flats: app.preferFlats)}',
         kind: 'teacher_report');
     if (!context.mounted) return;
@@ -846,36 +892,71 @@ class StudentPage extends StatelessWidget {
           Row(children: [
             const Expanded(child: Text('Tarefas', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
             TextButton.icon(
-              onPressed: () => _newTask(context, s),
+              onPressed: () => _taskDialog(context, s),
               icon: const Icon(Icons.add),
               label: const Text('Nova tarefa'),
             ),
           ]),
           if (s.tasks.isEmpty)
-            Text('Nenhuma tarefa. Passe uma escala ou arpejo com meta de acerto.',
+            Text(
+                'Nenhuma tarefa ainda. Toque em "Nova tarefa" para passar uma escala, uma lição de método, '
+                'uma peça do repertório ou outra atividade, com observações se quiser.',
                 style: TextStyle(color: AppColors.textDim, fontSize: 13)),
           for (final t in s.tasks)
             ListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
+              onTap: () => _taskDialog(context, s, edit: t),
               leading: Checkbox(value: t.done, onChanged: (_) => app.toggleAssignment(s, t.id)),
-              title: Text(t.title,
-                  style: TextStyle(decoration: t.done ? TextDecoration.lineThrough : null)),
-              subtitle: Text('Meta ${(t.goal * 100).round()}% de acerto'),
-              trailing: t.done
-                  ? IconButton(
-                      tooltip: 'Apagar tarefa',
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () => app.removeAssignment(s, t.id))
-                  : FilledButton.tonal(
-                      onPressed: () => _startTask(context, s, t),
-                      child: const Text('Iniciar'),
-                    ),
+              title: Row(children: [
+                Icon(_kindIcon(t.kind), size: 16, color: AppColors.textDim),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(t.title,
+                      style: TextStyle(decoration: t.done ? TextDecoration.lineThrough : null)),
+                ),
+              ]),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(t.isScale ? 'Meta ${(t.goal * 100).round()}% de acerto' : t.kind.label),
+                  if (t.note.isNotEmpty)
+                    Text(t.note,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: AppColors.textDim, fontStyle: FontStyle.italic)),
+                ],
+              ),
+              trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                if (t.isScale && !t.done)
+                  FilledButton.tonal(
+                    onPressed: () => _startTask(context, s, t),
+                    child: const Text('Iniciar'),
+                  ),
+                PopupMenuButton<String>(
+                  tooltip: 'Opções da tarefa',
+                  onSelected: (v) {
+                    if (v == 'edit') _taskDialog(context, s, edit: t);
+                    if (v == 'delete') app.removeAssignment(s, t.id);
+                  },
+                  itemBuilder: (c) => const [
+                    PopupMenuItem(value: 'edit', child: Text('Editar')),
+                    PopupMenuItem(value: 'delete', child: Text('Apagar')),
+                  ],
+                ),
+              ]),
             ),
         ],
       ),
     );
   }
+
+  static IconData _kindIcon(TaskKind k) => switch (k) {
+        TaskKind.scale => Icons.piano,
+        TaskKind.method => Icons.menu_book_outlined,
+        TaskKind.repertoire => Icons.library_music_outlined,
+        TaskKind.free => Icons.edit_note,
+      };
 
   void _startTask(BuildContext context, Student s, Assignment t) {
     app.setActiveStudent(s.id);
@@ -884,70 +965,184 @@ class StudentPage extends StatelessWidget {
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ScaleExercisePage(app: app)));
   }
 
-  Future<void> _newTask(BuildContext context, Student s) async {
-    var type = app.scaleType;
-    var pc = app.scaleTonicMidi % 12;
-    var oct = 1;
-    var goal = 0.8;
+  /// Criar ([edit] nulo) ou editar uma tarefa. Quatro tipos: escala/arpejo (medida
+  /// pelo app), método e lição, repertório e outra atividade. Todos aceitam
+  /// uma observação livre.
+  Future<void> _taskDialog(BuildContext context, Student s, {Assignment? edit}) async {
+    var kind = edit?.kind ?? TaskKind.scale;
+    var type = edit != null && edit.isScale ? ScaleType.values[edit.scaleTypeIndex] : app.scaleType;
+    var pc = edit != null && edit.isScale ? edit.tonicPc : app.scaleTonicMidi % 12;
+    var oct = edit?.octaves ?? 1;
+    var goal = edit?.goal ?? 0.8;
     final names = app.cfg.copyWith(transpose: 0);
+    final subject = TextEditingController(text: edit?.subject ?? '');
+    final detail = TextEditingController(text: edit?.detail ?? '');
+    final note = TextEditingController(text: edit?.note ?? '');
+    String? subjectErr;
+    final isEdit = edit != null;
+    final methods = [
+      ...app.recentMethods(),
+      for (final m in kMethodSuggestions)
+        if (!app.recentMethods().contains(m)) m
+    ];
+
+    String subjectLabel() => switch (kind) {
+          TaskKind.method => 'Método ou livro',
+          TaskKind.repertoire => 'Peça ou obra',
+          _ => 'O que estudar',
+        };
+    String? detailLabel() => switch (kind) {
+          TaskKind.method => 'Lição ou exercício (ex.: Lição 5)',
+          TaskKind.repertoire => 'Trecho ou compassos (opcional)',
+          _ => null,
+        };
+
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => StatefulBuilder(
         builder: (c, setS) => AlertDialog(
-          title: const Text('Nova tarefa'),
+          title: Text(isEdit ? 'Editar tarefa' : 'Nova tarefa'),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                PickerField<ScaleType>(
-                  label: 'Escala ou arpejo',
-                  value: type,
-                  options: [for (final t in ScaleType.values) OptionItem(t, t.label)],
-                  onChanged: (v) => setS(() => type = v),
-                ),
-                const SizedBox(height: 10),
-                const Text('Nota inicial'),
-                Wrap(spacing: 5, runSpacing: 2, children: [
-                  for (var i = 0; i < 12; i++)
-                    ChoiceChip(
-                      label: Text(noteName(i + 60, names)),
-                      selected: pc == i,
-                      onSelected: (_) => setS(() => pc = i),
+                if (!isEdit) ...[
+                  Wrap(spacing: 6, runSpacing: 4, children: [
+                    for (final k in TaskKind.values)
+                      ChoiceChip(
+                        avatar: Icon(_kindIcon(k), size: 16),
+                        label: Text(k.label),
+                        selected: kind == k,
+                        onSelected: (_) => setS(() => kind = k),
+                      ),
+                  ]),
+                  const SizedBox(height: 12),
+                ],
+                if (kind == TaskKind.scale) ...[
+                  if (isEdit)
+                    Text(edit.title, style: const TextStyle(fontWeight: FontWeight.w800))
+                  else ...[
+                    PickerField<ScaleType>(
+                      label: 'Escala ou arpejo',
+                      value: type,
+                      options: [for (final t in ScaleType.values) OptionItem(t, t.label)],
+                      onChanged: (v) => setS(() => type = v),
                     ),
-                ]),
-                const SizedBox(height: 10),
-                const Text('Oitavas'),
-                Wrap(spacing: 6, children: [
-                  for (final o in [1, 2, 3])
-                    ChoiceChip(label: Text('$o'), selected: oct == o, onSelected: (_) => setS(() => oct = o)),
-                ]),
-                const SizedBox(height: 10),
-                const Text('Meta de acerto'),
-                Wrap(spacing: 6, children: [
-                  for (final g in [0.6, 0.7, 0.8, 0.9])
-                    ChoiceChip(
-                        label: Text('${(g * 100).round()}%'),
-                        selected: goal == g,
-                        onSelected: (_) => setS(() => goal = g)),
-                ]),
+                    const SizedBox(height: 10),
+                    const Text('Nota inicial'),
+                    Wrap(spacing: 5, runSpacing: 2, children: [
+                      for (var i = 0; i < 12; i++)
+                        ChoiceChip(
+                          label: Text(noteName(i + 60, names)),
+                          selected: pc == i,
+                          onSelected: (_) => setS(() => pc = i),
+                        ),
+                    ]),
+                    const SizedBox(height: 10),
+                    const Text('Oitavas'),
+                    Wrap(spacing: 6, children: [
+                      for (final o in [1, 2, 3])
+                        ChoiceChip(label: Text('$o'), selected: oct == o, onSelected: (_) => setS(() => oct = o)),
+                    ]),
+                    const SizedBox(height: 10),
+                    const Text('Meta de acerto'),
+                    Wrap(spacing: 6, children: [
+                      for (final g in [0.6, 0.7, 0.8, 0.9])
+                        ChoiceChip(
+                            label: Text('${(g * 100).round()}%'),
+                            selected: goal == g,
+                            onSelected: (_) => setS(() => goal = g)),
+                    ]),
+                  ],
+                ] else ...[
+                  TextField(
+                    controller: subject,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(labelText: subjectLabel(), errorText: subjectErr),
+                    onChanged: (_) {
+                      if (subjectErr != null) setS(() => subjectErr = null);
+                    },
+                  ),
+                  if (kind == TaskKind.method) ...[
+                    const SizedBox(height: 6),
+                    Wrap(spacing: 6, runSpacing: 0, children: [
+                      for (final m in methods.take(8))
+                        ActionChip(
+                          label: Text(m),
+                          visualDensity: VisualDensity.compact,
+                          onPressed: () => setS(() {
+                            subject.text = m;
+                            subjectErr = null;
+                          }),
+                        ),
+                    ]),
+                  ],
+                  if (detailLabel() != null) ...[
+                    const SizedBox(height: 10),
+                    TextField(
+                      controller: detail,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: InputDecoration(labelText: detailLabel()),
+                    ),
+                  ],
+                ],
+                const SizedBox(height: 14),
+                TextField(
+                  controller: note,
+                  minLines: 2,
+                  maxLines: 5,
+                  maxLength: 500,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: const InputDecoration(
+                    labelText: 'Observações (opcional)',
+                    alignLabelWithHint: true,
+                    helperText: 'O que merece atenção ou estudar mais. Dica: toque no microfone do teclado para ditar.',
+                    helperMaxLines: 3,
+                  ),
+                ),
               ],
             ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
-            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Passar tarefa')),
+            FilledButton(
+              onPressed: () {
+                if (kind != TaskKind.scale && subject.text.trim().isEmpty) {
+                  setS(() => subjectErr = 'Escreva o que o aluno vai estudar');
+                  return;
+                }
+                Navigator.pop(c, true);
+              },
+              child: Text(isEdit ? 'Salvar' : 'Passar tarefa'),
+            ),
           ],
         ),
       ),
     );
-    if (ok == true) {
+    final subjectText = subject.text, detailText = detail.text, noteText = note.text;
+    subject.dispose();
+    detail.dispose();
+    note.dispose();
+    if (ok != true) return;
+    if (isEdit) {
+      app.editAssignment(s, edit.id,
+          subject: edit.isScale ? null : subjectText, detail: edit.isScale ? null : detailText, note: noteText);
+    } else if (kind == TaskKind.scale) {
       app.addAssignment(s,
           title: '${type.display(noteName(pc + 60, names))} · $oct oitava${oct > 1 ? 's' : ''}',
           scaleTypeIndex: type.index,
           tonicPc: pc,
           octaves: oct,
-          goal: goal);
+          goal: goal,
+          note: noteText);
+    } else {
+      app.addAssignment(s,
+          title: Assignment.titleFor(subjectText, detailText),
+          kind: kind,
+          subject: subjectText,
+          detail: detailText,
+          note: noteText);
     }
   }
 

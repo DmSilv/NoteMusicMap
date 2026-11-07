@@ -5,6 +5,7 @@ import 'package:toastification/toastification.dart';
 import 'app_state.dart';
 import 'ui/app_logo.dart';
 import 'ui/status_strip.dart';
+import 'ui/teacher_page.dart' show handleIncomingStudentCode;
 import 'ui/grid_page.dart';
 import 'ui/profile_page.dart';
 import 'ui/settings_page.dart';
@@ -148,6 +149,15 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
     // Primeiro uso: pede de uma vez tudo o que o app precisa.
     if (!widget.app.onboarded) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _onboarding());
+    }
+    // Aberto por um QR/link de aluno (?aluno=CÓDIGO): leva ao cadastro já preenchido.
+    if (widget.app.incomingStudentCode != null) {
+      Future<void>.delayed(const Duration(milliseconds: 1500), () {
+        final ctx = _navKey.currentContext;
+        // O contexto vem do navegador do app, lido agora (depois da espera), não guardado antes.
+        // ignore: use_build_context_synchronously
+        if (mounted && ctx != null) handleIncomingStudentCode(ctx, widget.app);
+      });
     }
     // Avisos curtos ao ligar/desligar funções.
     widget.app.onMessage = (msg) {

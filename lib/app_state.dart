@@ -266,12 +266,25 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addAssignment(Student s, {required String title, required int scaleTypeIndex, required int tonicPc, required int octaves, required double goal}) {
+  void addAssignment(Student s,
+      {required String title,
+      TaskKind kind = TaskKind.scale,
+      String subject = '',
+      String detail = '',
+      String note = '',
+      int scaleTypeIndex = 0,
+      int tonicPc = 0,
+      int octaves = 1,
+      double goal = 0.8}) {
     s.tasks.insert(
         0,
         Assignment(
             id: DateTime.now().microsecondsSinceEpoch.toRadixString(36),
             title: title,
+            kind: kind,
+            subject: subject.trim(),
+            detail: detail.trim(),
+            note: note.trim(),
             scaleTypeIndex: scaleTypeIndex,
             tonicPc: tonicPc,
             octaves: octaves,
@@ -279,6 +292,35 @@ class AppState extends ChangeNotifier {
             created: DateTime.now()));
     _saveTeacher();
     notifyListeners();
+  }
+
+  /// Muda assunto, detalhe e observação de uma tarefa já passada.
+  void editAssignment(Student s, String id, {String? subject, String? detail, String? note}) {
+    final i = s.tasks.indexWhere((t) => t.id == id);
+    if (i < 0) return;
+    s.tasks[i] = s.tasks[i].copyWith(subject: subject?.trim(), detail: detail?.trim(), note: note?.trim());
+    _saveTeacher();
+    notifyListeners();
+  }
+
+  /// Métodos já usados pelo professor (os mais recentes primeiro), para sugerir de novo.
+  List<String> recentMethods() {
+    final seen = <String>[];
+    final all = [for (final s in students) ...s.tasks]..sort((a, b) => b.created.compareTo(a.created));
+    for (final t in all) {
+      if (t.kind == TaskKind.method && t.subject.isNotEmpty && !seen.contains(t.subject)) seen.add(t.subject);
+    }
+    return seen;
+  }
+
+  // ---------------- Código do aluno vindo de um QR/link ----------------
+  /// Código lido de `?aluno=K7QM-4TXD` na abertura do app (ou null).
+  String? incomingStudentCode;
+
+  void _readIncomingCode() {
+    if (!kIsWeb) return;
+    final raw = Uri.base.queryParameters['aluno'];
+    if (raw != null) incomingStudentCode = formatShareCode(raw);
   }
 
   void toggleAssignment(Student s, String id) {
@@ -993,6 +1035,7 @@ class AppState extends ChangeNotifier {
       for (var i = 0; i < student.tasks.length; i++) {
         final t = student.tasks[i];
         if (!t.done &&
+            t.isScale && // só escala/arpejo é medida; as outras o professor marca
             t.scaleTypeIndex == scaleType.index &&
             t.tonicPc == scaleTonicMidi % 12 &&
             t.octaves == scaleOctaves &&
@@ -1134,6 +1177,7 @@ class AppState extends ChangeNotifier {
     _loadPomo(p);
     _loadClocks(p);
     await _loadTeacher(p);
+    _readIncomingCode();
     _scheduleUpdateChecks();
     // Mostra o estado real das permissões sem abrir nenhum pedido do sistema.
     if (onboarded) {
