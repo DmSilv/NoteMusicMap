@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../app_state.dart';
+import '../link/link_service.dart' show LinkedPerson;
 import 'qr_scan_page.dart';
 import 'share_sheet.dart' show shareLink;
 import 'teacher_page.dart';
@@ -33,7 +34,14 @@ class _ProfilePageState extends State<ProfilePage> {
   AppState get app => widget.app;
 
   @override
+  void initState() {
+    super.initState();
+    app.watchLinks(); // atualiza os vínculos enquanto esta tela está aberta
+  }
+
+  @override
   void dispose() {
+    app.unwatchLinks();
     _restore.dispose();
     _name.dispose();
     super.dispose();
@@ -161,9 +169,18 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Seus alunos leem este QR em Meu perfil › Meu professor. Eles também podem digitar o código.',
+                    'Seus alunos leem este QR em Meu perfil › Meus professores. Eles também podem digitar o código. '
+                    'Quem se vincular aparece sozinho na sua lista de alunos.',
                     style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
                   ),
+                  if (!app.linkEnabled) ...[
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => app.setLinkEnabled(true),
+                      icon: const Icon(Icons.cloud_outlined),
+                      label: const Text('Ligar o vínculo online'),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   Center(
                     child: SelectableText(
@@ -192,9 +209,43 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  /// Aluno: registra o professor lendo o QR dele ou digitando o código.
+  /// Liga e desliga o vínculo online e mostra se está conectado.
+  Widget _linkOnlineCard() {
+    final on = app.linkEnabled;
+    final (icon, color, status) = !on
+        ? (Icons.cloud_off_outlined, AppColors.textDim, 'Desligado')
+        : app.linkUnavailable
+            ? (Icons.cloud_off_outlined, AppColors.flat, 'Ainda não disponível no servidor')
+            : app.linkOnline == false
+                ? (Icons.sync_problem, AppColors.flat, 'Sem conexão agora')
+                : app.linkOnline == true
+                    ? (Icons.cloud_done_outlined, AppColors.inTune, 'Conectado')
+                    : (Icons.sync, AppColors.textDim, 'Conectando…');
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            secondary: Icon(icon, color: color),
+            title: const Text('Vínculo online', style: TextStyle(fontWeight: FontWeight.w800)),
+            subtitle: Text(
+              'Quando um professor ler o seu QR (ou você ler o dele), o vínculo aparece nos dois aparelhos em '
+              'poucos segundos. O servidor guarda só os códigos, o apelido e a data do vínculo.',
+              style: const TextStyle(fontSize: 12.5),
+            ),
+            value: on,
+            onChanged: app.setLinkEnabled,
+          ),
+          Text(status, style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+
+  /// Aluno: seus professores (lidos pelo QR ou digitados). Aparece nos dois lados.
   Widget _myTeacherCard(BuildContext context) {
-    final code = app.myTeacherCode;
+    final teachers = app.myTeachers;
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -203,60 +254,70 @@ class _ProfilePageState extends State<ProfilePage> {
             Icon(Icons.school_outlined, color: AppColors.accent),
             const SizedBox(width: 8),
             const Expanded(
-              child: Text('Meu professor', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              child: Text('Meus professores', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
             ),
           ]),
           const SizedBox(height: 4),
-          if (code == null) ...[
-            Text(
-              'Tem professor que usa o Notemusic? Leia o QR dele (ou digite o código) para registrá-lo.',
-              style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
-            ),
-            const SizedBox(height: 10),
-            Wrap(spacing: 8, runSpacing: 6, children: [
-              FilledButton.tonalIcon(
-                onPressed: () async {
-                  final s = await scanShareCode(
-                    context,
-                    title: 'Ler QR do professor',
-                    want: 'professor',
-                    check: app.checkTeacherCode,
-                    onCamera: app.setCameraStatus,
-                  );
-                  if (s != null) _registerTeacher(s.code);
-                },
-                icon: const Icon(Icons.qr_code_scanner),
-                label: const Text('Ler QR do professor'),
+          Text(
+            teachers.isEmpty
+                ? 'Tem professor que usa o Notemusic? Leia o QR dele (ou digite o código): você passa a aparecer na lista dele.'
+                : 'Você aparece na lista de cada professor abaixo.',
+            style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+          ),
+          for (final t in teachers)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              leading: Icon(t.since > 0 ? Icons.link : Icons.sync_problem,
+                  color: t.since > 0 ? AppColors.inTune : AppColors.flat),
+              title: Text(t.name.isEmpty ? 'Professor ${t.code}' : t.name,
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
+              subtitle: Text(t.since > 0 ? 'Código ${t.code} · vinculado' : 'Código ${t.code} · a vincular quando houver conexão'),
+              trailing: IconButton(
+                tooltip: 'Encerrar vínculo',
+                icon: const Icon(Icons.link_off),
+                onPressed: () => _confirmRemoveTeacher(context, t),
               ),
-            ]),
-          ] else ...[
-            Text(code, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, letterSpacing: 2)),
-            const SizedBox(height: 4),
-            Text(
-              'Código registrado neste aparelho. Quando a sincronização estiver disponível, o professor receberá '
-              'o seu pedido e você escolherá o que compartilhar. Nada é enviado até lá.',
-              style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
             ),
-            const SizedBox(height: 8),
-            TextButton.icon(
-              onPressed: () => app.setMyTeacherCode(null),
-              icon: const Icon(Icons.link_off, size: 18),
-              label: const Text('Remover'),
-            ),
-          ],
+          const SizedBox(height: 8),
+          FilledButton.tonalIcon(
+            onPressed: () async {
+              final s = await scanShareCode(
+                context,
+                title: 'Ler QR do professor',
+                want: 'professor',
+                check: app.checkTeacherCode,
+                onCamera: app.setCameraStatus,
+              );
+              if (s != null) _registerTeacher(s.code);
+            },
+            icon: const Icon(Icons.qr_code_scanner),
+            label: Text(teachers.isEmpty ? 'Ler QR do professor' : 'Adicionar outro professor'),
+          ),
         ],
       ),
     );
   }
 
-  void _registerTeacher(String code) {
-    final problem = app.checkTeacherCode(code);
-    if (problem != null) {
-      app.say(problem);
-      return;
-    }
-    app.setMyTeacherCode(code);
-    app.say('Professor registrado.');
+  Future<void> _confirmRemoveTeacher(BuildContext context, LinkedPerson t) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Encerrar o vínculo?'),
+        content: Text('Você sai da lista de ${t.name.isEmpty ? 'este professor' : t.name} e ele sai da sua. '
+            'Para vincular de novo, leia o QR outra vez.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Encerrar')),
+        ],
+      ),
+    );
+    if (ok == true) app.removeMyTeacher(t.code);
+  }
+
+  Future<void> _registerTeacher(String code) async {
+    final err = await app.addMyTeacher(code);
+    if (err != null) app.say(err);
   }
 
   Widget _profileTab() {
@@ -337,6 +398,8 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
               ),
             ),
+            const SizedBox(height: 12),
+            _linkOnlineCard(),
             const SizedBox(height: 12),
             _myTeacherCard(context),
             const SizedBox(height: 12),
@@ -483,8 +546,8 @@ Future<void> handleIncomingTeacherCode(BuildContext context, AppState app) async
   final code = app.incomingTeacherCode;
   if (code == null) return;
   app.incomingTeacherCode = null;
-  if (app.myTeacherCode == code) {
-    app.say('Este professor já está registrado.');
+  if (app.teacherCodes.contains(code)) {
+    app.say('Este professor já está na sua lista.');
     return;
   }
   final problem = app.checkTeacherCode(code);
@@ -496,16 +559,17 @@ Future<void> handleIncomingTeacherCode(BuildContext context, AppState app) async
     context: context,
     builder: (c) => AlertDialog(
       title: const Text('Código de professor'),
-      content: Text('O código $code foi lido. Registrar como o seu professor? '
-          'Fica só neste aparelho até a sincronização existir; nada é enviado agora.'),
+      content: Text('O código $code foi lido. Vincular como o seu professor? '
+          'Ele passa a aparecer na sua lista e você na lista dele. O servidor guarda só os códigos, '
+          'o apelido e a data do vínculo; nada dos seus exercícios.'),
       actions: [
         TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Agora não')),
-        FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Registrar')),
+        FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Vincular')),
       ],
     ),
   );
   if (ok == true) {
-    app.setMyTeacherCode(code);
-    app.say('Professor registrado.');
+    final err = await app.addMyTeacher(code);
+    if (err != null) app.say(err);
   }
 }

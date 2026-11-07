@@ -156,6 +156,13 @@ class Student {
   /// Hoje só identifica o aluno na sua lista; é o gancho para o vínculo
   /// automático (o aluno aceita o convite) quando houver sincronização.
   String? code;
+
+  /// Vínculo online com o aluno: null = só neste aparelho; 'pending' = a enviar quando
+  /// houver conexão; 'active' = vinculado dos dois lados; 'ended' = encerrado pelo aluno.
+  String? linkState;
+
+  /// Apelido que o aluno informou ao se vincular (para acompanhar mudanças dele).
+  String? remoteName;
   final DateTime created;
   final List<TeacherNote> notes; // mais recente primeiro
   final List<Assignment> tasks;
@@ -165,6 +172,8 @@ class Student {
     required this.id,
     required this.name,
     this.code,
+    this.linkState,
+    this.remoteName,
     DateTime? created,
     List<TeacherNote>? notes,
     List<Assignment>? tasks,
@@ -179,6 +188,8 @@ class Student {
         'id': id,
         'name': name,
         if (code != null) 'code': code,
+        if (linkState != null) 'lk': linkState,
+        if (remoteName != null) 'rn': remoteName,
         'c': created.toIso8601String(),
         'notes': [for (final n in notes) n.toJson()],
         'tasks': [for (final t in tasks) t.toJson()],
@@ -191,6 +202,8 @@ class Student {
         id: j['id'] as String,
         name: ((j['name'] as String?) ?? 'Aluno').trim(),
         code: formatShareCode((j['code'] as String?) ?? ''),
+        linkState: (j['lk'] as String?),
+        remoteName: (j['rn'] as String?),
         created: DateTime.tryParse((j['c'] as String?) ?? ''),
         notes: [
           for (final n in (j['notes'] as List? ?? const []))
@@ -224,7 +237,7 @@ String _nameKey(String s) => s.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '
 /// Regras de cadastro de aluno (valem ao digitar, ao ler QR, ao editar o código
 /// e ao importar):
 /// - o código tem de ser válido e **não pode ser o do próprio professor**;
-/// - não pode ser o código do professor do próprio usuário;
+/// - não pode ser o código de um professor do próprio usuário;
 /// - o código e o nome não podem repetir os de outro aluno (a não ser que os
 ///   dois tenham códigos diferentes: aí são pessoas distintas de mesmo nome);
 /// - sem código, o nome não pode ser o seu próprio nome de perfil.
@@ -234,7 +247,7 @@ StudentEntryCheck checkStudentEntry({
   required String codeInput,
   required String ownCode,
   String? ownName,
-  String? teacherCode,
+  Iterable<String> teacherCodes = const [],
   required List<Student> existing,
   String? exceptId,
 }) {
@@ -246,7 +259,7 @@ StudentEntryCheck checkStudentEntry({
       codeErr = 'Código inválido. Ele tem 8 letras e números, como K7QM-4TXD. Confira com o aluno.';
     } else if (code == ownCode) {
       codeErr = 'Este é o seu próprio código: você não pode ser aluno de si mesmo. Peça o código do aluno.';
-    } else if (teacherCode != null && code == teacherCode) {
+    } else if (teacherCodes.contains(code)) {
       codeErr = 'Este é o código do seu professor. Ele não pode ser cadastrado como seu aluno.';
     } else {
       for (final s in existing) {

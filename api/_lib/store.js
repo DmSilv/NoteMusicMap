@@ -24,7 +24,9 @@ redis.call('SET', KEYS[1], tostring(slot), 'PX', tonumber(ARGV[3]))
 return tostring(slot)
 `;
 
-function createStore(cfg, fetchImpl, clock = Date.now) {
+const hashes = new Map(); // dados duráveis (só em teste, sem Redis)
+
+function createStore(cfg, fetchImpl, clock = Date.now, opts = {}) {
   const useRedis = !!(cfg.redisUrl && cfg.redisToken);
 
   async function redis(cmd) {
@@ -103,6 +105,50 @@ function createStore(cfg, fetchImpl, clock = Date.now) {
       return (lists.get(key) || []).slice(-n);
     },
 
+    // ---- Dados DURÁVEIS (vínculos professor-aluno), em hashes ----
+    // NÃO caem para a memória: se o Redis não estiver configurado ou falhar, lançam
+    // erro (vínculos não podem ficar inconsistentes entre instâncias). Em testes,
+    // o parâmetro opts.allowMemory liga a memória.
+
+    /** true se as operações duráveis estão disponíveis. */
+    get durable() { return useRedis || !!opts.allowMemory; },
+
+    /** Todos os campos de um hash, como objeto. */
+    async hgetall(key) {
+      if (useRedis) {
+        const r = (await redis(['HGETALL', key])) || [];
+        const o = {};
+        for (let i = 0; i + 1 < r.length; i += 2) o[r[i]] = r[i + 1];
+        return o;
+      }
+      if (!opts.allowMemory) throw new Error('no-redis');
+      return Object.fromEntries(hashes.get(key) || []);
+    },
+    async hset(key, field, value) {
+      if (useRedis) { await redis(['HSET', key, field, String(value)]); return; }
+      if (!opts.allowMemory) throw new Error('no-redis');
+      (hashes.get(key) || hashes.set(key, new Map()).get(key)).set(field, String(value));
+    },
+    /** Grava o campo só se ainda não existe (true se gravou). */
+    async hsetnx(key, field, value) {
+      if (useRedis) return (await redis(['HSETNX', key, field, String(value)])) === 1;
+      if (!opts.allowMemory) throw new Error('no-redis');
+      const h = hashes.get(key) || hashes.set(key, new Map()).get(key);
+      if (h.has(field)) return false;
+      h.set(field, String(value));
+      return true;
+    },
+    async hdel(key, field) {
+      if (useRedis) { await redis(['HDEL', key, field]); return; }
+      if (!opts.allowMemory) throw new Error('no-redis');
+      hashes.get(key)?.delete(field);
+    },
+    async hlen(key) {
+      if (useRedis) return Number(await redis(['HLEN', key])) || 0;
+      if (!opts.allowMemory) throw new Error('no-redis');
+      return hashes.get(key)?.size || 0;
+    },
+
     /** Reserva o próximo horário livre da fila [key]. */
     async claimSlot(key, now, intervalMs, ttlMs = 600000) {
       if (useRedis) {
@@ -118,4 +164,4 @@ function createStore(cfg, fetchImpl, clock = Date.now) {
   };
 }
 
-module.exports = { createStore, memory, lists };
+module.exports = { createStore, memory, lists, hashes };

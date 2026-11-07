@@ -51,7 +51,7 @@ void main() {
             codeInput: code,
             ownCode: own,
             ownName: ownName,
-            teacherCode: teacherCode,
+            teacherCodes: teacherCode == null ? const [] : [teacherCode],
             existing: list,
             exceptId: except);
 
@@ -153,6 +153,16 @@ void main() {
     test('há sugestões de métodos', () {
       expect(kMethodSuggestions, contains('Suzuki'));
     });
+  });
+
+  test('estado do vínculo e apelido do aluno sobrevivem a salvar e ler', () {
+    final s = Student(id: 'v', name: 'Bia', code: newShareCode(Random(61)), linkState: 'active', remoteName: 'Bia S.');
+    final b = Student.tryFrom(s.toJson())!;
+    expect(b.linkState, 'active');
+    expect(b.remoteName, 'Bia S.');
+    final solo = Student.tryFrom(Student(id: 'w', name: 'Caio').toJson())!;
+    expect(solo.linkState, isNull); // aluno só deste aparelho
+    expect(Student(id: 'w', name: 'Caio').toJson().containsKey('lk'), isFalse);
   });
 
   test('sem sessões não inventa números', () {

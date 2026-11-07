@@ -258,11 +258,12 @@ class _HowItWorks extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Text(
-                'Hoje: o código identifica o aluno na sua lista e tudo fica neste aparelho; o aluno ainda '
-                'não vê suas tarefas e orientações no app dele.\n\n'
-                'Em breve: ao digitar o código, o aluno recebe o seu pedido de acompanhamento, aceita, e '
-                'passa a ver no próprio app as tarefas, as suas orientações e o histórico dele. Nada é '
-                'compartilhado sem o aluno aceitar, e ele pode encerrar quando quiser.',
+                'Vínculo online: quando você lê o QR do aluno (ou ele lê o seu), o vínculo aparece nos dois '
+                'aparelhos em poucos segundos. O aluno que ler o seu QR entra sozinho na sua lista, e você '
+                'entra na lista de professores dele. Qualquer um pode encerrar o vínculo quando quiser. '
+                'Funciona com o "Vínculo online" ligado (no perfil de cada um).\n\n'
+                'Ainda não: o histórico, as tarefas e as observações continuam só no seu aparelho, e o aluno '
+                'não os vê no app dele. O compartilhamento deles, com a autorização do aluno, é a próxima etapa.',
                 style: TextStyle(fontSize: 12.5, height: 1.35),
               ),
             ),
@@ -285,6 +286,12 @@ class TeacherPage extends StatefulWidget {
 class _TeacherPageState extends State<TeacherPage> {
   AppState get app => widget.app;
 
+  @override
+  void initState() {
+    super.initState();
+    app.watchLinks(); // alunos que se vinculam pelo QR aparecem sozinhos
+  }
+
   /// Modo "Gerenciar": caixas de seleção para excluir vários alunos.
   bool _manage = false;
   final Set<String> _selected = {};
@@ -293,6 +300,7 @@ class _TeacherPageState extends State<TeacherPage> {
 
   @override
   void dispose() {
+    app.unwatchLinks();
     _search.dispose();
     super.dispose();
   }
@@ -572,8 +580,12 @@ class _TeacherPageState extends State<TeacherPage> {
                   children: [
                     Text(s.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                     if (s.code != null)
-                      Text('Código ${s.code}',
-                          style: TextStyle(color: AppColors.textDim, fontSize: 12, letterSpacing: 0.5)),
+                      Row(children: [
+                        Text('Código ${s.code}',
+                            style: TextStyle(color: AppColors.textDim, fontSize: 12, letterSpacing: 0.5)),
+                        const SizedBox(width: 8),
+                        _linkBadge(s),
+                      ]),
                     const SizedBox(height: 2),
                     Text(
                       sum.sessions == 0
@@ -726,6 +738,21 @@ class _PinGateState extends State<_PinGate> {
       ),
     );
   }
+}
+
+/// Selo do vínculo online do aluno.
+Widget _linkBadge(Student s) {
+  final (icon, color, text) = switch (s.linkState) {
+    'active' => (Icons.link, AppColors.inTune, 'Vinculado'),
+    'pending' => (Icons.sync_problem, AppColors.flat, 'A vincular'),
+    'ended' => (Icons.link_off, AppColors.sharp, 'Encerrado pelo aluno'),
+    _ => (Icons.phone_android, AppColors.textDim, 'Só neste aparelho'),
+  };
+  return Row(mainAxisSize: MainAxisSize.min, children: [
+    Icon(icon, size: 13, color: color),
+    const SizedBox(width: 3),
+    Text(text, style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.w700)),
+  ]);
 }
 
 /// Detalhe de um aluno: evolução, orientações, tarefas e observações.

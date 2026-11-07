@@ -19,6 +19,7 @@ import 'platform/web_vibrate.dart';
 import 'audio/pitch_source.dart';
 import 'data/repository.dart';
 import 'feedback/feedback_service.dart';
+import 'link/link_service.dart';
 import 'voice/dictation.dart';
 import 'package:afina_core/afina_core.dart';
 
@@ -211,7 +212,7 @@ class AppState extends ChangeNotifier {
         codeInput: code,
         ownCode: profile.shareCode,
         ownName: profile.name,
-        teacherCode: myTeacherCode,
+        teacherCodes: teacherCodes,
         existing: students,
         exceptId: exceptId,
       );
@@ -238,9 +239,12 @@ class AppState extends ChangeNotifier {
     final s = studentById(id);
     if (s == null) return;
     if (input != null && input.trim().isNotEmpty && checkStudentCode(input, exceptId: id) != null) return;
+    final old = s.code;
     s.code = (input == null || input.trim().isEmpty) ? null : formatShareCode(input);
+    if (old != s.code) s.linkState = null;
     _saveTeacher();
     notifyListeners();
+    if (s.code != null && old != s.code) unawaited(linkStudentOnline(s));
   }
 
   /// Cadastra o aluno. Quem chama deve validar antes com [checkStudent]; por segurança,
@@ -254,7 +258,7 @@ class AppState extends ChangeNotifier {
                     name: 'x-validacao',
                     codeInput: okCode,
                     ownCode: profile.shareCode,
-                    teacherCode: myTeacherCode,
+                    teacherCodes: teacherCodes,
                     existing: students)
                 .code == null
             ? okCode
@@ -263,12 +267,16 @@ class AppState extends ChangeNotifier {
     activeStudentId ??= s.id;
     _saveTeacher();
     notifyListeners();
+    if (s.code != null) unawaited(linkStudentOnline(s));
     return s;
   }
 
   /// Remove vários alunos de uma vez (com histórico, tarefas e observações).
   int removeStudents(Set<String> ids) {
     final before = students.length;
+    for (final s in students.where((s) => ids.contains(s.id))) {
+      _unlinkStudentOnline(s);
+    }
     students.removeWhere((s) => ids.contains(s.id));
     if (ids.contains(activeStudentId)) activeStudentId = null;
     _saveTeacher();
@@ -277,6 +285,8 @@ class AppState extends ChangeNotifier {
   }
 
   void removeStudent(String id) {
+    final gone = studentById(id);
+    if (gone != null) _unlinkStudentOnline(gone);
     students.removeWhere((s) => s.id == id);
     if (activeStudentId == id) activeStudentId = null;
     _saveTeacher();
@@ -404,18 +414,320 @@ class AppState extends ChangeNotifier {
   /// Código de professor lido de `?professor=…` na abertura do app (ou null).
   String? incomingTeacherCode;
 
-  /// Código do professor do próprio usuário (lido do QR dele ou digitado). Por
-  /// enquanto fica só neste aparelho; o pedido de vínculo segue quando houver sincronização.
-  String? myTeacherCode;
+  // ---------------- Vínculos online (professor ⇄ aluno) ----------------
+  final LinkService links = LinkService();
 
-  void setMyTeacherCode(String? code) {
-    myTeacherCode = code == null ? null : formatShareCode(code);
-    if (myTeacherCode == null) {
-      _prefs?.remove('my_teacher');
-    } else {
-      _prefs?.setString('my_teacher', myTeacherCode!);
+  /// Professores deste usuário (como aluno). Com `since == 0` ainda não foi confirmado
+  /// pelo servidor (sem conexão); os demais vêm do servidor.
+  List<LinkedPerson> myTeachers = [];
+
+  /// Códigos dos professores (para as regras de cadastro).
+  Set<String> get teacherCodes => {for (final t in myTeachers) t.code};
+
+  /// O professor mais recente (ou null).
+  String? get myTeacherCode => myTeachers.isEmpty ? null : myTeachers.last.code;
+
+  /// O vínculo online está ligado? Fica ligado na primeira vez que o usuário vincula
+  /// alguém (ler QR ou digitar código), e pode ser desligado no perfil.
+  bool linkEnabled = false;
+
+  /// null = ainda não tentou; true = o servidor respondeu; false = sem conexão.
+  bool? linkOnline;
+
+  /// O servidor não tem o vínculo online configurado (sem Redis): não insistir.
+  bool linkUnavailable = false;
+
+  final Set<String> _unlinkStudents = {}; // alunos removidos aqui, a avisar o servidor
+  final Set<String> _unlinkTeachers = {}; // professores removidos aqui
+  Timer? _linkTimer;
+  int _linkWatchers = 0;
+  bool _linkSyncing = false;
+
+  void _loadLinks(SharedPreferences p) {
+    linkEnabled = p.getBool('link_on') ?? false;
+    try {
+      final raw = p.getString('my_teachers');
+      myTeachers = raw == null ? [] : [for (final x in (jsonDecode(raw) as List)) ?LinkedPerson.tryFrom(x)];
+    } catch (_) {
+      myTeachers = [];
     }
+    // Versão antiga guardava um professor só, neste aparelho: vira "ainda não confirmado".
+    final old = p.getString('my_teacher');
+    if (old != null) {
+      if (!myTeachers.any((t) => t.code == old)) myTeachers.add(LinkedPerson(old, '', 0));
+      p.remove('my_teacher');
+      _saveLinks();
+    }
+    _unlinkStudents
+      ..clear()
+      ..addAll(p.getStringList('unlink_students') ?? const []);
+    _unlinkTeachers
+      ..clear()
+      ..addAll(p.getStringList('unlink_teachers') ?? const []);
+    // Ao abrir o app, atualiza uma vez (se o vínculo estiver ligado).
+    if (linkEnabled) Future<void>.delayed(const Duration(seconds: 3), syncLinks);
+  }
+
+  void _saveLinks() {
+    final p = _prefs;
+    if (p == null) return;
+    p.setBool('link_on', linkEnabled);
+    p.setString('my_teachers', jsonEncode([for (final t in myTeachers) t.toJson()]));
+    p.setStringList('unlink_students', _unlinkStudents.toList());
+    p.setStringList('unlink_teachers', _unlinkTeachers.toList());
+  }
+
+  void setLinkEnabled(bool v) {
+    linkEnabled = v;
+    if (!v) {
+      _linkTimer?.cancel();
+      _linkTimer = null;
+    }
+    _saveLinks();
     notifyListeners();
+    if (v) {
+      linkUnavailable = false;
+      unawaited(syncLinks());
+      if (_linkWatchers > 0) _startLinkTimer();
+    }
+  }
+
+  /// Enquanto uma tela de vínculos está aberta, atualiza a cada 15 s (a atualização
+  /// "em tempo real" do vínculo é essa consulta, não uma conexão contínua).
+  void watchLinks() {
+    _linkWatchers++;
+    if (linkEnabled && !linkUnavailable) {
+      unawaited(syncLinks());
+      _startLinkTimer();
+    }
+  }
+
+  void unwatchLinks() {
+    if (_linkWatchers > 0) _linkWatchers--;
+    if (_linkWatchers == 0) {
+      _linkTimer?.cancel();
+      _linkTimer = null;
+    }
+  }
+
+  void _startLinkTimer() {
+    _linkTimer ??= Timer.periodic(const Duration(seconds: 15), (_) => syncLinks());
+  }
+
+  void _markLinkUnavailable() {
+    linkUnavailable = true;
+    linkOnline = false;
+    _linkTimer?.cancel();
+    _linkTimer = null;
+    notifyListeners();
+  }
+
+  /// Registra o professor (li o QR dele ou digitei o código) e vincula online.
+  /// Devolve o motivo se não foi possível; null se registrou.
+  Future<String?> addMyTeacher(String code) async {
+    final problem = checkTeacherCode(code);
+    if (problem != null) return problem;
+    final c = formatShareCode(code)!;
+    if (myTeachers.any((t) => t.code == c)) return 'Este professor já está na sua lista.';
+    myTeachers.add(LinkedPerson(c, '', 0));
+    linkEnabled = true;
+    _saveLinks();
+    notifyListeners();
+    final r = await links.link(profile.shareCode, profile.secret, role: 'student', other: c, name: profile.name);
+    if (r.unavailable) {
+      _markLinkUnavailable();
+      say('O vínculo online ainda não está disponível. O professor foi registrado só neste aparelho.');
+    } else if (r.offline) {
+      say('Sem conexão: vou vincular com o professor assim que a internet voltar.');
+    } else if (!r.ok) {
+      myTeachers.removeWhere((t) => t.code == c);
+      _saveLinks();
+      notifyListeners();
+      return r.error ?? 'Não foi possível vincular.';
+    } else {
+      linkOnline = true;
+      await syncLinks();
+      final t = myTeachers.where((x) => x.code == c).firstOrNull;
+      say('Vinculado${t != null && t.name.isNotEmpty ? ' a ${t.name}' : ' ao professor'}. Ele já aparece para você e você aparece para ele.');
+    }
+    return null;
+  }
+
+  /// Tira um professor da sua lista (e do servidor).
+  void removeMyTeacher(String code) {
+    myTeachers.removeWhere((t) => t.code == code);
+    _unlinkTeachers.add(code);
+    _saveLinks();
+    notifyListeners();
+    if (linkEnabled) unawaited(syncLinks());
+  }
+
+  /// Vincula online um aluno cadastrado com código (o professor leu o QR ou digitou o código).
+  Future<void> linkStudentOnline(Student s) async {
+    final code = s.code;
+    if (code == null) return;
+    linkEnabled = true;
+    _saveLinks();
+    final r = await links.link(profile.shareCode, profile.secret, role: 'teacher', other: code, name: profile.name);
+    if (r.unavailable) {
+      _markLinkUnavailable();
+      s.linkState = null;
+      say('O vínculo online ainda não está disponível. ${s.name} ficou só neste aparelho.');
+    } else if (r.offline) {
+      s.linkState = 'pending';
+      say('Sem conexão: vou vincular ${s.name} assim que a internet voltar.');
+    } else if (!r.ok) {
+      s.linkState = null;
+      say(r.error ?? 'Não foi possível vincular ${s.name}.');
+    } else {
+      s.linkState = 'active';
+      linkOnline = true;
+      say('${s.name} vinculado. Ele já vê você como professor.');
+    }
+    _saveTeacher();
+    notifyListeners();
+    if (r.ok) unawaited(syncLinks());
+  }
+
+  /// Avisa o servidor que o aluno saiu da sua lista (se der agora; senão, depois).
+  void _unlinkStudentOnline(Student s) {
+    final c = s.code;
+    if (c == null || !linkEnabled || s.linkState == null || s.linkState == 'ended') return;
+    _unlinkStudents.add(c);
+    _saveLinks();
+    unawaited(syncLinks());
+  }
+
+  /// Atualiza tudo com o servidor: desfaz o que foi removido aqui, envia o que ficou
+  /// pendente, e traz quem se vinculou a você (aparece sozinho na lista).
+  Future<void> syncLinks() async {
+    if (_linkSyncing || linkUnavailable || !linkEnabled) return;
+    _linkSyncing = true;
+    try {
+      final own = profile.shareCode, secret = profile.secret;
+      // 1) Desfazimentos pedidos aqui.
+      for (final c in [..._unlinkStudents]) {
+        final r = await links.unlink(own, secret, role: 'teacher', other: c);
+        if (r.unavailable) return _markLinkUnavailable();
+        if (r.offline) {
+          linkOnline = false;
+          notifyListeners();
+          return;
+        }
+        _unlinkStudents.remove(c);
+      }
+      for (final c in [..._unlinkTeachers]) {
+        final r = await links.unlink(own, secret, role: 'student', other: c);
+        if (r.unavailable) return _markLinkUnavailable();
+        if (r.offline) {
+          linkOnline = false;
+          notifyListeners();
+          return;
+        }
+        _unlinkTeachers.remove(c);
+      }
+      // 2) Lista do servidor.
+      var r = await links.sync(own, secret, name: profile.name);
+      if (r.unavailable) return _markLinkUnavailable();
+      if (!r.ok) {
+        if (r.offline) linkOnline = false;
+        notifyListeners();
+        return;
+      }
+      linkOnline = true;
+      // 3) Envia o que só existe aqui (cadastrado sem conexão ou antes do vínculo online).
+      var sent = false;
+      final srvStudents = {for (final x in r.asTeacher) x.code};
+      for (final s in students) {
+        final c = s.code;
+        if (c == null || srvStudents.contains(c) || _unlinkStudents.contains(c)) continue;
+        if (s.linkState == null || s.linkState == 'pending') {
+          final a = await links.link(own, secret, role: 'teacher', other: c, name: profile.name);
+          if (a.ok) {
+            s.linkState = 'active';
+            sent = true;
+          }
+        }
+      }
+      final srvTeachers = {for (final x in r.asStudent) x.code};
+      for (final t in [...myTeachers]) {
+        if (t.since == 0 && !srvTeachers.contains(t.code) && !_unlinkTeachers.contains(t.code)) {
+          final a = await links.link(own, secret, role: 'student', other: t.code, name: profile.name);
+          if (a.ok) sent = true;
+        }
+      }
+      if (sent) {
+        r = await links.sync(own, secret, name: profile.name);
+        if (!r.ok) {
+          notifyListeners();
+          return;
+        }
+      }
+      _applyLinkLists(r);
+    } finally {
+      _linkSyncing = false;
+    }
+  }
+
+  void _applyLinkLists(LinkReply r) {
+    final newStudents = <String>[];
+    final endedStudents = <String>[];
+    final srvStudents = {for (final x in r.asTeacher) x.code: x};
+    // Quem se vinculou a mim como professor aparece sozinho na minha lista de alunos.
+    for (final x in r.asTeacher) {
+      if (_unlinkStudents.contains(x.code)) continue;
+      var s = studentByCode(x.code);
+      if (s == null) {
+        s = Student(
+          id: 'v${x.code.replaceAll('-', '').toLowerCase()}',
+          name: x.name.isEmpty ? 'Aluno ${x.code}' : x.name,
+          code: x.code,
+          linkState: 'active',
+          remoteName: x.name,
+        );
+        students.add(s);
+        activeStudentId ??= s.id;
+        newStudents.add(s.name);
+      } else {
+        s.linkState = 'active';
+        // Acompanha o apelido novo do aluno enquanto o professor não renomeou.
+        final auto = s.name == (s.remoteName ?? '') || s.name == 'Aluno ${x.code}';
+        if (x.name.isNotEmpty && auto) s.name = x.name;
+        s.remoteName = x.name;
+      }
+    }
+    for (final s in students) {
+      if (s.code != null && s.linkState == 'active' && !srvStudents.containsKey(s.code)) {
+        s.linkState = 'ended';
+        endedStudents.add(s.name);
+      }
+    }
+    // Meus professores: o que o servidor diz (mais os ainda não confirmados).
+    final before = {for (final t in myTeachers) t.code};
+    final serverTeachers = [for (final x in r.asStudent) if (!_unlinkTeachers.contains(x.code)) x];
+    final unconfirmed = [for (final t in myTeachers) if (t.since == 0 && !serverTeachers.any((x) => x.code == t.code)) t];
+    final lost = [for (final t in myTeachers) if (t.since > 0 && !serverTeachers.any((x) => x.code == t.code)) t];
+    myTeachers = [...serverTeachers, ...unconfirmed];
+    final newTeachers = [for (final x in serverTeachers) if (!before.contains(x.code)) x];
+
+    _saveLinks();
+    _saveTeacher();
+    notifyListeners();
+    if (newStudents.isNotEmpty) {
+      say(newStudents.length == 1
+          ? '${newStudents.first} entrou na sua lista de alunos.'
+          : '${newStudents.length} alunos novos entraram na sua lista.');
+    }
+    if (newTeachers.isNotEmpty) {
+      final n = newTeachers.first;
+      say('${n.name.isEmpty ? 'Um professor' : n.name} se vinculou a você.');
+    }
+    if (endedStudents.isNotEmpty) {
+      say('${endedStudents.join(', ')}: vínculo encerrado pelo aluno. O histórico ficou com você.');
+    }
+    if (lost.isNotEmpty) {
+      say('${lost.first.name.isEmpty ? 'Um professor' : lost.first.name} encerrou o vínculo com você.');
+    }
   }
 
   void _readIncomingCode() {
@@ -449,8 +761,8 @@ class AppState extends ChangeNotifier {
     if (c != null && c == profile.shareCode) {
       return 'Esses dados têm o seu próprio código: você não pode ser aluno de si mesmo. Importação cancelada.';
     }
-    if (c != null && c == myTeacherCode) {
-      return 'Esses dados têm o código do seu professor. Importação cancelada.';
+    if (c != null && teacherCodes.contains(c)) {
+      return 'Esses dados têm o código de um professor seu. Importação cancelada.';
     }
     // Mesmo código de um aluno já cadastrado = é a mesma pessoa: soma ao histórico dele.
     final sameCode = c == null ? null : studentByCode(c);
@@ -1330,7 +1642,7 @@ class AppState extends ChangeNotifier {
     _loadPomo(p);
     _loadClocks(p);
     await _loadTeacher(p);
-    myTeacherCode = p.getString('my_teacher');
+    _loadLinks(p);
     cameraGranted = p.getBool('cam_granted');
     _readIncomingCode();
     _scheduleUpdateChecks();
@@ -1753,6 +2065,8 @@ class AppState extends ChangeNotifier {
   void dispose() {
     ai.dispose();
     feedback.dispose();
+    links.dispose();
+    _linkTimer?.cancel();
     dictation.dispose();
     _studyTimer?.cancel();
     _saveStudy();
