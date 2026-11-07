@@ -12,6 +12,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'ai/coach_ai.dart';
 import 'audio/audio_out.dart';
+import 'platform/hard_reset.dart';
 import 'audio/pitch_source.dart';
 import 'package:afina_core/afina_core.dart';
 
@@ -323,6 +324,9 @@ class AppState extends ChangeNotifier {
   // ---------------- Primeiro uso ----------------
   /// Análise por IA do treinador (opcional, via Vercel).
   final CoachAi ai = CoachAi();
+
+  /// Microfone captando agora (alimenta o aviso fixo na barra superior).
+  final ValueNotifier<bool> micOn = ValueNotifier(false);
 
   bool onboarded = false;
 
@@ -821,6 +825,8 @@ class AppState extends ChangeNotifier {
     listening = true;
     _sub = src.frames.listen(_onFrame);
     _wake(true);
+    micOn.value = true;
+    if (!demoMode) buzz(ms: 30);
     say(demoMode
         ? 'Simulação de desenvolvimento ligada (sem som)'
         : 'Microfone ligado. Toque uma nota!');
@@ -835,6 +841,7 @@ class AppState extends ChangeNotifier {
     await _source?.stop();
     _source = null;
     listening = false;
+    micOn.value = false;
     current = null;
     level = 0;
     tracker.reset();
@@ -1008,6 +1015,24 @@ class AppState extends ChangeNotifier {
     await _prefs?.setString('sessions', jsonEncode(scaleSessions));
     await _saveStudy();
     notifyListeners();
+  }
+
+  /// Apaga TUDO que o app guardou neste aparelho (ajustes, histórico, IA,
+  /// permissões já explicadas) e volta ao estado de primeiro uso. Na web também
+  /// limpa o cache da página e recarrega, para pegar a versão mais nova.
+  Future<void> resetEverything() async {
+    await stopListening(quiet: true);
+    final p = _prefs ?? await SharedPreferences.getInstance();
+    await p.clear();
+    ai.clear();
+    await ai.load();
+    studySeconds.clear();
+    scaleSessions.clear();
+    sessionRecords.clear();
+    onboarded = false;
+    await load();
+    notifyListeners();
+    await clearWebCachesAndReload();
   }
 
   Future<void> clearHistory() async {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'app_logo.dart';
+import 'share_sheet.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -33,6 +34,7 @@ class SettingsPage extends StatelessWidget {
               _section('Estudo', [_study(context)]),
               _section('Permissões e privacidade', [_permissions(context)]),
               _section('Sobre', [_about(context)]),
+              _section('Problemas?', [_resetAll(context)]),
             ],
           ),
         ),
@@ -311,6 +313,40 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
+  /// Zera tudo: ajustes, histórico, IA e (na web) o cache da página.
+  Widget _resetAll(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Se a página não atualizar ou algo estiver estranho, apague tudo e comece do zero. '
+          'Remove ajustes, histórico de estudo, análises de IA e o cache do site neste aparelho.',
+          style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+        ),
+        const SizedBox(height: 10),
+        FilledButton.icon(
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.sharp,
+            foregroundColor: readableOn(AppColors.sharp),
+            minimumSize: const Size.fromHeight(48),
+          ),
+          onPressed: () async {
+            final ok = await _confirm(
+                context,
+                'Apagar tudo e recomeçar?',
+                'Isso apaga neste aparelho todas as configurações, o histórico de estudo, '
+                    'as escalas, as análises de IA e o cache da página. O app volta ao primeiro uso. '
+                    'Não dá para desfazer.',
+                'Apagar tudo');
+            if (ok) await app.resetEverything();
+          },
+          icon: const Icon(Icons.restart_alt),
+          label: const Text('Apagar tudo e recomeçar', style: TextStyle(fontWeight: FontWeight.w700)),
+        ),
+      ],
+    );
+  }
+
   Widget _permissions(BuildContext context) {
     final g = app.micGranted;
     final v = app.vibrationAvailable;
@@ -321,7 +357,7 @@ class SettingsPage extends StatelessWidget {
     };
     final (vibIcon, vibColor, vibStatus) = switch (v) {
       true => (Icons.check_circle, AppColors.inTune, 'Disponível neste aparelho'),
-      false => (Icons.remove_circle_outline, AppColors.textDim, 'Indisponível aqui (o app funciona sem)'),
+      false => (Icons.remove_circle_outline, AppColors.textDim, 'Indisponível aqui (no navegador só o Chrome do Android vibra; iPhone e computador não. O app funciona sem)'),
       null => (Icons.help_outline, AppColors.textDim, 'Ainda não verificado'),
     };
     return Column(
@@ -404,6 +440,12 @@ class SettingsPage extends StatelessWidget {
           style: TextStyle(color: AppColors.textDim),
         ),
         const SizedBox(height: 12),
+        FilledButton.tonalIcon(
+          onPressed: () => showShareSheet(context),
+          icon: const Icon(Icons.qr_code_2),
+          label: const Text('Compartilhar o app (link e QR code)'),
+        ),
+        const SizedBox(height: 8),
         Row(children: [
           Expanded(
             child: OutlinedButton.icon(

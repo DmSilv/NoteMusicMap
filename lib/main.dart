@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'app_state.dart';
 import 'ui/app_logo.dart';
+import 'ui/mic_pill.dart';
 import 'ui/pomodoro_card.dart';
 import 'ui/grid_page.dart';
 import 'ui/settings_page.dart';
+import 'ui/share_sheet.dart';
 import 'ui/metronome_page.dart';
 import 'ui/study_page.dart';
 import 'ui/theme.dart';
@@ -121,13 +123,25 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
     widget.app.onMessage = (msg) {
       final m = _messengerKey.currentState;
       if (m == null) return;
+      final micOn = msg.startsWith('Microfone ligado');
+      final micOff = msg.startsWith('Microfone desligado');
       m
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(
-          content: Text(msg),
-          duration: const Duration(milliseconds: 2400),
+          content: Row(children: [
+            if (micOn || micOff) ...[
+              Icon(micOn ? Icons.mic : Icons.mic_off,
+                  color: micOn ? AppColors.inTune : AppColors.textDim),
+              const SizedBox(width: 10),
+            ],
+            Expanded(child: Text(msg)),
+          ]),
+          duration: Duration(milliseconds: micOn ? 3200 : 2400),
           behavior: SnackBarBehavior.floating,
           margin: const EdgeInsets.fromLTRB(16, 0, 16, 84),
+          action: micOn
+              ? SnackBarAction(label: 'Desligar', onPressed: () => widget.app.stopListening())
+              : null,
         ));
     };
   }
@@ -223,6 +237,7 @@ class _HomeShellState extends State<HomeShell> {
           Text(_titles[_index]),
         ]),
         actions: [
+          MicPill(app: app),
           PomodoroPill(app: app, onTap: () => _go(3)),
           // Só este botão reage à troca de tema, não a barra inteira.
           ValueListenableBuilder<ThemeMode>(
@@ -235,6 +250,11 @@ class _HomeShellState extends State<HomeShell> {
               };
               return IconButton(tooltip: tip, icon: Icon(icon), onPressed: app.cycleTheme);
             },
+          ),
+          IconButton(
+            tooltip: 'Compartilhar',
+            icon: const Icon(Icons.ios_share),
+            onPressed: () => showShareSheet(context),
           ),
           IconButton(
             tooltip: 'Configurações',

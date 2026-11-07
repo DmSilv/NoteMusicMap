@@ -211,7 +211,9 @@ async function callGemini(cfg, summary, fetchImpl, timeoutMs = 8500) {
         let why = '';
         try { why = String(((await r.json()).error || {}).message || '').slice(0, 300); } catch (_) { /* sem corpo */ }
         console.error(`gemini ${r.status} (${model}): ${why}`);
-        return { status: 429, error: 'busy', retryAfterMs: 15000 + Math.floor(Math.random() * 5000) };
+        // Cota de um modelo esgotada: tenta o próximo antes de pedir para o app esperar.
+        last = { status: 429, error: 'busy', retryAfterMs: 15000 + Math.floor(Math.random() * 5000) };
+        continue;
       }
       if (r.status === 401 || r.status === 403) {
         return { status: 502, error: 'Chave da API recusada pelo Gemini. Confira a variável na Vercel.' };
