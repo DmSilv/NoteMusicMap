@@ -1,0 +1,344 @@
+import 'dart:math' as math;
+
+import 'package:afina_core/afina_core.dart';
+import 'package:flutter/material.dart';
+
+import '../app_state.dart';
+import 'theme.dart';
+import 'widgets.dart';
+
+String fmtClock(int ms) {
+  final s = (ms / 1000).ceil();
+  final m = s ~/ 60;
+  final r = s % 60;
+  return '${m.toString().padLeft(2, '0')}:${r.toString().padLeft(2, '0')}';
+}
+
+String phaseLabel(PomodoroTimer p) {
+  final base = switch (p.phase) {
+    PomoPhase.idle => 'Pronto para começar',
+    PomoPhase.focus => 'Foco',
+    PomoPhase.shortBreak => 'Pausa curta',
+    PomoPhase.longBreak => 'Pausa longa',
+  };
+  return p.isPaused ? '$base · pausado' : base;
+}
+
+Color phaseColor(PomoPhase p) =>
+    p == PomoPhase.shortBreak || p == PomoPhase.longBreak ? AppColors.flat : AppColors.accent;
+
+/// Timer de estudo (Pomodoro) com alarme sutil.
+class PomodoroCard extends StatelessWidget {
+  final AppState app;
+  const PomodoroCard({super.key, required this.app});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = app.pomo;
+    final rem = app.pomoRemainingMs;
+    final color = phaseColor(p.phase);
+    final n = p.config.cyclesBeforeLong;
+
+    return AppCard(
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.timer_outlined, size: 20),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text('Foco (Pomodoro)',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              ),
+              IconButton(
+                tooltip: 'Ajustes do timer',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.tune),
+                onPressed: () => showPomodoroSettings(context, app),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: 210,
+            height: 210,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CustomPaint(
+                  size: const Size(210, 210),
+                  painter: _RingPainter(
+                    progress: p.phase == PomoPhase.idle ? 0 : app.pomoProgress,
+                    color: color,
+                    track: AppColors.surface2,
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      fmtClock(rem),
+                      style: const TextStyle(
+                        fontSize: 48,
+                        fontWeight: FontWeight.w800,
+                        height: 1.0,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(phaseLabel(p),
+                        style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          // pontinhos: focos concluídos até a pausa longa
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var i = 0; i < n; i++)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: i < p.cycle ? AppColors.accent : Colors.transparent,
+                    border: Border.all(
+                        color: i < p.cycle ? AppColors.accent : AppColors.textDim, width: 1.5),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            app.pomoToday == 0
+                ? 'Nenhum foco concluído hoje'
+                : '${app.pomoToday} foco${app.pomoToday > 1 ? 's' : ''} concluído${app.pomoToday > 1 ? 's' : ''} hoje',
+            style: TextStyle(color: AppColors.textDim, fontSize: 13),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              IconButton.outlined(
+                tooltip: 'Zerar',
+                iconSize: 26,
+                onPressed: p.phase == PomoPhase.idle ? null : app.pomoReset,
+                icon: const Icon(Icons.restart_alt),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54)),
+                  onPressed: p.running ? app.pomoPause : app.pomoStart,
+                  icon: Icon(p.running ? Icons.pause : Icons.play_arrow),
+                  label: Text(
+                    p.running ? 'Pausar' : (p.isPaused ? 'Continuar' : 'Iniciar foco'),
+                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              IconButton.outlined(
+                tooltip: 'Pular para a próxima fase',
+                iconSize: 26,
+                onPressed: p.phase == PomoPhase.idle ? null : app.pomoSkip,
+                icon: const Icon(Icons.skip_next),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            app.pomoChime
+                ? 'Um sininho suave avisa o fim de cada fase. Mantenha o app aberto.'
+                : 'Alarme sonoro desligado (ligue nos ajustes do timer).',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.textDim, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RingPainter extends CustomPainter {
+  final double progress;
+  final Color color;
+  final Color track;
+  _RingPainter({required this.progress, required this.color, required this.track});
+
+  @override
+  void paint(Canvas canvas, Size s) {
+    final c = Offset(s.width / 2, s.height / 2);
+    final r = s.width / 2 - 10;
+    final base = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 12
+      ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(c, r, base..color = track);
+    if (progress > 0) {
+      canvas.drawArc(Rect.fromCircle(center: c, radius: r), -math.pi / 2,
+          2 * math.pi * progress, false, base..color = color);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter o) =>
+      o.progress != progress || o.color != color || o.track != track;
+}
+
+/// Mini cronômetro da barra do topo: aparece em qualquer aba enquanto o timer existe.
+class PomodoroPill extends StatelessWidget {
+  final AppState app;
+  final VoidCallback onTap;
+  const PomodoroPill({super.key, required this.app, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: app,
+      builder: (context, _) {
+        final p = app.pomo;
+        if (p.phase == PomoPhase.idle) return const SizedBox.shrink();
+        final color = phaseColor(p.phase);
+        return Padding(
+          padding: const EdgeInsets.only(right: 4),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: color.withValues(alpha: 0.7)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(p.running ? Icons.timer : Icons.pause_circle_outline, size: 16, color: color),
+                  const SizedBox(width: 4),
+                  Text(fmtClock(app.pomoRemainingMs),
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                          fontFeatures: [FontFeature.tabularFigures()])),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// Modal com os ajustes do timer.
+void showPomodoroSettings(BuildContext context, AppState app) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.surface,
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (ctx) => SafeArea(
+      child: ListenableBuilder(
+        listenable: app,
+        builder: (context, _) {
+          final c = app.pomo.config;
+          Widget stepper(String label, int value, int min, int max, int step, String unit,
+              ValueChanged<int> on) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(vertical: 2),
+              child: Row(
+                children: [
+                  Expanded(child: Text(label)),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.remove_circle_outline),
+                    onPressed: value > min ? () => on(value - step) : null,
+                  ),
+                  SizedBox(
+                    width: 70,
+                    child: Text('$value $unit',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.add_circle_outline),
+                    onPressed: value < max ? () => on(value + step) : null,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Ajustes do timer',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Text('Valem a partir da próxima fase. Tudo fica salvo neste aparelho.',
+                    style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+                const SizedBox(height: 10),
+                stepper('Foco', c.focusMin, 5, 90, 5, 'min',
+                    (v) => app.setPomo(config: c.copyWith(focusMin: v))),
+                stepper('Pausa curta', c.shortMin, 1, 30, 1, 'min',
+                    (v) => app.setPomo(config: c.copyWith(shortMin: v))),
+                stepper('Pausa longa', c.longMin, 5, 60, 5, 'min',
+                    (v) => app.setPomo(config: c.copyWith(longMin: v))),
+                stepper('Focos até a pausa longa', c.cyclesBeforeLong, 2, 8, 1, '',
+                    (v) => app.setPomo(config: c.copyWith(cyclesBeforeLong: v))),
+                const Divider(height: 24),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Começar a próxima fase sozinho'),
+                  subtitle: const Text('Desligado: espera você tocar em Continuar.'),
+                  value: c.autoStart,
+                  onChanged: (v) => app.setPomo(config: c.copyWith(autoStart: v)),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Alarme sonoro suave'),
+                  subtitle: const Text('Sininho de duas notas, baixinho.'),
+                  value: app.pomoChime,
+                  onChanged: (v) => app.setPomo(chime: v),
+                ),
+                if (app.pomoChime)
+                  Row(
+                    children: [
+                      const Icon(Icons.volume_down, size: 20),
+                      Expanded(
+                        child: Slider(
+                          min: 0.1,
+                          max: 1.0,
+                          value: app.pomoVolume.clamp(0.1, 1.0),
+                          onChanged: (v) => app.setPomo(volume: v),
+                        ),
+                      ),
+                      TextButton(onPressed: app.pomoTestChime, child: const Text('Ouvir')),
+                    ],
+                  ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Vibrar ao terminar'),
+                  subtitle: const Text('Só em celulares.'),
+                  value: app.pomoVibrate,
+                  onChanged: (v) => app.setPomo(vibrate: v),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    ),
+  );
+}

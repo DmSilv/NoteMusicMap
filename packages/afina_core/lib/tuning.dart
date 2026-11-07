@@ -1,0 +1,248 @@
+/// Matemática de afinação do app.
+///
+/// Tudo aqui é teoria musical pública (razões de intervalos de 3 e 5 limites,
+/// cents, temperamento igual). Nenhum código de terceiros.
+///
+/// DECISÕES DE PRECISÃO (leia antes de mudar):
+///  1. A referência global é o Lá4 (`refA`, padrão 440 Hz). Em TODOS os sistemas
+///     o Lá4 sempre vale exatamente `refA` quando `anchor == Anchor.a4`.
+///  2. Nos sistemas pitagórico e justo, os alvos são calculados em relação a uma
+///     tônica escolhida. Com `Anchor.a4` (padrão) a tônica é ajustada para que o
+///     Lá continue em `refA`; com `Anchor.tonic` a tônica fica no temperamento
+///     igual e o Lá pode sair do lugar (ex.: em Sol maior justo, Lá = +3,9¢).
+///  3. O desvio mostrado ao usuário é sempre contra o ALVO do sistema escolhido,
+///     nunca contra o temperamento igual (a menos que ele escolha "igual").
+library;
+
+import 'dart:math' as math;
+
+enum TuningSystem { equal, pythagorean, just }
+
+enum Anchor { a4, tonic }
+
+const List<String> noteNamesSharp = [
+  'Dó', 'Dó♯', 'Ré', 'Ré♯', 'Mi', 'Fá', 'Fá♯', 'Sol', 'Sol♯', 'Lá', 'Lá♯', 'Si'
+];
+const List<String> noteNamesFlat = [
+  'Dó', 'Ré♭', 'Ré', 'Mi♭', 'Mi', 'Fá', 'Sol♭', 'Sol', 'Lá♭', 'Lá', 'Si♭', 'Si'
+];
+
+/// Razões acima da tônica, índice = semitons (0..11).
+final List<double> pythagoreanRatios = [
+  1, 256 / 243, 9 / 8, 32 / 27, 81 / 64, 4 / 3,
+  729 / 512, 3 / 2, 128 / 81, 27 / 16, 16 / 9, 243 / 128,
+];
+
+/// Entonação justa de 5 limites (escala cromática de Ptolomeu/Ellis).
+final List<double> justRatios = [
+  1, 16 / 15, 9 / 8, 6 / 5, 5 / 4, 4 / 3,
+  45 / 32, 3 / 2, 8 / 5, 5 / 3, 9 / 5, 15 / 8,
+];
+
+final double _ln2 = math.ln2;
+
+double _log2(double x) => math.log(x) / _ln2;
+
+/// Frequência em temperamento igual para um número MIDI (A4 = 69).
+double etFreq(num midi, double refA) =>
+    refA * math.pow(2, (midi - 69) / 12).toDouble();
+
+/// Número MIDI fracionário de uma frequência.
+double freqToMidi(double freq, double refA) =>
+    69 + 12 * _log2(freq / refA);
+
+/// Distância em cents de [freq] até [target] (positivo = mais agudo).
+double centsBetween(double freq, double target) =>
+    1200 * _log2(freq / target);
+
+int _mod12(int n) => ((n % 12) + 12) % 12;
+
+class TuningConfig {
+  final double refA;
+  final TuningSystem system;
+
+  /// Classe de altura da tônica, 0 = Dó ... 11 = Si.
+  final int tonicPc;
+  final Anchor anchor;
+  final bool preferFlats;
+
+  /// Semitons somados na leitura escrita (instrumentos transpositores).
+  /// Clarinete em Si♭ = +2, sax alto em Mi♭ = +9. Só afeta os NOMES.
+  final int transpose;
+
+  const TuningConfig({
+    this.refA = 440.0,
+    this.system = TuningSystem.equal,
+    this.tonicPc = 9,
+    this.anchor = Anchor.a4,
+    this.preferFlats = false,
+    this.transpose = 0,
+  });
+
+  TuningConfig copyWith({
+    double? refA,
+    TuningSystem? system,
+    int? tonicPc,
+    Anchor? anchor,
+    bool? preferFlats,
+    int? transpose,
+  }) =>
+      TuningConfig(
+        refA: refA ?? this.refA,
+        system: system ?? this.system,
+        tonicPc: tonicPc ?? this.tonicPc,
+        anchor: anchor ?? this.anchor,
+        preferFlats: preferFlats ?? this.preferFlats,
+        transpose: transpose ?? this.transpose,
+      );
+}
+
+/// Frequência alvo da nota MIDI [midi] (rótulo em temperamento igual) segundo
+/// o sistema configurado.
+double targetFreq(int midi, TuningConfig c) {
+  if (c.system == TuningSystem.equal) return etFreq(midi, c.refA);
+  final ratios =
+      c.system == TuningSystem.pythagorean ? pythagoreanRatios : justRatios;
+  final d = _mod12(midi - c.tonicPc);
+  final tonicMidi = midi - d;
+  double tonicFreq;
+  if (c.anchor == Anchor.tonic) {
+    tonicFreq = etFreq(tonicMidi, c.refA);
+  } else {
+    // Ajusta a tônica para o Lá4 valer exatamente refA.
+    final dA = _mod12(69 - c.tonicPc);
+    final tonicMidiForA = 69 - dA;
+    final tonicRef = c.refA / ratios[dA];
+    tonicFreq = tonicRef *
+        math.pow(2, (tonicMidi - tonicMidiForA) / 12).toDouble();
+  }
+  return tonicFreq * ratios[d];
+}
+
+/// Desvio do alvo do sistema em relação ao temperamento igual, em cents.
+double offsetFromEqual(int midi, TuningConfig c) =>
+    centsBetween(targetFreq(midi, c), etFreq(midi, c.refA));
+
+String noteName(int midi, TuningConfig c, {bool withOctave = false}) {
+  final m = midi + c.transpose;
+  final names = c.preferFlats ? noteNamesFlat : noteNamesSharp;
+  final n = names[_mod12(m)];
+  return withOctave ? '$n${(m ~/ 12) - 1}' : n;
+}
+
+/// Resultado da identificação da nota mais próxima.
+class NoteMatch {
+  final int midi;
+  final double target;
+  final double cents;
+  const NoteMatch(this.midi, this.target, this.cents);
+}
+
+/// Acha a nota cujo ALVO (no sistema escolhido) está mais perto de [freq].
+NoteMatch nearestTarget(double freq, TuningConfig c) {
+  final base = freqToMidi(freq, c.refA).round();
+  NoteMatch? best;
+  for (var m = base - 1; m <= base + 1; m++) {
+    final t = targetFreq(m, c);
+    final cents = centsBetween(freq, t);
+    if (best == null || cents.abs() < best.cents.abs()) {
+      best = NoteMatch(m, t, cents);
+    }
+  }
+  return best!;
+}
+
+// ---------------------------------------------------------------------------
+// Instrumentos
+// ---------------------------------------------------------------------------
+
+class StringDef {
+  final int midi;
+  const StringDef(this.midi);
+}
+
+class Instrument {
+  final String id;
+  final String name;
+
+  /// Da corda mais grave para a mais aguda.
+  final List<StringDef> strings;
+
+  /// Instrumentos com trastes têm as alturas fixadas: usam temperamento igual.
+  final bool fretted;
+
+  const Instrument(this.id, this.name, this.strings, {required this.fretted});
+
+  /// Afinação das cordas soltas.
+  /// Sem trastes: quintas/quartas puras ancoradas no Lá (pitagórica, tônica Lá).
+  /// Com trastes: temperamento igual.
+  double stringFreq(int stringIndex, double refA) {
+    final m = strings[stringIndex].midi;
+    if (fretted) return etFreq(m, refA);
+    return targetFreq(
+      m,
+      TuningConfig(
+        refA: refA,
+        system: TuningSystem.pythagorean,
+        tonicPc: 9,
+        anchor: Anchor.a4,
+      ),
+    );
+  }
+}
+
+const List<Instrument> instruments = [
+  Instrument('violino', 'Violino',
+      [StringDef(55), StringDef(62), StringDef(69), StringDef(76)],
+      fretted: false),
+  Instrument('viola', 'Viola de arco',
+      [StringDef(48), StringDef(55), StringDef(62), StringDef(69)],
+      fretted: false),
+  Instrument('violoncelo', 'Violoncelo',
+      [StringDef(36), StringDef(43), StringDef(50), StringDef(57)],
+      fretted: false),
+  Instrument('contrabaixo', 'Contrabaixo acústico',
+      [StringDef(28), StringDef(33), StringDef(38), StringDef(43)],
+      fretted: false),
+  Instrument(
+      'violao',
+      'Violão / Guitarra',
+      [
+        StringDef(40), StringDef(45), StringDef(50),
+        StringDef(55), StringDef(59), StringDef(64),
+      ],
+      fretted: true),
+  Instrument('baixo', 'Baixo elétrico (4 cordas)',
+      [StringDef(28), StringDef(33), StringDef(38), StringDef(43)],
+      fretted: true),
+  Instrument('cavaquinho', 'Cavaquinho',
+      [StringDef(62), StringDef(67), StringDef(71), StringDef(74)],
+      fretted: true),
+  Instrument('ukulele', 'Ukulele',
+      [StringDef(67), StringDef(60), StringDef(64), StringDef(69)],
+      fretted: true),
+  Instrument('bandolim', 'Bandolim',
+      [StringDef(55), StringDef(62), StringDef(69), StringDef(76)],
+      fretted: true),
+];
+
+Instrument instrumentById(String id) =>
+    instruments.firstWhere((i) => i.id == id);
+
+/// Corda solta mais próxima de [freq] (em cents) para um instrumento.
+({int index, double target, double cents}) nearestString(
+    double freq, Instrument inst, double refA) {
+  var bestI = 0;
+  var bestT = inst.stringFreq(0, refA);
+  var bestC = centsBetween(freq, bestT);
+  for (var i = 1; i < inst.strings.length; i++) {
+    final t = inst.stringFreq(i, refA);
+    final c = centsBetween(freq, t);
+    if (c.abs() < bestC.abs()) {
+      bestI = i;
+      bestT = t;
+      bestC = c;
+    }
+  }
+  return (index: bestI, target: bestT, cents: bestC);
+}

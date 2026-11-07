@@ -1,0 +1,11 @@
+name: afina_core
+description: Núcleo do Afina — matemática de afinação, detector de pitch, metrônomo e grade. Dart puro.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.9.0
+
+dev_dependencies:
+  test: ^1.25.0
+  lints: ^6.0.0

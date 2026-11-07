@@ -1,0 +1,39 @@
+name: CI
+
+# Roda a cada envio e pull request: testa o núcleo, analisa o app e confirma
+# que o build web compila. Assim, nada quebrado chega à Vercel.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.47.9"
+          channel: stable
+          cache: true
+
+      - name: Dependências
+        run: flutter pub get
+
+      - name: Testes do núcleo (afinação, detector, metrônomo, grade, pomodoro)
+        working-directory: packages/afina_core
+        run: |
+          dart pub get
+          dart test
+
+      - name: Análise estática
+        run: flutter analyze
+
+      - name: Build web (release)
+        run: flutter build web --release
