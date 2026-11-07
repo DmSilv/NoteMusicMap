@@ -132,3 +132,15 @@ test('config lê geminiAPI da Vercel', () => {
   assert.equal(_internal.config({ GEMINI_API_KEY: 'z' }).key, 'z');
   assert.equal(_internal.config({}).key, '');
 });
+
+test('escolhe o flash mais novo da conta e ignora lite/imagem/sem generateContent', () => {
+  const g = ['generateContent'];
+  const list = [
+    { name: 'models/gemini-2.5-flash', supportedGenerationMethods: g },
+    { name: 'models/gemini-3.8-flash', supportedGenerationMethods: g },
+    { name: 'models/gemini-3.8-flash-lite', supportedGenerationMethods: g },
+    { name: 'models/gemini-3.8-flash-image', supportedGenerationMethods: g },
+    { name: 'models/gemini-9-flash', supportedGenerationMethods: ['embedContent'] },
+  ];
+  assert.deepEqual(_internal.pickModels(list), ['gemini-3.8-flash', 'gemini-2.5-flash']);
+});
