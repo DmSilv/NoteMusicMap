@@ -94,7 +94,11 @@ class MicSettingsContent extends StatelessWidget {
           Text('Ganho: aumente se o instrumento estiver longe ou baixo.',
               style: TextStyle(color: AppColors.textDim, fontSize: 12)),
           const SizedBox(height: 8),
-          LevelBar(level: app.level),
+          // A barra de nível acompanha o microfone sem reconstruir a tela toda.
+          ListenableBuilder(
+            listenable: app.liveTick,
+            builder: (context, _) => LevelBar(level: app.level),
+          ),
         ],
       ),
     );

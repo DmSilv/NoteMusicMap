@@ -55,7 +55,7 @@ class _GridFullscreenState extends State<GridFullscreen> {
       backgroundColor: AppColors.bg,
       body: SafeArea(
         child: ListenableBuilder(
-          listenable: app,
+          listenable: app.live,
           builder: (context, _) {
             final landscape = MediaQuery.orientationOf(context) == Orientation.landscape;
             final zone = app.zone.cents;

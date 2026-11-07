@@ -119,106 +119,86 @@ class MetronomePlayer {
   }
 }
 
-/// Tom de referência (diapasão / nota da corda) com fase contínua: a
-/// frequência é exata e não há estalo ao ligar/desligar.
+/// Tom de referência (diapasão / nota da corda).
+///
+/// Toca um trecho pré-calculado em LAÇO (veja `buildToneLoop`): a frequência é
+/// exata e não há emendas nem dependência de temporizador, então não estala
+/// mesmo com o app ocupado. Entrada e saída têm rampa de volume (sem "clique"),
+/// e trocar de nota faz um cruzamento suave entre o tom antigo e o novo.
 class TonePlayer {
-  static const double _aheadSeconds = 0.2;
-  static const int _chunk = 512;
+  static const Duration _fade = Duration(milliseconds: 110);
 
-  AudioSource? _src;
+  /// Timbre usado nas próximas notas (diapasão puro ou mais "cheio").
+  ToneTimbre timbre = ToneTimbre.fork;
+
+  /// Volume de 0 a 1.
+  double volume = 0.6;
+
+  final Map<String, AudioSource> _cache = {};
+  final List<String> _cacheOrder = [];
   SoundHandle? _handle;
-  Timer? _feeder;
-  final Stopwatch _clock = Stopwatch();
-  int _fed = 0;
-  double _phase = 0;
   double _freq = 440;
-  double _gain = 0; // atual (rampa)
-  double _gainTarget = 0.3;
-  bool _stopping = false;
+  int _seq = 0; // descarta pedidos antigos se o usuário tocar rápido
 
-  bool get running => _src != null && !_stopping;
+  bool get running => _handle != null;
   double get frequency => _freq;
 
-  Future<void> play(double freq) async {
-    _freq = freq;
-    if (running) return; // só troca a frequência
-    await ensureAudio();
-    _stopping = false;
-    _gain = 0;
-    _fed = 0;
-    final src = SoLoud.instance.setBufferStream(
-      bufferingType: BufferingType.released,
-      bufferingTimeNeeds: 0.05,
-      sampleRate: kOutRate,
-      channels: Channels.mono,
-      format: BufferType.f32le,
-    );
-    _src = src;
-    _feed((kOutRate * 0.25).round());
-    _handle = SoLoud.instance.play(src);
-    _clock
-      ..reset()
-      ..start();
-    _feeder = Timer.periodic(const Duration(milliseconds: 25), (_) {
-      final played = (_clock.elapsedMicroseconds * kOutRate / 1e6).floor();
-      final target = played + (kOutRate * _aheadSeconds).round();
-      while (_fed < target) {
-        _feed(_chunk);
+  Future<AudioSource> _source(double freq) async {
+    final key = '${freq.toStringAsFixed(3)}-${timbre.index}';
+    final hit = _cache[key];
+    if (hit != null) return hit;
+    final loop = buildToneLoop(freq, sampleRate: kOutRate, timbre: timbre);
+    final wav = pcm16Wav(loop.samples, loop.sampleRate);
+    final src = await SoLoud.instance.loadMem('tone-$key', wav);
+    _cache[key] = src;
+    _cacheOrder.add(key);
+    // Mantém poucos trechos na memória.
+    while (_cacheOrder.length > 16) {
+      final old = _cacheOrder.removeAt(0);
+      final s = _cache.remove(old);
+      if (s != null) {
+        try {
+          await SoLoud.instance.disposeSource(s);
+        } catch (_) {}
       }
-    });
-  }
-
-  void setFrequency(double f) => _freq = f;
-
-  void _feed(int frames) {
-    final src = _src;
-    if (src == null) return;
-    final out = Float32List(frames);
-    final rampPerSample = 1 / (kOutRate * 0.03); // 30 ms
-    for (var i = 0; i < frames; i++) {
-      if (_gain < _gainTarget) {
-        _gain = math.min(_gainTarget, _gain + rampPerSample * _gainTarget);
-      } else if (_gain > _gainTarget) {
-        _gain = math.max(_gainTarget, _gain - rampPerSample * 0.3);
-      }
-      _phase += 2 * math.pi * _freq / kOutRate;
-      if (_phase > 2 * math.pi) _phase -= 2 * math.pi;
-      // senoide com um toque de 2º e 3º harmônico para ficar audível em
-      // alto-falante de celular, sem mudar a altura percebida.
-      final v = math.sin(_phase) +
-          0.25 * math.sin(2 * _phase) +
-          0.10 * math.sin(3 * _phase);
-      out[i] = (_gain * v).toDouble();
     }
-    _fed += frames;
-    SoLoud.instance.addAudioDataStream(
-        src, out.buffer.asUint8List(out.offsetInBytes, out.lengthInBytes));
+    return src;
   }
 
-  Future<void> stop() async {
-    if (_src == null || _stopping) return;
-    _stopping = true;
-    _gainTarget = 0;
-    await Future<void>.delayed(const Duration(milliseconds: 120));
-    _feeder?.cancel();
-    _feeder = null;
-    final h = _handle;
-    final s = _src;
-    _handle = null;
-    _src = null;
-    _clock.stop();
-    _gainTarget = 0.3;
-    if (h != null) {
+  /// Começa (ou troca para) a nota [freq].
+  Future<void> play(double freq) async {
+    await ensureAudio();
+    final my = ++_seq;
+    _freq = freq;
+    final src = await _source(freq);
+    if (my != _seq) return; // chegou um pedido mais novo
+    final old = _handle;
+    final h = SoLoud.instance.play(src, looping: true, volume: 0);
+    SoLoud.instance.fadeVolume(h, volume, _fade);
+    _handle = h;
+    if (old != null) _fadeOutAndStop(old);
+  }
+
+  void setFrequency(double f) {
+    if (running) play(f);
+  }
+
+  void _fadeOutAndStop(SoundHandle h) {
+    try {
+      SoLoud.instance.fadeVolume(h, 0, _fade);
+    } catch (_) {}
+    Future<void>.delayed(_fade + const Duration(milliseconds: 40), () async {
       try {
         await SoLoud.instance.stop(h);
       } catch (_) {}
-    }
-    if (s != null) {
-      try {
-        await SoLoud.instance.disposeSource(s);
-      } catch (_) {}
-    }
-    _stopping = false;
+    });
+  }
+
+  Future<void> stop() async {
+    _seq++;
+    final h = _handle;
+    _handle = null;
+    if (h != null) _fadeOutAndStop(h);
   }
 }
 

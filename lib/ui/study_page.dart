@@ -3,19 +3,21 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import 'package:afina_core/afina_core.dart';
 import 'pomodoro_card.dart';
+import 'perf.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
 class StudyPage extends StatelessWidget {
   final AppState app;
-  const StudyPage({super.key, required this.app});
+  final bool active;
+  const StudyPage({super.key, required this.app, this.active = true});
 
   static const _dias = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: app,
+      listenable: active ? app : kNeverNotifies,
       builder: (context, _) {
         final today = DateTime.now();
         final days = [for (var i = 6; i >= 0; i--) today.subtract(Duration(days: i))];

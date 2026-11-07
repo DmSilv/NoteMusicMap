@@ -5,6 +5,7 @@ import '../app_state.dart';
 import 'grid_fullscreen.dart';
 import 'grid_widgets.dart';
 import 'note_widgets.dart';
+import 'perf.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -14,7 +15,8 @@ import 'widgets.dart';
 ///  - Ajustes: cada ajuste abre num modal próprio.
 class GridPage extends StatefulWidget {
   final AppState app;
-  const GridPage({super.key, required this.app});
+  final bool active;
+  const GridPage({super.key, required this.app, this.active = true});
 
   @override
   State<GridPage> createState() => _GridPageState();
@@ -29,7 +31,7 @@ class _GridPageState extends State<GridPage> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: app,
+      listenable: widget.active ? app.live : kNeverNotifies,
       builder: (context, _) {
         return ListView(
           padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),

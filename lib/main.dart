@@ -92,12 +92,12 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: widget.app,
+      listenable: widget.app.themeNotifier,
       builder: (context, _) {
         final platformDark = WidgetsBinding
                 .instance.platformDispatcher.platformBrightness ==
             Brightness.dark;
-        final dark = switch (widget.app.themeMode) {
+        final dark = switch (widget.app.themeNotifier.value) {
           ThemeMode.dark => true,
           ThemeMode.light => false,
           ThemeMode.system => platformDark,
@@ -133,16 +133,34 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
+  /// Abas já abertas. As outras só são criadas na primeira visita, o que acelera
+  /// a abertura do app e evita construir telas que talvez nunca sejam usadas.
+  final Set<int> _visited = {0};
+
   static const _titles = ['Afinador', 'Metrônomo', 'Grade', 'Estudo'];
+
+  void _go(int i) => setState(() {
+        _index = i;
+        _visited.add(i);
+      });
+
+  Widget _page(int i) {
+    if (!_visited.contains(i)) return const SizedBox.shrink();
+    final app = widget.app;
+    final active = i == _index;
+    final page = switch (i) {
+      0 => TunerPage(app: app, active: active),
+      1 => MetronomePage(app: app, active: active),
+      2 => GridPage(app: app, active: active),
+      _ => StudyPage(app: app, active: active),
+    };
+    // Aba escondida: sem animações rodando e sem repintar.
+    return TickerMode(enabled: active, child: page);
+  }
 
   @override
   Widget build(BuildContext context) {
     final app = widget.app;
-    final (themeIcon, themeTip) = switch (app.themeMode) {
-      ThemeMode.system => (Icons.brightness_auto, 'Tema: automático (toque para claro)'),
-      ThemeMode.light => (Icons.light_mode, 'Tema: claro (toque para escuro)'),
-      ThemeMode.dark => (Icons.dark_mode, 'Tema: escuro (toque para automático)'),
-    };
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 14,
@@ -152,11 +170,18 @@ class _HomeShellState extends State<HomeShell> {
           Text(_titles[_index]),
         ]),
         actions: [
-          PomodoroPill(app: app, onTap: () => setState(() => _index = 3)),
-          IconButton(
-            tooltip: themeTip,
-            icon: Icon(themeIcon),
-            onPressed: app.cycleTheme,
+          PomodoroPill(app: app, onTap: () => _go(3)),
+          // Só este botão reage à troca de tema, não a barra inteira.
+          ValueListenableBuilder<ThemeMode>(
+            valueListenable: app.themeNotifier,
+            builder: (context, mode, _) {
+              final (icon, tip) = switch (mode) {
+                ThemeMode.system => (Icons.brightness_auto, 'Tema: automático (toque para claro)'),
+                ThemeMode.light => (Icons.light_mode, 'Tema: claro (toque para escuro)'),
+                ThemeMode.dark => (Icons.dark_mode, 'Tema: escuro (toque para automático)'),
+              };
+              return IconButton(tooltip: tip, icon: Icon(icon), onPressed: app.cycleTheme);
+            },
           ),
           IconButton(
             tooltip: 'Configurações',
@@ -167,21 +192,17 @@ class _HomeShellState extends State<HomeShell> {
           ),
         ],
       ),
-      // IndexedStack mantém cada aba viva (a grade e o metrônomo continuam).
+      // IndexedStack mantém o estado de cada aba aberta (a grade e o metrônomo
+      // continuam). Só a aba visível escuta mudanças e se reconstrói.
       body: SafeArea(
         child: IndexedStack(
           index: _index,
-          children: [
-            TunerPage(app: app),
-            MetronomePage(app: app),
-            GridPage(app: app),
-            StudyPage(app: app),
-          ],
+          children: [for (var i = 0; i < 4; i++) _page(i)],
         ),
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (i) => setState(() => _index = i),
+        onDestinationSelected: _go,
         destinations: const [
           NavigationDestination(icon: Icon(Icons.tune), label: 'Afinador'),
           NavigationDestination(icon: Icon(Icons.timer_outlined), label: 'Metrônomo'),

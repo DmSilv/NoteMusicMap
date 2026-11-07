@@ -55,6 +55,23 @@ class AppState extends ChangeNotifier {
       );
   Instrument get instrument => instrumentById(instrumentId);
 
+  // ---------------- Notificadores finos (desempenho) ----------------
+  /// Muda a cada leitura do microfone (~30x/s). Quem não mostra dados ao vivo
+  /// não deve escutar isto.
+  final ValueNotifier<int> liveTick = ValueNotifier(0);
+
+  /// Mudanças ao vivo OU de configuração: para telas com dados ao vivo.
+  late final Listenable live = Listenable.merge([this, liveTick]);
+
+  /// Muda a cada tique do Pomodoro (500 ms).
+  final ValueNotifier<int> pomoTick = ValueNotifier(0);
+
+  /// Pomodoro mudou (tique ou ação do usuário): para o cartão e o mini-cronômetro.
+  late final Listenable pomoLive = Listenable.merge([this, pomoTick]);
+
+  /// Só muda quando o tema muda: o MaterialApp escuta apenas isto.
+  final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
+
   // ---------------- Pomodoro ----------------
   PomodoroTimer pomo = PomodoroTimer();
   Map<String, int> pomoDays = {}; // yyyy-MM-dd -> pomodoros concluídos
@@ -147,7 +164,10 @@ class AppState extends ChangeNotifier {
       _pomoTimer = null;
       _wake(listening || metroRunning);
     }
-    notifyListeners();
+    // O relógio só atualiza quem o mostra; o app inteiro só é avisado quando
+    // uma fase termina (contagem, mensagens).
+    pomoTick.value++;
+    if (events.isNotEmpty || !pomo.running) notifyListeners();
   }
 
   void _handlePomoEvents(List<PomodoroEvent> events, {bool quiet = false}) {
@@ -301,6 +321,8 @@ class AppState extends ChangeNotifier {
     outputLatencyMs = 0;
     metroPlayer.outputLatencyMs = 0;
     themeMode = ThemeMode.system;
+    tone.timbre = ToneTimbre.fork;
+    await _prefs?.setInt('timbre', 0);
     metro = MetronomeConfig.signature(4, bpm: 100);
     metroPlayer.update(metro);
     _applyMic();
@@ -315,7 +337,8 @@ class AppState extends ChangeNotifier {
   }
 
   // ---------------- Aparência ----------------
-  ThemeMode themeMode = ThemeMode.system;
+  ThemeMode get themeMode => themeNotifier.value;
+  set themeMode(ThemeMode m) => themeNotifier.value = m;
 
   void cycleTheme() {
     const order = [ThemeMode.system, ThemeMode.light, ThemeMode.dark];
@@ -434,6 +457,17 @@ class AppState extends ChangeNotifier {
   MetronomeConfig metro = MetronomeConfig.signature(4, bpm: 100);
   final MetronomePlayer metroPlayer = MetronomePlayer();
   final TonePlayer tone = TonePlayer();
+
+  /// Timbre do som de referência (diapasão puro ou mais cheio).
+  ToneTimbre get toneTimbre => tone.timbre;
+  void setToneTimbre(ToneTimbre t) {
+    tone.timbre = t;
+    _prefs?.setInt('timbre', t.index);
+    say(t == ToneTimbre.fork ? 'Som de referência: diapasão (puro)' : 'Som de referência: flauta (mais cheio)');
+    // Se estiver tocando, recomeça a mesma nota no novo timbre.
+    if (tone.running) tone.play(tone.frequency);
+    notifyListeners();
+  }
   bool get metroRunning => metroPlayer.running;
   final TapTempo _tap = TapTempo();
   bool flashEnabled = true;
@@ -466,6 +500,7 @@ class AppState extends ChangeNotifier {
     outputLatencyMs = p.getDouble('latency') ?? 0;
     metroPlayer.outputLatencyMs = outputLatencyMs;
     micRationaleSeen = p.getBool('micRationale') ?? false;
+    tone.timbre = ToneTimbre.values[(p.getInt('timbre') ?? 0).clamp(0, ToneTimbre.values.length - 1)];
     sensitivity = MicSensitivity.values[p.getInt('sens') ?? 1];
     micGain = p.getDouble('gain') ?? 1.0;
     flashEnabled = p.getBool('flash') ?? true;
@@ -632,11 +667,13 @@ class AppState extends ChangeNotifier {
       _lastNoteSeen = now;
       if (gridFollow) _followNote(n.midi);
     }
-    // Limita a taxa de redesenho (~30 fps) para poupar bateria.
+    // Limita a taxa de redesenho (~30 fps) para poupar bateria. Só quem mostra
+    // dados ao vivo (afinador, grade) escuta [liveTick]; as demais telas não
+    // são reconstruídas a cada leitura do microfone.
     final t = DateTime.now();
     if (t.difference(_lastNotify).inMilliseconds >= 33) {
       _lastNotify = t;
-      notifyListeners();
+      liveTick.value++;
     }
   }
 
@@ -676,6 +713,7 @@ class AppState extends ChangeNotifier {
     grid.clear();
     tracker.reset();
     current = null;
+    liveTick.value++;
   }
 
   // ===================================================================

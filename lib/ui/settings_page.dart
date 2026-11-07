@@ -135,6 +135,19 @@ class SettingsPage extends StatelessWidget {
           options: instrumentOptions(app.cfg),
           onChanged: (v) => app.setTuning(instrumentId: v),
         ),
+        _label('Som de referência (diapasão e cordas)',
+            'Puro é o som de um diapasão de verdade. Cheio ajuda a ouvir em alto-falantes pequenos.'),
+        Wrap(spacing: 6, runSpacing: 4, children: [
+          for (final e in const {
+            ToneTimbre.fork: 'Diapasão (puro)',
+            ToneTimbre.soft: 'Flauta (mais cheio)',
+          }.entries)
+            ChoiceChip(
+              label: Text(e.value),
+              selected: app.toneTimbre == e.key,
+              onSelected: (_) => app.setToneTimbre(e.key),
+            ),
+        ]),
         _label('Sistema de afinação (modo cromático)'),
         Wrap(spacing: 6, runSpacing: 4, children: [
           for (final e in const {

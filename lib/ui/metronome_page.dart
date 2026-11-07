@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../app_state.dart';
 import 'package:afina_core/afina_core.dart';
+import 'perf.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -41,7 +42,8 @@ String tempoName(double bpm) {
 
 class MetronomePage extends StatefulWidget {
   final AppState app;
-  const MetronomePage({super.key, required this.app});
+  final bool active;
+  const MetronomePage({super.key, required this.app, this.active = true});
 
   @override
   State<MetronomePage> createState() => _MetronomePageState();
@@ -107,7 +109,7 @@ class _MetronomePageState extends State<MetronomePage>
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: app,
+      listenable: widget.active ? app : kNeverNotifies,
       builder: (context, _) {
         final m = app.metro;
         final running = app.metroRunning;

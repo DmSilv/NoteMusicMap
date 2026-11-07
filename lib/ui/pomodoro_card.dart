@@ -32,8 +32,14 @@ class PomodoroCard extends StatelessWidget {
   final AppState app;
   const PomodoroCard({super.key, required this.app});
 
+  // Só o cartão reage ao tique de 500 ms; o resto da aba não é reconstruído.
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: app.pomoLive,
+        builder: (context, _) => _content(context),
+      );
+
+  Widget _content(BuildContext context) {
     final p = app.pomo;
     final rem = app.pomoRemainingMs;
     final color = phaseColor(p.phase);
@@ -199,7 +205,7 @@ class PomodoroPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: app,
+      listenable: app.pomoLive,
       builder: (context, _) {
         final p = app.pomo;
         if (p.phase == PomoPhase.idle) return const SizedBox.shrink();

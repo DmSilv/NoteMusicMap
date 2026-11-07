@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'package:afina_core/afina_core.dart';
+import 'perf.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
 class TunerPage extends StatefulWidget {
   final AppState app;
-  const TunerPage({super.key, required this.app});
+  final bool active;
+  const TunerPage({super.key, required this.app, this.active = true});
 
   @override
   State<TunerPage> createState() => _TunerPageState();
@@ -63,7 +65,7 @@ class _TunerPageState extends State<TunerPage> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: app,
+      listenable: widget.active ? app.live : kNeverNotifies,
       builder: (context, _) {
         final inst = app.instrument;
         final stringsMode = app.tunerMode == TunerMode.strings;
