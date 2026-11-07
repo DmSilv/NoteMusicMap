@@ -3,6 +3,7 @@
 // para valer entre TODAS as instâncias da Vercel; senão cai para a memória da instância.
 
 const memory = new Map(); // chave -> { v, exp }
+const lists = new Map(); // chave -> [texto, ...] (só quando não há Redis)
 
 function memGet(key, now = Date.now()) {
   const c = memory.get(key);
@@ -79,6 +80,29 @@ function createStore(cfg, fetchImpl, clock = Date.now) {
       return Number(v) || 0;
     },
 
+    /** Acrescenta [value] (texto) ao fim da lista [key], guardando só os [max] mais recentes. */
+    async push(key, value, max = 5000) {
+      if (useRedis) {
+        try {
+          await redis(['RPUSH', key, String(value)]);
+          await redis(['LTRIM', key, String(-max), '-1']);
+          return;
+        } catch (_) { /* memória */ }
+      }
+      const arr = lists.get(key) || [];
+      arr.push(String(value));
+      if (arr.length > max) arr.splice(0, arr.length - max);
+      lists.set(key, arr);
+    },
+
+    /** Os [n] itens mais recentes da lista [key] (do mais antigo ao mais novo). */
+    async recent(key, n = 1000) {
+      if (useRedis) {
+        try { return (await redis(['LRANGE', key, String(-n), '-1'])) || []; } catch (_) { /* memória */ }
+      }
+      return (lists.get(key) || []).slice(-n);
+    },
+
     /** Reserva o próximo horário livre da fila [key]. */
     async claimSlot(key, now, intervalMs, ttlMs = 600000) {
       if (useRedis) {
@@ -94,4 +118,4 @@ function createStore(cfg, fetchImpl, clock = Date.now) {
   };
 }
 
-module.exports = { createStore, memory };
+module.exports = { createStore, memory, lists };

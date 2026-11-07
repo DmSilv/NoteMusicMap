@@ -17,6 +17,7 @@ import 'audio/audio_out.dart';
 import 'platform/hard_reset.dart';
 import 'audio/pitch_source.dart';
 import 'data/repository.dart';
+import 'feedback/feedback_service.dart';
 import 'package:afina_core/afina_core.dart';
 
 /// Ativa a simulação de execução (sem som), só para testes: --dart-define=DEV_DEMO=true.
@@ -233,6 +234,16 @@ class AppState extends ChangeNotifier {
     _saveTeacher();
     notifyListeners();
     return s;
+  }
+
+  /// Remove vários alunos de uma vez (com histórico, tarefas e observações).
+  int removeStudents(Set<String> ids) {
+    final before = students.length;
+    students.removeWhere((s) => ids.contains(s.id));
+    if (ids.contains(activeStudentId)) activeStudentId = null;
+    _saveTeacher();
+    notifyListeners();
+    return before - students.length;
   }
 
   void removeStudent(String id) {
@@ -661,6 +672,9 @@ class AppState extends ChangeNotifier {
   /// Análise por IA do treinador (opcional, via Vercel).
   final CoachAi ai = CoachAi();
 
+  /// Nota do app e pesquisa rápida.
+  final FeedbackService feedback = FeedbackService();
+
   /// Nota em DESTAQUE na grade (nome, ponteiro e quadrado aceso). É a leitura
   /// bruta [current] passada por um filtro que troca de nota com calma: a grade
   /// continua registrando tudo o que você toca, só o destaque é mais lento.
@@ -1088,6 +1102,7 @@ class AppState extends ChangeNotifier {
     micRationaleSeen = p.getBool('micRationale') ?? false;
     onboarded = p.getBool('onboarded') ?? false;
     await ai.load();
+    await feedback.load(p);
     tone.setVolume(p.getDouble('toneVol') ?? 0.9);
     tone.timbre = ToneTimbre.values[(p.getInt('timbre') ?? 0).clamp(0, ToneTimbre.values.length - 1)];
     sensitivity = MicSensitivity.values[p.getInt('sens') ?? 1];
@@ -1537,6 +1552,7 @@ class AppState extends ChangeNotifier {
   @override
   void dispose() {
     ai.dispose();
+    feedback.dispose();
     _studyTimer?.cancel();
     _saveStudy();
     super.dispose();

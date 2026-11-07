@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import 'feedback_sheet.dart';
 import 'study_timers.dart';
 import 'teacher_page.dart';
 import 'progress_cards.dart';
@@ -59,6 +60,7 @@ class StudyPage extends StatelessWidget {
               ),
               const SizedBox(height: 12),
             ],
+            FeedbackInviteCard(app: app),
             StudyTimerSection(app: app),
             const SizedBox(height: 12),
             AppCard(

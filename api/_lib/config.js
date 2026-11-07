@@ -72,6 +72,7 @@ function config(env = process.env) {
     redisUrl: env.UPSTASH_REDIS_REST_URL || env.KV_REST_API_URL || '',
     redisToken: env.UPSTASH_REDIS_REST_TOKEN || env.KV_REST_API_TOKEN || '',
     geminiModel: env.GEMINI_MODEL || '',
+    feedbackKey: env.FEEDBACK_ADMIN_KEY || '',
     env,
   };
 }

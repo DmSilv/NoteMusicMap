@@ -129,3 +129,11 @@ Nos apps de Android e iOS o áudio já roda em thread própria, sem esse problem
 
 ## Outros
 - Diapasão mais audível nas notas graves (reforço de harmônicos + volume ajustável), Lá digitável e transpositores completos, chaves "Manter a tela acesa" e "Mostrar frequência", resumo dos ajustes na grade, faixa de status (microfone, Pomodoro e cronômetros) abaixo da barra superior.
+
+## Nota do app e pesquisa rápida
+
+O app tem **Avaliar o app** (1 a 5 estrelas + comentário opcional) e uma **pesquisa rápida** de 2 perguntas por aparelho (Configurações › Sobre; o convite também aparece na aba Estudo depois de alguns exercícios ou 3 dias de uso, no máximo 3 vezes, e some depois de respondida).
+
+- Só é enviado quando a pessoa toca em Enviar: a resposta, a versão do app e um código do aparelho que o servidor embaralha (hash). Sem nome, e-mail, IP guardado ou áudio. Sem internet, fica numa fila e é enviado depois.
+- `POST /api/feedback` recebe as respostas (limite diário por aparelho). Elas ficam no Upstash Redis, se configurado, e no log da Vercel.
+- Para **ver os resultados**, crie a variável `FEEDBACK_ADMIN_KEY` na Vercel e chame `GET /api/feedback` com o cabeçalho `Authorization: Bearer <sua chave>`: devolve média e distribuição das notas, comentários recentes e a contagem de respostas por pergunta.

@@ -205,14 +205,73 @@ class _HowItWorks extends StatelessWidget {
 }
 
 /// Área do professor: alunos, tarefas, observações e relatórios (tudo neste aparelho).
-class TeacherPage extends StatelessWidget {
+class TeacherPage extends StatefulWidget {
   final AppState app;
   const TeacherPage({super.key, required this.app});
 
   @override
+  State<TeacherPage> createState() => _TeacherPageState();
+}
+
+class _TeacherPageState extends State<TeacherPage> {
+  AppState get app => widget.app;
+
+  /// Modo "Gerenciar": caixas de seleção para excluir vários alunos.
+  bool _manage = false;
+  final Set<String> _selected = {};
+  final _search = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  bool _matches(Student s) {
+    final q = _query.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    return s.name.toLowerCase().contains(q) || (s.code ?? '').toLowerCase().contains(q.replaceAll('-', ''));
+  }
+
+  Future<void> _deleteSelected() async {
+    final n = _selected.length;
+    if (n == 0) return;
+    final ok = await _confirmDelete(
+        context,
+        n == 1 ? 'Excluir 1 aluno?' : 'Excluir $n alunos?',
+        'Apaga o histórico, as tarefas e as observações ${n == 1 ? 'deste aluno' : 'destes alunos'} '
+            'neste aparelho. Não dá para desfazer.');
+    if (!ok) return;
+    final removed = app.removeStudents(Set.of(_selected));
+    setState(() {
+      _selected.clear();
+      _manage = false;
+    });
+    app.say(removed == 1 ? 'Aluno excluído.' : '$removed alunos excluídos.');
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Área do professor')),
+      appBar: AppBar(
+        title: const Text('Área do professor'),
+        actions: [
+          ListenableBuilder(
+            listenable: app,
+            builder: (context, _) => app.students.isEmpty || app.teacherLocked
+                ? const SizedBox.shrink()
+                : TextButton.icon(
+                    onPressed: () => setState(() {
+                      _manage = !_manage;
+                      _selected.clear();
+                    }),
+                    icon: Icon(_manage ? Icons.check : Icons.checklist, size: 20),
+                    label: Text(_manage ? 'Concluir' : 'Gerenciar'),
+                  ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: app,
@@ -281,7 +340,60 @@ class TeacherPage extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        for (final s in app.students) _studentCard(context, s),
+        if (app.students.length > 5)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: TextField(
+              controller: _search,
+              onChanged: (v) => setState(() => _query = v),
+              decoration: InputDecoration(
+                prefixIcon: const Icon(Icons.search),
+                hintText: 'Buscar aluno por nome ou código',
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => setState(() {
+                          _search.clear();
+                          _query = '';
+                        })),
+              ),
+            ),
+          ),
+        if (_manage && app.students.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Row(
+              children: [
+                TextButton(
+                  onPressed: () => setState(() {
+                    final shown = app.students.where(_matches).map((s) => s.id).toSet();
+                    if (_selected.containsAll(shown)) {
+                      _selected.removeAll(shown);
+                    } else {
+                      _selected.addAll(shown);
+                    }
+                  }),
+                  child: const Text('Selecionar todos'),
+                ),
+                const Spacer(),
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.sharp, foregroundColor: readableOn(AppColors.sharp)),
+                  onPressed: _selected.isEmpty ? null : _deleteSelected,
+                  icon: const Icon(Icons.delete_outline),
+                  label: Text(_selected.isEmpty ? 'Excluir' : 'Excluir (${_selected.length})'),
+                ),
+              ],
+            ),
+          ),
+        for (final s in app.students.where(_matches)) _studentCard(context, s),
+        if (app.students.isNotEmpty && !app.students.any(_matches))
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            child: Text('Nenhum aluno encontrado.',
+                textAlign: TextAlign.center, style: TextStyle(color: AppColors.textDim)),
+          ),
         if (app.students.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 18),
@@ -344,15 +456,23 @@ class TeacherPage extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () => Navigator.of(context)
-              .push(MaterialPageRoute<void>(builder: (_) => StudentPage(app: app, studentId: s.id))),
+          onTap: _manage
+              ? () => setState(() => _selected.contains(s.id) ? _selected.remove(s.id) : _selected.add(s.id))
+              : () => Navigator.of(context)
+                  .push(MaterialPageRoute<void>(builder: (_) => StudentPage(app: app, studentId: s.id))),
           child: Row(
             children: [
-              CircleAvatar(
-                backgroundColor: AppColors.accent.withValues(alpha: 0.2),
-                child: Text(s.name.isEmpty ? '?' : s.name[0].toUpperCase(),
-                    style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800)),
-              ),
+              if (_manage)
+                Checkbox(
+                  value: _selected.contains(s.id),
+                  onChanged: (v) => setState(() => v == true ? _selected.add(s.id) : _selected.remove(s.id)),
+                )
+              else
+                CircleAvatar(
+                  backgroundColor: AppColors.accent.withValues(alpha: 0.2),
+                  child: Text(s.name.isEmpty ? '?' : s.name[0].toUpperCase(),
+                      style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800)),
+                ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -375,12 +495,81 @@ class TeacherPage extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: AppColors.textDim),
+              if (!_manage)
+                PopupMenuButton<String>(
+                  tooltip: 'Opções de ${s.name}',
+                  icon: Icon(Icons.more_vert, color: AppColors.textDim),
+                  onSelected: (v) async {
+                    switch (v) {
+                      case 'open':
+                        await Navigator.of(context).push(
+                            MaterialPageRoute<void>(builder: (_) => StudentPage(app: app, studentId: s.id)));
+                      case 'rename':
+                        await _renameStudent(context, app, s);
+                      case 'code':
+                        await _editStudentCode(context, app, s);
+                      case 'delete':
+                        final ok = await _confirmDelete(context, 'Excluir ${s.name}?',
+                            'Apaga o histórico, as tarefas e as observações deste aluno neste aparelho. '
+                                'Não dá para desfazer.');
+                        if (ok) {
+                          app.removeStudent(s.id);
+                          app.say('${s.name} foi excluído.');
+                        }
+                    }
+                  },
+                  itemBuilder: (c) => const [
+                    PopupMenuItem(value: 'open', child: Text('Abrir')),
+                    PopupMenuItem(value: 'rename', child: Text('Renomear')),
+                    PopupMenuItem(value: 'code', child: Text('Código do aluno')),
+                    PopupMenuItem(value: 'delete', child: Text('Excluir aluno')),
+                  ],
+                ),
             ],
           ),
         ),
       ),
     );
+  }
+}
+
+Future<bool> _confirmDelete(BuildContext context, String title, String text) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: Text(title),
+      content: Text(text),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
+        FilledButton(
+          style: FilledButton.styleFrom(
+              backgroundColor: AppColors.sharp, foregroundColor: readableOn(AppColors.sharp)),
+          onPressed: () => Navigator.pop(c, true),
+          child: const Text('Excluir'),
+        ),
+      ],
+    ),
+  );
+  return ok == true;
+}
+
+Future<void> _renameStudent(BuildContext context, AppState app, Student s) async {
+  final n = await _askText(context, 'Renomear', 'Nome', initial: s.name);
+  if (n != null && n.trim().isNotEmpty) {
+    s.name = n.trim();
+    app.setActiveStudent(app.activeStudentId); // salva e atualiza
+  }
+}
+
+Future<void> _editStudentCode(BuildContext context, AppState app, Student s) async {
+  final c = await _askText(context, 'Código do aluno', 'Código (ex.: K7QM-4TXD)',
+      initial: s.code ?? '', action: 'Salvar');
+  if (c == null) return;
+  final err = app.checkStudentCode(c, exceptId: s.id);
+  if (err != null) {
+    app.say(err);
+  } else {
+    app.setStudentCode(s.id, c);
   }
 }
 
@@ -478,36 +667,16 @@ class StudentPage extends StatelessWidget {
                       await Clipboard.setData(ClipboardData(text: exportStudent(s)));
                       app.say('Dados copiados: use "Importar" no outro aparelho');
                     case 'code':
-                      final c = await _askText(context, 'Código do aluno', 'Código (ex.: K7QM-4TXD)',
-                          initial: s.code ?? '', action: 'Salvar');
-                      if (c != null) {
-                        final err = app.checkStudentCode(c, exceptId: s.id);
-                        if (err != null) {
-                          app.say(err);
-                        } else {
-                          app.setStudentCode(s.id, c);
-                        }
-                      }
+                      await _editStudentCode(context, app, s);
                     case 'rename':
-                      final n = await _askText(context, 'Renomear', 'Nome', initial: s.name);
-                      if (n != null && n.trim().isNotEmpty) {
-                        s.name = n.trim();
-                        app.setActiveStudent(app.activeStudentId); // salva e atualiza
-                      }
+                      await _renameStudent(context, app, s);
                     case 'delete':
-                      final ok = await showDialog<bool>(
-                        context: context,
-                        builder: (c) => AlertDialog(
-                          title: Text('Remover ${s.name}?'),
-                          content: const Text('Apaga o histórico, as tarefas e as observações deste aluno neste aparelho.'),
-                          actions: [
-                            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
-                            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Remover')),
-                          ],
-                        ),
-                      );
-                      if (ok == true) {
+                      final ok = await _confirmDelete(context, 'Excluir ${s.name}?',
+                          'Apaga o histórico, as tarefas e as observações deste aluno neste aparelho. '
+                              'Não dá para desfazer.');
+                      if (ok) {
                         app.removeStudent(s.id);
+                        app.say('${s.name} foi excluído.');
                         if (context.mounted) Navigator.of(context).pop();
                       }
                   }
@@ -518,7 +687,7 @@ class StudentPage extends StatelessWidget {
                   PopupMenuItem(value: 'data', child: Text('Copiar dados (para outro aparelho)')),
                   PopupMenuItem(value: 'code', child: Text('Código do aluno')),
                   PopupMenuItem(value: 'rename', child: Text('Renomear')),
-                  PopupMenuItem(value: 'delete', child: Text('Remover aluno')),
+                  PopupMenuItem(value: 'delete', child: Text('Excluir aluno')),
                 ],
               ),
             ],

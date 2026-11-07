@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'app_logo.dart';
+import 'feedback_sheet.dart';
 import 'profile_page.dart';
 import 'ref_a_dialog.dart';
 import 'share_sheet.dart';
@@ -23,7 +24,7 @@ class SettingsPage extends StatelessWidget {
       appBar: AppBar(title: const Text('Configurações')),
       body: SafeArea(
         child: ListenableBuilder(
-          listenable: app,
+          listenable: Listenable.merge([app, app.feedback]),
           builder: (context, _) => ListView(
             padding: const EdgeInsets.fromLTRB(12, 4, 12, 28),
             children: [
@@ -558,6 +559,24 @@ class SettingsPage extends StatelessWidget {
             style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
           ),
         ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            FilledButton.tonalIcon(
+              onPressed: () => showRatingSheet(context, app),
+              icon: Icon(app.feedback.rating > 0 ? Icons.star_rounded : Icons.star_outline_rounded),
+              label: Text(app.feedback.rating > 0 ? 'Sua nota: ${app.feedback.rating}/5' : 'Avaliar o app'),
+            ),
+            if (!app.feedback.surveyAnswered)
+              FilledButton.tonalIcon(
+                onPressed: () => showSurveySheet(context, app),
+                icon: const Icon(Icons.forum_outlined),
+                label: const Text('Pesquisa rápida'),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
         FilledButton.tonalIcon(
           onPressed: () => showShareSheet(context),
           icon: const Icon(Icons.qr_code_2),

@@ -6,6 +6,7 @@ import 'app_state.dart';
 import 'ui/app_logo.dart';
 import 'ui/status_strip.dart';
 import 'ui/grid_page.dart';
+import 'ui/profile_page.dart';
 import 'ui/settings_page.dart';
 import 'ui/share_sheet.dart';
 import 'ui/metronome_page.dart';
@@ -331,6 +332,22 @@ class _HomeShellState extends State<HomeShell> {
               tooltip: 'Compartilhar',
               icon: const Icon(Icons.ios_share),
               onPressed: () => showShareSheet(context),
+            ),
+            // Atalho direto para o perfil (código, chave de recuperação e professor).
+            ListenableBuilder(
+              listenable: app,
+              builder: (context, _) => IconButton(
+                tooltip: 'Meu perfil',
+                icon: Badge(
+                  smallSize: 8,
+                  isLabelVisible: app.profile.recoveryShownAt == null,
+                  backgroundColor: AppColors.sharp,
+                  child: Icon(app.teacherMode ? Icons.school_outlined : Icons.account_circle_outlined),
+                ),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => ProfilePage(app: app)),
+                ),
+              ),
             ),
             IconButton(
               tooltip: 'Configurações',
