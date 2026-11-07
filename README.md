@@ -49,3 +49,17 @@ contagem de focos por dia ficam salvos no aparelho. O alarme exige o app aberto 
 - `.github/workflows/ci.yml`: a cada envio roda os testes do núcleo, a análise e o build web.
 - O site precisa de HTTPS para o microfone funcionar (a Vercel já entrega).
 - Antes de abrir o repositório ao público, escolher uma licença (hoje não há `LICENSE`: todos os direitos reservados).
+
+## Escalas guiadas, pontuação e treinador
+- **Escalas (estilo Flesch):** Grade › Escala. Tom, tipo (maior, menor natural/harmônica/melódica, pentatônica, cromática) e **1, 2 ou 3 oitavas**.
+  O app guia nota por nota, subindo e descendo, e calcula a **taxa de acerto** (notas dentro da faixa de afinação).
+- **Histórico:** cada exercício vira um registro (gráfico de evolução, média, melhor resultado e variação) na aba Estudo.
+- **Treinador:** análise por regras, feita no aparelho (`practice_coach.dart`): viés por nota ("suas notas Mi estão ficando baixas"),
+  subida × descida, registro agudo, cansaço, tendência. Opcional: copiar um resumo (só números) para colar numa IA de conversa.
+  Não há chamada a nenhuma IA: nada sai do aparelho.
+
+## Áudio no navegador (importante)
+O motor de áudio (SoLoud) tem versão multi-thread que isola o som da interface. Ela só liga se o site enviar
+`Cross-Origin-Opener-Policy: same-origin` e `Cross-Origin-Embedder-Policy: require-corp` (já em `vercel.json`).
+Sem isso, qualquer travada da tela vira chiado. Medido: 97 de 185 janelas de som com saltos sem os cabeçalhos; 0 de 185 com eles.
+Nos apps de Android e iOS o áudio já roda em thread própria, sem esse problema.

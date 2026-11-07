@@ -212,12 +212,21 @@ enum ScaleType {
   major('Maior', [0, 2, 4, 5, 7, 9, 11]),
   naturalMinor('Menor natural', [0, 2, 3, 5, 7, 8, 10]),
   harmonicMinor('Menor harmônica', [0, 2, 3, 5, 7, 8, 11]),
+
+  /// Sobe com 6ª e 7ª maiores e desce como menor natural (como se estuda).
+  melodicMinor('Menor melódica', [0, 2, 3, 5, 7, 9, 11], [0, 2, 3, 5, 7, 8, 10]),
   majorPentatonic('Pentatônica maior', [0, 2, 4, 7, 9]),
   chromatic('Cromática', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
 
   final String label;
+
+  /// Graus ao SUBIR (semitons acima da tônica).
   final List<int> steps;
-  const ScaleType(this.label, this.steps);
+
+  /// Graus ao DESCER (igual aos de subida, exceto na menor melódica).
+  final List<int> downSteps;
+  const ScaleType(this.label, this.steps, [List<int>? down])
+      : downSteps = down ?? steps;
 }
 
 /// Notas da escala subindo [octaves] oitavas, terminando na tônica.

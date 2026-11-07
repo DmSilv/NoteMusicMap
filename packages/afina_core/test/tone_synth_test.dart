@@ -5,6 +5,7 @@ import 'package:afina_core/afina_core.dart';
 import 'package:test/test.dart';
 
 void main() {
+  chimeTests();
   group('frequência exata', () {
     // Do contrabaixo ao violino agudo, e referências de orquestra.
     for (final f in [41.2034, 65.4064, 82.4069, 195.5556, 293.3333, 440.0, 442.0, 523.25, 660.0, 880.0, 1318.51, 2000.0]) {
@@ -107,5 +108,45 @@ void main() {
       buildToneLoop(f, timbre: ToneTimbre.soft);
     }
     expect(sw.elapsedMilliseconds / 3, lessThan(100));
+  });
+}
+
+void chimeTests() {
+  group('alarme (sino)', () {
+    test('tem som de verdade: pico 0,9 e duração de 2,2 s', () {
+      for (final eof in [true, false]) {
+        final c = buildChime(endOfFocus: eof);
+        var peak = 0.0;
+        for (final v in c) {
+          if (v.abs() > peak) peak = v.abs();
+        }
+        expect(peak, closeTo(0.9, 0.01), reason: 'endOfFocus=$eof');
+        expect(c.length / 44100, closeTo(2.2, 0.01));
+      }
+    });
+
+    test('termina em silêncio, sem clique', () {
+      final c = buildChime(endOfFocus: true);
+      expect(c.last.abs(), lessThan(1e-3));
+      expect(c[c.length - 2].abs(), lessThan(1e-2));
+    });
+
+    test('fim de foco desce (agudo → grave); fim de pausa sobe', () {
+      // Estima a frequência por cruzamentos de zero em janelas curtas dentro de
+      // cada nota (0,03–0,25 s e 0,36–0,56 s).
+      double hz(Float32List s, double from, double to) {
+        final a = (from * 44100).round(), b = (to * 44100).round();
+        var z = 0;
+        for (var i = a + 1; i < b; i++) {
+          if ((s[i - 1] < 0) != (s[i] < 0)) z++;
+        }
+        return z / 2 / (to - from);
+      }
+
+      final down = buildChime(endOfFocus: true);
+      final up = buildChime(endOfFocus: false);
+      expect(hz(down, 0.03, 0.25), greaterThan(hz(down, 0.40, 0.60)));
+      expect(hz(up, 0.03, 0.25), lessThan(hz(up, 0.40, 0.60)));
+    });
   });
 }

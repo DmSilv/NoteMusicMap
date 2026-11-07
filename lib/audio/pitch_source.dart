@@ -161,6 +161,11 @@ class DemoPitchSource implements PitchSource {
   final List<(double, double)> script;
   DemoPitchSource(this.script);
 
+  /// Avisado quando a nota virtual muda (frequência) ou cala (null), para o app
+  /// poder TOCAR o violino virtual. O microfone real nunca toca nada.
+  void Function(double? freq)? onNote;
+  int _lastKey = -2;
+
   @override
   void configure({double? gain, double? minClarity, double? minRms}) {
     if (minClarity != null) _det.minClarity = minClarity;
@@ -195,16 +200,24 @@ class DemoPitchSource implements PitchSource {
       var acc = 0.0;
       double f = script.first.$1;
       var local = 0.0;
-      for (final s in script) {
+      var idx = 0;
+      for (var k = 0; k < script.length; k++) {
+        final s = script[k];
         if (tt < acc + s.$2) {
           f = s.$1;
           local = tt - acc;
+          idx = k;
           break;
         }
         acc += s.$2;
       }
       // pequeno vibrato e silêncio curto entre notas
       final gap = local < 0.12;
+      final key = gap ? -1 : idx;
+      if (key != _lastKey) {
+        _lastKey = key;
+        onNote?.call(gap ? null : f);
+      }
       final buf = Float64List(_window);
       for (var i = 0; i < _window; i++) {
         final time = _t + i / _sr;
@@ -228,5 +241,7 @@ class DemoPitchSource implements PitchSource {
     _running = false;
     _timer?.cancel();
     _timer = null;
+    _lastKey = -2;
+    onNote?.call(null);
   }
 }

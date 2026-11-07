@@ -453,10 +453,110 @@ class AppState extends ChangeNotifier {
   List<int> get scaleNotes =>
       scaleMidis(scaleTonicMidi, scaleType, octaves: scaleOctaves);
 
+  // ---------------- Exercício de escala guiado + histórico ----------------
+  ScaleExercise? exercise;
+  bool exerciseDone = false;
+  SessionRecord? lastSession;
+
+  /// Histórico estruturado (da mais recente para a mais antiga).
+  List<SessionRecord> sessionRecords = [];
+
+  List<Insight> get insights =>
+      analyzePractice(sessionRecords, flats: preferFlats);
+
+  String aiSummary() =>
+      buildAiPrompt(sessionRecords, instrument: instrument.name, flats: preferFlats);
+
+  /// Começa o exercício da escala escolhida (aba Grade › Escala).
+  Future<void> startExercise({bool demoMode = false}) async {
+    exercise = ScaleExercise(
+      tonicMidi: scaleTonicMidi,
+      type: scaleType,
+      octaves: scaleOctaves,
+      zone: zone.cents,
+    );
+    exerciseDone = false;
+    lastSession = null;
+    resetGrid();
+    if (!listening || demo != demoMode) {
+      await startListening(demoMode: demoMode);
+    }
+    notifyListeners();
+  }
+
+  void stopExercise() {
+    // A demonstração repete o roteiro sem parar: ao sair, ela também para
+    // (senão o violino virtual continuaria tocando em segundo plano).
+    final stopDemo = demo && listening;
+    exercise = null;
+    exerciseDone = false;
+    if (stopDemo) stopListening(quiet: true);
+    notifyListeners();
+  }
+
+  void skipExerciseNote() {
+    final e = exercise;
+    if (e == null || e.finished) return;
+    e.skip();
+    if (e.finished) _finishExercise();
+    liveTick.value++;
+  }
+
+  void _feedExercise(TrackedNote? n, double dt) {
+    final e = exercise;
+    if (e == null || e.finished) return;
+    final r = e.feed(
+      midi: n?.midi,
+      cents: n?.cents ?? 0,
+      clarity: n?.clarity ?? 0,
+      dt: dt,
+    );
+    if (r != null) {
+      if (hapticEnabled) HapticFeedback.selectionClick();
+      if (e.finished) _finishExercise();
+    }
+  }
+
+  void _finishExercise() {
+    final e = exercise;
+    if (e == null) return;
+    exerciseDone = true;
+    final sc = e.score;
+    final rec = SessionRecord(
+      date: DateTime.now(),
+      title:
+          '${noteName(scaleTonicMidi, cfg)} ${scaleType.label.toLowerCase()} · $scaleOctaves oitava${scaleOctaves > 1 ? 's' : ''}',
+      octaves: scaleOctaves,
+      zone: zone.cents,
+      accuracy: sc.accuracy,
+      meanAbsCents: sc.meanAbsCents,
+      steps: [
+        for (final r in e.results)
+          StepRecord(r.midi, r.ascending, r.octaveIndex, r.skipped ? null : r.cents)
+      ],
+    );
+    lastSession = rec;
+    // No modo demonstração não se guarda histórico (não é a execução do músico).
+    if (!demo) {
+      sessionRecords.insert(0, rec);
+      if (sessionRecords.length > 200) sessionRecords.removeRange(200, sessionRecords.length);
+      _prefs?.setString('sessions2', jsonEncode([for (final r in sessionRecords) r.toJson()]));
+      say('Exercício concluído: ${(sc.accuracy * 100).round()}% de acerto. Salvo no histórico.');
+    } else {
+      say('Fim da demonstração. Ela não entra no seu histórico.');
+    }
+    notifyListeners();
+  }
+
   // ---------------- Metrônomo ----------------
   MetronomeConfig metro = MetronomeConfig.signature(4, bpm: 100);
   final MetronomePlayer metroPlayer = MetronomePlayer();
   final TonePlayer tone = TonePlayer();
+
+  /// Violino virtual da demonstração (som próprio, timbre rico, volume moderado).
+  final TonePlayer demoTone = TonePlayer()
+    ..timbre = ToneTimbre.violin
+    ..volume = 0.45;
 
   /// Timbre do som de referência (diapasão puro ou mais cheio).
   ToneTimbre get toneTimbre => tone.timbre;
@@ -521,6 +621,13 @@ class AppState extends ChangeNotifier {
     final ss = p.getString('sessions');
     if (ss != null) {
       scaleSessions = (jsonDecode(ss) as List).cast<Map<String, dynamic>>();
+    }
+    final s2 = p.getString('sessions2');
+    if (s2 != null) {
+      sessionRecords = [
+        for (final j in (jsonDecode(s2) as List))
+          ?SessionRecord.tryFromJson((j as Map).cast<String, dynamic>())
+      ];
     }
     _loadPomo(p);
     grid = PitchGrid(history: history, holdSeconds: holdSeconds);
@@ -622,7 +729,21 @@ class AppState extends ChangeNotifier {
       _prefs?.setBool('micRationale', true);
     }
     demo = demoMode;
-    final src = demoMode ? DemoPitchSource(_demoScript()) : MicPitchSource();
+    PitchSource src;
+    if (demoMode) {
+      // A demonstração TOCA o violino virtual (o microfone real nunca toca nada).
+      final d = DemoPitchSource(_demoScript());
+      d.onNote = (f) {
+        if (f == null) {
+          demoTone.stop();
+        } else {
+          demoTone.play(f);
+        }
+      };
+      src = d;
+    } else {
+      src = MicPitchSource();
+    }
     final ok = await src.start();
     if (!demoMode) micGranted = ok;
     if (!ok) {
@@ -667,6 +788,7 @@ class AppState extends ChangeNotifier {
       _lastNoteSeen = now;
       if (gridFollow) _followNote(n.midi);
     }
+    _feedExercise(n, f.dt);
     // Limita a taxa de redesenho (~30 fps) para poupar bateria. Só quem mostra
     // dados ao vivo (afinador, grade) escuta [liveTick]; as demais telas não
     // são reconstruídas a cada leitura do microfone.
@@ -683,6 +805,16 @@ class AppState extends ChangeNotifier {
         refA: refA, system: system, tonicPc: tonicPc, anchor: anchor);
     double f(int midi, double cents) =>
         targetFreq(midi, c) * math.pow(2, cents / 1200).toDouble();
+    // Se há um exercício em andamento, a demonstração toca a escala escolhida
+    // (com pequenas desafinações) para o músico ver como a tela reage.
+    final ex = exercise;
+    if (ex != null) {
+      const offs = [1.0, -3.0, 2.0, -12.0, 4.0, 0.0, 7.0, -2.0, 1.0, 3.0, -9.0, 2.0, 0.0, -4.0, 1.0];
+      return [
+        for (var i = 0; i < ex.sequence.length; i++)
+          (f(ex.sequence[i], offs[i % offs.length]), 1.0)
+      ];
+    }
     const notes = <(int, double)>[
       (55, 1), (57, -14), (59, 12), (60, 0), (62, 6), (64, -4), (66, 2), (67, 0),
     ];
@@ -819,6 +951,8 @@ class AppState extends ChangeNotifier {
     scaleSessions.clear();
     await _prefs?.remove('study');
     await _prefs?.remove('sessions');
+    sessionRecords.clear();
+    await _prefs?.remove('sessions2');
     notifyListeners();
   }
 

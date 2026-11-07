@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../app_state.dart';
 import 'theme.dart';
@@ -267,11 +268,20 @@ void showPomodoroSettings(BuildContext context, AppState app) {
                     icon: const Icon(Icons.remove_circle_outline),
                     onPressed: value > min ? () => on(value - step) : null,
                   ),
-                  SizedBox(
-                    width: 70,
-                    child: Text('$value $unit',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                  InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: () => _askNumber(context, label, value, min, max, unit, on),
+                    child: Container(
+                      width: 84,
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface2,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text('$value $unit'.trim(),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(fontWeight: FontWeight.w700)),
+                    ),
                   ),
                   IconButton(
                     visualDensity: VisualDensity.compact,
@@ -292,14 +302,30 @@ void showPomodoroSettings(BuildContext context, AppState app) {
                 const Text('Ajustes do timer',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 4),
-                Text('Valem a partir da próxima fase. Tudo fica salvo neste aparelho.',
+                Text('Toque no número para digitar o tempo (a partir de 1 minuto). Vale a partir da próxima fase e fica salvo neste aparelho.',
                     style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
-                const SizedBox(height: 10),
-                stepper('Foco', c.focusMin, 5, 90, 5, 'min',
+                const SizedBox(height: 12),
+                const Text('Atalhos', style: TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 6),
+                Wrap(spacing: 8, runSpacing: 6, children: [
+                  for (final (f, sh, lo, name) in const [
+                    (25, 5, 15, 'Clássico 25/5'),
+                    (50, 10, 20, 'Longo 50/10'),
+                    (15, 3, 10, 'Curto 15/3'),
+                    (1, 1, 2, 'Teste 1/1'),
+                  ])
+                    ActionChip(
+                      label: Text(name),
+                      onPressed: () => app.setPomo(
+                          config: c.copyWith(focusMin: f, shortMin: sh, longMin: lo)),
+                    ),
+                ]),
+                const SizedBox(height: 8),
+                stepper('Foco', c.focusMin, 1, 180, 1, 'min',
                     (v) => app.setPomo(config: c.copyWith(focusMin: v))),
-                stepper('Pausa curta', c.shortMin, 1, 30, 1, 'min',
+                stepper('Pausa curta', c.shortMin, 1, 60, 1, 'min',
                     (v) => app.setPomo(config: c.copyWith(shortMin: v))),
-                stepper('Pausa longa', c.longMin, 5, 60, 5, 'min',
+                stepper('Pausa longa', c.longMin, 1, 120, 1, 'min',
                     (v) => app.setPomo(config: c.copyWith(longMin: v))),
                 stepper('Focos até a pausa longa', c.cyclesBeforeLong, 2, 8, 1, '',
                     (v) => app.setPomo(config: c.copyWith(cyclesBeforeLong: v))),
@@ -347,4 +373,51 @@ void showPomodoroSettings(BuildContext context, AppState app) {
       ),
     ),
   );
+}
+
+/// Pergunta um número (minutos) num diálogo simples.
+Future<void> _askNumber(BuildContext context, String label, int value, int min, int max,
+    String unit, ValueChanged<int> on) async {
+  final ctl = TextEditingController(text: '$value');
+  final v = await showDialog<int>(
+    context: context,
+    builder: (ctx) {
+      String? err;
+      return StatefulBuilder(
+        builder: (ctx, set) => AlertDialog(
+          title: Text(label),
+          content: TextField(
+            controller: ctl,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(
+              suffixText: unit,
+              helperText: 'De $min a $max',
+              errorText: err,
+            ),
+            onSubmitted: (_) {
+              final n = int.tryParse(ctl.text);
+              if (n != null && n >= min && n <= max) Navigator.pop(ctx, n);
+            },
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+            FilledButton(
+              onPressed: () {
+                final n = int.tryParse(ctl.text);
+                if (n == null || n < min || n > max) {
+                  set(() => err = 'Use um valor entre $min e $max');
+                } else {
+                  Navigator.pop(ctx, n);
+                }
+              },
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      );
+    },
+  );
+  if (v != null) on(v);
 }

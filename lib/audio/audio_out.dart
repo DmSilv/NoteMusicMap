@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
-import 'dart:typed_data';
 
 import 'package:flutter_soloud/flutter_soloud.dart';
 
@@ -165,6 +163,19 @@ class TonePlayer {
     return src;
   }
 
+  /// Prepara os tons com antecedência, um por vez e com pausas curtas, para que
+  /// tocar uma corda depois seja instantâneo (sem trabalho pesado na hora do
+  /// toque, que no navegador pode causar falhas no som).
+  Future<void> preload(Iterable<double> freqs) async {
+    try {
+      await ensureAudio();
+      for (final f in freqs) {
+        await _source(f);
+        await Future<void>.delayed(const Duration(milliseconds: 60));
+      }
+    } catch (_) {}
+  }
+
   /// Começa (ou troca para) a nota [freq].
   Future<void> play(double freq) async {
     await ensureAudio();
@@ -204,51 +215,24 @@ class TonePlayer {
 
 /// Alarme sutil do Pomodoro: um sino suave de duas notas.
 /// Fim de foco = notas descendo (hora de relaxar); fim de pausa = subindo
-/// (hora de voltar). Volume baixo, ataque macio e decaimento longo, para não
-/// assustar quem está tocando.
+/// (hora de voltar). Usa o mesmo caminho do diapasão (WAV em memória), que é
+/// confiável no navegador. O som é gerado uma vez e guardado.
 class ChimePlayer {
+  final Map<bool, AudioSource> _cache = {};
+
+  Future<AudioSource> _source(bool endOfFocus) async {
+    final hit = _cache[endOfFocus];
+    if (hit != null) return hit;
+    final pcm = buildChime(endOfFocus: endOfFocus, sampleRate: kOutRate);
+    final src = await SoLoud.instance
+        .loadMem('chime-$endOfFocus', pcm16Wav(pcm, kOutRate));
+    _cache[endOfFocus] = src;
+    return src;
+  }
+
   Future<void> play({required bool endOfFocus, double volume = 0.5}) async {
     await ensureAudio();
-    const sr = kOutRate;
-    final notes = endOfFocus ? [880.0, 659.25] : [659.25, 880.0];
-    const noteGap = 0.32; // s entre as duas notas
-    const total = 2.2; // s
-    final n = (sr * total).round();
-    final pcm = Float32List(n);
-    for (var k = 0; k < notes.length; k++) {
-      final start = (k * noteGap * sr).round();
-      final f = notes[k];
-      for (var i = 0; start + i < n; i++) {
-        final t = i / sr;
-        final attack = math.min(1.0, t / 0.012);
-        final env = attack * math.exp(-t / 0.55);
-        if (env < 0.0005) break;
-        // fundamental + harmônicos suaves (timbre de sininho)
-        final v = math.sin(2 * math.pi * f * t) +
-            0.30 * math.sin(2 * math.pi * f * 2.0 * t) * math.exp(-t / 0.25) +
-            0.12 * math.sin(2 * math.pi * f * 3.01 * t) * math.exp(-t / 0.12);
-        pcm[start + i] += (env * v * 0.30 * volume).toDouble();
-      }
-    }
-    for (var i = 0; i < n; i++) {
-      pcm[i] = pcm[i].clamp(-1.0, 1.0);
-    }
-    final src = SoLoud.instance.setBufferStream(
-      bufferingType: BufferingType.released,
-      bufferingTimeNeeds: 0.05,
-      sampleRate: sr,
-      channels: Channels.mono,
-      format: BufferType.f32le,
-    );
-    SoLoud.instance.addAudioDataStream(
-        src, pcm.buffer.asUint8List(pcm.offsetInBytes, pcm.lengthInBytes));
-    SoLoud.instance.setDataIsEnded(src);
-    final h = SoLoud.instance.play(src);
-    Future<void>.delayed(const Duration(milliseconds: 2600), () async {
-      try {
-        await SoLoud.instance.stop(h);
-        await SoLoud.instance.disposeSource(src);
-      } catch (_) {}
-    });
+    final src = await _source(endOfFocus);
+    SoLoud.instance.play(src, volume: volume.clamp(0.05, 1.0));
   }
 }

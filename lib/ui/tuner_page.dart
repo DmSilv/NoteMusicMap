@@ -57,6 +57,37 @@ class _TunerPageState extends State<TunerPage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    // Prepara os tons logo depois de abrir, sem competir com a abertura da tela.
+    Future<void>.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) _preload();
+    });
+  }
+
+  /// Gera com antecedência o som de cada corda e do Lá de referência.
+  void _preload() {
+    // Só para testes automatizados: permite medir o áudio desde o primeiro som.
+    if (const bool.fromEnvironment('NO_PRELOAD')) return;
+    final inst = app.instrument;
+    app.tone.preload([
+      for (var i = 0; i < inst.strings.length; i++) inst.stringFreq(i, app.refA),
+      app.refA,
+    ]);
+  }
+
+  @override
+  void didUpdateWidget(TunerPage old) {
+    super.didUpdateWidget(old);
+    // Saiu da aba: o tom de referência para (antes continuava tocando).
+    if (old.active && !widget.active) {
+      app.tone.stop();
+      _playingString = null;
+      _playingA = false;
+    }
+  }
+
+  @override
   void dispose() {
     app.tone.stop();
     super.dispose();
@@ -120,9 +151,27 @@ class _TunerPageState extends State<TunerPage> {
                     showSelectedIcon: false,
                   ),
                 ),
+                const HelpButton(
+                  title: 'Cordas soltas ou Cromático?',
+                  sections: Help.modes,
+                  footer: Help.modesFooter,
+                ),
               ],
             ),
-            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Text(
+                  stringsMode
+                      ? 'Para AFINAR o instrumento: toque uma corda solta e ajuste até ficar verde.'
+                      : 'Para ESTUDAR: reconhece qualquer nota e mostra se está afinada.',
+                  key: ValueKey(stringsMode),
+                  style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
             if (stringsMode) _instrumentPicker(),
             const SizedBox(height: 8),
             // ---- Leitura ----
@@ -244,6 +293,7 @@ class _TunerPageState extends State<TunerPage> {
           _playingA = false;
         });
         app.setTuning(instrumentId: v);
+        _preload();
       },
     );
   }
@@ -274,7 +324,11 @@ class _TunerPageState extends State<TunerPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Referência Lá', style: TextStyle(fontWeight: FontWeight.w700)),
+          Row(children: [
+            const Expanded(
+                child: Text('Referência Lá', style: TextStyle(fontWeight: FontWeight.w700))),
+            const HelpButton(title: 'Lá de referência', sections: Help.refA),
+          ]),
           const SizedBox(height: 8),
           // Cinco botões de largura igual: sempre cabem, em qualquer tela.
           Row(
@@ -320,9 +374,25 @@ class _TunerPageState extends State<TunerPage> {
               ),
             ],
           ),
+          if (stringsMode) ...[
+            const SizedBox(height: 8),
+            Text(
+              'As cordas soltas usam a afinação própria do instrumento: quintas puras nos de arco e '
+              'afinação igual nos de trastes. O "sistema de afinação" só vale no modo Cromático.',
+              style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+            ),
+          ],
           if (!stringsMode) ...[
             const Divider(height: 24),
-            const Text('Sistema de afinação', style: TextStyle(fontWeight: FontWeight.w700)),
+            Row(children: [
+              const Expanded(
+                  child: Text('Sistema de afinação',
+                      style: TextStyle(fontWeight: FontWeight.w700))),
+              const HelpButton(
+                  title: 'Qual sistema de afinação?',
+                  sections: Help.system,
+                  footer: Help.systemFooter),
+            ]),
             const SizedBox(height: 8),
             Wrap(
               spacing: 6,
@@ -341,9 +411,16 @@ class _TunerPageState extends State<TunerPage> {
                     onSelected: (_) => app.setTuning(system: TuningSystem.just)),
               ],
             ),
+            const SizedBox(height: 6),
+            SystemAdvice(app: app),
             if (app.system != TuningSystem.equal) ...[
               const SizedBox(height: 10),
-              Text('Tônica (tom da peça)', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+              Row(children: [
+                Expanded(
+                    child: Text('Tônica (tom da peça)',
+                        style: TextStyle(color: AppColors.textDim, fontSize: 13))),
+                const HelpButton(title: 'Tônica e Lá fixo', sections: Help.tonic),
+              ]),
               const SizedBox(height: 6),
               Wrap(
                 spacing: 6,

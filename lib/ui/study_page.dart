@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
-import 'package:afina_core/afina_core.dart';
 import 'pomodoro_card.dart';
+import 'progress_cards.dart';
 import 'perf.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -138,21 +138,9 @@ class StudyPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Escalas salvas', style: TextStyle(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 8),
-                  if (app.scaleSessions.isEmpty)
-                    Text(
-                      'Toque uma escala na aba Grade e salve o relatório para acompanhar sua evolução.',
-                      style: TextStyle(color: AppColors.textDim),
-                    ),
-                  for (final s in app.scaleSessions.take(15)) _session(s),
-                ],
-              ),
-            ),
+            EvolutionCard(app: app),
+            const SizedBox(height: 12),
+            CoachCard(app: app),
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: () async {
@@ -176,66 +164,5 @@ class StudyPage extends StatelessWidget {
         );
       },
     );
-  }
-
-  Widget _session(Map<String, dynamic> s) {
-    final date = DateTime.tryParse(s['date'] as String? ?? '');
-    final acc = ((s['accuracy'] as num?) ?? 0).toDouble();
-    final notes = (s['notes'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text('${s['scale']}',
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
-              ),
-              Text('${(acc * 100).round()}% afinadas',
-                  style: TextStyle(
-                      color: acc >= 0.8 ? AppColors.inTune : AppColors.sharp,
-                      fontWeight: FontWeight.w700)),
-            ],
-          ),
-          Text(
-            date == null
-                ? ''
-                : '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')} '
-                    '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}',
-            style: TextStyle(color: AppColors.textDim, fontSize: 12),
-          ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 4,
-            runSpacing: 4,
-            children: [
-              for (final n in notes)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: _chipColor(n).withValues(alpha: 0.25),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: _chipColor(n)),
-                  ),
-                  child: Text('${n['n']}', style: const TextStyle(fontSize: 11.5)),
-                ),
-            ],
-          ),
-          const Divider(height: 22),
-        ],
-      ),
-    );
-  }
-
-  Color _chipColor(Map<String, dynamic> n) {
-    final st = NoteStatus.values[(n['s'] as int?) ?? 0];
-    return switch (st) {
-      NoteStatus.notPlayed => AppColors.outline,
-      NoteStatus.inTune => AppColors.inTune,
-      NoteStatus.flat => AppColors.flat,
-      NoteStatus.sharp => AppColors.sharp,
-    };
   }
 }

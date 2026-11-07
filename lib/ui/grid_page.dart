@@ -6,6 +6,7 @@ import 'grid_fullscreen.dart';
 import 'grid_widgets.dart';
 import 'note_widgets.dart';
 import 'perf.dart';
+import 'scale_exercise_page.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -230,87 +231,131 @@ class _GridPageState extends State<GridPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text('Exercício de escala',
-                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-                  ),
-                  Switch(value: app.scaleMode, onChanged: (v) => app.setScale(enabled: v)),
-                ],
-              ),
+              const Row(children: [
+                Icon(Icons.queue_music),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text('Escalas guiadas',
+                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+                ),
+              ]),
+              const SizedBox(height: 6),
               Text(
-                app.scaleMode
-                    ? 'As notas da escala ficam marcadas na grade. Toque-as em ordem e veja a cor de cada uma.'
-                    : 'Ligue para a grade marcar as notas de uma escala. Depois veja um relatório de afinação nota por nota.',
+                'Como no estudo de escalas de Carl Flesch: escolha o tom, o tipo e 1, 2 ou 3 oitavas. '
+                'O app mostra a próxima nota, sobe e desce com você e dá a taxa de acerto no fim.',
                 style: TextStyle(color: AppColors.textDim, fontSize: 13),
               ),
             ],
           ),
         ),
-        if (app.scaleMode) ...[
-          const SizedBox(height: 10),
-          AppCard(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Column(
-              children: [
-                _tile(Icons.music_note, 'Tônica (nota inicial)', noteName(tonicPc + 60, names),
-                    () => _pick<int>(
-                          'Tônica',
-                          [for (var pc = 0; pc < 12; pc++) (pc, noteName(pc + 60, names))],
-                          tonicPc,
-                          (pc) {
-                            app.setScale(tonicPc: pc);
-                            // Justa/pitagórica dependem da tônica: acompanha.
-                            if (app.system != TuningSystem.equal) app.setTuning(tonicPc: pc);
-                          },
-                        )),
-                const Divider(height: 1),
-                _tile(Icons.stacked_line_chart, 'Tipo de escala', app.scaleType.label,
-                    () => _pick<ScaleType>(
-                          'Tipo de escala',
-                          [for (final t in ScaleType.values) (t, t.label)],
-                          app.scaleType,
-                          (t) => app.setScale(type: t),
-                        )),
-                const Divider(height: 1),
-                _tile(Icons.layers, 'Oitavas', '${app.scaleOctaves}',
-                    () => _pick<int>(
-                          'Quantas oitavas',
-                          const [(1, '1 oitava'), (2, '2 oitavas')],
-                          app.scaleOctaves,
-                          (o) => app.setScale(octaves: o),
-                        )),
-              ],
-            ),
+        const SizedBox(height: 10),
+        AppCard(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            children: [
+              _tile(Icons.music_note, 'Tônica (nota inicial)', noteName(tonicPc + 60, names),
+                  () => _pick<int>(
+                        'Tônica',
+                        [for (var pc = 0; pc < 12; pc++) (pc, noteName(pc + 60, names))],
+                        tonicPc,
+                        (pc) {
+                          app.setScale(tonicPc: pc);
+                          // Justa/pitagórica dependem da tônica: acompanha.
+                          if (app.system != TuningSystem.equal) app.setTuning(tonicPc: pc);
+                        },
+                      )),
+              const Divider(height: 1),
+              _tile(Icons.stacked_line_chart, 'Tipo de escala', app.scaleType.label,
+                  () => _pick<ScaleType>(
+                        'Tipo de escala',
+                        [for (final t in ScaleType.values) (t, t.label)],
+                        app.scaleType,
+                        (t) => app.setScale(type: t),
+                        hint:
+                            'Na menor melódica, a escala sobe com 6ª e 7ª maiores e desce como menor natural.',
+                      )),
+              const Divider(height: 1),
+              _tile(Icons.layers, 'Oitavas', '${app.scaleOctaves}',
+                  () => _pick<int>(
+                        'Quantas oitavas',
+                        const [(1, '1 oitava'), (2, '2 oitavas'), (3, '3 oitavas')],
+                        app.scaleOctaves,
+                        (o) => app.setScale(octaves: o),
+                        hint:
+                            'Mais oitavas = exercício mais longo. Comece por 1 e aumente aos poucos.',
+                      )),
+            ],
           ),
-          const SizedBox(height: 10),
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Notas da escala',
-                    style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-                const SizedBox(height: 4),
-                Text(app.scaleNotes.map((m) => noteName(m, app.cfg)).join('  ·  '),
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                Text(
-                  'Sistema: ${switch (app.system) { TuningSystem.equal => 'temperamento igual', TuningSystem.pythagorean => 'pitagórico', TuningSystem.just => 'entonação justa' }}'
-                  ' (mude na aba Afinador, modo Cromático)',
-                  style: TextStyle(color: AppColors.textDim, fontSize: 12),
+        ),
+        const SizedBox(height: 10),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Notas (subindo)',
+                  style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+              const SizedBox(height: 4),
+              Text(app.scaleNotes.map((m) => noteName(m, app.cfg)).join('  ·  '),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 6),
+              Text(
+                '${app.scaleNotes.length * 2 - 1} notas no total, subindo e descendo. '
+                'Sistema: ${switch (app.system) { TuningSystem.equal => 'temperamento igual', TuningSystem.pythagorean => 'pitagórico', TuningSystem.just => 'entonação justa' }}.',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        FilledButton.icon(
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54)),
+          onPressed: () {
+            app.startExercise();
+            Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => ScaleExercisePage(app: app),
+            ));
+          },
+          icon: const Icon(Icons.play_arrow),
+          label: const Text('Iniciar exercício guiado',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+        ),
+        TextButton.icon(
+          onPressed: () {
+            app.startExercise(demoMode: true);
+            Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => ScaleExercisePage(app: app),
+            ));
+          },
+          icon: const Icon(Icons.play_circle_outline),
+          label: const Text('Ver como funciona (violino virtual)'),
+        ),
+        const SizedBox(height: 6),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                const Expanded(
+                  child: Text('Marcar a escala na grade',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                ),
+                Switch(value: app.scaleMode, onChanged: (v) => app.setScale(enabled: v)),
+              ]),
+              Text(
+                'Para tocar livremente: as notas da escala ficam destacadas na aba Grade.',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+              ),
+              if (app.scaleMode) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: _showReport,
+                  icon: const Icon(Icons.assessment_outlined),
+                  label: const Text('Ver relatório do que toquei'),
                 ),
               ],
-            ),
+            ],
           ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-            onPressed: _showReport,
-            icon: const Icon(Icons.assessment_outlined),
-            label: const Text('Ver relatório da escala'),
-          ),
-        ],
+        ),
       ],
     );
   }

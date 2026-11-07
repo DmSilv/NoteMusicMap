@@ -83,12 +83,15 @@ class SettingsPage extends StatelessWidget {
         ),
       );
 
-  Widget _label(String t, [String? sub]) => Padding(
+  Widget _label(String t, [String? sub, Widget? help]) => Padding(
         padding: const EdgeInsets.only(top: 12, bottom: 6),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(t, style: const TextStyle(fontWeight: FontWeight.w700)),
+            Row(children: [
+              Expanded(child: Text(t, style: const TextStyle(fontWeight: FontWeight.w700))),
+              ?help,
+            ]),
             if (sub != null)
               Text(sub, style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
           ],
@@ -119,7 +122,8 @@ class SettingsPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _label('Lá de referência', 'Orquestras costumam usar 442 ou 443 Hz.'),
+        _label('Lá de referência', 'Orquestras costumam usar 442 ou 443 Hz. Mude só se o seu grupo usar outro.',
+            const HelpButton(title: 'Lá de referência', sections: Help.refA)),
         Wrap(spacing: 6, runSpacing: 4, children: [
           for (final hz in [438.0, 440.0, 442.0, 443.0, 445.0])
             ChoiceChip(
@@ -148,7 +152,12 @@ class SettingsPage extends StatelessWidget {
               onSelected: (_) => app.setToneTimbre(e.key),
             ),
         ]),
-        _label('Sistema de afinação (modo cromático)'),
+        _label('Sistema de afinação (modo cromático)',
+            'Só vale no modo Cromático. As cordas soltas usam a afinação própria do instrumento.',
+            const HelpButton(
+                title: 'Qual sistema de afinação?',
+                sections: Help.system,
+                footer: Help.systemFooter)),
         Wrap(spacing: 6, runSpacing: 4, children: [
           for (final e in const {
             TuningSystem.equal: 'Igual',
@@ -161,6 +170,8 @@ class SettingsPage extends StatelessWidget {
               onSelected: (_) => app.setTuning(system: e.key),
             ),
         ]),
+        const SizedBox(height: 6),
+        SystemAdvice(app: app),
         _label('Instrumento transpositor',
             'Mostra os nomes das notas como estão escritos na partitura do seu instrumento.'),
         Wrap(spacing: 6, runSpacing: 4, children: [

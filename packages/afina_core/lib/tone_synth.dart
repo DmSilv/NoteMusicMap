@@ -16,6 +16,9 @@ enum ToneTimbre {
 
   /// Um pouco mais "cheio" (flauta de afinação): audível em alto-falante pequeno.
   soft,
+
+  /// Timbre de violino (muitos harmônicos). Usado na demonstração.
+  violin,
 }
 
 class ToneLoop {
@@ -63,6 +66,7 @@ ToneLoop buildToneLoop(
   final partials = switch (timbre) {
     ToneTimbre.fork => const [1.0],
     ToneTimbre.soft => const [1.0, 0.22, 0.08, 0.03],
+    ToneTimbre.violin => const [1.0, 0.70, 0.50, 0.35, 0.20, 0.12],
   };
   final out = Float32List(bestL);
   var peak = 0.0;
@@ -112,4 +116,40 @@ Uint8List pcm16Wav(Float32List samples, int sampleRate) {
     b.setInt16(44 + i * 2, v, Endian.little);
   }
   return b.buffer.asUint8List();
+}
+
+/// Alarme sutil: sino suave de duas notas. Fim de foco = notas descendo
+/// (relaxar); fim de pausa = subindo (voltar). Pico normalizado em 0,9; o
+/// volume é aplicado por quem toca. Termina em silêncio (sem clique no fim).
+Float32List buildChime({required bool endOfFocus, int sampleRate = 44100}) {
+  final notes = endOfFocus ? const [880.0, 659.25] : const [659.25, 880.0];
+  const gap = 0.32, total = 2.2;
+  final n = (sampleRate * total).round();
+  final pcm = Float32List(n);
+  for (var k = 0; k < notes.length; k++) {
+    final start = (k * gap * sampleRate).round();
+    final f = notes[k];
+    for (var i = 0; start + i < n; i++) {
+      final t = i / sampleRate;
+      final env = math.min(1.0, t / 0.012) * math.exp(-t / 0.55);
+      if (t > 0.05 && env < 0.0005) break; // só depois do ataque (env começa em 0)
+      pcm[start + i] += env *
+          (math.sin(2 * math.pi * f * t) +
+              0.30 * math.sin(2 * math.pi * f * 2.0 * t) * math.exp(-t / 0.25) +
+              0.12 * math.sin(2 * math.pi * f * 3.01 * t) * math.exp(-t / 0.12));
+    }
+  }
+  var peak = 0.0;
+  for (final v in pcm) {
+    if (v.abs() > peak) peak = v.abs();
+  }
+  final g = peak > 0 ? 0.9 / peak : 1.0;
+  // fecha suave nos últimos 40 ms
+  final fade = (sampleRate * 0.04).round();
+  for (var i = 0; i < n; i++) {
+    var v = pcm[i] * g;
+    if (i > n - fade) v *= (n - i) / fade;
+    pcm[i] = v;
+  }
+  return pcm;
 }
