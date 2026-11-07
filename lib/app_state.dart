@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'ai/coach_ai.dart';
+import 'dev/frame_meter.dart';
 import 'audio/audio_out.dart';
 import 'platform/hard_reset.dart';
 import 'audio/pitch_source.dart';
@@ -325,6 +326,21 @@ class AppState extends ChangeNotifier {
   /// Análise por IA do treinador (opcional, via Vercel).
   final CoachAi ai = CoachAi();
 
+  /// Nota em DESTAQUE na grade (nome, ponteiro e quadrado aceso). É a leitura
+  /// bruta [current] passada por um filtro que troca de nota com calma: a grade
+  /// continua registrando tudo o que você toca, só o destaque é mais lento.
+  TrackedNote? shown;
+  NoteSwitchSpeed noteSwitch = NoteSwitchSpeed.normal;
+  late final NoteDisplayFilter _display = NoteDisplayFilter(speed: noteSwitch);
+
+  /// Velocidade da troca de nota em destaque (Rápida, Normal ou Calma).
+  void setNoteSwitch(NoteSwitchSpeed s) {
+    noteSwitch = s;
+    _display.speed = s;
+    _prefs?.setInt('noteSwitch', s.index);
+    notifyListeners();
+  }
+
   /// Microfone captando agora (alimenta o aviso fixo na barra superior).
   final ValueNotifier<bool> micOn = ValueNotifier(false);
 
@@ -384,6 +400,9 @@ class AppState extends ChangeNotifier {
     zone = ZoneLevel.intermediate;
     history = HistoryMode.medium;
     holdSeconds = 30;
+    noteSwitch = NoteSwitchSpeed.normal;
+    _display.speed = noteSwitch;
+    exerciseFlow = true;
     grid.history = history;
     grid.holdSeconds = holdSeconds;
     dailyGoalMinutes = 20;
@@ -541,12 +560,27 @@ class AppState extends ChangeNotifier {
       buildAiPrompt(sessionRecords, instrument: instrument.name, flats: preferFlats);
 
   /// Começa o exercício da escala escolhida (aba Grade › Escala).
+  /// "Seguir meu ritmo": o exercício acompanha você tocando a escala sem parar,
+  /// sem exigir que cada nota seja segurada. Desligado = espera cada nota.
+  bool exerciseFlow = true;
+
+  void setExerciseFlow(bool v) {
+    exerciseFlow = v;
+    exercise?.flow = v; // vale já no exercício em andamento
+    _prefs?.setBool('exFlow', v);
+    say(v
+        ? 'Seguindo o seu ritmo: toque a escala sem parar'
+        : 'Esperando cada nota: segure-a até a barra encher');
+    notifyListeners();
+  }
+
   Future<void> startExercise({bool demoMode = false}) async {
     exercise = ScaleExercise(
       tonicMidi: scaleTonicMidi,
       type: scaleType,
       octaves: scaleOctaves,
       zone: zone.cents,
+      flow: exerciseFlow,
     );
     exerciseDone = false;
     lastSession = null;
@@ -664,6 +698,10 @@ class AppState extends ChangeNotifier {
     zone = ZoneLevel.values[p.getInt('zone') ?? 1];
     history = HistoryMode.values[p.getInt('history') ?? 1];
     holdSeconds = p.getDouble('hold') ?? 30;
+    noteSwitch = NoteSwitchSpeed.values[
+        (p.getInt('noteSwitch') ?? NoteSwitchSpeed.normal.index).clamp(0, NoteSwitchSpeed.values.length - 1)];
+    _display.speed = noteSwitch;
+    exerciseFlow = p.getBool('exFlow') ?? true;
     dailyGoalMinutes = p.getDouble('goal') ?? 20;
     themeMode = ThemeMode.values[p.getInt('theme') ?? 0];
     outputLatencyMs = p.getDouble('latency') ?? 0;
@@ -725,6 +763,8 @@ class AppState extends ChangeNotifier {
     await p.setInt('zone', zone.index);
     await p.setInt('history', history.index);
     await p.setDouble('hold', holdSeconds);
+    await p.setInt('noteSwitch', noteSwitch.index);
+    await p.setBool('exFlow', exerciseFlow);
     await p.setDouble('goal', dailyGoalMinutes);
     await p.setBool('flash', flashEnabled);
     await p.setBool('haptic', hapticEnabled);
@@ -794,7 +834,7 @@ class AppState extends ChangeNotifier {
   // ===================================================================
   // Escuta
   // ===================================================================
-  Future<void> startListening({bool demoMode = false}) async {
+  Future<void> startListening({bool demoMode = false, bool demoGlide = false}) async {
     if (listening) await stopListening(quiet: true);
     micError = null;
     // Antes do primeiro pedido real de microfone, explica para que serve.
@@ -808,7 +848,15 @@ class AppState extends ChangeNotifier {
     PitchSource src;
     if (demoMode) {
       // Simulação silenciosa, só para desenvolvimento (kDevDemo): não toca nada.
-      src = DemoPitchSource(_demoScript());
+      if (demoGlide) {
+        // Teste do ponteiro: uma nota (Dó4) vai de 38 cents grave a 38 cents
+        // aguda e volta, passando pelo centro.
+        final c = TuningConfig(refA: refA, system: system, tonicPc: tonicPc, anchor: anchor);
+        double hz(double cents) => targetFreq(60, c) * math.pow(2, cents / 1200).toDouble();
+        src = DemoPitchSource([(hz(-38), 6.0), (hz(38), 6.0)], glideTo: {0: hz(38), 1: hz(-38)});
+      } else {
+        src = DemoPitchSource(_demoScript());
+      }
     } else {
       src = MicPitchSource();
     }
@@ -826,6 +874,7 @@ class AppState extends ChangeNotifier {
     _sub = src.frames.listen(_onFrame);
     _wake(true);
     micOn.value = true;
+    if (kDevDemo && demoMode) FrameMeter.instance.start();
     if (!demoMode) buzz(ms: 30);
     say(demoMode
         ? 'Simulação de desenvolvimento ligada (sem som)'
@@ -842,7 +891,10 @@ class AppState extends ChangeNotifier {
     _source = null;
     listening = false;
     micOn.value = false;
+    if (kDevDemo) FrameMeter.instance.stop();
     current = null;
+    shown = null;
+    _display.reset();
     level = 0;
     tracker.reset();
     _wake(metroRunning);
@@ -854,11 +906,13 @@ class AppState extends ChangeNotifier {
     level = f.level;
     final n = tracker.update(f.result, cfg);
     current = n;
+    shown = _display.update(n, now);
     if (n != null) {
       grid.add(n.midi, n.cents, n.clarity, f.dt, now);
       _lastNoteSeen = now;
-      if (gridFollow) _followNote(n.midi);
     }
+    final sh = shown;
+    if (gridFollow && sh != null) _followNote(sh.midi);
     _feedExercise(n, f.dt);
     // Limita a taxa de redesenho (~30 fps) para poupar bateria. Só quem mostra
     // dados ao vivo (afinador, grade) escuta [liveTick]; as demais telas não
@@ -882,8 +936,12 @@ class AppState extends ChangeNotifier {
     if (ex != null) {
       const offs = [1.0, -3.0, 2.0, -12.0, 4.0, 0.0, 7.0, -2.0, 1.0, 3.0, -9.0, 2.0, 0.0, -4.0, 1.0];
       return [
-        for (var i = 0; i < ex.sequence.length; i++)
-          (f(ex.sequence[i], offs[i % offs.length]), 1.0)
+        for (var i = 0; i < ex.sequence.length; i++) ...[
+          // Só no teste: antes da 4ª nota vem uma errada (meio tom acima, um
+          // pouco baixa) para mostrar o aviso leve "ainda não é a nota".
+          if (i == 3) (f(ex.sequence[i] + 1, -20.0), 1.2),
+          (f(ex.sequence[i], offs[i % offs.length]), 1.0),
+        ]
       ];
     }
     const notes = <(int, double)>[
@@ -916,6 +974,8 @@ class AppState extends ChangeNotifier {
     grid.clear();
     tracker.reset();
     current = null;
+    shown = null;
+    _display.reset();
     liveTick.value++;
   }
 

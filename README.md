@@ -12,7 +12,7 @@ Foco em instrumentos de corda (violino, viola, violoncelo, contrabaixo, violão,
 
 ## Comandos (com o Flutter 3.47.9 no PATH)
 ```
-cd packages/afina_core && dart test        # 85 testes de precisão
+cd packages/afina_core && dart test        # 200 testes (precisão, ponteiro, troca de nota, escalas)
 flutter analyze
 flutter run -d web-server --web-port=8099  # abrir http://127.0.0.1:8099
 ```
@@ -31,7 +31,7 @@ flutter run -d web-server --web-port=8099  # abrir http://127.0.0.1:8099
 
 ## Identidade e configurações
 - **Nome:** Notemusic (afinador, metrônomo, grade de entonação e estudo). Verificar disponibilidade nas lojas antes de publicar.
-- **Logo:** mostrador de afinador, com arco do azul (grave) ao laranja (agudo) pelo verde (afinado) e ponteiro branco. Fonte: `tools/make_icons.mjs`
+- **Logo:** mostrador de afinador (arco verde, a cor de destaque do app) com uma nota musical branca no centro. Fonte: `tools/make_icons.mjs`
   (`node tools/make_icons.mjs` regenera todos os ícones: web, Android, iOS e `assets/logo/logo.svg`).
 - **Configurações (engrenagem):** aparência (auto/claro/escuro), afinação (Lá, instrumento, sistema, transposição, bemóis),
   microfone, metrônomo (som, volume, ajuste de sincronia), grade, estudo e permissões/privacidade.
@@ -50,9 +50,25 @@ contagem de focos por dia ficam salvos no aparelho. O alarme exige o app aberto 
 - O site precisa de HTTPS para o microfone funcionar (a Vercel já entrega).
 - Antes de abrir o repositório ao público, escolher uma licença (hoje não há `LICENSE`: todos os direitos reservados).
 
+## Grade: ponteiro vivo e troca de nota calma
+- **Ponteiro dentro do quadrado:** o quadrado da nota que está tocando ganha um ponteiro de afinador que se mexe com a afinação, e a cor do
+  quadrado acompanha o ponteiro (azul = grave, **verde no centro** = afinado, laranja = agudo). Em quadrados maiores aparecem o arco de escala,
+  a zona afinada e as marcas; ao travar na zona, a marca do centro acende e o eixo ganha um anel. Código: `lib/ui/cell_gauge.dart`.
+- **Movimento fluido:** o ponteiro é uma mola amortecida resolvida de forma exata (`NeedleSpring`, `packages/afina_core/lib/needle_spring.dart`),
+  calculada a cada quadro da tela (60 fps ou mais) e independente da taxa de leituras do microfone; a cor sai da posição já suavizada.
+  O desenho fica numa camada própria (`RepaintBoundary`) e o relógio só roda enquanto há movimento.
+- **Troca de nota calma:** só o DESTAQUE (nome, ponteiro e quadrado aceso) passa por um filtro (`NoteDisplayFilter`): a nota nova precisa se
+  manter um instante e a atual fica um tempo mínimo na tela; notas de passagem não aparecem. As cores da grade continuam registrando tudo.
+  Ajuste em **Grade › Ajustes › Troca de nota** (Rápida, Normal, Calma).
+- **Animações do topo:** o nome da nota troca em "camadas" (a antiga sobe e some, a nova entra do lado oposto), a cor segue o desvio quadro a
+  quadro e o número da dica desliza em vez de piscar.
+
 ## Escalas guiadas, pontuação e treinador
 - **Escalas (estilo Flesch):** Grade › Escala. Tom, tipo (maior, menor natural/harmônica/melódica, pentatônica, cromática) e **1, 2 ou 3 oitavas**.
   O app guia nota por nota, subindo e descendo, e calcula a **taxa de acerto** (notas dentro da faixa de afinação).
+- **Seguir meu ritmo (padrão) × Esperar cada nota:** no primeiro, toque a escala sem parar; cada nota vale quando você passa para a próxima
+  (ou cala), o desvio é a **mediana** do que foi ouvido e notas fora do lugar só geram um aviso leve ("Ainda não é Lá3: suba um pouco").
+  No segundo, o app espera você segurar cada nota até a barra encher. Troca no cartão da escala ou durante o exercício.
 - **Histórico:** cada exercício vira um registro (gráfico de evolução, média, melhor resultado e variação) na aba Estudo.
 - **Treinador:** análise por regras, feita no aparelho (`practice_coach.dart`): viés por nota ("suas notas Mi estão ficando baixas"),
   subida × descida, registro agudo, cansaço, tendência. Opcional: copiar um resumo (só números) para colar numa IA de conversa.

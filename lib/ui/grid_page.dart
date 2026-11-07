@@ -2,6 +2,7 @@ import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import 'cell_gauge.dart';
 import 'grid_fullscreen.dart';
 import 'grid_widgets.dart';
 import 'note_widgets.dart';
@@ -70,7 +71,7 @@ class _GridPageState extends State<GridPage> {
   // =====================================================================
   Widget _gridSection() {
     final (lo, hi) = app.gridOctaves;
-    final cur = app.current;
+    final cur = app.shown;
     final zone = app.zone.cents;
     final scale = app.scaleMode ? app.scaleNotes.toSet() : <int>{};
     final now = app.now;
@@ -114,6 +115,20 @@ class _GridPageState extends State<GridPage> {
           label: Text(app.listening ? (app.demo ? 'Parar demonstração' : 'Parar') : 'Ouvir',
               style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
         ),
+        if (kDevDemo)
+          TextButton.icon(
+            onPressed: () => app.listening && app.demo
+                ? app.stopListening()
+                : app.startListening(demoMode: true, demoGlide: true),
+            icon: const Icon(Icons.play_circle_outline, size: 18),
+            label: const Text('[dev] Glissando (testa o ponteiro)'),
+          ),
+        if (kDevDemo && !app.listening)
+          TextButton.icon(
+            onPressed: () => app.startListening(demoMode: true),
+            icon: const Icon(Icons.play_circle_outline, size: 18),
+            label: const Text('[dev] Melodia (testa a troca de nota)'),
+          ),
         if (app.micError != null)
           Padding(
             padding: const EdgeInsets.only(top: 6),
@@ -188,11 +203,16 @@ class _GridPageState extends State<GridPage> {
                     ),
                     for (var pc = 0; pc < 12; pc++)
                       Expanded(
+                        // Chave por nota: o ponteiro de cada quadrado mantém o
+                        // estado mesmo se a janela de oitavas deslizar.
+                        key: ValueKey(oct * 12 + pc),
                         child: _cell(
                           midi: oct * 12 + pc,
                           now: now,
                           zone: zone,
                           playing: cur?.midi == oct * 12 + pc,
+                          liveCents: cur?.midi == oct * 12 + pc ? cur?.cents : null,
+                          silent: cur == null,
                           inScale: scale.isEmpty || scale.contains(oct * 12 + pc),
                           isTarget: scale.contains(oct * 12 + pc),
                         ),
@@ -369,6 +389,24 @@ class _GridPageState extends State<GridPage> {
             ],
           ),
         ),
+        const SizedBox(height: 10),
+        // Como o exercício acompanha: no seu ritmo (padrão) ou esperando cada nota.
+        AppCard(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: SwitchListTile(
+            secondary: Icon(Icons.play_circle_outline, color: AppColors.textDim),
+            title: const Text('Seguir meu ritmo', style: TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(
+              app.exerciseFlow
+                  ? 'Toque a escala sem parar: o app acompanha cada nota sem pedir para segurar. '
+                      'Se a nota ainda não for a certa, aparece um aviso leve (suba ou desça).'
+                  : 'Desligado: o app espera você segurar cada nota até a barra encher antes de seguir.',
+              style: const TextStyle(fontSize: 12.5),
+            ),
+            value: app.exerciseFlow,
+            onChanged: app.setExerciseFlow,
+          ),
+        ),
         const SizedBox(height: 12),
         FilledButton.icon(
           style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54)),
@@ -489,6 +527,16 @@ class _GridPageState extends State<GridPage> {
                         app.holdSeconds,
                         (h) => app.setTuning(holdSeconds: h),
                       )),
+              const Divider(height: 1),
+              _tile(Icons.speed, 'Troca de nota', app.noteSwitch.label,
+                  () => _pick<NoteSwitchSpeed>(
+                        'Troca de nota',
+                        [for (final v in NoteSwitchSpeed.values) (v, '${v.label} · ${v.hint}')],
+                        app.noteSwitch,
+                        app.setNoteSwitch,
+                        hint:
+                            'Velocidade com que o destaque (nome da nota, ponteiro e quadrado aceso) passa de uma nota para a próxima. As cores da grade continuam registrando tudo o que você toca.',
+                      )),
             ],
           ),
         ),
@@ -577,7 +625,10 @@ class _GridPageState extends State<GridPage> {
                 'nota está grave (♭), verde quando está afinada e laranja quando está aguda (♯). '
                 'O número é o quanto falta, em centésimos de semitom. Quanto mais forte a cor, '
                 'mais longe do ideal: corrija e veja o quadrado virar verde. '
-                'Toque num quadrado para ver o valor exato.',
+                'Toque num quadrado para ver o valor exato.\n\n'
+                'Na nota que está tocando agora aparece um ponteiro: no centro o quadrado fica verde; '
+                'se o ponteiro vai para a esquerda a cor vira azul (grave), para a direita vira laranja (aguda). '
+                'O destaque troca de nota com calma, para dar tempo de ler; ajuste em Ajustes › Troca de nota.',
                 style: TextStyle(color: AppColors.textDim),
               ),
             ],
@@ -595,6 +646,8 @@ class _GridPageState extends State<GridPage> {
     required double now,
     required double zone,
     required bool playing,
+    required double? liveCents,
+    required bool silent,
     required bool inScale,
     required bool isTarget,
   }) {
@@ -625,9 +678,21 @@ class _GridPageState extends State<GridPage> {
                 width: playing ? 2.2 : 1,
               ),
             ),
-            child: isTarget && v == null
-                ? Center(child: Icon(Icons.circle, size: 5, color: AppColors.textDim))
-                : null,
+            // O quadrado da nota que toca ganha o ponteiro vivo (cor e ponteiro
+            // se mexem juntos; verde no centro).
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (isTarget && v == null)
+                  Center(child: Icon(Icons.circle, size: 5, color: AppColors.textDim)),
+                LiveCellLayer(
+                  cents: liveCents,
+                  zone: zone,
+                  radius: 4,
+                  silent: silent,
+                ),
+              ],
+            ),
           ),
         ),
       ),

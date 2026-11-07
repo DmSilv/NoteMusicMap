@@ -126,12 +126,19 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
       if (!mounted) return;
       final micOn = msg.startsWith('Microfone ligado');
       final micOff = msg.startsWith('Microfone desligado');
-      showToast(
-        context,
-        msg,
-        icon: micOn ? Icons.mic : (micOff ? Icons.mic_off : Icons.info_outline),
-        color: micOn ? AppColors.inTune : (micOff ? AppColors.textDim : null),
-      );
+      // Mostra depois do quadro atual: se o aviso veio de uma troca de tema, as
+      // cores do aviso já são as do tema novo.
+      WidgetsBinding.instance
+        ..addPostFrameCallback((_) {
+          if (!mounted) return;
+          showToast(
+            context,
+            msg,
+            icon: micOn ? Icons.mic : (micOff ? Icons.mic_off : Icons.info_outline),
+            color: micOn ? AppColors.inTune : (micOff ? AppColors.textDim : null),
+          );
+        })
+        ..scheduleFrame();
     };
   }
 

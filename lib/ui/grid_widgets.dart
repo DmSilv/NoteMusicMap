@@ -1,7 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 
 import '../app_state.dart';
 import 'theme.dart';
+import 'transitions.dart';
 
 /// Seletor de oitavas: uma faixa fixa com as oitavas 0 a 8 sempre visíveis.
 /// As que estão na grade ficam numa "janela" destacada. Toque num número ou
@@ -285,45 +289,115 @@ class _LegendTag extends StatelessWidget {
   }
 }
 /// Dica de correção para a nota atual: "Grave ♭15 · suba um pouco".
-class CorrectionHint extends StatelessWidget {
+///
+/// O número exibido DESLIZA até o valor medido (suavização por quadro) em vez
+/// de piscar a cada leitura do microfone, e a cor e a direção (suba/desça)
+/// seguem esse valor suave, então a dica não fica "tremendo" na fronteira da
+/// zona afinada. Ocupa sempre a mesma altura.
+class CorrectionHint extends StatefulWidget {
   final double? cents;
   final double zone;
   const CorrectionHint({super.key, required this.cents, required this.zone});
 
   @override
-  Widget build(BuildContext context) {
-    final c = cents;
-    String text;
-    IconData icon;
-    Color color;
-    if (c == null) {
-      text = 'Toque uma nota';
-      icon = Icons.hearing;
-      color = AppColors.textDim;
-    } else if (c.abs() <= zone) {
-      text = 'Afinada';
-      icon = Icons.check_circle;
-      color = AppColors.inTune;
-    } else {
-      final a = c.abs();
-      final how = a <= zone * 2.5 ? 'um pouco' : (a <= zone * 6 ? '' : 'bastante');
-      final dir = c < 0 ? 'suba' : 'desça';
-      text = '${c < 0 ? 'Grave ♭' : 'Aguda ♯'}${a.round()} · $dir ${how.isEmpty ? '' : how}'.trim();
-      icon = c < 0 ? Icons.arrow_upward : Icons.arrow_downward;
-      color = intonationColor(c, zone);
+  State<CorrectionHint> createState() => _CorrectionHintState();
+}
+
+class _CorrectionHintState extends State<CorrectionHint> with SingleTickerProviderStateMixin {
+  static const double _tau = 0.12; // s: constante de tempo do número exibido
+
+  late final Ticker _ticker = createTicker(_tick);
+  final ValueNotifier<int> _repaint = ValueNotifier(0);
+  Duration _last = Duration.zero;
+  double _v = 0; // desvio exibido (suavizado)
+
+  @override
+  void initState() {
+    super.initState();
+    _v = widget.cents ?? 0;
+  }
+
+  @override
+  void didUpdateWidget(CorrectionHint old) {
+    super.didUpdateWidget(old);
+    final c = widget.cents;
+    if (c == null) return;
+    if (old.cents == null) {
+      _v = c; // nota nova depois do silêncio: aparece já no valor certo
+    } else if ((c - _v).abs() > 0.05 && !_ticker.isActive) {
+      _last = Duration.zero;
+      _ticker.start();
     }
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 160),
-      child: Row(
-        // só troca com animação quando muda a direção, não a cada cent
-        key: ValueKey(icon.codePoint),
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: color),
-          const SizedBox(width: 6),
-          Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 15)),
-        ],
-      ),
+  }
+
+  void _tick(Duration elapsed) {
+    final dt = ((elapsed - _last).inMicroseconds / 1e6).clamp(0.0, 0.05);
+    _last = elapsed;
+    final c = widget.cents;
+    if (c == null) {
+      _ticker.stop();
+      return;
+    }
+    _v += (c - _v) * (1 - math.exp(-dt / _tau));
+    if ((c - _v).abs() <= 0.05) {
+      _v = c;
+      _ticker.stop();
+    }
+    _repaint.value++;
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    _repaint.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: _repaint,
+      builder: (context, _) {
+        final has = widget.cents != null;
+        final zone = widget.zone;
+        final c = _v;
+        String text;
+        IconData icon;
+        Color color;
+        if (!has) {
+          text = 'Toque uma nota';
+          icon = Icons.hearing;
+          color = AppColors.textDim;
+        } else if (c.abs() <= zone) {
+          text = 'Afinada';
+          icon = Icons.check_circle;
+          color = AppColors.inTune;
+        } else {
+          final a = c.abs();
+          final how = a <= zone * 2.5 ? 'um pouco' : (a <= zone * 6 ? '' : 'bastante');
+          final dir = c < 0 ? 'suba' : 'desça';
+          text = '${c < 0 ? 'Grave ♭' : 'Aguda ♯'}${a.round()} · $dir ${how.isEmpty ? '' : how}'.trim();
+          icon = c < 0 ? Icons.arrow_upward : Icons.arrow_downward;
+          color = intonationColor(c, zone);
+        }
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          // Quem sai some depressa e quem entra só aparece depois: os dois
+          // textos nunca ficam um em cima do outro.
+          transitionBuilder: (child, animation) =>
+              fadeThroughTransition(child, animation, scaleFrom: 0.97),
+          child: Row(
+            // só troca com animação quando muda a direção, não a cada cent
+            key: ValueKey(icon.codePoint),
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 18, color: color),
+              const SizedBox(width: 6),
+              Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w700, fontSize: 15)),
+            ],
+          ),
+        );
+      },
     );
   }
 }

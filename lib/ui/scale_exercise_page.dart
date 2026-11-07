@@ -7,6 +7,7 @@ import 'grid_widgets.dart';
 import 'needle.dart';
 import 'note_widgets.dart';
 import 'theme.dart';
+import 'transitions.dart';
 import 'widgets.dart';
 
 /// Exercício de escala guiado: o app mostra a próxima nota, acompanha a
@@ -93,6 +94,39 @@ class ScaleExercisePage extends StatelessWidget {
               color: AppColors.accent,
             ),
           ),
+          if (!e.finished) ...[
+            const SizedBox(height: 12),
+            // Como o app acompanha: no seu ritmo (sem esperar) ou esperando cada nota.
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<bool>(
+                showSelectedIcon: false,
+                style: const ButtonStyle(
+                  visualDensity: VisualDensity.compact,
+                  textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                ),
+                segments: const [
+                  ButtonSegment(
+                      value: true,
+                      icon: Icon(Icons.play_arrow, size: 18),
+                      label: Text('Seguir meu ritmo')),
+                  ButtonSegment(
+                      value: false,
+                      icon: Icon(Icons.hourglass_bottom, size: 16),
+                      label: Text('Esperar cada nota')),
+                ],
+                selected: {e.flow},
+                onSelectionChanged: (v) => app.setExerciseFlow(v.first),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              e.flow
+                  ? 'Toque a escala sem parar: o app acompanha e mede cada nota, sem pedir para segurar.'
+                  : 'O app espera você segurar cada nota até a barra encher antes de seguir.',
+              style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+            ),
+          ],
         ],
       ),
     );
@@ -134,6 +168,11 @@ class ScaleExercisePage extends StatelessWidget {
     final hz = targetFreq(m, app.cfg);
     final cur = app.current;
     final onTarget = cur?.midi == m;
+    // Prévia das próximas notas: no modo contínuo dá para tocar olhando adiante.
+    final next = [
+      for (var k = 1; k <= 3; k++)
+        if (e.index + k < e.sequence.length) e.sequence[e.index + k]
+    ];
     return AppCard(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       child: Column(
@@ -141,11 +180,8 @@ class ScaleExercisePage extends StatelessWidget {
           Text('Toque agora', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
           const SizedBox(height: 6),
           AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
-            transitionBuilder: (c, a) => FadeTransition(
-              opacity: a,
-              child: ScaleTransition(scale: Tween(begin: 0.9, end: 1.0).animate(a), child: c),
-            ),
+            duration: const Duration(milliseconds: 260),
+            transitionBuilder: (c, a) => fadeThroughTransition(c, a),
             child: KeyedSubtree(
               key: ValueKey('${e.index}-$m'),
               child: NoteLabel.midi(m, app.cfg, size: 84, color: onTarget ? AppColors.inTune : AppColors.text),
@@ -153,19 +189,77 @@ class ScaleExercisePage extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text('${hz.toStringAsFixed(2)} Hz', style: TextStyle(color: AppColors.textDim)),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              minHeight: 6,
-              value: e.holdProgress,
-              backgroundColor: AppColors.surface2,
-              color: AppColors.inTune,
+          // Altura fixa: perto do fim a prévia tem menos notas, sem mexer na tela.
+          SizedBox(
+            height: 38,
+            child: next.isEmpty
+                ? null
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text('Depois', style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+                      const SizedBox(width: 8),
+                      for (final n in next)
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 3),
+                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface2,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(noteName(n, app.cfg, withOctave: true),
+                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                        ),
+                    ],
+                  ),
+          ),
+          const SizedBox(height: 6),
+          if (e.flow)
+            _flowStatus(e, onTarget)
+          else ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(6),
+              child: LinearProgressIndicator(
+                minHeight: 6,
+                value: e.holdProgress,
+                backgroundColor: AppColors.surface2,
+                color: AppColors.inTune,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(onTarget ? 'Segure a nota…' : 'Aguardando a nota certa',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Estado do modo "seguir meu ritmo": um ponto que acende quando o app está
+  /// ouvindo a nota certa (no lugar da barra de segurar).
+  Widget _flowStatus(ScaleExercise e, bool onTarget) {
+    final hearing = e.hearing || onTarget;
+    final color = hearing ? AppColors.inTune : AppColors.textDim;
+    return SizedBox(
+      height: 22,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: hearing ? color : Colors.transparent,
+              border: Border.all(color: color, width: 1.8),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(onTarget ? 'Segure a nota…' : 'Aguardando a nota certa',
-              style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+          const SizedBox(width: 8),
+          Text(
+            hearing ? 'Ouvindo… pode seguir para a próxima' : 'Aguardando a nota certa',
+            style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+          ),
         ],
       ),
     );
@@ -175,32 +269,63 @@ class ScaleExercisePage extends StatelessWidget {
     final cur = app.current;
     final zone = app.zone.cents;
     final onTarget = cur?.midi == e.expected;
+    final cue = e.cue(cur?.midi, cur?.cents ?? 0);
     return AppCard(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: Column(
         children: [
           SmoothNeedle(cents: onTarget ? cur?.cents : null, zone: zone),
-          CorrectionHint(cents: onTarget ? cur?.cents : null, zone: zone),
-          // Espaço reservado: a linha aparece/some só com opacidade, sem empurrar a tela.
+          // Uma linha só, de altura fixa: a dica de afinação (nota certa) ou o
+          // aviso leve (nota ainda não é a certa) trocam de lugar com fade, sem
+          // empurrar a tela.
           SizedBox(
-            height: 40,
+            height: 44,
             child: Center(
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 180),
-                opacity: (cur != null && !onTarget) ? 1 : 0,
-                child: Text(
-                  cur == null
-                      ? ' '
-                      : 'Você está em ${noteName(cur.midi, app.cfg, withOctave: true)}; procure ${noteName(e.expected!, app.cfg, withOctave: true)}.',
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  style: TextStyle(color: AppColors.textDim, fontSize: 13),
-                ),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 160),
+                child: cue != null
+                    ? KeyedSubtree(key: const ValueKey('cue'), child: _cueLine(cue))
+                    : KeyedSubtree(
+                        key: const ValueKey('hint'),
+                        child: CorrectionHint(cents: onTarget ? cur?.cents : null, zone: zone),
+                      ),
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  /// Aviso leve: "Ainda não é Lá3: suba um pouco" (azul = grave, laranja = agudo).
+  Widget _cueLine(NoteCue? cue) {
+    if (cue == null) return const Text(' ');
+    final exp = noteName(cue.expectedMidi, app.cfg, withOctave: true);
+    final heard = noteName(cue.heardMidi, app.cfg, withOctave: true);
+    if (!cue.near) {
+      return Text(
+        cue.inScale ? 'Você está em $heard; procure $exp.' : '$heard não é da escala; procure $exp.',
+        textAlign: TextAlign.center,
+        maxLines: 2,
+        style: TextStyle(color: AppColors.textDim, fontSize: 13),
+      );
+    }
+    final how = switch (cue.amount) { 0 => ' um pouco', 1 => '', _ => ' bastante' };
+    final color = cue.goUp ? AppColors.flat : AppColors.sharp;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(cue.goUp ? Icons.arrow_upward : Icons.arrow_downward, size: 18, color: color),
+        const SizedBox(width: 6),
+        Flexible(
+          child: Text(
+            'Ainda não é $exp: ${cue.goUp ? 'suba' : 'desça'}$how',
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
     );
   }
 

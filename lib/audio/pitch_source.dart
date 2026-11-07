@@ -159,7 +159,11 @@ class DemoPitchSource implements PitchSource {
 
   /// Sequência de (frequência em Hz, duração em s).
   final List<(double, double)> script;
-  DemoPitchSource(this.script);
+
+  /// Trechos que deslizam até outra frequência (índice do trecho -> Hz final).
+  /// Serve para testar o ponteiro: uma nota que vai do grave ao agudo.
+  final Map<int, double> glideTo;
+  DemoPitchSource(this.script, {this.glideTo = const {}});
 
   /// Avisado quando a nota virtual muda (frequência) ou cala (null), para o app
   /// poder TOCAR o violino virtual. O microfone real nunca toca nada.
@@ -212,6 +216,10 @@ class DemoPitchSource implements PitchSource {
         acc += s.$2;
       }
       // pequeno vibrato e silêncio curto entre notas
+      final end = glideTo[idx];
+      if (end != null) {
+        f = f * math.pow(end / f, local / script[idx].$2).toDouble();
+      }
       final gap = local < 0.12;
       final key = gap ? -1 : idx;
       if (key != _lastKey) {
