@@ -50,7 +50,10 @@ class GridCell extends StatelessWidget {
     final restFill = accidental ? _accidentalTone(AppColors.surface2) : AppColors.surface2;
     var fill = restFill;
     if (v != null) {
-      final a = (0.5 + 0.5 * v.confidence) * v.alpha;
+      // A nota que soa agora tem a cor cheia; as outras perdem força depressa (ficam só como pista),
+      // para a grade não virar uma mancha de cores e dar para ver onde está a nota atual.
+      final recency = playing ? 1.0 : (0.12 + 0.43 * (1 - v.age / 6).clamp(0.0, 1.0));
+      final a = (0.5 + 0.5 * v.confidence) * v.alpha * recency;
       fill = Color.lerp(restFill, intonationColor(v.avgCents, zone), a)!;
     }
     final dim = !inScale && v == null;

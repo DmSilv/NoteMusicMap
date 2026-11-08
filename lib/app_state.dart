@@ -51,7 +51,7 @@ enum TunerMode { strings, chromatic }
 /// vibrato forte ou ruído de fundo (pode errar mais a oitava).
 enum MicSensitivity {
   rigorous('Rigoroso', 0.88, 0.006, 3),
-  normal('Normal', 0.80, 0.003, 2),
+  normal('Normal', 0.72, 0.0018, 2),
   free('Livre', 0.55, 0.0008, 1);
 
   final String label;

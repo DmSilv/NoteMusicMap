@@ -155,7 +155,10 @@ class CellView {
   /// 0..1: visibilidade (cai a 0 depois do tempo de retenção).
   final double alpha;
   final double seconds;
-  const CellView(this.avgCents, this.confidence, this.alpha, this.seconds);
+
+  /// Segundos desde a última vez que a nota soou (0 = soando agora).
+  final double age;
+  const CellView(this.avgCents, this.confidence, this.alpha, this.seconds, [this.age = 0]);
 }
 
 class _Cell {
@@ -209,7 +212,7 @@ class PitchGrid {
       }
     }
     return CellView(
-        c.sum / c.w, 1 - math.exp(-c.w / 0.5), alpha.clamp(0.0, 1.0), c.seconds);
+        c.sum / c.w, 1 - math.exp(-c.w / 0.5), alpha.clamp(0.0, 1.0), c.seconds, math.max(0.0, now - c.lastSeen));
   }
 
   Iterable<int> get playedMidis => _cells.keys;
