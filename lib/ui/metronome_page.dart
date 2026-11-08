@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../app_state.dart';
+import 'safe_input.dart';
 import 'package:afina_core/afina_core.dart';
 import 'perf.dart';
 import 'theme.dart';
@@ -503,7 +503,7 @@ class _MetronomePageState extends State<MetronomePage>
           controller: ctl,
           autofocus: true,
           keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          inputFormatters: digitsFormatters(4),
           decoration: const InputDecoration(suffixText: 'BPM'),
           onSubmitted: (s) => Navigator.pop(ctx, double.tryParse(s)),
         ),

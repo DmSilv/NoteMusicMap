@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import 'safe_input.dart';
 import '../feedback/feedback_service.dart';
 import 'dictation_button.dart';
 import 'theme.dart';
@@ -106,6 +107,7 @@ class _RatingSheetState extends State<_RatingSheet> {
             const SizedBox(height: 8),
             TextField(
               controller: _comment,
+              inputFormatters: const [SafeText.note()],
               maxLength: 300,
               minLines: 2,
               maxLines: 4,
@@ -189,6 +191,7 @@ class _SurveySheetState extends State<_SurveySheet> {
             const SizedBox(height: 6),
             TextField(
               controller: _improve,
+              inputFormatters: const [SafeText.note()],
               maxLength: 200,
               minLines: 2,
               maxLines: 4,

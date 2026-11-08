@@ -5,6 +5,8 @@ library;
 
 import 'dart:convert';
 
+import 'input_guard.dart';
+
 class MethodEntry {
   String name;
   final List<String> lessons;
@@ -19,14 +21,15 @@ class MethodEntry {
       final name = _clean((m['name'] ?? m['nome'] ?? '') as String);
       if (name.isEmpty) return null;
       final raw = (m['lessons'] ?? m['licoes'] ?? m['lições'] ?? const []) as List;
-      return MethodEntry(name, _uniq([for (final l in raw) _clean('$l')]));
+      return MethodEntry(name, _uniq([for (final l in raw.take(kMaxLessons)) _clean('$l')]));
     } catch (_) {
       return null;
     }
   }
 }
 
-String _clean(String s) => s.replaceAll(RegExp(r'\s+'), ' ').trim();
+/// Limpa um nome ou lição: sem caracteres perigosos, espaços arrumados, tamanho limitado.
+String _clean(String s) => cleanText(s, max: kMaxLine);
 
 List<String> _uniq(Iterable<String> v) {
   final seen = <String>{};
@@ -90,6 +93,8 @@ MergeResult learnMethod(List<MethodEntry> lib, String name, String lesson) =>
 /// - método numa linha e as lições nas linhas seguintes, começando por `-`, `•`, `*` ou recuo.
 /// Devolve lista vazia se não achar nada.
 List<MethodEntry> parseMethodsText(String text) {
+  // Limites: texto colado muito grande é cortado, e há teto de métodos e lições.
+  if (text.length > kMaxImport) text = text.substring(0, kMaxImport);
   final t = text.trim();
   if (t.isEmpty) return const [];
   if (t.startsWith('[') || t.startsWith('{')) {
@@ -97,7 +102,7 @@ List<MethodEntry> parseMethodsText(String text) {
       final j = jsonDecode(t);
       final list = j is List ? j : (j is Map && j['methods'] is List ? j['methods'] as List : [j]);
       return [
-        for (final x in list) ?MethodEntry.tryFrom(x),
+        for (final x in list.take(kMaxMethods)) ?MethodEntry.tryFrom(x),
       ];
     } catch (_) {
       // não era JSON: lê como texto
@@ -107,11 +112,12 @@ List<MethodEntry> parseMethodsText(String text) {
   MethodEntry? last;
   for (final raw in const LineSplitter().convert(text)) {
     if (raw.trim().isEmpty) continue;
+    if (out.length >= kMaxMethods) break;
     final bullet = RegExp(r'^\s*([-•*–]|\d+[.)])\s+(.*)$').firstMatch(raw);
     final indented = RegExp(r'^[ \t]{2,}\S').hasMatch(raw);
     if ((bullet != null || indented) && last != null) {
       final lesson = _clean(bullet != null ? bullet.group(2)! : raw);
-      if (lesson.isNotEmpty) last.lessons.add(lesson);
+      if (lesson.isNotEmpty && last.lessons.length < kMaxLessons) last.lessons.add(lesson);
       continue;
     }
     final line = raw.trim();

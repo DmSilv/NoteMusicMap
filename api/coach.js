@@ -39,6 +39,10 @@ function who(req) {
 }
 
 function readBody(req) {
+  // Pedido grande demais nunca é do app: nem tenta ler.
+  const len = Number(req.headers && req.headers['content-length']);
+  if (Number.isFinite(len) && len > 20000) return null;
+  if (typeof req.body === 'string' && req.body.length > 20000) return null;
   if (req.body && typeof req.body === 'object') return req.body;
   if (typeof req.body === 'string') {
     try { return JSON.parse(req.body); } catch (_) { return null; }

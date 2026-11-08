@@ -556,7 +556,7 @@ class AppState extends ChangeNotifier {
   }
 
   void _startLinkTimer() {
-    _linkTimer ??= Timer.periodic(const Duration(seconds: 15), (_) => syncLinks());
+    _linkTimer ??= Timer.periodic(const Duration(seconds: 30), (_) => syncLinks());
   }
 
   void _markLinkUnavailable() {

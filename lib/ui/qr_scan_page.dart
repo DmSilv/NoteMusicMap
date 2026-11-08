@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:afina_core/afina_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import 'safe_input.dart';
 import 'theme.dart';
 
 /// Abre a câmera para ler o QR de um aluno ou de um professor. Também deixa
@@ -42,10 +46,16 @@ class QrScanPage extends StatefulWidget {
 class _QrScanPageState extends State<QrScanPage> {
   final MobileScannerController _cam = MobileScannerController(
     formats: const [BarcodeFormat.qrCode],
-    detectionSpeed: DetectionSpeed.noDuplicates,
+    // Normal (com intervalo): um QR inválido que continua na frente da câmera é
+    // lido de novo e o aviso reaparece, em vez de a tela ficar parada e muda.
+    detectionSpeed: DetectionSpeed.normal,
+    detectionTimeoutMs: 900,
   );
   final TextEditingController _typed = TextEditingController();
-  String? _message;
+  String? _message; // erro do campo digitado
+  String? _bannerTitle; // aviso sobre a câmera (QR lido)
+  String? _bannerText;
+  Timer? _bannerTimer;
   bool _done = false;
   bool? _reported;
 
@@ -70,28 +80,58 @@ class _QrScanPageState extends State<QrScanPage> {
   @override
   void dispose() {
     _cam.removeListener(_onCamera);
+    _bannerTimer?.cancel();
     _cam.dispose();
     _typed.dispose();
     super.dispose();
   }
 
-  /// Confere o que veio (da câmera ou digitado) e devolve, ou avisa o que está errado.
-  void _accept(String raw) {
+  /// Mostra um aviso vermelho sobre a câmera (some sozinho).
+  void _banner(String title, String text) {
+    _bannerTimer?.cancel();
+    setState(() {
+      _bannerTitle = title;
+      _bannerText = text;
+    });
+    _bannerTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted) setState(() => _bannerTitle = null);
+    });
+  }
+
+  /// Confere o que veio e devolve, ou avisa o que está errado. Do QR (câmera) o
+  /// aviso é "QR Code inválido" (o problema é o QR, não o app); do campo digitado
+  /// é "código incorreto". O conteúdo lido nunca é mostrado nem aberto.
+  void _accept(String raw, {required bool fromCamera}) {
     if (_done) return;
-    final s = parseScannedCode(raw);
+    final s = parseScannedCode(raw, extraHosts: {if (kIsWeb) Uri.base.host});
     if (s == null) {
-      setState(() => _message = 'Este não é um código do Notemusic. Confira e tente de novo.');
+      if (fromCamera) {
+        _banner('QR Code inválido',
+            'Este QR não é do Notemusic, então não há nada para fazer com ele. '
+            'Aponte para o QR de um aluno ou professor do app.');
+      } else {
+        setState(() => _message = 'Código incorreto. Confira as letras e os números (ex.: K7QM-4TXD).');
+      }
       return;
     }
     if (widget.want != null && s.kind != 'codigo' && s.kind != widget.want) {
-      setState(() => _message = s.kind == 'aluno'
+      final msg = s.kind == 'aluno'
           ? 'Este é o QR de um aluno. Aqui é preciso o QR do professor.'
-          : 'Este é o QR de um professor. Aqui é preciso o QR do aluno.');
+          : 'Este é o QR de um professor. Aqui é preciso o QR do aluno.';
+      if (fromCamera) {
+        _banner('QR do tipo errado', msg);
+      } else {
+        setState(() => _message = msg);
+      }
       return;
     }
     final problem = widget.check?.call(s.code);
     if (problem != null) {
-      setState(() => _message = problem);
+      if (fromCamera) {
+        _banner('Não dá para usar este QR', problem);
+      } else {
+        setState(() => _message = problem);
+      }
       return;
     }
     _done = true;
@@ -106,14 +146,16 @@ class _QrScanPageState extends State<QrScanPage> {
         child: Column(
           children: [
             Expanded(
-              child: ClipRect(
+              child: Stack(children: [
+                Positioned.fill(
+                  child: ClipRect(
                 child: MobileScanner(
                   controller: _cam,
                   onDetect: (cap) {
                     for (final b in cap.barcodes) {
                       final v = b.rawValue;
                       if (v != null) {
-                        _accept(v);
+                        _accept(v, fromCamera: true);
                         break;
                       }
                     }
@@ -138,6 +180,15 @@ class _QrScanPageState extends State<QrScanPage> {
                   ),
                 ),
               ),
+                ),
+                if (_bannerTitle != null)
+                  Positioned(
+                    left: 12,
+                    right: 12,
+                    top: 12,
+                    child: _InvalidBanner(title: _bannerTitle!, text: _bannerText ?? ''),
+                  ),
+              ]),
             ),
             Padding(
               padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + MediaQuery.of(context).viewInsets.bottom),
@@ -154,16 +205,18 @@ class _QrScanPageState extends State<QrScanPage> {
                         child: TextField(
                           controller: _typed,
                           autocorrect: false,
+                          enableSuggestions: false,
+                          inputFormatters: codeFormatters,
                           textCapitalization: TextCapitalization.characters,
                           decoration: InputDecoration(hintText: 'K7QM-4TXD', errorText: _message, errorMaxLines: 3),
                           onChanged: (_) {
                             if (_message != null) setState(() => _message = null);
                           },
-                          onSubmitted: _accept,
+                          onSubmitted: (v) => _accept(v, fromCamera: false),
                         ),
                       ),
                       const SizedBox(width: 8),
-                      FilledButton(onPressed: () => _accept(_typed.text), child: const Text('Usar código')),
+                      FilledButton(onPressed: () => _accept(_typed.text, fromCamera: false), child: const Text('Usar código')),
                     ],
                   ),
                 ],
@@ -204,6 +257,47 @@ class _CameraProblem extends StatelessWidget {
               Text(text,
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: Colors.white, fontSize: 14, height: 1.35)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Aviso vermelho sobre a câmera: o QR lido não serve.
+class _InvalidBanner extends StatelessWidget {
+  final String title;
+  final String text;
+  const _InvalidBanner({required this.title, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      liveRegion: true,
+      child: Material(
+        color: const Color(0xFFB3261E),
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.qr_code_2, color: Colors.white, size: 28),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: const TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                    const SizedBox(height: 2),
+                    Text(text,
+                        style: const TextStyle(color: Colors.white, fontSize: 13, height: 1.3)),
+                  ],
+                ),
+              ),
             ],
           ),
         ),

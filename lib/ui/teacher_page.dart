@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app_state.dart';
+import 'safe_input.dart';
 import '../ai/coach_ai.dart';
 import 'dictation_button.dart';
 import 'markdown_lite.dart';
@@ -24,6 +25,7 @@ Future<String?> _askText(BuildContext context, String title, String label,
       title: Text(title),
       content: TextField(
         controller: ctl,
+        inputFormatters: [SafeText(multiline ? kMaxNote : kMaxTitle, multiline: multiline)],
         autofocus: true,
         minLines: multiline ? 3 : 1,
         maxLines: multiline ? 8 : 1,
@@ -62,6 +64,7 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
             children: [
               TextField(
                 controller: name,
+                inputFormatters: const [SafeText.name()],
                 autofocus: true,
                 textCapitalization: TextCapitalization.words,
                 decoration: InputDecoration(
@@ -73,6 +76,7 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
               const SizedBox(height: 12),
               TextField(
                 controller: code,
+                inputFormatters: codeFormatters,
                 autocorrect: false,
                 textCapitalization: TextCapitalization.characters,
                 decoration: InputDecoration(
@@ -422,6 +426,7 @@ class _TeacherPageState extends State<TeacherPage> {
             padding: const EdgeInsets.only(bottom: 10),
             child: TextField(
               controller: _search,
+              inputFormatters: const [SafeText.name()],
               onChanged: (v) => setState(() => _query = v),
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search),
@@ -1137,6 +1142,7 @@ class StudentPage extends StatelessWidget {
                 ] else ...[
                   TextField(
                     controller: subject,
+                    inputFormatters: const [SafeText.title()],
                     textCapitalization: TextCapitalization.sentences,
                     decoration: InputDecoration(
                       labelText: subjectLabel(),
@@ -1173,6 +1179,7 @@ class StudentPage extends StatelessWidget {
                     const SizedBox(height: 4),
                     TextField(
                       controller: detail,
+                      inputFormatters: const [SafeText.line()],
                       textCapitalization: TextCapitalization.sentences,
                       decoration: InputDecoration(
                         labelText: detailLabel(),
@@ -1205,6 +1212,7 @@ class StudentPage extends StatelessWidget {
                 const SizedBox(height: 14),
                 TextField(
                   controller: note,
+                  inputFormatters: const [SafeText.note()],
                   minLines: 2,
                   maxLines: 5,
                   maxLength: 500,

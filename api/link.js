@@ -18,6 +18,8 @@ const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const MAX_LINKS = 300;
 const MUTATIONS_PER_HOUR = 60;
 const BAD_AUTH_PER_HOUR = 20;
+const NEW_PROFILES_PER_DAY = 30; // perfis novos por origem/dia (evita encher o banco com códigos falsos)
+const MAX_BODY = 2048; // bytes: o pedido real tem ~200
 
 /** Código "XXXX-XXXX" válido (mesma verificação do app) ou null. */
 function normCode(s) {
@@ -39,11 +41,18 @@ function clientIp(req) {
 }
 
 function readBody(req) {
-  if (req.body && typeof req.body === 'object') return req.body;
-  if (typeof req.body === 'string') {
-    try { return JSON.parse(req.body); } catch (_) { return null; }
+  // Pedido grande demais nunca é um pedido do app: nem tenta ler.
+  const len = Number(req.headers && req.headers['content-length']);
+  if (Number.isFinite(len) && len > MAX_BODY) return null;
+  let b = null;
+  if (req.body && typeof req.body === 'object') b = req.body;
+  else if (typeof req.body === 'string') {
+    if (req.body.length > MAX_BODY) return null;
+    try { b = JSON.parse(req.body); } catch (_) { return null; }
   }
-  return null;
+  if (!b || typeof b !== 'object' || Array.isArray(b)) return null;
+  if (JSON.stringify(b).length > MAX_BODY) return null;
+  return b;
 }
 
 const U = (code) => `u:${code}`; // hash do perfil: h (hash do segredo), n (apelido)
@@ -68,6 +77,7 @@ function makeHandler(deps = {}) {
   return async function handler(req, res) {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
     const send = (code, obj) => {
       res.statusCode = code;
       res.end(JSON.stringify(obj));
@@ -96,6 +106,10 @@ function makeHandler(deps = {}) {
       const secretHash = sha('lnk|' + secret);
       let prof = await store.hgetall(U(me));
       if (!prof.h) {
+        // Perfil novo: limite por origem e por dia, para ninguém encher o banco de códigos falsos.
+        const day = Math.floor(clock() / 86400000);
+        const nw = await store.incr(`lnknew:${ipKey}:${day}`, 86400);
+        if (nw.n > NEW_PROFILES_PER_DAY) return send(429, { error: 'Muitos perfis novos desta origem hoje. Tente amanhã.' });
         await store.hsetnx(U(me), 'h', secretHash); // primeira vez: este segredo passa a ser o dono
         prof = await store.hgetall(U(me));
       }

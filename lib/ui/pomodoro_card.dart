@@ -1,8 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:afina_core/afina_core.dart';
+import 'safe_input.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../app_state.dart';
 import 'theme.dart';
@@ -390,7 +390,7 @@ Future<void> _askNumber(BuildContext context, String label, int value, int min, 
             controller: ctl,
             autofocus: true,
             keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            inputFormatters: digitsFormatters(4),
             decoration: InputDecoration(
               suffixText: unit,
               helperText: 'De $min a $max',

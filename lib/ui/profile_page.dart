@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../app_state.dart';
+import 'safe_input.dart';
 import '../link/link_service.dart' show LinkedPerson;
 import 'qr_scan_page.dart';
 import 'share_sheet.dart' show shareLink;
@@ -387,6 +388,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(height: 12),
                   TextField(
                     controller: _name,
+                    inputFormatters: const [SafeText.name()],
                     textCapitalization: TextCapitalization.words,
                     maxLength: 40,
                     decoration: const InputDecoration(
@@ -508,6 +510,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(height: 8),
                   TextField(
                     controller: _restore,
+                    inputFormatters: const [SafeText.paste(600)],
                     minLines: 2,
                     maxLines: 4,
                     autocorrect: false,

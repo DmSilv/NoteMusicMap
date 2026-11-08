@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:afina_core/afina_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
@@ -17,7 +18,11 @@ class LinkedPerson {
   static LinkedPerson? tryFrom(Object? j) {
     try {
       final m = (j as Map).cast<String, dynamic>();
-      return LinkedPerson(m['code'] as String, (m['name'] as String?) ?? '', (m['since'] as num?)?.toInt() ?? 0);
+      // O que vem do servidor também é conferido: código bem formado, apelido limpo.
+      final code = formatShareCode((m['code'] as String?) ?? '');
+      if (code == null) return null;
+      final since = ((m['since'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000);
+      return LinkedPerson(code, cleanText(m['name'] as String?, max: kMaxName), since);
     } catch (_) {
       return null;
     }

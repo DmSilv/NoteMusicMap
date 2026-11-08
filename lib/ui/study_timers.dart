@@ -1,8 +1,8 @@
 import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../app_state.dart';
+import 'safe_input.dart';
 import 'pomodoro_card.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -168,7 +168,7 @@ class _CustomCard extends StatelessWidget {
           controller: ctl,
           autofocus: true,
           keyboardType: TextInputType.number,
-          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          inputFormatters: digitsFormatters(4),
           decoration: const InputDecoration(suffixText: 'min', helperText: 'De 1 a 600 minutos'),
         ),
         actions: [

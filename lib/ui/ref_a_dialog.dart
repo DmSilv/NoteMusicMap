@@ -36,7 +36,10 @@ Future<void> showRefADialog(BuildContext context, AppState app) async {
                   controller: ctl,
                   autofocus: true,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                    LengthLimitingTextInputFormatter(7),
+                  ],
                   decoration: InputDecoration(
                     labelText: 'Frequência do Lá4 (Hz)',
                     suffixText: 'Hz',

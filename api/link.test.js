@@ -171,3 +171,58 @@ test('a resposta nunca devolve segredos nem hashes', async () => {
   assert.ok(!out.includes(S_PROF));
   assert.ok(!out.includes('"h"'));
 });
+
+// ---------------- segurança das entradas ----------------
+test('pedido gigante ou que não é objeto é recusado sem tocar no banco', async () => {
+  const h = mk();
+  const big = await call(h, { action: 'sync', code: PROF, secret: S_PROF, name: 'x'.repeat(5000) });
+  assert.equal(big.statusCode, 400);
+  const arr = await call(h, [1, 2, 3]);
+  assert.equal(arr.statusCode, 400);
+  const str = await call(h, 'isto nao e json');
+  assert.equal(str.statusCode, 400);
+  // com Content-Length declarado enorme também
+  const res = fakeRes();
+  await h({ method: 'POST', headers: { 'content-length': '999999', 'x-forwarded-for': '8.8.8.8' }, body: { action: 'sync', code: PROF, secret: S_PROF }, socket: {} }, res);
+  assert.equal(res.statusCode, 400);
+  assert.equal(hashes.size, 0);
+});
+
+test('a mesma origem não consegue criar perfis falsos sem limite', async () => {
+  const h = mk();
+  let blocked = 0;
+  for (let i = 0; i < 40; i++) {
+    const r = await call(h, { action: 'sync', code: code(50000 + i * 977), secret: secret(i + 10) }, '9.9.9.9');
+    if (r.statusCode === 429) blocked++;
+  }
+  assert.ok(blocked >= 9, 'depois de 30 perfis novos no dia a origem é barrada, bloqueou ' + blocked);
+  assert.ok(hashes.size <= 31, 'o banco não cresce sem controle');
+  // outra origem continua podendo
+  const ok = await call(h, { action: 'sync', code: code(70001), secret: secret(77) }, '10.10.10.10');
+  assert.equal(ok.statusCode, 200);
+});
+
+test('código e segredo mal formados, ou com lixo, são recusados', async () => {
+  const h = mk();
+  for (const bad of [
+    { code: "'; DROP TABLE x;--", secret: S_PROF },
+    { code: PROF, secret: 'zz'.repeat(32) },
+    { code: PROF, secret: S_PROF.slice(0, 63) },
+    { code: { $ne: null }, secret: S_PROF },
+    { code: PROF, secret: ['a'] },
+    { code: '<script>alert(1)</script>', secret: S_PROF },
+  ]) {
+    const r = await call(h, { action: 'sync', ...bad });
+    assert.equal(r.statusCode, 400, JSON.stringify(bad));
+  }
+});
+
+test('apelido enorme ou com controle é cortado e limpo', async () => {
+  const h = mk();
+  const r = await call(h, { action: 'sync', code: PROF, secret: S_PROF, name: '  Ana\u0000\u0007 ' + 'z'.repeat(500) });
+  assert.equal(r.statusCode, 200);
+  const j = await sync(h, PROF, S_PROF);
+  assert.equal(j.ok, true);
+  assert.ok([...hashes.get('u:' + PROF).get('n')].length <= 40);
+  assert.ok(!/[\u0000-\u001f]/.test(hashes.get('u:' + PROF).get('n')));
+});

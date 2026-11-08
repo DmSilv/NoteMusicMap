@@ -14,6 +14,8 @@ library;
 
 import 'dart:math';
 
+import 'input_guard.dart';
+
 /// 32 símbolos sem 0, O, 1 e I (não se confundem ao ler ou digitar).
 const String kCodeAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 
@@ -97,22 +99,45 @@ class ScannedCode {
   const ScannedCode(this.code, this.kind);
 }
 
-/// Entende o que a câmera leu (ou o que a pessoa colou): um link com
+/// Endereços cujos links o app aceita ler (o do próprio app). Qualquer outro
+/// site é recusado, mesmo que o link traga `?aluno=`.
+const Set<String> kAppHosts = {'notemusicmap.vercel.app', 'localhost', '127.0.0.1'};
+
+/// Entende o que a câmera leu (ou o que a pessoa colou): um link DO APP com
 /// `?aluno=` ou `?professor=`, `notemusic:CÓDIGO`, ou o próprio código.
-/// Devolve null se não for um código válido.
-ScannedCode? parseScannedCode(String raw) {
+///
+/// Devolve null (sem abrir nem usar nada) se:
+///  - for grande demais ou tiver caracteres de controle/invisíveis;
+///  - for um link de outro site, ou de outro tipo (mailto:, tel:, wifi:, contato…);
+///  - o código não estiver bem formado (tamanho, alfabeto e dígito de verificação).
+/// [extraHosts]: outros endereços válidos (ex.: o domínio de onde o app está rodando).
+ScannedCode? parseScannedCode(String raw, {Set<String> extraHosts = const {}}) {
+  if (raw.length > kMaxQr) return null;
   final t = raw.trim();
-  if (t.isEmpty) return null;
+  if (t.isEmpty || hasUnsafeChars(t)) return null;
+
+  if (t.toLowerCase().startsWith('notemusic:')) {
+    final c = formatShareCode(t.substring(10));
+    return c == null ? null : ScannedCode(c, 'codigo');
+  }
+
   final u = Uri.tryParse(t);
-  if (u != null && u.hasQuery) {
+  if (u != null && u.hasScheme) {
+    // Link: só http/https e só do endereço do app.
+    if (u.scheme != 'http' && u.scheme != 'https') return null;
+    final host = u.host.toLowerCase();
+    final ok = kAppHosts.contains(host) || extraHosts.map((h) => h.toLowerCase()).contains(host);
+    if (!ok) return null;
     for (final k in const ['aluno', 'professor']) {
       final v = u.queryParameters[k];
       final c = v == null ? null : formatShareCode(v);
       if (c != null) return ScannedCode(c, k);
     }
+    return null;
   }
-  final stripped = t.toLowerCase().startsWith('notemusic:') ? t.substring(10) : t;
-  final c = formatShareCode(stripped);
+
+  // Sem esquema: tem que ser o próprio código ("K7QM-4TXD").
+  final c = formatShareCode(t);
   return c == null ? null : ScannedCode(c, 'codigo');
 }
 

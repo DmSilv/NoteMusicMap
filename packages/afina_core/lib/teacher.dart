@@ -5,6 +5,7 @@ library;
 import 'dart:convert';
 
 import 'identity.dart';
+import 'input_guard.dart';
 import 'practice_coach.dart';
 
 class TeacherNote {
@@ -15,7 +16,8 @@ class TeacherNote {
   Map<String, dynamic> toJson() => {'d': date.toIso8601String(), 't': text};
   static TeacherNote? tryFrom(Map<String, dynamic> j) {
     try {
-      return TeacherNote(DateTime.parse(j['d'] as String), (j['t'] as String?) ?? '');
+      return TeacherNote(DateTime.parse(j['d'] as String),
+          cleanText(j['t'] as String?, max: kMaxNote, multiline: true));
     } catch (_) {
       return null;
     }
@@ -130,14 +132,14 @@ class Assignment {
       final kind = TaskKind.values.where((k) => k.name == kindName).firstOrNull ?? TaskKind.scale;
       return Assignment(
         id: j['id'] as String,
-        title: (j['title'] as String?) ?? 'Tarefa',
+        title: cleanText((j['title'] as String?) ?? 'Tarefa', max: kMaxTitle),
         kind: kind,
-        subject: (j['sub'] as String?) ?? '',
-        detail: (j['det'] as String?) ?? '',
-        note: (j['note'] as String?) ?? '',
+        subject: cleanText(j['sub'] as String?, max: kMaxTitle),
+        detail: cleanText(j['det'] as String?, max: kMaxLine),
+        note: cleanText(j['note'] as String?, max: kMaxNote, multiline: true),
         scaleTypeIndex: (j['st'] as num?)?.toInt() ?? 0,
         tonicPc: ((j['pc'] as num?)?.toInt() ?? 0) % 12,
-        octaves: (j['oct'] as num?)?.toInt() ?? 1,
+        octaves: ((j['oct'] as num?)?.toInt() ?? 1).clamp(1, 3),
         goal: ((j['goal'] as num?) ?? 0.8).toDouble().clamp(0.0, 1.0),
         done: j['done'] == true,
         created: DateTime.parse(j['c'] as String),
@@ -200,21 +202,21 @@ class Student {
     try {
       return Student(
         id: j['id'] as String,
-        name: ((j['name'] as String?) ?? 'Aluno').trim(),
+        name: _nameOr(j['name'] as String?),
         code: formatShareCode((j['code'] as String?) ?? ''),
         linkState: (j['lk'] as String?),
-        remoteName: (j['rn'] as String?),
+        remoteName: (j['rn'] as String?) == null ? null : cleanText(j['rn'] as String?, max: kMaxName),
         created: DateTime.tryParse((j['c'] as String?) ?? ''),
         notes: [
-          for (final n in (j['notes'] as List? ?? const []))
+          for (final n in (j['notes'] as List? ?? const []).take(500))
             ?TeacherNote.tryFrom((n as Map).cast<String, dynamic>())
         ],
         tasks: [
-          for (final t in (j['tasks'] as List? ?? const []))
+          for (final t in (j['tasks'] as List? ?? const []).take(500))
             ?Assignment.tryFrom((t as Map).cast<String, dynamic>())
         ],
         sessions: [
-          for (final s in (j['sessions'] as List? ?? const []))
+          for (final s in (j['sessions'] as List? ?? const []).take(1000))
             ?SessionRecord.tryFromJson((s as Map).cast<String, dynamic>())
         ],
       );
@@ -222,6 +224,11 @@ class Student {
       return null;
     }
   }
+}
+
+String _nameOr(String? raw) {
+  final n = cleanText(raw, max: kMaxName);
+  return n.isEmpty ? 'Aluno' : n;
 }
 
 /// Problemas encontrados ao cadastrar um aluno (null = sem problema naquele campo).
@@ -362,6 +369,8 @@ String exportStudent(Student s) => jsonEncode(s.toJson());
 
 /// Lê os dados colados; null se não forem válidos.
 Student? importStudent(String text) {
+  // Texto enorme não é um aluno: recusa sem nem tentar ler (evita travar o aparelho).
+  if (text.length > kMaxBackup) return null;
   try {
     final j = jsonDecode(text.trim());
     if (j is! Map) return null;

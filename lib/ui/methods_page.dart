@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app_state.dart';
+import 'safe_input.dart';
 import 'dictation_button.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -164,6 +165,7 @@ class MethodsPage extends StatelessWidget {
               children: [
                 TextField(
                   controller: name,
+                  inputFormatters: const [SafeText.title()],
                   autofocus: m == null,
                   textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(
@@ -176,6 +178,7 @@ class MethodsPage extends StatelessWidget {
                 const SizedBox(height: 12),
                 TextField(
                   controller: lessons,
+                  inputFormatters: const [SafeText.list()],
                   minLines: 4,
                   maxLines: 10,
                   decoration: InputDecoration(
@@ -242,6 +245,7 @@ class MethodsPage extends StatelessWidget {
               const SizedBox(height: 10),
               TextField(
                 controller: ctl,
+                inputFormatters: const [SafeText.import()],
                 autofocus: true,
                 minLines: 5,
                 maxLines: 10,
@@ -252,7 +256,9 @@ class MethodsPage extends StatelessWidget {
                     icon: const Icon(Icons.paste),
                     onPressed: () async {
                       final d = await Clipboard.getData(Clipboard.kTextPlain);
-                      if (d?.text != null) ctl.text = d!.text!;
+                      if (d?.text != null) {
+                        ctl.text = stripUnsafe(d!.text!, max: kMaxImport, multiline: true);
+                      }
                     },
                   ),
                 ),

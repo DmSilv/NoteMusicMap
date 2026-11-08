@@ -79,10 +79,45 @@ void main() {
     test('link do aluno, link do professor, notemusic: e código puro', () {
       final a = parseScannedCode('https://notemusicmap.vercel.app/?aluno=$code')!;
       expect((a.code, a.kind), (code, 'aluno'));
-      final p = parseScannedCode('https://exemplo.com/?x=1&professor=$low')!;
+      final p = parseScannedCode('https://notemusicmap.vercel.app/?x=1&professor=$low')!;
       expect((p.code, p.kind), (code, 'professor'));
       expect(parseScannedCode('notemusic:$code')!.kind, 'codigo');
       expect(parseScannedCode('  $low ')!.code, code);
+    });
+
+    test('QR de OUTRO site nunca vale, mesmo com um código bem formado', () {
+      expect(parseScannedCode('https://exemplo.com/?professor=$code'), isNull);
+      expect(parseScannedCode('https://notemusicmap.vercel.app.evil.com/?aluno=$code'), isNull);
+      expect(parseScannedCode('https://evil.com/notemusicmap.vercel.app/?aluno=$code'), isNull);
+      expect(parseScannedCode('http://user@evil.com/?aluno=$code'), isNull);
+      // o domínio de onde o app roda pode ser liberado de fora
+      expect(parseScannedCode('https://meu.app/?aluno=$code', extraHosts: {'meu.app'})!.code, code);
+    });
+
+    test('QR que não é link do app: Wi-Fi, contato, telefone, e-mail, script', () {
+      for (final t in [
+        'WIFI:T:WPA;S:casa;P:senha123;;',
+        'BEGIN:VCARD\nFN:Fulano\nEND:VCARD',
+        'tel:+5511999999999',
+        'mailto:a@b.com?subject=$code',
+        'javascript:alert(1)',
+        'intent://x#Intent;scheme=app;end',
+        'ftp://notemusicmap.vercel.app/?aluno=$code',
+        'file:///etc/passwd',
+        '<script>alert(1)</script>',
+        'https://notemusicmap.vercel.app/?aluno=',
+        'https://notemusicmap.vercel.app/?aluno=$code&aluno=XXXX',
+      ]) {
+        expect(parseScannedCode(t), isNull, reason: t);
+      }
+    });
+
+    test('conteúdo enorme, com controle ou invisível é recusado', () {
+      expect(parseScannedCode('A' * 5000), isNull);
+      expect(parseScannedCode('https://notemusicmap.vercel.app/?aluno=$code${'x' * 400}'), isNull);
+      expect(parseScannedCode('$code\u0000'), isNull);
+      expect(parseScannedCode('\u202E$code'), isNull);
+      expect(parseScannedCode('$code\u200B'), isNull);
     });
 
     test('lixo, código com erro e links sem código viram null', () {
