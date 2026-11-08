@@ -1437,26 +1437,8 @@ class AppState extends ChangeNotifier {
   /// Última medida do microfone (nível, pico, clareza e o motivo de recusa).
   MicDiag? diag;
 
-  /// Fração (0..1, média móvel) dos quadros recentes em que houve nota.
-  double diagRate = 0;
-
   /// Maior pico recente (0..1), para avisar de distorção (clipping).
   double diagPeakHold = 0;
-
-  /// Nível (rms, 0..1) do ruído de fundo medido pelo usuário, ou null.
-  double? noiseFloor;
-  List<double>? _probe;
-  double _probeEnd = 0;
-
-  /// Mede o ruído de fundo por 2 s (o usuário fica em silêncio).
-  void startNoiseProbe() {
-    if (!listening) return;
-    _probe = [];
-    _probeEnd = now + 2.0;
-    notifyListeners();
-  }
-
-  bool get probingNoise => _probe != null;
 
   bool listening = false;
   bool demo = false;
@@ -1914,19 +1896,7 @@ class AppState extends ChangeNotifier {
     final d = f.diag;
     if (d != null) {
       diag = d;
-      diagRate += ((f.result != null ? 1.0 : 0.0) - diagRate) * 0.08;
       diagPeakHold = d.peak > diagPeakHold ? d.peak : diagPeakHold * 0.995;
-      final probe = _probe;
-      if (probe != null) {
-        probe.add(d.rms);
-        if (now >= _probeEnd) {
-          probe.sort();
-          // Mediana: ignora um estalo isolado durante a medida.
-          noiseFloor = probe.isEmpty ? null : probe[probe.length ~/ 2];
-          _probe = null;
-          notifyListeners();
-        }
-      }
     }
     final n = tracker.update(f.result, cfg);
     current = n;
@@ -1952,10 +1922,6 @@ class AppState extends ChangeNotifier {
   // para Si o dedo cruza o Lá♯), ruído do arco, e cordas soltas que ressoam por
   // simpatia. O destaque ao vivo não passa por aqui (continua imediato).
   final NoteGate _gate = NoteGate();
-
-  /// Últimas notas ouvidas (mais recente primeiro), com o que foi guardado e o
-  /// que foi descartado por ser curto demais. Aparece no diagnóstico.
-  List<NoteRun> get recentRuns => _gate.runs;
 
   /// Tempo (s) que uma nota precisa durar para entrar na sessão.
   double get minNoteSeconds => switch (sensitivity) {
