@@ -2,8 +2,8 @@ import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
-import 'grid_cell.dart';
 import 'grid_fullscreen.dart';
+import 'grid_board.dart';
 import 'grid_widgets.dart';
 import 'note_widgets.dart';
 import 'perf.dart';
@@ -26,12 +26,9 @@ class GridPage extends StatefulWidget {
 
 class _GridPageState extends State<GridPage> {
   int _section = 0; // 0 grade, 1 escala, 2 ajustes
-  int? _selected;
 
   /// Oitava (rótulo 0..8) mostrada no teclado. Acompanha a nota que toca,
   /// a menos que o usuário tenha escolhido uma oitava há poucos segundos.
-  int _focus = 4;
-  DateTime _manualUntil = DateTime.fromMillisecondsSinceEpoch(0);
 
   AppState get app => widget.app;
 
@@ -77,63 +74,67 @@ class _GridPageState extends State<GridPage> {
   Widget _gridSection() {
     final cur = app.shown;
     final zone = app.zone.cents;
-    final scale = app.scaleMode ? app.scaleNotes.toSet() : <int>{};
-    final now = app.now;
-    final shownOct = cur == null ? null : (cur.midi ~/ 12) - 1;
-    if (shownOct != null && shownOct != _focus && DateTime.now().isAfter(_manualUntil)) {
-      _focus = shownOct;
-      _selected = null;
-    }
-
+    final rows = app.gridOctaves.$2 - app.gridOctaves.$1 + 1;
     return Column(
       children: [
-        AppCard(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Row(
-            children: [
-              // Área fixa: a nota troca com animação sem mexer no resto.
-              SizedBox(
-                width: 108,
-                height: 56,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: NoteReadout(note: cur, cfg: app.cfg, zone: zone, size: 42),
-                ),
+        // Cabeçalho enxuto: a nota que soa (grande), a dica e os botões.
+        Row(
+          children: [
+            SizedBox(
+              width: 112,
+              height: 56,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: NoteReadout(note: cur, cfg: app.cfg, zone: zone, size: 42),
               ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    NeedleGauge(cents: cur?.cents, zone: zone),
-                    CorrectionHint(cents: cur?.cents, zone: zone),
-                    // Altura fixa: a frequência aparece e some sem mexer no layout.
-                    if (app.showFreq)
-                      SizedBox(
-                        height: 16,
-                        child: Text(
-                          cur == null
-                              ? ' '
-                              : '${cur.freq.toStringAsFixed(1)} Hz · alvo ${cur.target.toStringAsFixed(1)} Hz',
-                          style: TextStyle(color: AppColors.textDim, fontSize: 12),
-                        ),
+            ),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  CorrectionHint(cents: cur?.cents, zone: zone),
+                  if (app.showFreq)
+                    SizedBox(
+                      height: 16,
+                      child: Text(
+                        cur == null ? ' ' : '${cur.freq.toStringAsFixed(1)} Hz',
+                        style: TextStyle(color: AppColors.textDim, fontSize: 12),
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        FilledButton.icon(
-          style: FilledButton.styleFrom(
-            minimumSize: const Size.fromHeight(54),
-            backgroundColor: app.listening ? AppColors.surface2 : AppColors.accent,
-            foregroundColor: app.listening ? AppColors.text : AppColors.onAccent,
-          ),
-          onPressed: () => app.listening ? app.stopListening() : app.startListening(),
-          icon: Icon(app.listening && !app.demo ? Icons.mic_off : Icons.mic),
-          label: Text(app.listening ? (app.demo ? 'Parar demonstração' : 'Parar') : 'Ouvir',
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            ),
+            IconButton.filled(
+              tooltip: app.listening ? 'Parar de ouvir' : 'Ouvir',
+              style: IconButton.styleFrom(
+                minimumSize: const Size(48, 48),
+                backgroundColor: app.listening ? AppColors.surface2 : AppColors.accent,
+                foregroundColor: app.listening ? AppColors.text : AppColors.onAccent,
+              ),
+              icon: Icon(app.listening && !app.demo ? Icons.mic_off : Icons.mic),
+              onPressed: () => app.listening ? app.stopListening() : app.startListening(),
+            ),
+            IconButton(
+              tooltip: 'O que significam as cores?',
+              icon: const Icon(Icons.help_outline),
+              onPressed: _explainColors,
+            ),
+            IconButton(
+              tooltip: 'Zerar grade',
+              icon: const Icon(Icons.restart_alt),
+              onPressed: () async {
+                await confirmResetGrid(context, app);
+              },
+            ),
+            IconButton(
+              tooltip: 'Tela cheia',
+              icon: const Icon(Icons.fullscreen),
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                fullscreenDialog: true,
+                builder: (_) => GridFullscreen(app: app),
+              )),
+            ),
+          ],
         ),
         if (kDevDemo)
           TextButton.icon(
@@ -154,87 +155,13 @@ class _GridPageState extends State<GridPage> {
             padding: const EdgeInsets.only(top: 6),
             child: Text(app.micError!, style: TextStyle(color: AppColors.sharp)),
           ),
+        const SizedBox(height: 8),
+        // A grade em si: 12 colunas (Dó a Si) x oitavas, agudos em cima.
+        SizedBox(height: rows * 62.0, child: GridBoard(app: app)),
         const SizedBox(height: 10),
-        // Teclado da oitava: as notas naturais embaixo e os sustenidos/bemóis em
-        // cima, entre as teclas vizinhas, como num piano. Cada tecla é grande,
-        // com nome legível, e a da nota que toca vira um afinador horizontal.
-        AppCard(
-          padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Oitava $_focus',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                        Text(
-                          _focus == 4
-                              ? 'Dó4 a Si4 · inclui o Lá 440 Hz'
-                              : 'Dó$_focus a Si$_focus',
-                          style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: 'O que significam as cores?',
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.help_outline),
-                    onPressed: _explainColors,
-                  ),
-                  IconButton(
-                    tooltip: 'Zerar grade',
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.restart_alt),
-                    onPressed: () async {
-                      await confirmResetGrid(context, app);
-                      if (mounted) setState(() => _selected = null);
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              _keyboard(_focus, scale),
-              if (_selected != null && (_selected! ~/ 12) - 1 == _focus) _detail(_selected!, now),
-              const SizedBox(height: 12),
-              IntonationLegend(zone: zone, compact: true),
-              const SizedBox(height: 12),
-              Padding(
-                padding: const EdgeInsets.only(left: 4, bottom: 6),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Escolher a oitava',
-                      style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
-                ),
-              ),
-              OctaveChips(
-                first: _focus,
-                last: _focus,
-                played: _playedOctaves(),
-                onPick: (label) => setState(() {
-                  _focus = label;
-                  _selected = null;
-                  _manualUntil = DateTime.now().add(const Duration(seconds: 8));
-                }),
-              ),
-              const SizedBox(height: 14),
-              FilledButton.tonalIcon(
-                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-                onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                  fullscreenDialog: true,
-                  builder: (_) => GridFullscreen(app: app),
-                )),
-                icon: const Icon(Icons.fullscreen),
-                label: const Text('Abrir grade em tela cheia (várias oitavas)',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
-              ),
-            ],
-          ),
-        ),
+        IntonationLegend(zone: zone, compact: true),
+        const SizedBox(height: 10),
+        OctaveNav(app: app, compact: true, onMore: () => showOctaveSheet(context, app)),
         const SizedBox(height: 8),
         _settingsSummary(),
       ],
@@ -711,65 +638,6 @@ class _GridPageState extends State<GridPage> {
   // =====================================================================
   // Células e relatório
   // =====================================================================
-  /// Oitavas (rótulos 0..8) em que já se tocou alguma nota.
-  Set<int> _playedOctaves() => {for (final m in app.grid.playedMidis) (m ~/ 12) - 1};
-
-  /// Teclado de uma oitava: 7 naturais embaixo, 5 acidentes em cima, entre elas.
-  Widget _keyboard(int focus, Set<int> scale) {
-    final base = (focus + 1) * 12;
-    Widget key(int pc) => GridCell(
-          app: app,
-          midi: base + pc,
-          scale: scale,
-          labelSize: 17,
-          radius: 12,
-          onTap: () => setState(() => _selected = _selected == base + pc ? null : base + pc),
-        );
-    const naturals = [0, 2, 4, 5, 7, 9, 11];
-    // Acidente entre a tecla i e a i+1 (não há entre Mi–Fá nem Si–Dó).
-    const between = [1, 3, null, 6, 8, 10];
-    return LayoutBuilder(builder: (context, box) {
-      final col = box.maxWidth / 7;
-      return Column(
-        children: [
-          SizedBox(
-            height: 58,
-            child: Row(
-              children: [
-                SizedBox(width: col / 2),
-                for (final pc in between)
-                  SizedBox(width: col, child: pc == null ? null : key(pc)),
-                SizedBox(width: col / 2),
-              ],
-            ),
-          ),
-          SizedBox(
-            height: 72,
-            child: Row(
-              children: [for (final pc in naturals) SizedBox(width: col, child: key(pc))],
-            ),
-          ),
-        ],
-      );
-    });
-  }
-
-  Widget _detail(int midi, double now) {
-    final v = app.grid.view(midi, now);
-    final name = noteName(midi, app.cfg, withOctave: true);
-    final off = app.system == TuningSystem.equal ? null : offsetFromEqual(midi, app.cfg);
-    return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: Text(
-        v == null
-            ? '$name: ainda não tocada${off == null ? '' : ' · alvo ${fmtCents(off)} do temperado'}'
-            : '$name: média ${fmtCents(v.avgCents)} · ${v.seconds.toStringAsFixed(1)} s tocando'
-                '${off == null ? '' : ' · alvo ${fmtCents(off)} do temperado'}',
-        style: const TextStyle(fontSize: 13),
-      ),
-    );
-  }
-
   void _showReport() {
     final r = app.buildReport();
     showModalBottomSheet<void>(

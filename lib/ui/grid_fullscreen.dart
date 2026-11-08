@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import '../app_state.dart';
-import 'grid_cell.dart';
+import 'grid_board.dart';
 import 'grid_widgets.dart';
 import 'needle.dart';
 import 'note_widgets.dart';
@@ -88,7 +88,7 @@ class _GridFullscreenState extends State<GridFullscreen> {
                         ),
                         child: KeyedSubtree(
                           key: ValueKey('${app.gridOctaves}-$landscape'),
-                          child: _grid(landscape),
+                          child: GridBoard(app: app),
                         ),
                       ),
                       if (!_showControls) _revealButton(),
@@ -226,21 +226,6 @@ class _GridFullscreenState extends State<GridFullscreen> {
         ],
       ),
     );
-  }
-
-  Widget _grid(bool landscape) {
-    final (lo, hi) = app.gridOctaves;
-    final scale = app.scaleMode ? app.scaleNotes.toSet() : <int>{};
-    final octs = [for (var o = lo; o <= hi; o++) o]; // grave → agudo
-    final pcs = [for (var p = 0; p < 12; p++) p];
-    Widget cell(int midi) => Expanded(child: GridCell(app: app, midi: midi, scale: scale));
-
-    // Como no Tonemap: 12 colunas (Dó a Si) e uma linha por oitava, agudos em cima,
-    // tanto em pé quanto deitado.
-    return Column(children: [
-      for (final o in octs.reversed)
-        Expanded(child: Row(children: [for (final p in pcs) cell(o * 12 + p)])),
-    ]);
   }
 
   Widget _revealButton() => Positioned(
