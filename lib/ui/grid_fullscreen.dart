@@ -10,9 +10,8 @@ import 'note_widgets.dart';
 import 'smooth_color.dart';
 import 'theme.dart';
 
-/// Grade em tela cheia para usar durante o estudo. Em pé: notas nas linhas
-/// (agudos no topo) e oitavas nas colunas. Deitado: notas nas colunas e
-/// oitavas nas linhas. Embaixo: legenda de cores e navegação de oitavas.
+/// Grade em tela cheia para usar durante o estudo: notas nas colunas (Dó a Si)
+/// e oitavas nas linhas (agudos no topo), em pé ou deitado. Embaixo: legenda de cores e navegação de oitavas.
 class GridFullscreen extends StatefulWidget {
   final AppState app;
   const GridFullscreen({super.key, required this.app});
@@ -236,15 +235,11 @@ class _GridFullscreenState extends State<GridFullscreen> {
     final pcs = [for (var p = 0; p < 12; p++) p];
     Widget cell(int midi) => Expanded(child: GridCell(app: app, midi: midi, scale: scale));
 
-    if (landscape) {
-      return Column(children: [
-        for (final o in octs.reversed)
-          Expanded(child: Row(children: [for (final p in pcs) cell(o * 12 + p)])),
-      ]);
-    }
+    // Como no Tonemap: 12 colunas (Dó a Si) e uma linha por oitava, agudos em cima,
+    // tanto em pé quanto deitado.
     return Column(children: [
-      for (final p in pcs.reversed)
-        Expanded(child: Row(children: [for (final o in octs) cell(o * 12 + p)])),
+      for (final o in octs.reversed)
+        Expanded(child: Row(children: [for (final p in pcs) cell(o * 12 + p)])),
     ]);
   }
 
