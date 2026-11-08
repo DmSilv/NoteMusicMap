@@ -43,6 +43,15 @@ class LinkReply {
   final List<LinkedPerson> asTeacher;
   final List<LinkedPerson> asStudent;
   final bool created;
+
+  /// Revisão das aulas deste perfil (muda quando um professor publica uma aula).
+  final int lr;
+
+  /// Aulas recebidas (resposta de `lessons`).
+  final List<SharedLesson> lessons;
+
+  /// O aluno ainda não abriu o app com o vínculo online ligado: tentar de novo depois.
+  final bool notReady;
   const LinkReply({
     this.ok = false,
     this.unavailable = false,
@@ -51,6 +60,9 @@ class LinkReply {
     this.asTeacher = const [],
     this.asStudent = const [],
     this.created = false,
+    this.lr = 0,
+    this.lessons = const [],
+    this.notReady = false,
   });
 }
 
@@ -78,6 +90,9 @@ class LinkService {
         j = (jsonDecode(r.body) as Map).cast<String, dynamic>();
       } catch (_) {}
       if (r.statusCode == 503 || r.statusCode == 404) return LinkReply(unavailable: true, error: j['message'] as String?);
+      if (r.statusCode == 409 && j['error'] == 'student_not_ready') {
+        return LinkReply(notReady: true, error: j['message'] as String?);
+      }
       if (r.statusCode != 200) {
         // 5xx: servidor com problema, tentar depois. 4xx: o pedido foi recusado de vez.
         return LinkReply(offline: r.statusCode >= 500, error: (j['error'] as String?) ?? 'Não foi possível vincular.');
@@ -88,9 +103,26 @@ class LinkService {
         asTeacher: list(j['asTeacher']),
         asStudent: list(j['asStudent']),
         created: j['created'] == true,
+        lr: ((j['lr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
+        lessons: [
+          for (final x in ((j['lessons'] as List?) ?? const []).take(kMaxLessonKept))
+            ?_lessonFrom(x)
+        ],
       );
     } catch (_) {
       return const LinkReply(offline: true);
+    }
+  }
+
+  /// Uma aula vinda do servidor: confere o professor (código bem formado) e limpa tudo.
+  static SharedLesson? _lessonFrom(Object? x) {
+    try {
+      final m = (x as Map).cast<String, dynamic>();
+      final by = formatShareCode((m['by'] as String?) ?? '');
+      if (by == null) return null;
+      return SharedLesson.tryFromWire(m, teacherCode: by);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -111,6 +143,14 @@ class LinkService {
 
   Future<LinkReply> unlink(String code, String secret, {required String role, required String other}) =>
       _post({..._auth(code, secret, null), 'action': 'unlink', 'role': role, 'other': other});
+
+  /// PROFESSOR: publica uma aula encerrada para o aluno [other] (já vinculado).
+  Future<LinkReply> publishLesson(String code, String secret,
+          {required String other, required Map<String, dynamic> lesson}) =>
+      _post({..._auth(code, secret, null), 'action': 'lesson', 'other': other, 'lesson': lesson});
+
+  /// ALUNO: busca as aulas dos professores a que está vinculado.
+  Future<LinkReply> lessons(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'lessons'});
 
   void dispose() => _http.close();
 }

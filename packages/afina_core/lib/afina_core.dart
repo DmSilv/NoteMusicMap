@@ -2,6 +2,7 @@ library;
 
 export 'identity.dart';
 export 'input_guard.dart';
+export 'lesson.dart';
 export 'methods.dart';
 export 'metronome_engine.dart';
 export 'rhythm_challenge.dart';

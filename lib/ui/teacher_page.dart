@@ -6,6 +6,7 @@ import '../app_state.dart';
 import 'safe_input.dart';
 import '../ai/coach_ai.dart';
 import 'dictation_button.dart';
+import 'dart:async';
 import 'markdown_lite.dart';
 import 'methods_page.dart';
 import 'qr_scan_page.dart';
@@ -266,8 +267,9 @@ class _HowItWorks extends StatelessWidget {
                 'aparelhos em poucos segundos. O aluno que ler o seu QR entra sozinho na sua lista, e você '
                 'entra na lista de professores dele. Qualquer um pode encerrar o vínculo quando quiser. '
                 'Funciona com o "Vínculo online" ligado (no perfil de cada um).\n\n'
-                'Ainda não: o histórico, as tarefas e as observações continuam só no seu aparelho, e o aluno '
-                'não os vê no app dele. O compartilhamento deles, com a autorização do aluno, é a próxima etapa.',
+                'Aulas: na ficha do aluno, toque em "Começar a aula". Passe as tarefas e observações normalmente e, '
+                'ao tocar em "Encerrar", tudo o que você passou naquela aula vai para o aluno, em Meu perfil › Minhas aulas. '
+                'Dá para pausar. O histórico de exercícios do aluno continua só no aparelho dele e no seu.',
                 style: TextStyle(fontSize: 12.5, height: 1.35),
               ),
             ),
@@ -826,6 +828,8 @@ class StudentPage extends StatelessWidget {
               children: [
                 _summary(sum, s),
                 const SizedBox(height: 10),
+                _LessonCard(app: app, student: s),
+                const SizedBox(height: 10),
                 if (tips.isNotEmpty) ...[
                   AppCard(
                     child: Column(
@@ -844,6 +848,10 @@ class StudentPage extends StatelessWidget {
                 _sessions(s),
                 const SizedBox(height: 10),
                 _notes(context, s),
+                if (s.lessons.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  _lessonHistory(s),
+                ],
               ],
             ),
           ),
@@ -918,7 +926,7 @@ class StudentPage extends StatelessWidget {
                 else if (ai.lastResult != null && ai.lastKind == 'teacher_report') ...[
                   MarkdownLite(ai.lastResult!),
                   const SizedBox(height: 8),
-                  Text('Gerado por IA${ai.provider == null ? '' : ' (${ai.provider})'}: pode errar. Revise antes de enviar.',
+                  Text('Gerado por IA: pode errar. Revise antes de enviar.',
                       style: TextStyle(color: AppColors.textDim, fontSize: 12)),
                   const SizedBox(height: 10),
                   OutlinedButton.icon(
@@ -1270,6 +1278,37 @@ class StudentPage extends StatelessWidget {
     }
   }
 
+  /// Aulas já dadas a este aluno e se foram enviadas.
+  Widget _lessonHistory(Student s) {
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Aulas dadas', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          const SizedBox(height: 4),
+          for (final l in s.lessons.take(8))
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              leading: Icon(
+                l.sent == true ? Icons.mark_email_read_outlined : (l.sent == false ? Icons.schedule_send_outlined : Icons.phone_android),
+                color: l.sent == true ? AppColors.inTune : (l.sent == false ? AppColors.flat : AppColors.textDim),
+              ),
+              title: Text('${_day(l.endedAt)} · ${fmtLessonDuration(l.durationSec)}'),
+              subtitle: Text(
+                '${l.taskCount} tarefa${l.taskCount == 1 ? '' : 's'}, ${l.noteCount} observaç${l.noteCount == 1 ? 'ão' : 'ões'} · '
+                '${l.sent == true ? 'enviada ao aluno' : (l.sent == false ? 'aguardando envio' : 'só neste aparelho')}',
+                style: const TextStyle(fontSize: 12.5),
+              ),
+              trailing: l.sent == false
+                  ? TextButton(onPressed: app.flushLessons, child: const Text('Enviar'))
+                  : null,
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _sessions(Student s) {
     return AppCard(
       child: Column(
@@ -1331,6 +1370,196 @@ class StudentPage extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+}
+
+/// Cartão de aula na ficha do aluno: começar, pausar, retomar e encerrar. Ao encerrar, as
+/// tarefas e observações passadas durante a aula vão para o aluno.
+class _LessonCard extends StatefulWidget {
+  final AppState app;
+  final Student student;
+  const _LessonCard({required this.app, required this.student});
+
+  @override
+  State<_LessonCard> createState() => _LessonCardState();
+}
+
+class _LessonCardState extends State<_LessonCard> {
+  Timer? _tick;
+
+  AppState get app => widget.app;
+  Student get s => widget.student;
+
+  @override
+  void initState() {
+    super.initState();
+    // Relógio da aula: atualiza o tempo a cada segundo enquanto ela corre.
+    _tick = Timer.periodic(const Duration(seconds: 1), (_) {
+      final l = app.lesson;
+      if (mounted && l != null && l.studentId == s.id && !l.paused) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  String _clock(Duration d) {
+    final h = d.inHours, m = d.inMinutes % 60, sec = d.inSeconds % 60;
+    final mm = m.toString().padLeft(2, '0'), ss = sec.toString().padLeft(2, '0');
+    return h > 0 ? '$h:$mm:$ss' : '$mm:$ss';
+  }
+
+  /// Para onde a aula vai ao encerrar.
+  String _destination() {
+    if (s.code == null) {
+      return 'Este aluno não tem código: a aula fica só neste aparelho. Para enviar, informe o código dele (menu ⋮ › Código do aluno).';
+    }
+    if (!app.linkEnabled) {
+      return 'O vínculo online está desligado: a aula fica guardada e é enviada quando você ligá-lo (Meu perfil).';
+    }
+    if (app.linkUnavailable) return 'O servidor ainda não recebe aulas: ela fica guardada e vai quando ficar disponível.';
+    if (s.linkState != 'active') {
+      return 'O aluno ainda não está vinculado: a aula fica guardada e vai quando ele se vincular.';
+    }
+    return 'Ao encerrar, as tarefas e observações desta aula vão para ${s.name}, em Meu perfil › Minhas aulas.';
+  }
+
+  Future<void> _end() async {
+    final tally = app.lessonTally();
+    final l = app.lesson;
+    if (l == null) return;
+    final dur = fmtLessonDuration(l.elapsed(DateTime.now()).inSeconds);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Encerrar a aula?'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Duração: $dur'),
+            const SizedBox(height: 6),
+            Text('Será enviado ao aluno: ${tally.tasks} tarefa${tally.tasks == 1 ? '' : 's'} e '
+                '${tally.notes} observaç${tally.notes == 1 ? 'ão' : 'ões'}.'),
+            if (tally.tasks == 0) ...[
+              const SizedBox(height: 6),
+              Text('Nenhuma tarefa foi passada nesta aula. Para passar uma, volte e toque em "Nova tarefa".',
+                  style: TextStyle(color: AppColors.flat)),
+            ],
+            const SizedBox(height: 8),
+            Text(_destination(), style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Continuar aula')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Encerrar aula')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    final rec = app.endLesson();
+    if (rec == null) return;
+    app.say(rec.sent == false
+        ? 'Aula encerrada. Enviando para ${s.name}…'
+        : 'Aula encerrada e guardada neste aparelho.');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: app,
+      builder: (context, _) {
+        final l = app.lesson;
+        final mine = l != null && l.studentId == s.id;
+        if (!mine) {
+          final other = l == null ? null : app.studentById(l.studentId);
+          return AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Icon(Icons.school_outlined, color: AppColors.accent),
+                  const SizedBox(width: 8),
+                  const Expanded(child: Text('Aula', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+                ]),
+                const SizedBox(height: 4),
+                Text(
+                  other != null
+                      ? 'Há uma aula em andamento com ${other.name}. Encerre-a para começar outra.'
+                      : _destination(),
+                  style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+                ),
+                const SizedBox(height: 8),
+                FilledButton.icon(
+                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                  onPressed: other != null
+                      ? null
+                      : () {
+                          final err = app.startLesson(s);
+                          app.say(err ?? 'Aula começou. As tarefas e observações que você passar agora vão para ${s.name} ao encerrar.');
+                        },
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text('Começar a aula'),
+                ),
+              ],
+            ),
+          );
+        }
+        final paused = l.paused;
+        final tally = app.lessonTally();
+        return AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Icon(paused ? Icons.pause_circle_outline : Icons.fiber_manual_record,
+                    color: paused ? AppColors.flat : AppColors.sharp, size: paused ? 22 : 16),
+                const SizedBox(width: 8),
+                Text(paused ? 'Aula pausada' : 'Aula em andamento',
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                const Spacer(),
+                Text(_clock(l.elapsed(DateTime.now())),
+                    style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, fontFeatures: [FontFeature.tabularFigures()])),
+              ]),
+              const SizedBox(height: 4),
+              Text(
+                '${tally.tasks} tarefa${tally.tasks == 1 ? '' : 's'} e ${tally.notes} observaç${tally.notes == 1 ? 'ão' : 'ões'} nesta aula até agora.',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+              ),
+              const SizedBox(height: 10),
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                    onPressed: paused ? app.resumeLesson : app.pauseLesson,
+                    icon: Icon(paused ? Icons.play_arrow : Icons.pause),
+                    label: Text(paused ? 'Retomar' : 'Pausar'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(48),
+                      backgroundColor: AppColors.sharp,
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: _end,
+                    icon: const Icon(Icons.stop),
+                    label: const Text('Encerrar'),
+                  ),
+                ),
+              ]),
+              const SizedBox(height: 6),
+              Text(_destination(), style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+            ],
+          ),
+        );
+      },
     );
   }
 }

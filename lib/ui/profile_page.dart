@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../app_state.dart';
+import 'my_lessons_page.dart';
 import 'safe_input.dart';
 import '../link/link_service.dart' show LinkedPerson;
 import 'qr_scan_page.dart';
@@ -232,7 +233,7 @@ class _ProfilePageState extends State<ProfilePage> {
             title: const Text('Vínculo online', style: TextStyle(fontWeight: FontWeight.w800)),
             subtitle: Text(
               'Quando um professor ler o seu QR (ou você ler o dele), o vínculo aparece nos dois aparelhos em '
-              'poucos segundos. O servidor guarda só os códigos, o apelido e a data do vínculo.',
+              'poucos segundos. O servidor guarda os códigos, o apelido, a data do vínculo e, quando o professor encerra uma aula, as tarefas e observações dela para você receber.',
               style: const TextStyle(fontSize: 12.5),
             ),
             value: on,
@@ -404,6 +405,10 @@ class _ProfilePageState extends State<ProfilePage> {
             _linkOnlineCard(),
             const SizedBox(height: 12),
             _myTeacherCard(context),
+            if (app.myTeachers.isNotEmpty || app.myLessons.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              MyLessonsCard(app: app),
+            ],
             const SizedBox(height: 12),
             AppCard(
               child: Column(
@@ -563,8 +568,8 @@ Future<void> handleIncomingTeacherCode(BuildContext context, AppState app) async
     builder: (c) => AlertDialog(
       title: const Text('Código de professor'),
       content: Text('O código $code foi lido. Vincular como o seu professor? '
-          'Ele passa a aparecer na sua lista e você na lista dele. O servidor guarda só os códigos, '
-          'o apelido e a data do vínculo; nada dos seus exercícios.'),
+          'Ele passa a aparecer na sua lista e você na lista dele. O servidor guarda os códigos, '
+          'o apelido e a data do vínculo, e as tarefas das aulas que ele encerrar para você; nada dos seus exercícios.'),
       actions: [
         TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Agora não')),
         FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Vincular')),

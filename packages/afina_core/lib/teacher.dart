@@ -6,6 +6,7 @@ import 'dart:convert';
 
 import 'identity.dart';
 import 'input_guard.dart';
+import 'lesson.dart';
 import 'practice_coach.dart';
 
 class TeacherNote {
@@ -170,6 +171,9 @@ class Student {
   final List<Assignment> tasks;
   final List<SessionRecord> sessions; // mais recente primeiro
 
+  /// Aulas dadas a este aluno, mais recente primeiro.
+  final List<LessonRecord> lessons;
+
   Student({
     required this.id,
     required this.name,
@@ -180,7 +184,9 @@ class Student {
     List<TeacherNote>? notes,
     List<Assignment>? tasks,
     List<SessionRecord>? sessions,
+    List<LessonRecord>? lessons,
   })  : created = created ?? DateTime.now(),
+        lessons = lessons ?? [],
         notes = notes ?? [],
         tasks = tasks ?? [],
         sessions = sessions ?? [];
@@ -196,6 +202,7 @@ class Student {
         'notes': [for (final n in notes) n.toJson()],
         'tasks': [for (final t in tasks) t.toJson()],
         'sessions': [for (final s in sessions) s.toJson()],
+        if (lessons.isNotEmpty) 'lessons': [for (final l in lessons) l.toJson()],
       };
 
   static Student? tryFrom(Map<String, dynamic> j) {
@@ -219,6 +226,7 @@ class Student {
           for (final s in (j['sessions'] as List? ?? const []).take(1000))
             ?SessionRecord.tryFromJson((s as Map).cast<String, dynamic>())
         ],
+        lessons: [for (final l in (j['lessons'] as List? ?? const []).take(200)) ?LessonRecord.tryFrom(l)],
       );
     } catch (_) {
       return null;

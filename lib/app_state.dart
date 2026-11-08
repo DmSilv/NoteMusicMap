@@ -509,6 +509,7 @@ class AppState extends ChangeNotifier {
     _unlinkTeachers
       ..clear()
       ..addAll(p.getStringList('unlink_teachers') ?? const []);
+    _loadLessons(p);
     // Ao abrir o app, atualiza uma vez (se o vínculo estiver ligado).
     if (linkEnabled) Future<void>.delayed(const Duration(seconds: 3), syncLinks);
   }
@@ -521,6 +522,237 @@ class AppState extends ChangeNotifier {
     p.setStringList('unlink_students', _unlinkStudents.toList());
     p.setStringList('unlink_teachers', _unlinkTeachers.toList());
   }
+
+  // ---------------- Aulas ----------------
+  // PROFESSOR: começa a aula na ficha do aluno, pode pausar e, ao encerrar, o que ele
+  // passou nela (tarefas e observações) é enviado ao aluno. ALUNO: recebe e vê em
+  // "Minhas aulas".
+
+  /// Aula em andamento (do professor), ou null.
+  ActiveLesson? lesson;
+
+  /// ALUNO: aulas recebidas dos professores, mais recente primeiro.
+  List<SharedLesson> myLessons = [];
+
+  /// Revisão das aulas já trazida do servidor.
+  int lessonsRev = 0;
+
+  /// ALUNO: tarefas de aula marcadas como feitas ("idAula:idTarefa").
+  final Set<String> lessonTasksDone = {};
+
+  bool _lessonSending = false;
+  bool _lessonsPulling = false;
+
+  void _loadLessons(SharedPreferences p) {
+    try {
+      final raw = p.getString('lesson_active');
+      lesson = raw == null ? null : ActiveLesson.tryFrom(jsonDecode(raw));
+    } catch (_) {
+      lesson = null;
+    }
+    try {
+      final raw = p.getString('lessons_in');
+      myLessons = raw == null
+          ? []
+          : [
+              for (final x in (jsonDecode(raw) as List).take(kMaxLessonKept))
+                ?SharedLesson.tryFromWire(x,
+                    teacherCode: formatShareCode(((x as Map)['by'] as String?) ?? '') ?? '',
+                    teacherName: cleanText(x['tn'] as String?, max: kMaxName))
+            ];
+    } catch (_) {
+      myLessons = [];
+    }
+    lessonsRev = p.getInt('lessons_rev') ?? 0;
+    lessonTasksDone
+      ..clear()
+      ..addAll((p.getStringList('lessons_done') ?? const []).take(2000));
+  }
+
+  void _saveLessons() {
+    final p = _prefs;
+    if (p == null) return;
+    if (lesson == null) {
+      p.remove('lesson_active');
+    } else {
+      p.setString('lesson_active', jsonEncode(lesson!.toJson()));
+    }
+    p.setString('lessons_in', jsonEncode([for (final l in myLessons) l.toJson()]));
+    p.setInt('lessons_rev', lessonsRev);
+    p.setStringList('lessons_done', lessonTasksDone.toList());
+  }
+
+  /// O aluno da aula em andamento (ou null).
+  Student? get lessonStudent => lesson == null ? null : studentById(lesson!.studentId);
+
+  /// Começa a aula com [s]. Devolve o motivo se não der (já há outra aula em andamento).
+  String? startLesson(Student s) {
+    final cur = lesson;
+    if (cur != null) {
+      final other = studentById(cur.studentId);
+      return cur.studentId == s.id
+          ? 'A aula com ${s.name} já está em andamento.'
+          : 'Há uma aula em andamento com ${other?.name ?? 'outro aluno'}. Encerre-a antes de começar outra.';
+    }
+    lesson = ActiveLesson(
+      id: DateTime.now().microsecondsSinceEpoch.toRadixString(36),
+      studentId: s.id,
+      startedAt: DateTime.now(),
+    );
+    // O aluno da aula passa a ser o "aluno em aula agora": o que ele tocar entra no histórico dele.
+    activeStudentId = s.id;
+    _saveTeacher();
+    _saveLessons();
+    notifyListeners();
+    return null;
+  }
+
+  void pauseLesson() {
+    lesson?.pause(DateTime.now());
+    _saveLessons();
+    notifyListeners();
+  }
+
+  void resumeLesson() {
+    lesson?.resume(DateTime.now());
+    _saveLessons();
+    notifyListeners();
+  }
+
+  /// Quantas tarefas e observações a aula em andamento já tem (o que será enviado).
+  ({int tasks, int notes}) lessonTally() {
+    final l = lesson, s = lessonStudent;
+    if (l == null || s == null) return (tasks: 0, notes: 0);
+    final r = buildLessonRecord(s, l, DateTime.now());
+    return (tasks: r.taskCount, notes: r.noteCount);
+  }
+
+  /// Encerra a aula e a coloca para enviar ao aluno. Devolve o registro (ou null).
+  LessonRecord? endLesson() {
+    final l = lesson;
+    if (l == null) return null;
+    final s = studentById(l.studentId);
+    final end = DateTime.now();
+    lesson = null;
+    _saveLessons();
+    if (s == null) {
+      notifyListeners();
+      return null;
+    }
+    final rec = buildLessonRecord(s, l, end, teacherName: profile.name ?? '');
+    // Aluno com código: a enviar pelo vínculo online. Sem código: fica só aqui.
+    rec.sent = s.code != null ? false : null;
+    if (rec.sent == null) rec.wire = null;
+    s.lessons.insert(0, rec);
+    while (s.lessons.length > 200) {
+      final i = s.lessons.lastIndexWhere((x) => x.sent != false);
+      s.lessons.removeAt(i < 0 ? s.lessons.length - 1 : i);
+    }
+    _saveTeacher();
+    notifyListeners();
+    if (rec.sent == false) unawaited(flushLessons());
+    return rec;
+  }
+
+  /// Envia ao servidor as aulas encerradas que ainda não foram. Roda ao encerrar, a cada
+  /// atualização do vínculo e quando o professor toca em "Enviar".
+  Future<void> flushLessons() async {
+    if (_lessonSending || !linkEnabled || linkUnavailable) return;
+    _lessonSending = true;
+    var changed = false;
+    try {
+      outer:
+      for (final s in students) {
+        final c = s.code;
+        if (c == null || s.linkState != 'active') continue;
+        for (final r in s.lessons) {
+          if (r.sent != false || r.wire == null) continue;
+          final rep = await links.publishLesson(profile.shareCode, profile.secret, other: c, lesson: r.wire!);
+          if (rep.ok) {
+            r.sent = true;
+            r.wire = null;
+            changed = true;
+            say('Aula enviada para ${s.name}.');
+          } else if (rep.unavailable) {
+            _markLinkUnavailable();
+            break outer;
+          } else if (rep.offline) {
+            linkOnline = false;
+            break outer;
+          } else if (rep.notReady) {
+            continue; // o aluno ainda não ligou o vínculo: tenta de novo mais tarde
+          } else {
+            // O servidor recusou de vez (pacote inválido): não adianta insistir.
+            r.sent = null;
+            r.wire = null;
+            changed = true;
+            say('Não foi possível enviar a aula de ${s.name}: ${rep.error ?? 'recusada'}.');
+          }
+        }
+      }
+    } finally {
+      _lessonSending = false;
+      if (changed) {
+        _saveTeacher();
+        notifyListeners();
+      }
+    }
+  }
+
+  /// ALUNO: traz as aulas dos professores do servidor.
+  Future<void> pullLessons({bool announce = true}) async {
+    if (_lessonsPulling || !linkEnabled || linkUnavailable) return;
+    _lessonsPulling = true;
+    try {
+      final r = await links.lessons(profile.shareCode, profile.secret);
+      if (r.unavailable) return _markLinkUnavailable();
+      if (!r.ok) {
+        if (r.offline) linkOnline = false;
+        notifyListeners();
+        return;
+      }
+      linkOnline = true;
+      final known = {for (final l in myLessons) '${l.teacherCode}:${l.id}'};
+      final fresh = [for (final l in r.lessons) if (!known.contains('${l.teacherCode}:${l.id}')) l];
+      final names = {for (final t in myTeachers) t.code: t.name};
+      myLessons = [
+        for (final l in r.lessons)
+          SharedLesson(
+            id: l.id,
+            teacherCode: l.teacherCode,
+            teacherName: l.teacherName.isNotEmpty ? l.teacherName : (names[l.teacherCode] ?? ''),
+            atMs: l.atMs,
+            durationSec: l.durationSec,
+            tasks: l.tasks,
+            notes: l.notes,
+          )
+      ];
+      lessonsRev = r.lr;
+      _saveLessons();
+      notifyListeners();
+      if (announce && fresh.isNotEmpty) {
+        final n = fresh.fold<int>(0, (a, l) => a + l.tasks.length);
+        say(fresh.length == 1
+            ? 'Nova aula recebida: $n tarefa${n == 1 ? '' : 's'}.'
+            : '${fresh.length} aulas novas recebidas.');
+      }
+    } finally {
+      _lessonsPulling = false;
+    }
+  }
+
+  bool lessonTaskDone(SharedLesson l, Assignment t) => lessonTasksDone.contains('${l.id}:${t.id}');
+
+  void toggleLessonTask(SharedLesson l, Assignment t) {
+    final k = '${l.id}:${t.id}';
+    if (!lessonTasksDone.remove(k)) lessonTasksDone.add(k);
+    _saveLessons();
+    notifyListeners();
+  }
+
+  /// ALUNO: tarefas de aula ainda não feitas.
+  int get openLessonTasks => myLessons.fold<int>(
+      0, (a, l) => a + l.tasks.where((t) => !lessonTasksDone.contains('${l.id}:${t.id}')).length);
 
   void setLinkEnabled(bool v) {
     linkEnabled = v;
@@ -601,6 +833,8 @@ class AppState extends ChangeNotifier {
   /// Tira um professor da sua lista (e do servidor).
   void removeMyTeacher(String code) {
     myTeachers.removeWhere((t) => t.code == code);
+    myLessons.removeWhere((l) => l.teacherCode == code);
+    _saveLessons();
     _unlinkTeachers.add(code);
     _saveLinks();
     notifyListeners();
@@ -726,6 +960,9 @@ class AppState extends ChangeNotifier {
         }
       }
       _applyLinkLists(r);
+      // Aulas: o aluno busca quando o servidor avisa que há novidade; o professor envia as pendentes.
+      if (r.lr != lessonsRev && myTeachers.isNotEmpty) unawaited(pullLessons());
+      if (students.any((x) => x.lessons.any((l) => l.sent == false))) unawaited(flushLessons());
     } finally {
       _linkSyncing = false;
     }
@@ -770,6 +1007,10 @@ class AppState extends ChangeNotifier {
     final unconfirmed = [for (final t in myTeachers) if (t.since == 0 && !serverTeachers.any((x) => x.code == t.code)) t];
     final lost = [for (final t in myTeachers) if (t.since > 0 && !serverTeachers.any((x) => x.code == t.code)) t];
     myTeachers = [...serverTeachers, ...unconfirmed];
+    if (lost.isNotEmpty) {
+      myLessons.removeWhere((l) => lost.any((t) => t.code == l.teacherCode));
+      _saveLessons();
+    }
     final newTeachers = [for (final x in serverTeachers) if (!before.contains(x.code)) x];
 
     _saveLinks();

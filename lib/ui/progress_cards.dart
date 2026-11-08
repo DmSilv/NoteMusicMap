@@ -303,7 +303,7 @@ class _AiSection extends StatelessWidget {
         builder: (c) => AlertDialog(
           title: const Text('Análise por IA'),
           content: const Text(
-              'Para gerar a análise, o app envia à IA (Gemini, do Google) um resumo só com números: '
+              'Para gerar a análise, o app envia à IA um resumo só com números: '
               'desvios de afinação por nota, escalas e taxas de acerto.\n\n'
               'Nunca vão áudio, nome ou qualquer dado pessoal. Dá para usar até 5 vezes por dia.'),
           actions: [
@@ -328,7 +328,7 @@ class _AiSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Análise por IA: pede ao Gemini orientações em linguagem natural sobre os seus últimos exercícios. '
+              'Análise por IA: pede à IA orientações em linguagem natural sobre os seus últimos exercícios. '
               'Só números são enviados, nunca áudio. Opcional e precisa de internet.',
               style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
             ),
@@ -378,7 +378,7 @@ class _AiSection extends StatelessWidget {
                 child: MarkdownLite(ai.text!),
               ),
               const SizedBox(height: 6),
-              Text('Gerado por IA${ai.provider == null ? '' : ' (${ai.provider})'}: pode errar. Use como sugestão, junto com o seu professor.',
+              Text('Gerado por IA: pode errar. Use como sugestão, junto com o seu professor.',
                   style: TextStyle(color: AppColors.textDim, fontSize: 11.5)),
             ],
           ],

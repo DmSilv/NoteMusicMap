@@ -226,3 +226,169 @@ test('apelido enorme ou com controle é cortado e limpo', async () => {
   assert.ok([...hashes.get('u:' + PROF).get('n')].length <= 40);
   assert.ok(!/[\u0000-\u001f]/.test(hashes.get('u:' + PROF).get('n')));
 });
+
+// ---------------- aulas: professor publica, aluno busca ----------------
+const lessonOf = (id, extra = {}) => ({
+  id,
+  t: Date.now() - 1000,
+  d: 2400,
+  tn: 'Profa. Ana',
+  tasks: [
+    { id: 'k1', title: 'Suzuki · Lição 5', kind: 'method', sub: 'Suzuki', det: 'Lição 5', note: 'Atenção ao arco.\nSem pressa.', st: 0, pc: 0, oct: 1, goal: 0.8, done: false, c: new Date().toISOString() },
+    { id: 'k2', title: 'Escala de Sol', kind: 'scale', st: 0, pc: 7, oct: 2, goal: 0.9, c: new Date().toISOString() },
+  ],
+  notes: ['Soltar o ombro'],
+  ...extra,
+});
+async function vincula(h) {
+  await sync(h, ALU, S_ALU); // o aluno abre o app com o vínculo ligado: reivindica o próprio código
+  const r = await call(h, { action: 'link', code: PROF, secret: S_PROF, role: 'teacher', other: ALU, name: 'Profa. Ana' });
+  assert.equal(r.statusCode, 200);
+}
+const publish = (h, lesson, other = ALU) => call(h, { action: 'lesson', code: PROF, secret: S_PROF, other, lesson });
+const pull = (h, c = ALU, s = S_ALU) => call(h, { action: 'lessons', code: c, secret: s });
+
+test('aula encerrada: o professor publica e o aluno busca tarefas e observações', async () => {
+  const h = mk();
+  await vincula(h);
+  const before = (await sync(h, ALU, S_ALU)).lr;
+  assert.equal(before, 0);
+  const p = await publish(h, lessonOf('aula0001'));
+  assert.equal(p.statusCode, 200);
+  const after = (await sync(h, ALU, S_ALU)).lr;
+  assert.ok(after > 0, 'o aluno vê que há novidade (lr muda)');
+  const r = await pull(h);
+  assert.equal(r.statusCode, 200);
+  const j = r.json();
+  assert.equal(j.lessons.length, 1);
+  const l = j.lessons[0];
+  assert.equal(l.id, 'aula0001');
+  assert.equal(l.by, PROF);
+  assert.equal(l.tasks.length, 2);
+  assert.equal(l.tasks[0].title, 'Suzuki · Lição 5');
+  assert.equal(l.tasks[0].note, 'Atenção ao arco.\nSem pressa.');
+  assert.deepEqual(l.notes, ['Soltar o ombro']);
+  assert.equal(l.tn, 'Profa. Ana');
+});
+
+test('republicar a mesma aula não duplica (mesmo id)', async () => {
+  const h = mk();
+  await vincula(h);
+  await publish(h, lessonOf('aula0002'));
+  await publish(h, lessonOf('aula0002', { d: 3000 }));
+  const j = (await pull(h)).json();
+  assert.equal(j.lessons.length, 1);
+  assert.equal(j.lessons[0].d, 3000);
+});
+
+test('só publica para aluno VINCULADO; outro professor não escreve na área alheia', async () => {
+  const h = mk();
+  await vincula(h);
+  // aluno 2 nunca se vinculou a este professor
+  const r = await publish(h, lessonOf('aula0003'), ALU2);
+  assert.equal(r.statusCode, 403);
+  // o aluno não pode publicar "como professor" para si mesmo
+  const self = await call(h, { action: 'lesson', code: ALU, secret: S_ALU, other: PROF, lesson: lessonOf('aula0004') });
+  assert.equal(self.statusCode, 403);
+  assert.equal((await pull(h)).json().lessons.length, 0);
+});
+
+test('o aluno só recebe aulas de quem ainda está vinculado; ao desvincular elas somem', async () => {
+  const h = mk();
+  await vincula(h);
+  await publish(h, lessonOf('aula0005'));
+  assert.equal((await pull(h)).json().lessons.length, 1);
+  const u = await call(h, { action: 'unlink', code: ALU, secret: S_ALU, role: 'student', other: PROF });
+  assert.equal(u.statusCode, 200);
+  assert.equal((await pull(h)).json().lessons.length, 0);
+  // religar não ressuscita aulas antigas: foram apagadas
+  await vincula(h);
+  assert.equal((await pull(h)).json().lessons.length, 0);
+});
+
+test('autenticação: outro aparelho não busca as aulas do aluno', async () => {
+  const h = mk();
+  await vincula(h);
+  await publish(h, lessonOf('aula0006'));
+  const r = await pull(h, ALU, secret(9));
+  assert.equal(r.statusCode, 403);
+});
+
+test('aula inválida é recusada: id, data, tipos errados, formato', async () => {
+  const h = mk();
+  await vincula(h);
+  for (const bad of [
+    lessonOf('<script>'),
+    lessonOf('AULA'),
+    lessonOf('aula0007', { t: 5 }),
+    lessonOf('aula0007', { t: Date.now() + 10 * 86400000 }),
+    lessonOf('aula0007', { tasks: 'x' }),
+    lessonOf('aula0007', { notes: { a: 1 } }),
+    'texto',
+    null,
+    [],
+  ]) {
+    const r = await publish(h, bad);
+    assert.equal(r.statusCode, 400, JSON.stringify(bad));
+  }
+});
+
+test('o servidor limpa e limita o conteúdo da aula', async () => {
+  const h = mk();
+  await vincula(h);
+  const tasks = [];
+  for (let i = 0; i < 36; i++) tasks.push({ id: 't' + i, title: 'Tarefa\u202E ' + 'x'.repeat(150), kind: 'hack', note: 'n'.repeat(600), pc: 99, oct: 50, goal: 7, st: -5 });
+  tasks.push({ id: '<b>', title: 'sem id valido' });
+  const r = await publish(h, lessonOf('aula0008', { tasks, notes: ['a\u0000b', '', 'z'.repeat(3000), ...Array(30).fill('ok')] }));
+  assert.equal(r.statusCode, 200, r.body);
+  const l = (await pull(h)).json().lessons[0];
+  assert.equal(l.tasks.length, 30);
+  const t = l.tasks[0];
+  assert.ok(t.title.length <= 80 && !t.title.includes('\u202E'));
+  assert.equal(t.kind, 'scale');
+  assert.equal(t.note.length, 500);
+  assert.equal(t.pc, 11);
+  assert.equal(t.oct, 3);
+  assert.equal(t.goal, 1);
+  assert.equal(t.st, 0);
+  assert.equal(t.done, false);
+  assert.ok(l.notes.length <= 10);
+  assert.equal(l.notes[0], 'a b');
+});
+
+test('guarda só as 60 aulas mais recentes por aluno', async () => {
+  let clk = Date.now();
+  const h = mk({}, { now: () => clk });
+  await vincula(h);
+  for (let i = 0; i < 64; i++) {
+    if (i % 30 === 29) clk += 3700000; // passa uma hora: o limite de alterações por hora zera
+    const id = 'a' + String(1000 + i);
+    const r = await call(h, { action: 'lesson', code: PROF, secret: S_PROF, other: ALU, lesson: lessonOf(id, { t: clk - (100 - i) * 60000 }) }, '5.5.5.' + (i % 200));
+    assert.equal(r.statusCode, 200, r.body);
+  }
+  const j = (await pull(h)).json();
+  assert.equal(j.lessons.length, 60);
+  assert.ok(!j.lessons.some((l) => l.id === 'a1000'), 'a mais antiga foi descartada');
+  assert.ok(j.lessons.some((l) => l.id === 'a1063'));
+});
+
+test('pedido de aula grande demais é recusado antes de ler', async () => {
+  const h = mk();
+  await vincula(h);
+  const r = await publish(h, lessonOf('aula0009', { notes: ['x'.repeat(60000)] }));
+  assert.equal(r.statusCode, 400);
+});
+
+test('aluno que ainda não reivindicou o código não recebe aula (ninguém "rouba" o código antes)', async () => {
+  const h = mk();
+  // o professor liga o aluno ANTES de o aluno abrir o app com o vínculo ligado
+  const l = await call(h, { action: 'link', code: PROF, secret: S_PROF, role: 'teacher', other: ALU, name: 'Profa. Ana' });
+  assert.equal(l.statusCode, 200);
+  const r = await publish(h, lessonOf('aula0010'));
+  assert.equal(r.statusCode, 409);
+  assert.equal(r.json().error, 'student_not_ready');
+  // um terceiro tenta reivindicar o código do aluno e ler: não há nada guardado
+  const thief = await pull(h, ALU, secret(9));
+  assert.equal(thief.statusCode, 200);
+  assert.equal(thief.json().lessons.length, 0);
+});

@@ -170,3 +170,14 @@ Tokens guardados só como hash (SHA-256); segredo mostrado uma vez e guardado no
 
 ## 18. Lançamento
 Pasta `divulgacao/` (fora do Git): plano, contas e e-mail, gravação, voz de IA, 8 roteiros de vídeo e textos prontos. No app: prévia do link (Open Graph), `CONTACT_EMAIL` (variável da Vercel) na política de privacidade e política sem a marca "rascunho".
+
+## 19. Aulas: do professor para o aluno
+- **Fluxo:** na ficha do aluno o professor toca em **Começar a aula**; há **Pausar/Retomar** e **Encerrar**. O relógio guarda só instantes (sobrevive a fechar o app). Ao encerrar, o app monta o pacote com as **tarefas e observações criadas entre o início e o fim** (até 30 tarefas e 10 observações) e o envia. O aluno vê em **Meu perfil › Minhas aulas** (tarefas por aula, caixa de "feita", botão "Treinar" nas escalas).
+- **Modelo (núcleo):** `ActiveLesson` (aula em andamento), `LessonRecord` (histórico do professor, com o estado de envio: nulo = só neste aparelho, falso = a enviar, verdadeiro = enviada), `SharedLesson` (o que o aluno recebe). Tudo é limpo com `cleanText` ao ler.
+- **API (`POST /api/link`, mesma autenticação código+segredo):**
+  - `{action:'lesson', other:<código do aluno>, lesson:{id,t,d,tn,tasks[],notes[]}}` (professor): exige vínculo existente **e que o aluno já tenha reivindicado o código** (senão `409 student_not_ready`, e o app tenta de novo depois). O servidor limpa e limita (30 tarefas, 10 observações, textos, kinds fixos) e guarda em `ul:<aluno>` no campo `professor:idAula`; mantém as 60 mais recentes; atualiza `lr` (revisão) no perfil do aluno.
+  - `{action:'lessons'}` (aluno): devolve as aulas dos professores **ainda vinculados** (até 60). Limite de 240 consultas/hora.
+  - `sync` devolve `lr`; o aluno só busca aulas quando `lr` mudou (nenhum comando extra no Redis por consulta).
+  - `unlink` apaga as aulas daquele professor para aquele aluno.
+- **Offline/sem servidor:** a aula fica guardada com selo "aguardando envio" e é enviada na próxima atualização do vínculo; sem código do aluno ou sem vínculo online ela fica só no aparelho do professor.
+- **Privacidade:** passam a ir ao servidor, por aula, os textos das tarefas e observações. Nunca áudio nem o histórico de exercícios. A política dentro do app foi atualizada.
