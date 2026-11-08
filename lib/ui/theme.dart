@@ -113,18 +113,25 @@ Color intonationColor(double cents, double zone) {
     // dentro da zona: verde, levemente mais claro no centro exato
     return Color.lerp(AppColors.inTune, AppColors.inTuneBright, 1 - a / zone)!;
   }
-  // Fora da zona, a cor desliza do verde para azul/laranja. A mistura é feita
-  // em HSL (pelo matiz), então azul→verde passa por tons de ciano, sem ficar
-  // cinza/"sujo" como ficaria misturando em RGB. A curva suave (smoothstep)
-  // evita saltos de cor entre leituras vizinhas.
-  final x = ((a - zone) / 16).clamp(0.0, 1.0);
-  final smooth = x * x * (3 - 2 * x);
-  final t = 0.25 + 0.75 * smooth;
-  final end = cents < 0 ? AppColors.flat : AppColors.sharp;
-  return HSLColor.lerp(
-          HSLColor.fromColor(AppColors.inTune), HSLColor.fromColor(end), t)!
-      .toColor();
+  // Fora da zona: três famílias de cor fáceis de ler e degraus bem marcados, em vez de um
+  // degradê com muitos matizes. Grave = azuis (claro → médio → escuro); agudo = amarelo →
+  // laranja → vermelho-alaranjado. Quanto mais longe, mais forte. Cada degrau tem um
+  // trecho firme (plateau) e uma transição curta, para a cor não oscilar entre leituras.
+  final u = a / zone; // 1 = borda da zona afinada
+  final steps = cents < 0 ? _flatSteps : _sharpSteps;
+  const from = [1.0, 1.9, 3.2]; // onde começa a transição para cada degrau
+  const width = [0.18, 0.3, 0.4]; // largura da transição
+  var c = AppColors.inTune;
+  for (var i = 0; i < 3; i++) {
+    final t = ((u - from[i]) / width[i]).clamp(0.0, 1.0);
+    final sm = t * t * (3 - 2 * t);
+    if (sm > 0) c = Color.lerp(c, steps[i], sm)!;
+  }
+  return c;
 }
+
+const _flatSteps = [Color(0xFF8FBCEB), Color(0xFF3E86E0), Color(0xFF1C47B5)];
+const _sharpSteps = [Color(0xFFF4C46C), Color(0xFFF08A24), Color(0xFFD2401D)];
 
 /// Desvio em notação musical: ♯ = agudo (acima), ♭ = grave (abaixo).
 /// O número é quantos centésimos de semitom faltam para a nota ideal.
