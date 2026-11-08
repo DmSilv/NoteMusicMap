@@ -229,8 +229,8 @@ class _LivePainter extends CustomPainter {
     // "Travou": 1 dentro da zona afinada, cai suavemente fora dela.
     final lock = 1 - _smooth((v.pos.abs() - zone * 0.7) / (zone * 0.9 + 0.001));
 
-    final railH = 3.2 * u;
-    final railY = h - 6.5 * u;
+    final railH = 4.4 * u;
+    final railY = h - 8 * u;
     final railR = RRect.fromLTRBR(margin, railY - railH / 2, w - margin, railY + railH / 2, Radius.circular(railH / 2));
     // Fundo do trilho (escuro, para aparecer sobre qualquer cor) e a zona "afinada" em verde.
     canvas.drawRRect(railR.inflate(1.2 * u), Paint()..color = const Color(0xFF000000).withValues(alpha: 0.45 * a));
@@ -242,8 +242,8 @@ class _LivePainter extends CustomPainter {
     );
     // Marca do centro.
     canvas.drawLine(
-      Offset(half, railY - 4.2 * u),
-      Offset(half, railY + 4.2 * u),
+      Offset(half, railY - 6 * u),
+      Offset(half, railY + 6 * u),
       Paint()
         ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.9 * a)
         ..strokeWidth = 1.3 * u
@@ -252,11 +252,11 @@ class _LivePainter extends CustomPainter {
 
     // O marcador: barra vertical clara que cruza o trilho (verde-menta quando trava).
     final nx = xOf(v.pos);
-    final nw = 3.6 * u;
-    final mh = 13 * u;
+    final nw = 4.8 * u;
+    final mh = 17 * u;
     final lineColor = Color.lerp(const Color(0xFFFFFFFF), AppColors.inTuneBright, lock)!;
     final mark = RRect.fromLTRBR(nx - nw / 2, railY - mh / 2, nx + nw / 2, railY + mh / 2, Radius.circular(nw / 2));
-    canvas.drawRRect(mark.inflate(1.4 * u), Paint()..color = const Color(0xFF000000).withValues(alpha: 0.75 * a));
+    canvas.drawRRect(mark.inflate(2 * u), Paint()..color = const Color(0xFF000000).withValues(alpha: 0.8 * a));
     canvas.drawRRect(mark, Paint()..color = lineColor.withValues(alpha: a));
     canvas.restore();
   }

@@ -55,7 +55,7 @@ class GridCell extends StatelessWidget {
       // Histórico: a cor das notas já tocadas fica (só muda quando a nota é tocada de novo), um pouco
       // mais suave que a da nota atual, que ganha a borda e a agulha.
       final recency = playing ? 1.0 : 0.78;
-      final a = (0.5 + 0.5 * v.confidence) * v.alpha * recency;
+      final a = playing ? 1.0 : (0.5 + 0.5 * v.confidence) * v.alpha * recency;
       fill = Color.lerp(restFill, intonationColor(v.avgCents, zone), a)!;
     }
     final dim = !inScale && v == null;
@@ -74,7 +74,7 @@ class GridCell extends StatelessWidget {
       // Cor e borda animam juntas: nada "pula" entre leituras. Por cima fica a
       // camada viva (o afinador horizontal), só no quadrado da nota que toca.
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 750),
+        duration: Duration(milliseconds: playing ? 90 : 750),
         curve: Curves.easeInOutCubic,
         decoration: BoxDecoration(
           color: dim
