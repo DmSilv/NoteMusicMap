@@ -168,6 +168,36 @@ void main() {
       expect(adv.notes[4].status, NoteStatus.sharp);
     });
 
+    test('conta quantas vezes cada nota foi tocada (pausa = outra tocada)', () {
+      final g = PitchGrid(holdSeconds: null);
+      // Mesma nota tocada de forma contínua: 1 vez.
+      for (var i = 0; i < 10; i++) {
+        g.add(60, 2, 1, 0.05, i * 0.05);
+      }
+      expect(g.view(60, 1)!.plays, 1);
+      // Pausa longa e volta: 2 vezes.
+      g.add(60, 2, 1, 0.05, 3.0);
+      expect(g.view(60, 3.1)!.plays, 2);
+      // Outra nota tem a própria contagem.
+      g.add(64, 0, 1, 0.05, 3.2);
+      expect(g.view(64, 3.3)!.plays, 1);
+    });
+
+    test('resumo da sessão: total de notas e % afinadas', () {
+      final g = PitchGrid(holdSeconds: null);
+      g.add(60, 3, 1, 1, 0); // afinada
+      g.add(60, 3, 1, 1, 5); // segunda tocada
+      g.add(62, 25, 1, 1, 6); // aguda
+      g.add(64, -4, 1, 1, 7); // afinada
+      final s = g.summary(10);
+      expect(s.notes, 4);
+      expect(s.distinct, 3);
+      expect(s.inTune, 2);
+      expect(s.accuracy, closeTo(2 / 3, 1e-9));
+      // Sem nada tocado.
+      expect(PitchGrid().summary(10).accuracy, 0);
+    });
+
     test('relatório ignora a retenção da grade', () {
       final g = PitchGrid(holdSeconds: 1, fadeSeconds: 1);
       g.add(55, 0, 1, 1, 0);

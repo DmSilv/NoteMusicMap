@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
@@ -182,7 +183,7 @@ class OctaveChips extends StatelessWidget {
   }
 }
 
-/// Legenda de cores com valores em cents e o que fazer para corrigir.
+/// Legenda de cores e o que fazer para corrigir.
 class IntonationLegend extends StatelessWidget {
   final double zone;
   final bool compact;
@@ -241,7 +242,7 @@ class IntonationLegend extends StatelessWidget {
               icon: Icons.check_circle,
               color: AppColors.inTune,
               title: 'Afinado',
-              sub: compact ? '±${zone.round()}' : 'até ${zone.round()} de desvio',
+              sub: compact ? 'faixa verde' : 'dentro da faixa verde',
             ),
             const SizedBox(width: 6),
             _LegendTag(
@@ -256,7 +257,7 @@ class IntonationLegend extends StatelessWidget {
           Padding(
             padding: EdgeInsets.only(top: 6),
             child: Text(
-              'A cor mostra a distância do som ideal em cents (100 cents = 1 semitom). '
+              'A cor mostra a distância do som ideal. '
               'Quanto mais forte a cor, mais longe você está.',
               style: TextStyle(color: AppColors.textDim, fontSize: 12),
             ),
@@ -305,7 +306,7 @@ class _LegendTag extends StatelessWidget {
     );
   }
 }
-/// Dica de correção para a nota atual: "Grave ♭15 · suba um pouco".
+/// Dica de correção para a nota atual: "Grave −2,1 Hz · suba um pouco".
 ///
 /// O número exibido DESLIZA até o valor medido (suavização por quadro) em vez
 /// de piscar a cada leitura do microfone, e a cor e a direção (suba/desça)
@@ -313,8 +314,11 @@ class _LegendTag extends StatelessWidget {
 /// zona afinada. Ocupa sempre a mesma altura.
 class CorrectionHint extends StatefulWidget {
   final double? cents;
+
+  /// Frequência ideal da nota (Hz), para mostrar o desvio em Hz.
+  final double? target;
   final double zone;
-  const CorrectionHint({super.key, required this.cents, required this.zone});
+  const CorrectionHint({super.key, required this.cents, required this.zone, this.target});
 
   @override
   State<CorrectionHint> createState() => _CorrectionHintState();
@@ -393,7 +397,8 @@ class _CorrectionHintState extends State<CorrectionHint> with SingleTickerProvid
           final a = c.abs();
           final how = a <= zone * 2.5 ? 'um pouco' : (a <= zone * 6 ? '' : 'bastante');
           final dir = c < 0 ? 'suba' : 'desça';
-          text = '${c < 0 ? 'Grave ♭' : 'Aguda ♯'}${a.round()} · $dir ${how.isEmpty ? '' : how}'.trim();
+          final off = widget.target == null ? '' : ' ${fmtHz(hzOff(c, widget.target!))}';
+          text = '${c < 0 ? 'Grave' : 'Aguda'}$off · $dir ${how.isEmpty ? '' : how}'.trim();
           icon = c < 0 ? Icons.arrow_upward : Icons.arrow_downward;
           color = intonationColor(c, zone);
         }
@@ -417,6 +422,146 @@ class _CorrectionHintState extends State<CorrectionHint> with SingleTickerProvid
       },
     );
   }
+}
+
+/// Placar leve da sessão: total de notas tocadas e % afinadas. Toque para abrir
+/// o resumo por nota.
+class SessionChips extends StatelessWidget {
+  final AppState app;
+  const SessionChips({super.key, required this.app});
+
+  @override
+  Widget build(BuildContext context) {
+    final s = app.grid.summary(app.zone.cents);
+    final pct = (s.accuracy * 100).round();
+    Widget chip(String big, String small, {Color? color}) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.surface2,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(big,
+                  style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                      color: color ?? AppColors.text)),
+              const SizedBox(width: 5),
+              Text(small, style: TextStyle(fontSize: 12.5, color: AppColors.textDim)),
+            ],
+          ),
+        );
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: s.distinct == 0 ? null : () => showSessionSheet(context, app),
+      child: Semantics(
+        button: true,
+        label: s.distinct == 0
+            ? 'Nenhuma nota tocada ainda'
+            : '${s.notes} notas tocadas, $pct por cento afinadas. Toque para ver por nota.',
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            chip('${s.notes}', s.notes == 1 ? 'nota' : 'notas'),
+            const SizedBox(width: 8),
+            chip(s.distinct == 0 ? '—' : '$pct%', 'afinadas',
+                color: s.distinct == 0 ? null : (pct >= 70 ? AppColors.inTune : null)),
+            if (s.distinct > 0) ...[
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right, size: 18, color: AppColors.textDim),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Resumo leve da sessão: uma linha por nota tocada (da mais grave à mais aguda),
+/// com a cor, quantas vezes foi tocada e o desvio médio em Hz.
+void showSessionSheet(BuildContext context, AppState app) {
+  final zone = app.zone.cents;
+  final s = app.grid.summary(zone);
+  // Ignora a retenção: a folha mostra tudo que foi tocado na sessão.
+  final saved = app.grid.holdSeconds;
+  app.grid.holdSeconds = null;
+  final midis = app.grid.playedMidis.toList()..sort();
+  final rows = <(int, CellView)>[
+    for (final m in midis)
+      if (app.grid.view(m, app.now) case final v?) (m, v)
+  ];
+  app.grid.holdSeconds = saved;
+
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.surface,
+    shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (ctx) => DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.6,
+      maxChildSize: 0.92,
+      builder: (ctx, scroll) => ListView(
+        controller: scroll,
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        children: [
+          const Text('Sessão', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 2),
+          Text(
+            '${s.notes} ${s.notes == 1 ? 'nota tocada' : 'notas tocadas'} · '
+            '${s.inTune} de ${s.distinct} diferentes afinadas (${(s.accuracy * 100).round()}%)',
+            style: TextStyle(color: AppColors.textDim),
+          ),
+          const SizedBox(height: 12),
+          for (final (m, v) in rows) _sessionRow(app, m, v, zone),
+          const SizedBox(height: 12),
+          Text(
+            'Cada nota mostra a média de tudo que você tocou nela. '
+            'Para recomeçar, use "Zerar grade".',
+            style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _sessionRow(AppState app, int midi, CellView v, double zone) {
+  final c = v.avgCents;
+  final inTune = c.abs() <= zone;
+  final color = inTune ? AppColors.inTune : intonationColor(c, zone);
+  final word = inTune ? 'afinada' : (c < 0 ? 'grave' : 'aguda');
+  final hz = fmtHz(hzOff(c, targetFreq(midi, app.cfg)));
+  return Padding(
+    padding: const EdgeInsets.symmetric(vertical: 5),
+    child: Row(
+      children: [
+        Container(
+          width: 16,
+          height: 16,
+          decoration: BoxDecoration(color: intonationColor(c, zone), shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 12),
+        SizedBox(
+          width: 62,
+          child: Text(noteName(midi, app.cfg, withOctave: true),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        ),
+        SizedBox(
+          width: 40,
+          child: Text('×${v.plays}', style: TextStyle(color: AppColors.textDim)),
+        ),
+        Expanded(child: Text(word, style: TextStyle(color: color, fontWeight: FontWeight.w600))),
+        Text(inTune ? '' : hz,
+            style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+      ],
+    ),
+  );
 }
 
 /// Modal com as opções extras de oitavas: quantas mostrar e seguir a nota.

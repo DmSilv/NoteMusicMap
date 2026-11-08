@@ -158,7 +158,27 @@ class CellView {
 
   /// Segundos desde a última vez que a nota soou (0 = soando agora).
   final double age;
-  const CellView(this.avgCents, this.confidence, this.alpha, this.seconds, [this.age = 0]);
+
+  /// Quantas vezes a nota foi tocada (uma nova vez depois de uma pausa na nota).
+  final int plays;
+  const CellView(this.avgCents, this.confidence, this.alpha, this.seconds,
+      [this.age = 0, this.plays = 1]);
+}
+
+/// Resumo da sessão: quantas notas foram tocadas e quantas ficaram afinadas.
+class GridSummary {
+  /// Total de vezes que alguma nota foi tocada.
+  final int notes;
+
+  /// Notas diferentes tocadas (quadrados coloridos).
+  final int distinct;
+
+  /// Dessas, quantas estão com a média dentro da faixa afinada.
+  final int inTune;
+  const GridSummary(this.notes, this.distinct, this.inTune);
+
+  /// 0..1 (0 se nada foi tocado).
+  double get accuracy => distinct == 0 ? 0 : inTune / distinct;
 }
 
 class _Cell {
@@ -166,6 +186,7 @@ class _Cell {
   double w = 0;
   double seconds = 0;
   double lastSeen = double.negativeInfinity;
+  int plays = 0;
 }
 
 class PitchGrid {
@@ -186,6 +207,8 @@ class PitchGrid {
   /// Registra [dt] segundos tocando [midi] com desvio [cents].
   void add(int midi, double cents, double clarity, double dt, double now) {
     final c = _cells.putIfAbsent(midi, _Cell.new);
+    // Nova "tocada": primeira vez, ou voltou à nota depois de uma pausa.
+    if (!c.lastSeen.isFinite || now - c.lastSeen > replayGap) c.plays++;
     final tau = history.seconds;
     if (c.lastSeen.isFinite && tau.isFinite) {
       final f = math.exp(-(now - c.lastSeen) / tau);
@@ -211,11 +234,27 @@ class PitchGrid {
         if (alpha <= 0) return null;
       }
     }
-    return CellView(
-        c.sum / c.w, 1 - math.exp(-c.w / 0.5), alpha.clamp(0.0, 1.0), c.seconds, math.max(0.0, now - c.lastSeen));
+    return CellView(c.sum / c.w, 1 - math.exp(-c.w / 0.5), alpha.clamp(0.0, 1.0), c.seconds,
+        math.max(0.0, now - c.lastSeen), math.max(1, c.plays));
   }
 
   Iterable<int> get playedMidis => _cells.keys;
+
+  /// Pausa (s) a partir da qual voltar à mesma nota conta como outra tocada.
+  static const double replayGap = 0.45;
+
+  /// Total de notas tocadas e quantas estão afinadas, olhando a sessão inteira
+  /// (ignora o tempo de retenção da cor).
+  GridSummary summary(double zoneCents) {
+    var notes = 0, distinct = 0, ok = 0;
+    for (final c in _cells.values) {
+      if (c.w <= 0) continue;
+      distinct++;
+      notes += math.max(1, c.plays);
+      if ((c.sum / c.w).abs() <= zoneCents) ok++;
+    }
+    return GridSummary(notes, distinct, ok);
+  }
 }
 
 // ---------------------------------------------------------------------------

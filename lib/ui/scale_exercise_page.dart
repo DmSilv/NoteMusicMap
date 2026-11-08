@@ -479,9 +479,7 @@ class ScaleExercisePage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 6),
-          Text('${sc.inTune} de ${sc.total} notas afinadas (tolerância ±${app.zone.cents.round()})'),
-          Text('Desvio médio: ${sc.meanAbsCents.toStringAsFixed(1)}',
-              style: TextStyle(color: AppColors.textDim)),
+          Text('${sc.inTune} de ${sc.total} notas afinadas'),
           if (app.demo)
             Padding(
               padding: const EdgeInsets.only(top: 8),

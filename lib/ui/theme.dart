@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 /// Paleta do app, com tema escuro e claro.
@@ -139,6 +141,18 @@ String fmtCents(double c) {
   final r = c.round();
   if (r == 0) return '0';
   return r > 0 ? '♯$r' : '♭${-r}';
+}
+
+/// Diferença em Hz entre o som medido e a nota ideal, a partir do desvio em
+/// cents e da frequência alvo (positivo = agudo).
+double hzOff(double cents, double targetHz) => targetHz * (math.pow(2, cents / 1200) - 1);
+
+/// "+1,8 Hz" / "−2,1 Hz" (vírgula decimal, sinal tipográfico).
+String fmtHz(double hz) {
+  final r = (hz * 10).round() / 10;
+  if (r == 0) return '0 Hz';
+  final s = r.abs().toStringAsFixed(1).replaceAll('.', ',');
+  return '${r > 0 ? '+' : '−'}$s Hz';
 }
 
 /// Cor de texto/ícone com melhor contraste sobre [fill] (escuro ou claro).

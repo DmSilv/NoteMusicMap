@@ -92,7 +92,7 @@ class _GridPageState extends State<GridPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CorrectionHint(cents: cur?.cents, zone: zone),
+                  CorrectionHint(cents: cur?.cents, zone: zone, target: cur?.target),
                   if (app.showFreq)
                     SizedBox(
                       height: 16,
@@ -142,7 +142,7 @@ class _GridPageState extends State<GridPage> {
                 ? app.stopListening()
                 : app.startListening(demoMode: true, demoGlide: true),
             icon: const Icon(Icons.play_circle_outline, size: 18),
-            label: const Text('[dev] Glissando (testa o ponteiro)'),
+            label: const Text('[dev] Glissando'),
           ),
         if (kDevDemo && !app.listening)
           TextButton.icon(
@@ -158,6 +158,8 @@ class _GridPageState extends State<GridPage> {
         const SizedBox(height: 8),
         // A grade em si: 12 colunas (Dó a Si) x oitavas, agudos em cima.
         SizedBox(height: rows * 62.0, child: GridBoard(app: app)),
+        const SizedBox(height: 10),
+        Center(child: SessionChips(app: app)),
         const SizedBox(height: 10),
         IntonationLegend(zone: zone, compact: true),
         const SizedBox(height: 10),
@@ -179,9 +181,9 @@ class _GridPageState extends State<GridPage> {
       TuningSystem.just => 'Justo',
     };
     final lvl = switch (app.zone) {
-      ZoneLevel.beginner => 'Iniciante (±10)',
-      ZoneLevel.intermediate => 'Intermediário (±5)',
-      ZoneLevel.advanced => 'Avançado (±3)',
+      ZoneLevel.beginner => 'Iniciante',
+      ZoneLevel.intermediate => 'Intermediário',
+      ZoneLevel.advanced => 'Avançado',
     };
     final tr = app.transpose == 0 ? '' : ' · transpõe ${app.transpose > 0 ? '+' : ''}${app.transpose}';
     return InkWell(
@@ -464,9 +466,9 @@ class _GridPageState extends State<GridPage> {
   // =====================================================================
   Widget _settingsSection() {
     final zoneLabel = switch (app.zone) {
-      ZoneLevel.beginner => 'Iniciante (tolera ±10)',
-      ZoneLevel.intermediate => 'Intermediário (±5)',
-      ZoneLevel.advanced => 'Avançado (±3)',
+      ZoneLevel.beginner => 'Iniciante (faixa larga)',
+      ZoneLevel.intermediate => 'Intermediário (faixa média)',
+      ZoneLevel.advanced => 'Avançado (faixa estreita)',
     };
     final histLabel = switch (app.history) {
       HistoryMode.short => '1 segundo',
@@ -487,14 +489,14 @@ class _GridPageState extends State<GridPage> {
                   () => _pick<ZoneLevel>(
                         'Nível de exigência',
                         const [
-                          (ZoneLevel.beginner, 'Iniciante · afinado até ±10'),
-                          (ZoneLevel.intermediate, 'Intermediário · afinado até ±5'),
-                          (ZoneLevel.advanced, 'Avançado · afinado até ±3'),
+                          (ZoneLevel.beginner, 'Iniciante · faixa verde larga'),
+                          (ZoneLevel.intermediate, 'Intermediário · faixa verde média'),
+                          (ZoneLevel.advanced, 'Avançado · faixa verde estreita'),
                         ],
                         app.zone,
                         (z) => app.setTuning(zone: z),
                         hint:
-                            'Define a largura da faixa verde. Os números são centésimos de semitom: ♯ é agudo, ♭ é grave.',
+                            'Define o quanto a nota pode se afastar do ideal e ainda contar como afinada (verde). Comece pela larga e estreite com o tempo.',
                       )),
               const Divider(height: 1),
               _tile(Icons.history, 'Memória da nota', histLabel,
@@ -619,12 +621,12 @@ class _GridPageState extends State<GridPage> {
               const SizedBox(height: 12),
               Text(
                 'Cada quadrado é uma nota. Ele ganha cor conforme você toca: azul quando a '
-                'nota está grave (♭), verde quando está afinada e laranja quando está aguda (♯). '
-                'O número é o quanto falta, em centésimos de semitom. Quanto mais forte a cor, '
-                'mais longe do ideal: corrija e veja o quadrado virar verde. '
-                'Toque num quadrado para ver o valor exato.\n\n'
-                'Na nota que está tocando agora aparece um ponteiro: no centro o quadrado fica verde; '
-                'se o ponteiro vai para a esquerda a cor vira azul (grave), para a direita vira laranja (aguda). '
+                'nota está grave, verde quando está afinada e laranja ou vermelho quando está aguda. '
+                'Quanto mais forte a cor, mais longe do ideal: corrija e veja o quadrado virar verde. '
+                'O "×3" diz quantas vezes você tocou aquela nota.\n\n'
+                'A nota que está soando agora ganha uma borda forte, e o topo mostra '
+                'quantos Hz ela está acima (+) ou abaixo (−) do ideal. '
+                'No placar, toque em "notas / afinadas" para ver o resumo por nota. '
                 'O destaque troca de nota com calma, para dar tempo de ler; ajuste em Ajustes › Troca de nota.',
                 style: TextStyle(color: AppColors.textDim),
               ),
@@ -711,7 +713,9 @@ class _GridPageState extends State<GridPage> {
               width: 62,
               child: Text(n.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16))),
           Expanded(child: Text(label, style: TextStyle(color: color))),
-          Text(n.avgCents == null ? '' : fmtCents(n.avgCents!),
+          Text(n.avgCents == null || n.status == NoteStatus.inTune
+                  ? ''
+                  : fmtHz(hzOff(n.avgCents!, targetFreq(n.midi, app.cfg))),
               style: TextStyle(color: color, fontWeight: FontWeight.w700)),
         ],
       ),

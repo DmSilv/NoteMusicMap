@@ -1367,7 +1367,10 @@ class AppState extends ChangeNotifier {
 
   /// Faixa [baixa, alta] de oitavas visíveis (inclusive).
   (int, int) get gridOctaves {
-    final lo = (_gridLow ?? instrument.strings.first.midi ~/ 12)
+    // Padrão como no Tonemap: oitavas 3 a 7 (a grave do instrumento fica na base,
+    // mas nunca mais acima da oitava 3, para sobrar espaço para os agudos).
+    final lowLabel = instrument.strings.first.midi ~/ 12 - 1;
+    final lo = (_gridLow ?? (lowLabel < 3 ? lowLabel : 3) + 1)
         .clamp(minOct, maxOct - gridOctCount + 1);
     return (lo, lo + gridOctCount - 1);
   }

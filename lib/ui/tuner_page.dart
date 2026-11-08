@@ -242,7 +242,10 @@ class _TunerPageState extends State<TunerPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _stat('Desvio', cents == null ? '—' : fmtCents(cents), color),
+                      _stat(
+                          'Desvio',
+                          cents == null || targetHz == null ? '—' : fmtHz(hzOff(cents, targetHz)),
+                          color),
                       _stat('Frequência', hz == null ? '—' : '${hz.toStringAsFixed(1)} Hz', AppColors.text),
                       _stat('Alvo', targetHz == null ? '—' : '${targetHz.toStringAsFixed(2)} Hz', AppColors.text),
                     ],

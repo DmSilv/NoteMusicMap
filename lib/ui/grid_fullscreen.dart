@@ -5,7 +5,6 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../app_state.dart';
 import 'grid_board.dart';
 import 'grid_widgets.dart';
-import 'needle.dart';
 import 'note_widgets.dart';
 import 'smooth_color.dart';
 import 'theme.dart';
@@ -67,7 +66,9 @@ class _GridFullscreenState extends State<GridFullscreen> {
                   // Altura fixa: a dica troca de texto sem empurrar a grade.
                   SizedBox(
                     height: 30,
-                    child: Center(child: CorrectionHint(cents: app.shown?.cents, zone: zone)),
+                    child: Center(
+                        child: CorrectionHint(
+                            cents: app.shown?.cents, zone: zone, target: app.shown?.target)),
                   ),
                 Expanded(
                   child: Padding(
@@ -101,6 +102,8 @@ class _GridFullscreenState extends State<GridFullscreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        SessionChips(app: app),
+                        const SizedBox(height: 8),
                         IntonationLegend(zone: zone, compact: true),
                         const SizedBox(height: 10),
                         OctaveNav(app: app, compact: true, onMore: () => showOctaveSheet(context, app)),
@@ -138,9 +141,9 @@ class _GridFullscreenState extends State<GridFullscreen> {
               child: NoteReadout(note: cur, cfg: app.cfg, zone: zone, size: 38),
             ),
           ),
-          // Desvio e frequência, sempre no mesmo lugar.
+          // Desvio em Hz e frequência, sempre no mesmo lugar.
           SizedBox(
-            width: 86,
+            width: 104,
             height: 52,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -149,24 +152,25 @@ class _GridFullscreenState extends State<GridFullscreen> {
                 // A cor escorre quadro a quadro (sem reiniciar a cada leitura).
                 SmoothColor(
                   target: col,
-                  builder: (context, c) => CentsLabel(cents: cur?.cents, size: 26, color: c),
+                  builder: (context, c) => Text(
+                    cur == null ? '' : fmtHz(hzOff(cur.cents, cur.target)),
+                    style: TextStyle(
+                        color: c,
+                        fontSize: 19,
+                        height: 1.0,
+                        fontWeight: FontWeight.w800,
+                        fontFeatures: const [FontFeature.tabularFigures()]),
+                  ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
-                  cur == null ? '' : '${cur.freq.toStringAsFixed(1)} Hz',
+                  cur == null ? '' : '${cur.freq.toStringAsFixed(1).replaceAll('.', ',')} Hz',
                   style: TextStyle(color: AppColors.textDim, fontSize: 12, height: 1.0),
                 ),
               ],
             ),
           ),
-          Expanded(
-            child: landscape
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: SmoothNeedle(cents: cur?.cents, zone: zone, mini: true),
-                  )
-                : const SizedBox.shrink(),
-          ),
+          const Expanded(child: SizedBox.shrink()),
           // Ação principal, bem visível e com área de toque grande.
           IconButton.filled(
             tooltip: app.listening ? 'Parar de ouvir' : 'Ouvir',
