@@ -195,9 +195,6 @@ class _LivePainter extends CustomPainter {
   /// Desvio (cents) em que a linha encosta na borda do quadrado.
   static const double _range = 35;
 
-  /// Campo escuro do quadrado vivo (igual nos dois temas, como no Tonemap).
-  static const Color _field = Color(0xFF05090D);
-
   _LivePainter(this.v, {required this.zone, required this.radius, required Listenable repaint})
       : super(repaint: repaint);
 
@@ -219,9 +216,7 @@ class _LivePainter extends CustomPainter {
     canvas.save();
     canvas.clipRRect(RRect.fromRectAndRadius(rect, Radius.circular(radius)));
 
-    // 1) Campo escuro.
-    canvas.drawRect(rect, Paint()..color = _field.withValues(alpha: a));
-
+    // Sem faixa escura atrás: a célula mantém a própria cor (histórico) e só o cursor aparece.
     // Posição horizontal para um desvio em cents. A curva é esticada perto do
     // centro (expoente < 1): poucos cents já mexem a linha de forma visível.
     final half = w / 2;
@@ -230,35 +225,25 @@ class _LivePainter extends CustomPainter {
       return half + (cents < 0 ? -m : m) * half * 0.9;
     }
 
-    final zl = xOf(-zone), zr = xOf(zone);
     // "Travou": 1 dentro da zona afinada, cai suavemente fora dela.
     final lock = 1 - _smooth((v.pos.abs() - zone * 0.7) / (zone * 0.9 + 0.001));
 
-    // 2) Faixas laterais na cor viva (fora da zona) e zona do meio, que acende
-    //    em verde quando a linha trava.
-    final side = Paint()..color = v.fill.withValues(alpha: 0.92 * a);
-    canvas.drawRect(Rect.fromLTRB(0, 0, zl, h), side);
-    canvas.drawRect(Rect.fromLTRB(zr, 0, w, h), side);
-    if (lock > 0.01) {
-      canvas.drawRect(Rect.fromLTRB(zl, 0, zr, h),
-          Paint()..color = AppColors.inTune.withValues(alpha: 0.30 * lock * a));
-    }
-    // Divisórias finas da zona.
-    final edge = Paint()
-      ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.30 * a)
-      ..strokeWidth = 1;
-    canvas.drawLine(Offset(zl, 0), Offset(zl, h), edge);
-    canvas.drawLine(Offset(zr, 0), Offset(zr, h), edge);
+    // Marcas discretas do centro (onde é "afinado"), em cima e embaixo.
+    final tick = Paint()
+      ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.45 * a)
+      ..strokeWidth = 1.4 * u;
+    canvas.drawLine(Offset(half, 0), Offset(half, 5 * u), tick);
+    canvas.drawLine(Offset(half, h), Offset(half, h - 5 * u), tick);
 
-    // 3) A linha: clara, de ponta a ponta, com contorno escuro (aparece sobre
-    //    qualquer faixa) e verde-menta quando trava. Cresce um pouco ao aparecer.
+    // O cursor: barra grossa, de ponta a ponta, clara, com contorno escuro (aparece sobre
+    // qualquer cor) e verde-menta quando trava. Cresce um pouco ao aparecer.
     final nx = xOf(v.pos);
-    final nw = 3.2 * u;
-    final pad = 2.5 * u * (1.6 - 0.6 * a);
+    final nw = 5.6 * u;
+    final pad = 1.5 * u * (1.6 - 0.6 * a);
     final lineColor = Color.lerp(const Color(0xFFFFFFFF), AppColors.inTuneBright, lock)!;
     final bar = RRect.fromLTRBR(nx - nw / 2, pad, nx + nw / 2, h - pad, Radius.circular(nw / 2));
     canvas.drawRRect(
-        bar.inflate(1.4 * u), Paint()..color = const Color(0xFF000000).withValues(alpha: 0.55 * a));
+        bar.inflate(1.8 * u), Paint()..color = const Color(0xFF000000).withValues(alpha: 0.7 * a));
     canvas.drawRRect(bar, Paint()..color = lineColor.withValues(alpha: a));
     canvas.restore();
   }

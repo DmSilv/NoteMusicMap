@@ -96,7 +96,8 @@ class GridCell extends StatelessWidget {
           builder: (context, live, ink) {
             // `live` (0..1) comanda tudo junto: o nome vai para o meio, a seta
             // de histórico some e o texto fica claro sobre o campo escuro.
-            final color = Color.lerp(labelColor, ink, live)!;
+            // O fundo da célula não escurece mais: o texto mantém a cor legível sobre a cor da célula.
+            final color = labelColor;
             final weight = FontWeight.lerp(
                 v == null ? FontWeight.w500 : FontWeight.w800, FontWeight.w800, live)!;
             return Stack(
