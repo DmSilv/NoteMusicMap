@@ -4,8 +4,8 @@ import '../app_state.dart';
 import 'grid_cell.dart';
 
 /// A grade principal, no estilo do Tonemap: 12 colunas (Dó a Si) e uma linha por
-/// oitava, com os agudos em cima. Cada quadrado mostra a cor da última vez que a
-/// nota foi tocada e, na nota que soa agora, o afinador horizontal.
+/// oitava, com os agudos em cima. Cada quadrado mostra o nome da nota, a cor da
+/// última vez que foi tocada, quantas vezes (×3) e, na nota que soa agora, uma borda.
 /// Serve tanto na aba Grade quanto na tela cheia.
 class GridBoard extends StatelessWidget {
   final AppState app;

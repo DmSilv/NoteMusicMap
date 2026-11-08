@@ -81,23 +81,27 @@ class _GridPageState extends State<GridPage> {
         Row(
           children: [
             SizedBox(
-              width: 112,
+              width: 92,
               height: 56,
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: NoteReadout(note: cur, cfg: app.cfg, zone: zone, size: 42),
+                child: NoteReadout(note: cur, cfg: app.cfg, zone: zone, size: 40),
               ),
             ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  CorrectionHint(cents: cur?.cents, zone: zone, target: cur?.target),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: CorrectionHint(cents: cur?.cents, zone: zone, target: cur?.target),
+                  ),
                   if (app.showFreq)
                     SizedBox(
                       height: 16,
                       child: Text(
-                        cur == null ? ' ' : '${cur.freq.toStringAsFixed(1)} Hz',
+                        cur == null ? ' ' : '${cur.freq.toStringAsFixed(1).replaceAll('.', ',')} Hz',
                         style: TextStyle(color: AppColors.textDim, fontSize: 12),
                       ),
                     ),
@@ -107,24 +111,12 @@ class _GridPageState extends State<GridPage> {
             IconButton.filled(
               tooltip: app.listening ? 'Parar de ouvir' : 'Ouvir',
               style: IconButton.styleFrom(
-                minimumSize: const Size(48, 48),
+                minimumSize: const Size(44, 44),
                 backgroundColor: app.listening ? AppColors.surface2 : AppColors.accent,
                 foregroundColor: app.listening ? AppColors.text : AppColors.onAccent,
               ),
               icon: Icon(app.listening && !app.demo ? Icons.mic_off : Icons.mic),
               onPressed: () => app.listening ? app.stopListening() : app.startListening(),
-            ),
-            IconButton(
-              tooltip: 'O que significam as cores?',
-              icon: const Icon(Icons.help_outline),
-              onPressed: _explainColors,
-            ),
-            IconButton(
-              tooltip: 'Zerar grade',
-              icon: const Icon(Icons.restart_alt),
-              onPressed: () async {
-                await confirmResetGrid(context, app);
-              },
             ),
             IconButton(
               tooltip: 'Tela cheia',
@@ -133,6 +125,37 @@ class _GridPageState extends State<GridPage> {
                 fullscreenDialog: true,
                 builder: (_) => GridFullscreen(app: app),
               )),
+            ),
+            // Ações menos usadas ficam num menu, para a barra respirar no celular.
+            PopupMenuButton<String>(
+              tooltip: 'Mais opções',
+              icon: const Icon(Icons.more_vert),
+              color: AppColors.surface,
+              onSelected: (v) async {
+                if (v == 'help') {
+                  _explainColors();
+                } else if (v == 'reset') {
+                  await confirmResetGrid(context, app);
+                }
+              },
+              itemBuilder: (ctx) => const [
+                PopupMenuItem(
+                  value: 'help',
+                  child: ListTile(
+                    dense: true,
+                    leading: Icon(Icons.help_outline),
+                    title: Text('Como ler as cores'),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'reset',
+                  child: ListTile(
+                    dense: true,
+                    leading: Icon(Icons.restart_alt),
+                    title: Text('Zerar grade'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

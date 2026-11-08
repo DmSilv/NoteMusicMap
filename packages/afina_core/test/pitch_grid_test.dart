@@ -178,6 +178,11 @@ void main() {
       // Pausa longa e volta: 2 vezes.
       g.add(60, 2, 1, 0.05, 3.0);
       expect(g.view(60, 3.1)!.plays, 2);
+      // Quadros espaçados porque o aparelho engasgou (dt grande) não contam como nota nova.
+      for (var i = 0; i < 5; i++) {
+        g.add(60, 2, 1, 0.8, 4.0 + i * 0.8);
+      }
+      expect(g.view(60, 8.1)!.plays, 2);
       // Outra nota tem a própria contagem.
       g.add(64, 0, 1, 0.05, 3.2);
       expect(g.view(64, 3.3)!.plays, 1);

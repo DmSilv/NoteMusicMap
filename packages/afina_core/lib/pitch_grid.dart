@@ -208,7 +208,9 @@ class PitchGrid {
   void add(int midi, double cents, double clarity, double dt, double now) {
     final c = _cells.putIfAbsent(midi, _Cell.new);
     // Nova "tocada": primeira vez, ou voltou à nota depois de uma pausa.
-    if (!c.lastSeen.isFinite || now - c.lastSeen > replayGap) c.plays++;
+    // (Se o aparelho engasgou e os quadros vieram espaçados, o intervalo cresce
+    // junto com [dt] e não conta como nota nova.)
+    if (!c.lastSeen.isFinite || now - c.lastSeen > math.max(replayGap, dt * 2.5)) c.plays++;
     final tau = history.seconds;
     if (c.lastSeen.isFinite && tau.isFinite) {
       final f = math.exp(-(now - c.lastSeen) / tau);
