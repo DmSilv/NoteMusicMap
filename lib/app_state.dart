@@ -72,9 +72,9 @@ class AppState extends ChangeNotifier {
   int transpose = 0;
   String instrumentId = 'violino';
   TunerMode tunerMode = TunerMode.strings;
-  ZoneLevel zone = ZoneLevel.intermediate;
+  ZoneLevel zone = ZoneLevel.beginner; // margem ampla (±10 cents): quem toca precisa de folga
   HistoryMode history = HistoryMode.medium;
-  double holdSeconds = 30;
+  double holdSeconds = 0; // 0 = a cor fica até zerar a grade (histórico das notas tocadas)
 
   TuningConfig get cfg => TuningConfig(
         refA: refA,
@@ -1309,14 +1309,14 @@ class AppState extends ChangeNotifier {
     gridOctCount = 5;
     gridFollow = false;
     tunerMode = TunerMode.strings;
-    zone = ZoneLevel.intermediate;
+    zone = ZoneLevel.beginner;
     history = HistoryMode.medium;
-    holdSeconds = 30;
+    holdSeconds = 0;
     noteSwitch = NoteSwitchSpeed.normal;
     _display.speed = noteSwitch;
     exerciseFlow = true;
     grid.history = history;
-    grid.holdSeconds = holdSeconds;
+    grid.holdSeconds = holdSeconds <= 0 ? null : holdSeconds;
     dailyGoalMinutes = 20;
     flashEnabled = true;
     hapticEnabled = true;
@@ -1657,9 +1657,15 @@ class AppState extends ChangeNotifier {
     transpose = p.getInt('transpose') ?? 0;
     instrumentId = p.getString('instrument') ?? 'violino';
     tunerMode = TunerMode.values[p.getInt('tunerMode') ?? 0];
-    zone = ZoneLevel.values[p.getInt('zone') ?? 1];
+    zone = ZoneLevel.values[p.getInt('zone') ?? 0];
     history = HistoryMode.values[p.getInt('history') ?? 1];
-    holdSeconds = p.getDouble('hold') ?? 30;
+    holdSeconds = p.getDouble('hold') ?? 0;
+    // Uma vez: a grade passa a guardar o histórico das notas e a margem de afinação fica mais ampla.
+    if ((p.getInt('gridMig') ?? 0) < 1) {
+      zone = ZoneLevel.beginner;
+      holdSeconds = 0;
+      p.setInt('gridMig', 1);
+    }
     noteSwitch = NoteSwitchSpeed.values[
         (p.getInt('noteSwitch') ?? NoteSwitchSpeed.normal.index).clamp(0, NoteSwitchSpeed.values.length - 1)];
     _display.speed = noteSwitch;
@@ -1725,7 +1731,7 @@ class AppState extends ChangeNotifier {
       checkMicPermission(request: false, announce: false);
       checkVibration();
     }
-    grid = PitchGrid(history: history, holdSeconds: holdSeconds);
+    grid = PitchGrid(history: history, holdSeconds: holdSeconds <= 0 ? null : holdSeconds);
     _studyTimer = Timer.periodic(const Duration(seconds: 1), (_) => _studyTick());
     notifyListeners();
   }

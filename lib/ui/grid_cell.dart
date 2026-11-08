@@ -52,7 +52,9 @@ class GridCell extends StatelessWidget {
     if (v != null) {
       // A nota que soa agora tem a cor cheia; as outras perdem força depressa (ficam só como pista),
       // para a grade não virar uma mancha de cores e dar para ver onde está a nota atual.
-      final recency = playing ? 1.0 : (0.12 + 0.43 * (1 - v.age / 6).clamp(0.0, 1.0));
+      // Histórico: a cor das notas já tocadas fica (só muda quando a nota é tocada de novo), um pouco
+      // mais suave que a da nota atual, que ganha a borda e a agulha.
+      final recency = playing ? 1.0 : 0.78;
       final a = (0.5 + 0.5 * v.confidence) * v.alpha * recency;
       fill = Color.lerp(restFill, intonationColor(v.avgCents, zone), a)!;
     }
