@@ -138,11 +138,11 @@ List<Insight> analyzePractice(
   List<SessionRecord> sessions, {
   int window = 8,
   int maxInsights = 5,
-  bool flats = false,
+  bool? flats = false,
 }) {
   if (sessions.isEmpty) return const [];
   final recent = sessions.take(window).toList();
-  final names = flats ? noteNamesFlat : noteNamesSharp;
+  final names = namesFor(flats);
   final zone = recent.first.zone;
   final out = <Insight>[];
 
@@ -288,9 +288,9 @@ List<Insight> analyzePractice(
 String buildAiPrompt(
   List<SessionRecord> sessions, {
   String instrument = 'instrumento de cordas',
-  bool flats = false,
+  bool? flats = false,
 }) {
-  final names = flats ? noteNamesFlat : noteNamesSharp;
+  final names = namesFor(flats);
   final recent = sessions.take(10).toList();
   final b = StringBuffer()
     ..writeln('Sou instrumentista ($instrument) e pratico escalas e arpejos com um afinador que mede o desvio de cada nota em cents (♯ = agudo, ♭ = grave; 100 cents = 1 semitom).')

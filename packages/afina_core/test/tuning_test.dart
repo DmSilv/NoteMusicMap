@@ -149,4 +149,66 @@ void main() {
       expect(noteName(60, const TuningConfig(transpose: 2)), 'Ré');
     });
   });
+
+  group('grafia automática de sustenidos e bemóis', () {
+    const auto = TuningConfig(autoSpelling: true);
+
+    test('sem tonalidade, alterna ♯ e ♭ (Dó♯, Mi♭, Fá♯, Lá♭, Si♭)', () {
+      final nomes = [for (var pc = 0; pc < 12; pc++) noteName(60 + pc, auto)];
+      expect(nomes, ['Dó', 'Dó♯', 'Ré', 'Mi♭', 'Mi', 'Fá', 'Fá♯', 'Sol', 'Lá♭', 'Lá', 'Si♭', 'Si']);
+      // aparece os dois tipos de acidente
+      expect(nomes.any((n) => n.contains('♯')), isTrue);
+      expect(nomes.any((n) => n.contains('♭')), isTrue);
+    });
+
+    test('Sol e depois a tecla preta seguinte aparece como Lá♭, não Sol♯', () {
+      expect(noteName(67, auto), 'Sol');
+      expect(noteName(68, auto), 'Lá♭');
+    });
+
+    test('com tonalidade de bemóis (Fá maior), todas as pretas são bemóis', () {
+      final fa = auto.copyWith(keyFlats: keyUsesFlats(5));
+      expect(noteName(70, fa), 'Si♭');
+      expect(noteName(66, fa), 'Sol♭'); // e não Fá♯
+      expect(noteName(61, fa), 'Ré♭');
+    });
+
+    test('com tonalidade de sustenidos (Ré maior), as pretas são sustenidos', () {
+      final re = auto.copyWith(keyFlats: keyUsesFlats(2));
+      expect(noteName(66, re), 'Fá♯');
+      expect(noteName(61, re), 'Dó♯');
+      expect(noteName(68, re), 'Sol♯');
+    });
+
+    test('armaduras: maiores e menores', () {
+      for (final t in [5, 10, 3, 8, 1]) {
+        expect(keyUsesFlats(t), isTrue, reason: 'maior $t');
+      }
+      for (final t in [0, 7, 2, 9, 4, 11, 6]) {
+        expect(keyUsesFlats(t), isFalse, reason: 'maior $t');
+      }
+      // menores: Sol menor (Si♭ maior), Dó menor, Fá menor, Mi♭ menor = bemóis
+      for (final t in [7, 0, 5, 3, 2, 10]) {
+        expect(keyUsesFlats(t, minor: true), isTrue, reason: 'menor $t');
+      }
+      // Lá menor, Mi menor, Si menor, Fá♯ menor, Dó♯ menor, Sol♯ menor = sustenidos
+      for (final t in [9, 4, 11, 6, 1, 8]) {
+        expect(keyUsesFlats(t, minor: true), isFalse, reason: 'menor $t');
+      }
+    });
+
+    test('sem grafia automática vale só a preferência (compatível com antes)', () {
+      expect(noteName(70, const TuningConfig()), 'Lá♯');
+      expect(noteName(70, const TuningConfig(preferFlats: true)), 'Si♭');
+      // e a preferência manual vence a tonalidade quando a automática está desligada
+      final manual = const TuningConfig(preferFlats: true).copyWith(keyFlats: false);
+      expect(noteName(70, manual), 'Si♭');
+    });
+
+    test('namesFor: null = automático', () {
+      expect(namesFor(null)[8], 'Lá♭');
+      expect(namesFor(false)[8], 'Sol♯');
+      expect(namesFor(true)[8], 'Lá♭');
+    });
+  });
 }

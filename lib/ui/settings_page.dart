@@ -277,8 +277,8 @@ class SettingsPage extends StatelessWidget {
           onChanged: (v) => app.setTuning(transpose: v),
         ),
         const SizedBox(height: 4),
-        _switch('Usar bemóis (♭)', 'Mostra Si♭ em vez de Lá♯, por exemplo.', app.preferFlats,
-            (v) => app.setTuning(preferFlats: v)),
+        _label('Sustenidos e bemóis', 'Como as notas pretas aparecem (Lá♭ ou Sol♯).'),
+        SpellingPicker(app: app),
       ],
     );
   }

@@ -219,9 +219,11 @@ class _GridPageState extends State<GridPage> {
 
   /// Opção da tônica: "Lá bemol (Sol sustenido)" nas teclas pretas, para achar rápido.
   String _tonicLabel(int pc) {
-    final a = _spoken(noteName(pc + 60, app.cfg.copyWith(transpose: 0)));
-    final b = _spoken(noteName(pc + 60, app.cfg.copyWith(transpose: 0, preferFlats: !app.cfg.preferFlats)));
-    return a == b ? a : '$a  ·  $b';
+    final base = app.cfg.copyWith(transpose: 0, keyFlats: null);
+    final a = noteName(pc + 60, base);
+    // A outra grafia da mesma tecla (Lá♭ <-> Sol♯), para achar rápido.
+    final other = a.contains('♯') ? noteNamesFlat[pc] : (a.contains('♭') ? noteNamesSharp[pc] : a);
+    return a == other ? _spoken(a) : '${_spoken(a)}  ·  ${_spoken(other)}';
   }
 
   /// "Escala de Fá Maior" / "Escala de Lá bemol menor harmônica".
@@ -232,7 +234,7 @@ class _GridPageState extends State<GridPage> {
       final minorChord = type.label.contains('menor');
       final flatsA = minorChord ? const {3, 10} : const {1, 3, 8, 10};
       final raiz = _spoken(noteName(tonicPc + 60,
-          app.cfg.copyWith(transpose: 0, preferFlats: flatsA.contains(tonicPc) || (app.preferFlats && !minorChord && tonicPc != 6))));
+          app.cfg.copyWith(transpose: 0, autoSpelling: false, preferFlats: flatsA.contains(tonicPc) || (app.preferFlats && !minorChord && tonicPc != 6))));
       return type.display(raiz);
     }
     final tipo = switch (type) {
@@ -247,7 +249,7 @@ class _GridPageState extends State<GridPage> {
         type == ScaleType.melodicMinor;
     final flats = minor ? const {3, 10} : const {1, 3, 8, 10};
     final nota = _spoken(noteName(tonicPc + 60,
-        app.cfg.copyWith(transpose: 0, preferFlats: flats.contains(tonicPc) || (app.preferFlats && !minor && tonicPc != 6))));
+        app.cfg.copyWith(transpose: 0, autoSpelling: false, preferFlats: flats.contains(tonicPc) || (app.preferFlats && !minor && tonicPc != 6))));
     return type == ScaleType.chromatic ? 'Escala Cromática a partir de $nota' : 'Escala de $nota $tipo';
   }
 

@@ -69,6 +69,20 @@ class AppState extends ChangeNotifier {
   int tonicPc = 9; // Lá
   Anchor anchor = Anchor.a4;
   bool preferFlats = false;
+
+  /// Grafia automática (padrão): alterna ♯ e ♭ e segue a tonalidade da escala.
+  /// Desligada, vale só [preferFlats] (sempre ♯ ou sempre ♭).
+  bool spellingAuto = true;
+
+  /// Para textos de análise: null = automático, senão true = bemóis, false = sustenidos.
+  bool? get flatsForText => spellingAuto ? null : preferFlats;
+
+  /// Tonalidade ativa para a grafia: a da escala/exercício em andamento, ou nada.
+  bool? get _keyFlats {
+    if (!(scaleMode || exercise != null)) return null;
+    final minor = scaleType.label.toLowerCase().contains('menor');
+    return keyUsesFlats(scaleTonicMidi % 12, minor: minor);
+  }
   int transpose = 0;
   String instrumentId = 'violino';
   TunerMode tunerMode = TunerMode.strings;
@@ -84,6 +98,8 @@ class AppState extends ChangeNotifier {
         anchor: anchor,
         preferFlats: preferFlats,
         transpose: transpose,
+        autoSpelling: spellingAuto,
+        keyFlats: spellingAuto ? _keyFlats : null,
       );
   Instrument get instrument => instrumentById(instrumentId);
 
@@ -1304,6 +1320,7 @@ class AppState extends ChangeNotifier {
     tonicPc = 9;
     anchor = Anchor.a4;
     preferFlats = false;
+    spellingAuto = true;
     transpose = 0;
     instrumentId = 'violino';
     _gridLow = null;
@@ -1465,10 +1482,10 @@ class AppState extends ChangeNotifier {
   List<SessionRecord> sessionRecords = [];
 
   List<Insight> get insights =>
-      analyzePractice(sessionRecords, flats: preferFlats);
+      analyzePractice(sessionRecords, flats: flatsForText);
 
   String aiSummary() =>
-      buildAiPrompt(sessionRecords, instrument: instrument.name, flats: preferFlats);
+      buildAiPrompt(sessionRecords, instrument: instrument.name, flats: flatsForText);
 
   /// Começa o exercício da escala escolhida (aba Grade › Escala).
   /// "Seguir meu ritmo": o exercício acompanha você tocando a escala sem parar,
@@ -1665,6 +1682,7 @@ class AppState extends ChangeNotifier {
     tonicPc = p.getInt('tonicPc') ?? 9;
     anchor = Anchor.values[p.getInt('anchor') ?? 0];
     preferFlats = p.getBool('flats') ?? false;
+    spellingAuto = p.getBool('spellAuto') ?? true;
     transpose = p.getInt('transpose') ?? 0;
     instrumentId = p.getString('instrument') ?? 'violino';
     tunerMode = TunerMode.values[p.getInt('tunerMode') ?? 0];
@@ -1753,6 +1771,7 @@ class AppState extends ChangeNotifier {
     await p.setInt('tonicPc', tonicPc);
     await p.setInt('anchor', anchor.index);
     await p.setBool('flats', preferFlats);
+    await p.setBool('spellAuto', spellingAuto);
     await p.setInt('transpose', transpose);
     await p.setString('instrument', instrumentId);
     await p.setInt('tunerMode', tunerMode.index);
@@ -1778,6 +1797,7 @@ class AppState extends ChangeNotifier {
     int? tonicPc,
     Anchor? anchor,
     bool? preferFlats,
+    bool? spellingAuto,
     int? transpose,
     String? instrumentId,
     TunerMode? tunerMode,
@@ -1794,6 +1814,7 @@ class AppState extends ChangeNotifier {
     if (tonicPc != null) this.tonicPc = tonicPc;
     if (anchor != null) this.anchor = anchor;
     if (preferFlats != null) this.preferFlats = preferFlats;
+    if (spellingAuto != null) this.spellingAuto = spellingAuto;
     if (transpose != null) this.transpose = transpose;
     if (instrumentId != null) {
       this.instrumentId = instrumentId;

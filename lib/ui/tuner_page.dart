@@ -503,15 +503,9 @@ class _TunerPageState extends State<TunerPage> {
             ],
           ],
           const Divider(height: 24),
-          Row(
-            children: [
-              const Expanded(child: Text('Mostrar bemóis (♭) em vez de sustenidos (♯)')),
-              Switch(
-                value: app.preferFlats,
-                onChanged: (v) => app.setTuning(preferFlats: v),
-              ),
-            ],
-          ),
+          const Text('Sustenidos e bemóis', style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 6),
+          SpellingPicker(app: app),
         ],
       ),
     );

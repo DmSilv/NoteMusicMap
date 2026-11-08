@@ -205,6 +205,41 @@ class MicDiagPanel extends StatelessWidget {
   }
 }
 
+/// Escolha da grafia das teclas pretas: Automático (alterna ♯ e ♭ e segue a
+/// tonalidade da escala), sempre ♯ ou sempre ♭.
+class SpellingPicker extends StatelessWidget {
+  final AppState app;
+  const SpellingPicker({super.key, required this.app});
+
+  @override
+  Widget build(BuildContext context) {
+    final sel = app.spellingAuto ? 0 : (app.preferFlats ? 2 : 1);
+    Widget chip(int i, String label) => ChoiceChip(
+          label: Text(label),
+          selected: sel == i,
+          onSelected: (_) => app.setTuning(
+              spellingAuto: i == 0, preferFlats: i == 2 ? true : (i == 1 ? false : null)),
+        );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(spacing: 6, runSpacing: 4, children: [
+          chip(0, 'Automático'),
+          chip(1, 'Sempre ♯'),
+          chip(2, 'Sempre ♭'),
+        ]),
+        const SizedBox(height: 4),
+        Text(
+          sel == 0
+              ? 'Alterna os dois (Lá♭, Fá♯…) e segue a tonalidade da escala que você escolher.'
+              : (sel == 1 ? 'Mostra Lá♯, Sol♯… (só sustenidos).' : 'Mostra Si♭, Lá♭… (só bemóis).'),
+          style: TextStyle(color: AppColors.textDim, fontSize: 12),
+        ),
+      ],
+    );
+  }
+}
+
 class LevelBar extends StatelessWidget {
   final double level;
   const LevelBar({super.key, required this.level});

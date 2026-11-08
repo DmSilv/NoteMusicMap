@@ -27,6 +27,28 @@ const List<String> noteNamesFlat = [
   'Dó', 'Ré♭', 'Ré', 'Mi♭', 'Mi', 'Fá', 'Sol♭', 'Sol', 'Lá♭', 'Lá', 'Si♭', 'Si'
 ];
 
+/// Grafia automática das teclas pretas quando não há tonalidade definida: alterna
+/// sustenidos e bemóis como se escreve na prática (Dó♯, Mi♭, Fá♯, Lá♭, Si♭), em vez
+/// de usar sempre sustenidos.
+const List<String> noteNamesAuto = [
+  'Dó', 'Dó♯', 'Ré', 'Mi♭', 'Mi', 'Fá', 'Fá♯', 'Sol', 'Lá♭', 'Lá', 'Si♭', 'Si'
+];
+
+/// Nomes para [flats]: null = automático; true = só bemóis; false = só sustenidos.
+List<String> namesFor(bool? flats) =>
+    flats == null ? noteNamesAuto : (flats ? noteNamesFlat : noteNamesSharp);
+
+/// Se a tonalidade com tônica [tonicPc] (0 = Dó) usa bemóis na armadura. Para
+/// tonalidades menores vale a relativa maior (Sol menor -> Si♭ maior: bemóis).
+bool keyUsesFlats(int tonicPc, {bool minor = false}) {
+  final t = ((tonicPc % 12) + 12) % 12;
+  if (minor) {
+    if (t == 3) return true; // Mi♭ menor (6 bemóis)
+    return keyUsesFlats((t + 3) % 12);
+  }
+  return const {1, 3, 5, 8, 10}.contains(t); // Ré♭, Mi♭, Fá, Lá♭, Si♭ maiores
+}
+
 /// Razões acima da tônica, índice = semitons (0..11).
 final List<double> pythagoreanRatios = [
   1, 256 / 243, 9 / 8, 32 / 27, 81 / 64, 4 / 3,
@@ -66,6 +88,14 @@ class TuningConfig {
   final Anchor anchor;
   final bool preferFlats;
 
+  /// true = a grafia das teclas pretas é automática (alterna ♯ e ♭, ou segue a
+  /// tonalidade em [keyFlats]); false = usa só [preferFlats].
+  final bool autoSpelling;
+
+  /// Com grafia automática e uma tonalidade ativa (escala, exercício): true se ela
+  /// usa bemóis, false se usa sustenidos; null = sem tonalidade.
+  final bool? keyFlats;
+
   /// Semitons somados na leitura escrita (instrumentos transpositores).
   /// Clarinete em Si♭ = +2, sax alto em Mi♭ = +9. Só afeta os NOMES.
   final int transpose;
@@ -77,6 +107,8 @@ class TuningConfig {
     this.anchor = Anchor.a4,
     this.preferFlats = false,
     this.transpose = 0,
+    this.autoSpelling = false,
+    this.keyFlats,
   });
 
   TuningConfig copyWith({
@@ -86,6 +118,8 @@ class TuningConfig {
     Anchor? anchor,
     bool? preferFlats,
     int? transpose,
+    bool? autoSpelling,
+    Object? keyFlats = _keep,
   }) =>
       TuningConfig(
         refA: refA ?? this.refA,
@@ -94,8 +128,12 @@ class TuningConfig {
         anchor: anchor ?? this.anchor,
         preferFlats: preferFlats ?? this.preferFlats,
         transpose: transpose ?? this.transpose,
+        autoSpelling: autoSpelling ?? this.autoSpelling,
+        keyFlats: identical(keyFlats, _keep) ? this.keyFlats : keyFlats as bool?,
       );
 }
+
+const Object _keep = Object();
 
 /// Frequência alvo da nota MIDI [midi] (rótulo em temperamento igual) segundo
 /// o sistema configurado.
@@ -125,7 +163,13 @@ double offsetFromEqual(int midi, TuningConfig c) =>
 
 String noteName(int midi, TuningConfig c, {bool withOctave = false}) {
   final m = midi + c.transpose;
-  final names = c.preferFlats ? noteNamesFlat : noteNamesSharp;
+  final List<String> names;
+  if (c.autoSpelling) {
+    final kf = c.keyFlats;
+    names = kf == null ? noteNamesAuto : (kf ? noteNamesFlat : noteNamesSharp);
+  } else {
+    names = c.preferFlats ? noteNamesFlat : noteNamesSharp;
+  }
   final n = names[_mod12(m)];
   return withOctave ? '$n${(m ~/ 12) - 1}' : n;
 }

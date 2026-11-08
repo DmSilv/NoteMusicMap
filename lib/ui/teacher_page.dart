@@ -773,7 +773,7 @@ class StudentPage extends StatelessWidget {
         final s = app.studentById(studentId);
         if (s == null) return const Scaffold(body: SizedBox.shrink());
         final sum = summarizeStudent(s);
-        final tips = analyzePractice(s.sessions, flats: app.preferFlats).take(4).toList();
+        final tips = analyzePractice(s.sessions, flats: app.flatsForText).take(4).toList();
         return Scaffold(
           appBar: AppBar(
             title: Text(s.name),
@@ -782,7 +782,7 @@ class StudentPage extends StatelessWidget {
                 onSelected: (v) async {
                   switch (v) {
                     case 'report':
-                      await Clipboard.setData(ClipboardData(text: studentReport(s, flats: app.preferFlats)));
+                      await Clipboard.setData(ClipboardData(text: studentReport(s, flats: app.flatsForText)));
                       app.say('Relatório copiado: cole numa conversa ou e-mail');
                     case 'ai':
                       await _aiReport(context, s);
@@ -877,7 +877,7 @@ class StudentPage extends StatelessWidget {
             ? t.copyWith(note: '')
             : Assignment(id: t.id, title: t.kind.label, kind: t.kind, done: t.done, created: t.created),
     ]);
-    app.ai.ask('${studentReport(anon, flats: app.preferFlats)}\n\n${buildAiPrompt(s.sessions, instrument: app.instrument.name, flats: app.preferFlats)}',
+    app.ai.ask('${studentReport(anon, flats: app.flatsForText)}\n\n${buildAiPrompt(s.sessions, instrument: app.instrument.name, flats: app.flatsForText)}',
         kind: 'teacher_report');
     if (!context.mounted) return;
     await showModalBottomSheet<void>(
