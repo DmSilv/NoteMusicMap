@@ -28,6 +28,7 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   bool _showKey = false;
+  bool _fast = false;
   final _restore = TextEditingController();
   late final TextEditingController _name = TextEditingController(
     text: widget.app.profile.name ?? '',
@@ -38,12 +39,15 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   void initState() {
     super.initState();
-    app.watchLinks(); // atualiza os vínculos enquanto esta tela está aberta
+    // Atualiza os vínculos enquanto esta tela está aberta. Quem ainda não tem professor consulta
+    // mais depressa (10 s): é quem espera um professor adicioná-lo.
+    _fast = app.myTeachers.isEmpty;
+    app.watchLinks(fast: _fast);
   }
 
   @override
   void dispose() {
-    app.unwatchLinks();
+    app.unwatchLinks(fast: _fast);
     _restore.dispose();
     _name.dispose();
     super.dispose();
@@ -322,6 +326,47 @@ class _ProfilePageState extends State<ProfilePage> {
     if (err != null) app.say(err);
   }
 
+  /// Aviso para o aluno: "Fulano adicionou você" ou "nova aula". Fica até ser dispensado.
+  Widget _noticeCard(BuildContext context, AppNotice n) {
+    return Material(
+      color: AppColors.accent.withValues(alpha: 0.16),
+      borderRadius: BorderRadius.circular(12),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 8, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Icon(n.kind == 'lesson' ? Icons.assignment_turned_in_outlined : Icons.how_to_reg_outlined,
+                  color: AppColors.accent),
+              const SizedBox(width: 10),
+              Expanded(child: Text(n.text, style: const TextStyle(fontWeight: FontWeight.w700, height: 1.3))),
+              IconButton(
+                tooltip: 'Dispensar',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => app.dismissNotice(n),
+                icon: const Icon(Icons.close, size: 20),
+              ),
+            ]),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () {
+                  app.dismissNotice(n);
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(builder: (_) => MyLessonsPage(app: app)),
+                  );
+                },
+                icon: const Icon(Icons.menu_book_outlined, size: 18),
+                label: const Text('Ver minhas aulas'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _profileTab() {
     return ListenableBuilder(
       listenable: app,
@@ -331,6 +376,10 @@ class _ProfilePageState extends State<ProfilePage> {
         return ListView(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 28),
           children: [
+            for (final n in app.notices.where((n) => !n.seen)) ...[
+              _noticeCard(context, n),
+              const SizedBox(height: 12),
+            ],
             AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -61,6 +61,28 @@ enum MicSensitivity {
   const MicSensitivity(this.label, this.minClarity, this.minRms, this.onsetFrames);
 }
 
+/// Aviso para o aluno (um professor o adicionou, chegou uma aula…).
+class AppNotice {
+  final String kind; // 'teacher' ou 'lesson'
+  final String text;
+  final int atMs;
+  bool seen;
+  AppNotice(this.kind, this.text, this.atMs, {this.seen = false});
+
+  Map<String, dynamic> toJson() => {'k': kind, 't': text, 'a': atMs, 's': seen};
+  static AppNotice? tryFrom(Object? j) {
+    try {
+      final m = (j as Map).cast<String, dynamic>();
+      final k = m['k'] == 'lesson' ? 'lesson' : 'teacher';
+      final t = cleanText(m['t'] as String?, max: kMaxNote);
+      if (t.isEmpty) return null;
+      return AppNotice(k, t, ((m['a'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000), seen: m['s'] == true);
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
 /// Estado central do app. Sem login, sem rede: tudo fica no aparelho.
 class AppState extends ChangeNotifier {
   // ---------------- Afinação ----------------
@@ -318,8 +340,13 @@ class AppState extends ChangeNotifier {
     for (final s in students.where((s) => ids.contains(s.id))) {
       _unlinkStudentOnline(s);
     }
+    final lessonGone = _lesson != null && ids.contains(_lesson!.studentId);
     students.removeWhere((s) => ids.contains(s.id));
     if (ids.contains(activeStudentId)) activeStudentId = null;
+    if (lessonGone) {
+      _lesson = null;
+      _saveLessons();
+    }
     _saveTeacher();
     notifyListeners();
     return before - students.length;
@@ -328,8 +355,15 @@ class AppState extends ChangeNotifier {
   void removeStudent(String id) {
     final gone = studentById(id);
     if (gone != null) _unlinkStudentOnline(gone);
+    final lessonGone = _lesson?.studentId == id;
     students.removeWhere((s) => s.id == id);
     if (activeStudentId == id) activeStudentId = null;
+    if (lessonGone) {
+      // A aula era dele: sem aluno não há o que encerrar nem enviar.
+      _lesson = null;
+      _saveLessons();
+      say('A aula em andamento foi descartada junto com o aluno.');
+    }
     _saveTeacher();
     notifyListeners();
   }
@@ -510,6 +544,7 @@ class AppState extends ChangeNotifier {
       ..clear()
       ..addAll(p.getStringList('unlink_teachers') ?? const []);
     _loadLessons(p);
+    _loadNotices(p);
     // Ao abrir o app, atualiza uma vez (se o vínculo estiver ligado).
     if (linkEnabled) Future<void>.delayed(const Duration(seconds: 3), syncLinks);
   }
@@ -523,13 +558,78 @@ class AppState extends ChangeNotifier {
     p.setStringList('unlink_teachers', _unlinkTeachers.toList());
   }
 
+  // ---------------- Avisos para o aluno ----------------
+  // Quando um professor adiciona o aluno (ou encerra uma aula para ele), o aluno
+  // recebe um aviso que fica na tela de perfil até ele dispensar. Os avisos nascem
+  // da atualização do vínculo (não há "push": o app consulta o servidor).
+
+  /// Avisos do aluno, mais recente primeiro (no máximo 20).
+  List<AppNotice> notices = [];
+
+  int get unseenNotices => notices.where((n) => !n.seen).length;
+
+  void addNotice(String kind, String text) {
+    notices.insert(0, AppNotice(kind, cleanText(text, max: kMaxNote), DateTime.now().millisecondsSinceEpoch));
+    if (notices.length > 20) notices.removeRange(20, notices.length);
+    _saveNotices();
+  }
+
+  void dismissNotice(AppNotice n) {
+    n.seen = true;
+    _saveNotices();
+    notifyListeners();
+  }
+
+  void markNoticesSeen() {
+    if (unseenNotices == 0) return;
+    for (final n in notices) {
+      n.seen = true;
+    }
+    _saveNotices();
+    notifyListeners();
+  }
+
+  void _loadNotices(SharedPreferences p) {
+    try {
+      final raw = p.getString('notices');
+      notices = raw == null
+          ? []
+          : [for (final x in (jsonDecode(raw) as List).take(20)) ?AppNotice.tryFrom(x)];
+    } catch (_) {
+      notices = [];
+    }
+  }
+
+  void _saveNotices() => _prefs?.setString('notices', jsonEncode([for (final n in notices) n.toJson()]));
+
+  DateTime? _lastLinkSync;
+
+  /// O app voltou para a frente (o usuário reabriu ou trocou de aba): atualiza o vínculo
+  /// se já faz um tempo, para o aluno ver na hora que um professor o adicionou.
+  void onResume() {
+    if (!linkEnabled || linkUnavailable) return;
+    final t = _lastLinkSync;
+    if (t == null || DateTime.now().difference(t).inSeconds > 20) unawaited(syncLinks());
+  }
+
   // ---------------- Aulas ----------------
   // PROFESSOR: começa a aula na ficha do aluno, pode pausar e, ao encerrar, o que ele
   // passou nela (tarefas e observações) é enviado ao aluno. ALUNO: recebe e vê em
   // "Minhas aulas".
 
-  /// Aula em andamento (do professor), ou null.
-  ActiveLesson? lesson;
+  ActiveLesson? _lesson;
+
+  /// Aula em andamento (do professor), ou null. Uma aula cujo aluno foi excluído
+  /// não existe mais: assim ela nunca fica "presa" bloqueando uma aula nova.
+  ActiveLesson? get lesson {
+    final l = _lesson;
+    if (l != null && studentById(l.studentId) == null) {
+      _lesson = null;
+      if (activeStudentId == l.studentId) activeStudentId = null;
+      _saveLessons();
+    }
+    return _lesson;
+  }
 
   /// ALUNO: aulas recebidas dos professores, mais recente primeiro.
   List<SharedLesson> myLessons = [];
@@ -546,9 +646,9 @@ class AppState extends ChangeNotifier {
   void _loadLessons(SharedPreferences p) {
     try {
       final raw = p.getString('lesson_active');
-      lesson = raw == null ? null : ActiveLesson.tryFrom(jsonDecode(raw));
+      _lesson = raw == null ? null : ActiveLesson.tryFrom(jsonDecode(raw));
     } catch (_) {
-      lesson = null;
+      _lesson = null;
     }
     try {
       final raw = p.getString('lessons_in');
@@ -572,10 +672,10 @@ class AppState extends ChangeNotifier {
   void _saveLessons() {
     final p = _prefs;
     if (p == null) return;
-    if (lesson == null) {
+    if (_lesson == null) {
       p.remove('lesson_active');
     } else {
-      p.setString('lesson_active', jsonEncode(lesson!.toJson()));
+      p.setString('lesson_active', jsonEncode(_lesson!.toJson()));
     }
     p.setString('lessons_in', jsonEncode([for (final l in myLessons) l.toJson()]));
     p.setInt('lessons_rev', lessonsRev);
@@ -583,7 +683,7 @@ class AppState extends ChangeNotifier {
   }
 
   /// O aluno da aula em andamento (ou null).
-  Student? get lessonStudent => lesson == null ? null : studentById(lesson!.studentId);
+  Student? get lessonStudent => lesson == null ? null : studentById(_lesson!.studentId);
 
   /// Começa a aula com [s]. Devolve o motivo se não der (já há outra aula em andamento).
   String? startLesson(Student s) {
@@ -594,7 +694,7 @@ class AppState extends ChangeNotifier {
           ? 'A aula com ${s.name} já está em andamento.'
           : 'Há uma aula em andamento com ${other?.name ?? 'outro aluno'}. Encerre-a antes de começar outra.';
     }
-    lesson = ActiveLesson(
+    _lesson = ActiveLesson(
       id: DateTime.now().microsecondsSinceEpoch.toRadixString(36),
       studentId: s.id,
       startedAt: DateTime.now(),
@@ -608,16 +708,30 @@ class AppState extends ChangeNotifier {
   }
 
   void pauseLesson() {
-    lesson?.pause(DateTime.now());
+    _lesson?.pause(DateTime.now());
     _saveLessons();
     notifyListeners();
   }
 
   void resumeLesson() {
-    lesson?.resume(DateTime.now());
+    _lesson?.resume(DateTime.now());
     _saveLessons();
     notifyListeners();
   }
+
+  /// Descarta a aula em andamento SEM enviar nada (as tarefas já criadas continuam na ficha).
+  void cancelLesson() {
+    final l = _lesson;
+    if (l == null) return;
+    _lesson = null;
+    if (activeStudentId == l.studentId) activeStudentId = null;
+    _saveTeacher();
+    _saveLessons();
+    notifyListeners();
+  }
+
+  /// Há uma aula em andamento com este aluno?
+  bool hasLessonWith(String studentId) => lesson?.studentId == studentId;
 
   /// Quantas tarefas e observações a aula em andamento já tem (o que será enviado).
   ({int tasks, int notes}) lessonTally() {
@@ -633,7 +747,8 @@ class AppState extends ChangeNotifier {
     if (l == null) return null;
     final s = studentById(l.studentId);
     final end = DateTime.now();
-    lesson = null;
+    _lesson = null;
+    if (activeStudentId == l.studentId) activeStudentId = null; // terminou a aula: volta para o seu histórico
     _saveLessons();
     if (s == null) {
       notifyListeners();
@@ -732,9 +847,11 @@ class AppState extends ChangeNotifier {
       notifyListeners();
       if (announce && fresh.isNotEmpty) {
         final n = fresh.fold<int>(0, (a, l) => a + l.tasks.length);
-        say(fresh.length == 1
-            ? 'Nova aula recebida: $n tarefa${n == 1 ? '' : 's'}.'
-            : '${fresh.length} aulas novas recebidas.');
+        final msg = fresh.length == 1
+            ? 'Nova aula recebida: $n tarefa${n == 1 ? '' : 's'} para fazer.'
+            : '${fresh.length} aulas novas recebidas.';
+        addNotice('lesson', msg);
+        say(msg);
       }
     } finally {
       _lessonsPulling = false;
@@ -771,24 +888,35 @@ class AppState extends ChangeNotifier {
 
   /// Enquanto uma tela de vínculos está aberta, atualiza a cada 15 s (a atualização
   /// "em tempo real" do vínculo é essa consulta, não uma conexão contínua).
-  void watchLinks() {
+  /// [fast]: quem ainda espera um professor o adicionar (aluno sem professor) consulta a cada 10 s.
+  void watchLinks({bool fast = false}) {
     _linkWatchers++;
+    if (fast) _fastWatchers++;
     if (linkEnabled && !linkUnavailable) {
       unawaited(syncLinks());
-      _startLinkTimer();
+      _restartLinkTimer();
     }
   }
 
-  void unwatchLinks() {
+  void unwatchLinks({bool fast = false}) {
     if (_linkWatchers > 0) _linkWatchers--;
+    if (fast && _fastWatchers > 0) _fastWatchers--;
     if (_linkWatchers == 0) {
       _linkTimer?.cancel();
       _linkTimer = null;
+    } else {
+      _restartLinkTimer();
     }
   }
 
-  void _startLinkTimer() {
-    _linkTimer ??= Timer.periodic(const Duration(seconds: 30), (_) => syncLinks());
+  int _fastWatchers = 0;
+
+  void _startLinkTimer() => _restartLinkTimer();
+
+  void _restartLinkTimer() {
+    _linkTimer?.cancel();
+    final secs = _fastWatchers > 0 ? 10 : 30;
+    _linkTimer = Timer.periodic(Duration(seconds: secs), (_) => syncLinks());
   }
 
   void _markLinkUnavailable() {
@@ -899,6 +1027,7 @@ class AppState extends ChangeNotifier {
   Future<void> syncLinks() async {
     if (_linkSyncing || linkUnavailable || !linkEnabled) return;
     _linkSyncing = true;
+    _lastLinkSync = DateTime.now();
     try {
       final own = profile.shareCode, secret = profile.secret;
       // 1) Desfazimentos pedidos aqui.
@@ -1022,6 +1151,10 @@ class AppState extends ChangeNotifier {
           : '${newStudents.length} alunos novos entraram na sua lista.');
     }
     if (newTeachers.isNotEmpty) {
+      for (final t in newTeachers) {
+        addNotice('teacher', '${t.name.isEmpty ? 'Um professor' : t.name} adicionou você como aluno. Agora as aulas e tarefas dele aparecem em Minhas aulas.');
+      }
+      notifyListeners();
       final n = newTeachers.first;
       say('${n.name.isEmpty ? 'Um professor' : n.name} se vinculou a você.');
     }

@@ -84,6 +84,7 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
   void initState() {
     super.initState();
     app.watchLinks(); // enquanto a tela está aberta, confere se há aula nova
+    WidgetsBinding.instance.addPostFrameCallback((_) => app.markNoticesSeen());
     _pull(announce: false);
   }
 

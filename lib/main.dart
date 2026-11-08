@@ -194,6 +194,12 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  /// Ao voltar para o app (reabrir, trocar de aba), confere se um professor adicionou o aluno.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) widget.app.onResume();
+  }
+
   /// Acompanha o claro/escuro do sistema quando o modo é "Automático".
   @override
   void didChangePlatformBrightness() => setState(() {});
@@ -354,7 +360,8 @@ class _HomeShellState extends State<HomeShell> {
                 tooltip: 'Meu perfil',
                 icon: Badge(
                   smallSize: 8,
-                  isLabelVisible: app.profile.recoveryShownAt == null,
+                  label: app.unseenNotices > 0 ? Text('${app.unseenNotices}') : null,
+                  isLabelVisible: app.unseenNotices > 0 || app.profile.recoveryShownAt == null,
                   backgroundColor: AppColors.sharp,
                   child: Icon(app.teacherMode ? Icons.school_outlined : Icons.account_circle_outlined),
                 ),
