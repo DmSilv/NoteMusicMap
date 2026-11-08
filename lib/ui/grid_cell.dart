@@ -104,7 +104,7 @@ class GridCell extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 Align(
-                  alignment: Alignment(0, lerpDouble(-0.34, 0.0, live)!),
+                  alignment: Alignment(0, lerpDouble(-0.34, -0.30, live)!),
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Padding(
@@ -114,7 +114,7 @@ class GridCell extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (v != null)
+                if (v != null && !playing)
                   Align(
                     alignment: const Alignment(0, 0.58),
                     child: Opacity(

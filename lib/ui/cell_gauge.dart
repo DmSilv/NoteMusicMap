@@ -216,35 +216,48 @@ class _LivePainter extends CustomPainter {
     canvas.save();
     canvas.clipRRect(RRect.fromRectAndRadius(rect, Radius.circular(radius)));
 
-    // Sem faixa escura atrás: a célula mantém a própria cor (histórico) e só o cursor aparece.
-    // Posição horizontal para um desvio em cents. A curva é esticada perto do
-    // centro (expoente < 1): poucos cents já mexem a linha de forma visível.
+    // Mini trilho horizontal na parte de baixo da célula; o nome da nota fica livre em cima.
+    // A célula mantém a própria cor (histórico).
     final half = w / 2;
+    final margin = 4 * u;
     double xOf(double cents) {
+      // Curva esticada perto do centro (expoente < 1): poucos cents já mexem o marcador.
       final m = math.pow(math.min(1.0, cents.abs() / _range), 0.75).toDouble();
-      return half + (cents < 0 ? -m : m) * half * 0.9;
+      return half + (cents < 0 ? -m : m) * (half - margin);
     }
 
     // "Travou": 1 dentro da zona afinada, cai suavemente fora dela.
     final lock = 1 - _smooth((v.pos.abs() - zone * 0.7) / (zone * 0.9 + 0.001));
 
-    // Marcas discretas do centro (onde é "afinado"), em cima e embaixo.
-    final tick = Paint()
-      ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.45 * a)
-      ..strokeWidth = 1.4 * u;
-    canvas.drawLine(Offset(half, 0), Offset(half, 5 * u), tick);
-    canvas.drawLine(Offset(half, h), Offset(half, h - 5 * u), tick);
-
-    // O cursor: barra grossa, de ponta a ponta, clara, com contorno escuro (aparece sobre
-    // qualquer cor) e verde-menta quando trava. Cresce um pouco ao aparecer.
-    final nx = xOf(v.pos);
-    final nw = 5.6 * u;
-    final pad = 1.5 * u * (1.6 - 0.6 * a);
-    final lineColor = Color.lerp(const Color(0xFFFFFFFF), AppColors.inTuneBright, lock)!;
-    final bar = RRect.fromLTRBR(nx - nw / 2, pad, nx + nw / 2, h - pad, Radius.circular(nw / 2));
+    final railH = 3.2 * u;
+    final railY = h - 6.5 * u;
+    final railR = RRect.fromLTRBR(margin, railY - railH / 2, w - margin, railY + railH / 2, Radius.circular(railH / 2));
+    // Fundo do trilho (escuro, para aparecer sobre qualquer cor) e a zona "afinada" em verde.
+    canvas.drawRRect(railR.inflate(1.2 * u), Paint()..color = const Color(0xFF000000).withValues(alpha: 0.45 * a));
+    canvas.drawRRect(railR, Paint()..color = const Color(0xFFFFFFFF).withValues(alpha: 0.35 * a));
+    final zl = xOf(-zone), zr = xOf(zone);
     canvas.drawRRect(
-        bar.inflate(1.8 * u), Paint()..color = const Color(0xFF000000).withValues(alpha: 0.7 * a));
-    canvas.drawRRect(bar, Paint()..color = lineColor.withValues(alpha: a));
+      RRect.fromLTRBR(zl, railY - railH / 2, zr, railY + railH / 2, Radius.circular(railH / 2)),
+      Paint()..color = AppColors.inTune.withValues(alpha: (0.75 + 0.25 * lock) * a),
+    );
+    // Marca do centro.
+    canvas.drawLine(
+      Offset(half, railY - 4.2 * u),
+      Offset(half, railY + 4.2 * u),
+      Paint()
+        ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.9 * a)
+        ..strokeWidth = 1.3 * u
+        ..strokeCap = StrokeCap.round,
+    );
+
+    // O marcador: barra vertical clara que cruza o trilho (verde-menta quando trava).
+    final nx = xOf(v.pos);
+    final nw = 3.6 * u;
+    final mh = 13 * u;
+    final lineColor = Color.lerp(const Color(0xFFFFFFFF), AppColors.inTuneBright, lock)!;
+    final mark = RRect.fromLTRBR(nx - nw / 2, railY - mh / 2, nx + nw / 2, railY + mh / 2, Radius.circular(nw / 2));
+    canvas.drawRRect(mark.inflate(1.4 * u), Paint()..color = const Color(0xFF000000).withValues(alpha: 0.75 * a));
+    canvas.drawRRect(mark, Paint()..color = lineColor.withValues(alpha: a));
     canvas.restore();
   }
 
