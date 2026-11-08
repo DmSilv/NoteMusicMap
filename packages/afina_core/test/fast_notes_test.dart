@@ -35,16 +35,23 @@ const cfg = TuningConfig();
 /// e devolve a fração de notas reconhecidas e a latência média (ms).
 ({double recall, double latencyMs, int falseNotes}) run(
     List<double> signal, List<int> notes, double noteMs,
-    {required int window, required int hop, required double minFreq, int onset = 2}) {
+    {required int window,
+    required int hop,
+    required double minFreq,
+    int onset = 2,
+    bool adaptive = false}) {
   final det = McLeodPitchDetector(
       sampleRate: sr, windowSize: window, minFreq: minFreq, maxFreq: 3200, minClarity: 0.8, minRms: 0.003);
+  final adet = AdaptiveWindowDetector.forProfile(DetectorProfile(window, hop, minFreq, 3200))
+    ..minClarity = 0.8
+    ..minRms = 0.003;
   final tracker = PitchTracker(onsetFrames: onset);
   final per = sr * noteMs / 1000;
   final firstSeen = <int, double>{}; // índice da nota -> instante (ms) da 1ª emissão
   var falseNotes = 0;
   for (var end = window; end <= signal.length; end += hop) {
     final buf = signal.sublist(end - window, end);
-    final n = tracker.update(det.detect(buf), cfg);
+    final n = tracker.update(adaptive ? adet.detect(buf) : det.detect(buf), cfg);
     if (n == null) continue;
     final tMs = end * 1000 / sr;
     final idx = (end - window / 2) ~/ per; // nota que domina o centro da janela
@@ -73,7 +80,7 @@ void main() {
   final violin = DetectorProfile.forLowest(etFreq(55, 440)); // Sol3
   test('perfil do violino: janela curta, passo curto e faixa estreita', () {
     expect(violin.window, 2048);
-    expect(violin.hop, lessThanOrEqualTo(768));
+    expect(violin.hop, lessThanOrEqualTo(512));
     expect(violin.minFreq, closeTo(157, 1));
   });
 
@@ -82,6 +89,22 @@ void main() {
     expect(DetectorProfile.forLowest(etFreq(28, 440)).window, 4096); // Mi1 (contrabaixo)
     expect(DetectorProfile.forLowest(etFreq(48, 440)).window, 2048); // Dó3 (viola)
   });
+
+  for (final ms in [180.0, 125.0, 100.0]) {
+    test('janela adaptativa, notas de ${ms.round()} ms: mais rápida e igual de confiável', () {
+      final s = fastScale(ms);
+      final fixed = run(s.signal, s.notes, ms,
+          window: violin.window, hop: violin.hop, minFreq: violin.minFreq);
+      final ad = run(s.signal, s.notes, ms,
+          window: violin.window, hop: violin.hop, minFreq: violin.minFreq, adaptive: true);
+      // ignore: avoid_print
+      print('${ms.round()} ms: janela fixa ${(fixed.recall * 100).round()}% / ${fixed.latencyMs.round()} ms'
+          ' -> adaptativa ${(ad.recall * 100).round()}% / ${ad.latencyMs.round()} ms (falsas ${ad.falseNotes})');
+      expect(ad.recall, greaterThanOrEqualTo(fixed.recall));
+      expect(ad.falseNotes, 0);
+      expect(ad.latencyMs, lessThan(fixed.latencyMs - 5));
+    });
+  }
 
   for (final ms in [250.0, 180.0, 125.0, 100.0]) {
     test('notas de ${ms.round()} ms: antes (janela 4096) × agora (perfil do violino)', () {

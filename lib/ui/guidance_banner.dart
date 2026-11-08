@@ -104,12 +104,11 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
       return _Guide(GuideKind.tuned, widget.tunedTitle, widget.tunedDetail);
     }
     final a = c.abs();
-    final n = a.round();
     return c < 0
         ? _Guide(GuideKind.raise, 'SUBA A AFINAÇÃO',
-            'Está $n cents abaixo: suba${_amount(a)}.')
+            'Está abaixo da nota: suba${_amount(a)}.')
         : _Guide(GuideKind.lower, 'DESÇA A AFINAÇÃO',
-            'Está $n cents acima: desça${_amount(a)}.');
+            'Está acima da nota: desça${_amount(a)}.');
   }
 
   @override

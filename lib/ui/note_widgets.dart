@@ -248,10 +248,10 @@ class _ReadoutLayer {
 
 class _NoteReadoutState extends State<NoteReadout> with SingleTickerProviderStateMixin {
   // Tempos (s)
-  static const double _enterDur = 0.32;
-  static const double _enterDelay = 0.07;
-  static const double _exitDur = 0.20;
-  static const double _tauColor = 0.09;
+  static const double _enterDur = 0.14;
+  static const double _enterDelay = 0.015;
+  static const double _exitDur = 0.09;
+  static const double _tauColor = 0.18; // lento o bastante para o vibrato não "piscar" a cor
   static const int _maxLayers = 3;
 
   late final Ticker _ticker = createTicker(_onTick);

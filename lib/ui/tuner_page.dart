@@ -172,7 +172,7 @@ class _TunerPageState extends State<TunerPage> {
           }
         }
         (name, sub) = _steady(name, sub, cur != null);
-        final zone = app.zone.cents;
+        final zone = app.zoneCents;
         final inZone = cents != null && cents.abs() <= zone;
         final color = cents == null ? AppColors.textDim : intonationColor(cents, zone);
         final hint = cents == null

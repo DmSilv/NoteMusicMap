@@ -147,7 +147,7 @@ class OctaveChips extends StatelessWidget {
       curve: Curves.easeOutCubic,
       decoration: BoxDecoration(
         color: on ? AppColors.accent.withValues(alpha: 0.26) : AppColors.surface2,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: on ? AppColors.accent : Colors.transparent, width: 1.6),
       ),
       child: Column(
@@ -325,7 +325,7 @@ class CorrectionHint extends StatefulWidget {
 }
 
 class _CorrectionHintState extends State<CorrectionHint> with SingleTickerProviderStateMixin {
-  static const double _tau = 0.12; // s: constante de tempo do número exibido
+  static const double _tau = 0.2; // s: constante de tempo do número exibido (acima de 1 ciclo de vibrato)
 
   late final Ticker _ticker = createTicker(_tick);
   final ValueNotifier<int> _repaint = ValueNotifier(0);
@@ -432,13 +432,13 @@ class SessionChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = app.grid.summary(app.zone.cents);
+    final s = app.grid.summary(app.zoneCents);
     final pct = (s.accuracy * 100).round();
     Widget chip(String big, String small, {Color? color}) => Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
             color: AppColors.surface2,
-            borderRadius: BorderRadius.circular(999),
+            borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -456,7 +456,7 @@ class SessionChips extends StatelessWidget {
           ),
         );
     return InkWell(
-      borderRadius: BorderRadius.circular(999),
+      borderRadius: BorderRadius.circular(10),
       onTap: s.distinct == 0 ? null : () => showSessionSheet(context, app),
       child: Semantics(
         button: true,
@@ -484,7 +484,7 @@ class SessionChips extends StatelessWidget {
 /// Resumo leve da sessão: uma linha por nota tocada (da mais grave à mais aguda),
 /// com a cor, quantas vezes foi tocada e o desvio médio em Hz.
 void showSessionSheet(BuildContext context, AppState app) {
-  final zone = app.zone.cents;
+  final zone = app.zoneCents;
   final s = app.grid.summary(zone);
   // Ignora a retenção: a folha mostra tudo que foi tocado na sessão.
   final saved = app.grid.holdSeconds;
@@ -522,7 +522,7 @@ void showSessionSheet(BuildContext context, AppState app) {
           const SizedBox(height: 12),
           Text(
             'Cada nota mostra a média de tudo que você tocou nela. '
-            'Para recomeçar, use "Zerar grade".',
+            'Para recomeçar, use o botão "Zerar" (ao lado do microfone).',
             style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
           ),
         ],

@@ -71,13 +71,22 @@ ThemeData buildTheme({required bool dark}) {
       titleTextStyle:
           TextStyle(color: AppColors.text, fontSize: 20, fontWeight: FontWeight.w700),
     ),
+    // Botões mais "quadrados" (cantos de 8 px em vez de pílula/círculo): ficam mais
+    // fáceis de ver e de acertar no celular.
+    filledButtonTheme: FilledButtonThemeData(style: ButtonStyle(shape: _squareShape)),
+    elevatedButtonTheme: ElevatedButtonThemeData(style: ButtonStyle(shape: _squareShape)),
+    outlinedButtonTheme: OutlinedButtonThemeData(style: ButtonStyle(shape: _squareShape)),
+    textButtonTheme: TextButtonThemeData(style: ButtonStyle(shape: _squareShape)),
+    iconButtonTheme: IconButtonThemeData(style: ButtonStyle(shape: _squareShape)),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: AppColors.surface,
       indicatorColor: AppColors.accent.withValues(alpha: 0.2),
+      indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       labelTextStyle: WidgetStateProperty.all(
           const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
     ),
     chipTheme: ChipThemeData(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       backgroundColor: AppColors.surface2,
       selectedColor: AppColors.accent.withValues(alpha: 0.24),
       side: BorderSide(color: AppColors.outline),
@@ -92,6 +101,7 @@ ThemeData buildTheme({required bool dark}) {
                 : AppColors.surface2),
         foregroundColor: WidgetStateProperty.all(AppColors.text),
         side: WidgetStateProperty.all(BorderSide(color: AppColors.outline)),
+        shape: _squareShape,
       ),
     ),
     sliderTheme: SliderThemeData(
@@ -107,6 +117,10 @@ ThemeData buildTheme({required bool dark}) {
         .apply(bodyColor: AppColors.text, displayColor: AppColors.text),
   );
 }
+
+/// Forma dos botões: retângulo de cantos pouco arredondados.
+final WidgetStateProperty<OutlinedBorder> _squareShape = WidgetStateProperty.all(
+    RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)));
 
 /// Cor para um desvio em cents. [zone] = meia-largura da faixa "afinada".
 Color intonationColor(double cents, double zone) {

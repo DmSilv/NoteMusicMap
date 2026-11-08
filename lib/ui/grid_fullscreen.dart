@@ -58,7 +58,7 @@ class _GridFullscreenState extends State<GridFullscreen> {
           listenable: app.live,
           builder: (context, _) {
             final landscape = MediaQuery.orientationOf(context) == Orientation.landscape;
-            final zone = app.zone.cents;
+            final zone = app.zoneCents;
             return Column(
               children: [
                 if (_showControls) _topBar(landscape),
@@ -120,7 +120,7 @@ class _GridFullscreenState extends State<GridFullscreen> {
 
   Widget _topBar(bool landscape) {
     final cur = app.shown;
-    final zone = app.zone.cents;
+    final zone = app.zoneCents;
     final col = cur == null ? AppColors.textDim : intonationColor(cur.cents, zone);
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 4, 8, 2),
@@ -131,10 +131,10 @@ class _GridFullscreenState extends State<GridFullscreen> {
             icon: const Icon(Icons.close),
             onPressed: () => Navigator.of(context).pop(),
           ),
-          const SizedBox(width: 4),
+          const SizedBox(width: 0),
           // Área fixa: o tamanho da nota nunca muda, então nada "pula" na tela.
           SizedBox(
-            width: 112,
+            width: 88,
             height: 52,
             child: Align(
               alignment: Alignment.centerLeft,
@@ -143,7 +143,7 @@ class _GridFullscreenState extends State<GridFullscreen> {
           ),
           // Desvio em Hz e frequência, sempre no mesmo lugar.
           SizedBox(
-            width: 104,
+            width: 84,
             height: 52,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -171,6 +171,19 @@ class _GridFullscreenState extends State<GridFullscreen> {
             ),
           ),
           const Expanded(child: SizedBox.shrink()),
+          // Zerar a sessão: em destaque, ao lado do microfone.
+          IconButton.filled(
+            tooltip: 'Zerar a sessão',
+            style: IconButton.styleFrom(
+              minimumSize: const Size(44, 44),
+              backgroundColor: AppColors.sharp.withValues(alpha: 0.22),
+              foregroundColor: AppColors.sharp,
+              side: BorderSide(color: AppColors.sharp.withValues(alpha: 0.7), width: 1.5),
+            ),
+            icon: const Icon(Icons.restart_alt),
+            onPressed: () => confirmResetGrid(context, app),
+          ),
+          const SizedBox(width: 6),
           // Ação principal, bem visível e com área de toque grande.
           IconButton.filled(
             tooltip: app.listening ? 'Parar de ouvir' : 'Ouvir',
@@ -190,8 +203,6 @@ class _GridFullscreenState extends State<GridFullscreen> {
             color: AppColors.surface,
             onSelected: (v) {
               switch (v) {
-                case 'reset':
-                  confirmResetGrid(context, app);
                 case 'rotate':
                   _toggleRotate();
                 case 'hide':
@@ -199,14 +210,6 @@ class _GridFullscreenState extends State<GridFullscreen> {
               }
             },
             itemBuilder: (ctx) => [
-              const PopupMenuItem(
-                value: 'reset',
-                child: ListTile(
-                  dense: true,
-                  leading: Icon(Icons.restart_alt),
-                  title: Text('Zerar grade'),
-                ),
-              ),
               PopupMenuItem(
                 value: 'rotate',
                 child: ListTile(

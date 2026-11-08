@@ -11,10 +11,10 @@ import 'pitch_grid.dart' show TrackedNote;
 /// Velocidade com que o destaque troca de uma nota para outra.
 enum NoteSwitchSpeed {
   /// Acompanha quase em tempo real (para passagens rápidas).
-  fast('Rápida', 'Troca logo; bom para passagens rápidas', 0.08, 0.12, 0.12),
+  fast('Rápida', 'Troca logo; bom para passagens rápidas', 0.04, 0.05, 0.10),
 
   /// Padrão: ignora notas de passagem e deixa cada nota tempo na tela.
-  normal('Normal', 'Equilibrada: dá tempo de ler cada nota', 0.20, 0.45, 0.30),
+  normal('Normal', 'Equilibrada: dá tempo de ler cada nota', 0.10, 0.18, 0.25),
 
   /// Mais lenta: ideal para estudar devagar e analisar cada nota.
   calm('Calma', 'Fica mais tempo em cada nota; ideal para estudar devagar', 0.30, 0.80, 0.50);
@@ -52,10 +52,33 @@ class NoteDisplayFilter {
   double _pendingSince = 0;
   double _lastHeard = double.negativeInfinity;
 
+  // Passagem rápida: quando o músico troca de nota várias vezes em pouco tempo
+  // (semicolcheias, grupos), o filtro acelera sozinho, sem esperar o usuário
+  // mudar a opção "Troca de nota".
+  int? _lastRaw;
+  double _rawSince = 0;
+  final List<double> _changes = [];
+
+  /// Duração mínima (s) de uma nota de meio em semitom para contar como nota
+  /// (abaixo disso é um glissando passando).
+  static const double realNote = 0.12;
+
+  /// Trocas de nota (diferentes) em [fastWindow] segundos que ativam o modo rápido.
+  static const int fastChanges = 2;
+  static const double fastWindow = 0.8;
+
   NoteDisplayFilter({this.speed = NoteSwitchSpeed.normal});
 
   /// Nota em destaque agora (ou null).
   TrackedNote? get shown => _shown;
+
+  /// Velocidade em uso: a escolhida, ou a rápida durante uma passagem rápida
+  /// (a opção "Calma" nunca é acelerada: quem escolheu estudar devagar fica assim).
+  NoteSwitchSpeed _effective(double now) {
+    if (speed == NoteSwitchSpeed.calm) return speed;
+    _changes.removeWhere((t) => now - t > fastWindow);
+    return _changes.length >= fastChanges ? NoteSwitchSpeed.fast : speed;
+  }
 
   void reset() {
     _shown = null;
@@ -63,18 +86,33 @@ class NoteDisplayFilter {
     _shownSince = 0;
     _pendingSince = 0;
     _lastHeard = double.negativeInfinity;
+    _lastRaw = null;
+    _changes.clear();
   }
 
   /// Alimenta com a nota do quadro atual ([n] pode ser null = silêncio) no
   /// instante [now] (segundos). Devolve a nota que deve ficar em destaque.
   TrackedNote? update(TrackedNote? n, double now) {
     if (n == null) {
-      if (_shown != null && now - _lastHeard >= speed.release) {
+      final sp = _effective(now);
+      if (_shown != null && now - _lastHeard >= sp.release) {
         _shown = null;
         _pending = null;
       }
       return _shown;
     }
+    final prev = _lastRaw;
+    if (prev == null || n.midi != prev) {
+      // Conta como "troca de verdade" (e não glissando) se for um salto de 2 ou
+      // mais semitons, ou se a nota anterior durou o bastante para ser uma nota.
+      if (prev != null &&
+          ((n.midi - prev).abs() >= 2 || now - _rawSince >= realNote)) {
+        _changes.add(now);
+      }
+      _rawSince = now;
+    }
+    _lastRaw = n.midi;
+    final sp = _effective(now);
     _lastHeard = now;
     final s = _shown;
     if (s == null) {
@@ -93,7 +131,7 @@ class NoteDisplayFilter {
       _pending = n.midi;
       _pendingSince = now;
     }
-    if (now - _pendingSince >= speed.commit && now - _shownSince >= speed.dwell) {
+    if (now - _pendingSince >= sp.commit && now - _shownSince >= sp.dwell) {
       _shown = n;
       _shownSince = now;
       _pending = null;

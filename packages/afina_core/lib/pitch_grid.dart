@@ -28,11 +28,23 @@ class TrackedNote {
 /// Transforma leituras instáveis em notas estáveis:
 ///  - mediana evita saltos de oitava de um quadro só;
 ///  - filtro de ataque: só emite depois de [onsetFrames] quadros na mesma nota;
-///  - histerese: perto do limite entre duas notas, mantém a atual (±65¢).
+///  - histerese: perto do limite entre duas notas, mantém a atual (±75¢);
+///  - vibrato: trocar para a nota vizinha na beirada dela exige persistência.
 class PitchTracker {
   int onsetFrames;
   final int medianSize;
   final int dropAfterMisses;
+
+  /// Tolerância (cents) em volta da nota travada: o som pode variar até aqui
+  /// (vibrato, mão esquerda não temperada) sem virar a nota vizinha.
+  final double hysteresisCents;
+
+  /// Trocar para uma nota VIZINHA (a 1 semitom) quando o som está na beirada dela
+  /// (a mais de [edgeCents] do centro) exige essa quantidade de leituras seguidas.
+  /// É o que separa o vibrato (passa pela beirada e volta) de uma troca de nota
+  /// (pousa perto do centro e troca na hora).
+  final int neighborFrames;
+  final double edgeCents;
 
   final List<double> _midiRing = [];
   int _misses = 0;
@@ -42,7 +54,12 @@ class PitchTracker {
   int? _locked;
 
   PitchTracker(
-      {this.onsetFrames = 3, this.medianSize = 5, this.dropAfterMisses = 5});
+      {this.onsetFrames = 3,
+      this.medianSize = 5,
+      this.dropAfterMisses = 5,
+      this.hysteresisCents = 75,
+      this.neighborFrames = 8,
+      this.edgeCents = 25});
 
   void reset() {
     _midiRing.clear();
@@ -66,7 +83,12 @@ class PitchTracker {
     // Duas leituras seguidas que concordam entre si já são uma nota nova: assim
     // notas rápidas aparecem logo (antes eram precisos 3 quadros mais o filtro
     // de ataque). Três que não concordam também trocam, como antes.
-    if (_midiRing.length >= 3) {
+    // Mas leitura DENTRO da região da nota travada (vibrato, mão não temperada) não
+    // é nota nova: o vibrato balança mais rápido que a mediana acompanha.
+    final lk0 = _locked;
+    final inRegion = lk0 != null &&
+        centsBetween(r.frequency, targetFreq(lk0, cfg)).abs() <= hysteresisCents;
+    if (_midiRing.length >= 3 && !inRegion) {
       final med = _median(_midiRing);
       if ((m - med).abs() > 0.6) {
         _outliers.add(m);
@@ -100,7 +122,7 @@ class PitchTracker {
     if (lk != null && lk != match.midi) {
       final t = targetFreq(lk, cfg);
       final c = centsBetween(smoothFreq, t);
-      if (c.abs() <= 65) match = NoteMatch(lk, t, c);
+      if (c.abs() <= hysteresisCents) match = NoteMatch(lk, t, c);
     }
 
     if (_candidate == match.midi) {
@@ -108,6 +130,17 @@ class PitchTracker {
     } else {
       _candidate = match.midi;
       _candidateCount = 1;
+    }
+    // Vizinha na beirada (provável vibrato): só troca se persistir. Enquanto isso
+    // continua mostrando a nota travada, com o desvio real (que pode ser grande).
+    final lk2 = _locked;
+    if (lk2 != null &&
+        match.midi != lk2 &&
+        (match.midi - lk2).abs() == 1 &&
+        match.cents.abs() > edgeCents &&
+        _candidateCount < neighborFrames) {
+      final t = targetFreq(lk2, cfg);
+      return TrackedNote(lk2, smoothFreq, t, centsBetween(smoothFreq, t), r.clarity);
     }
     if (_candidateCount < onsetFrames) return null;
     _locked = match.midi;
@@ -136,15 +169,10 @@ enum HistoryMode {
   const HistoryMode(this.seconds);
 }
 
-/// Faixa considerada "afinada" (±cents).
-enum ZoneLevel {
-  beginner(10),
-  intermediate(5),
-  advanced(3);
-
-  final double cents;
-  const ZoneLevel(this.cents);
-}
+/// Faixa considerada "afinada" (±cents): um padrão só, igual para todo mundo. O
+/// app é a referência do músico; não há níveis (iniciante/avançado) que afrouxem
+/// ou apertem a régua.
+const double kInTuneCents = 10;
 
 class CellView {
   final double avgCents;
@@ -372,7 +400,7 @@ class ScaleReport {
 }
 
 ScaleReport buildScaleReport(PitchGrid grid, List<int> midis, TuningConfig cfg,
-    ZoneLevel zone, double now) {
+    double zoneCents, double now) {
   final reports = <NoteReport>[];
   for (final m in midis) {
     // O relatório ignora a retenção: usa o que foi acumulado.
@@ -385,7 +413,7 @@ ScaleReport buildScaleReport(PitchGrid grid, List<int> midis, TuningConfig cfg,
       reports.add(NoteReport(m, name, NoteStatus.notPlayed, null, 0));
       continue;
     }
-    final st = v.avgCents.abs() <= zone.cents
+    final st = v.avgCents.abs() <= zoneCents
         ? NoteStatus.inTune
         : (v.avgCents < 0 ? NoteStatus.flat : NoteStatus.sharp);
     reports.add(NoteReport(m, name, st, v.avgCents, v.seconds));

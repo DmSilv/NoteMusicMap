@@ -12,7 +12,21 @@ class PitchFrame {
   final PitchResult? result;
   final double dt;
   final double level;
-  const PitchFrame(this.result, this.dt, this.level);
+  final MicDiag? diag;
+  const PitchFrame(this.result, this.dt, this.level, [this.diag]);
+}
+
+/// Medidas de um quadro para o diagnóstico da captação.
+class MicDiag {
+  /// Nível eficaz (0..1) e pico (0..1) da janela, já com o ganho aplicado.
+  final double rms;
+  final double peak;
+
+  /// Clareza (0..1) e frequência achadas, mesmo que o quadro tenha sido recusado.
+  final double clarity;
+  final double freq;
+  final PitchReject reject;
+  const MicDiag(this.rms, this.peak, this.clarity, this.freq, this.reject);
 }
 
 abstract class PitchSource {
@@ -41,18 +55,14 @@ class MicPitchSource implements PitchSource {
   final AudioRecorder _rec = AudioRecorder();
   final StreamController<PitchFrame> _ctl = StreamController.broadcast();
   StreamSubscription<Uint8List>? _sub;
-  late final McLeodPitchDetector _det;
+  late final AdaptiveWindowDetector _det;
   late final Float64List _ring = Float64List(_window);
   late final Float64List _scratch = Float64List(_window);
 
   MicPitchSource({DetectorProfile profile = const DetectorProfile(4096, 1536, 40, 2200)})
       : _window = profile.window,
         _hop = profile.hop {
-    _det = McLeodPitchDetector(
-        sampleRate: _sr,
-        windowSize: profile.window,
-        minFreq: profile.minFreq,
-        maxFreq: profile.maxFreq);
+    _det = AdaptiveWindowDetector.forProfile(profile, sampleRate: _sr);
   }
   int _w = 0;
   int _filled = 0;
@@ -97,6 +107,7 @@ class MicPitchSource implements PitchSource {
     _filled = 0;
     _w = 0;
     _sinceDetect = 0;
+    _det.reset();
     _sw
       ..reset()
       ..start();
@@ -138,10 +149,17 @@ class MicPitchSource implements PitchSource {
       level += _scratch[i] * _scratch[i];
     }
     level = math.sqrt(level / 512);
+    var peak = 0.0;
+    for (var i = 0; i < _window; i++) {
+      final a = _scratch[i].abs();
+      if (a > peak) peak = a;
+    }
     final fixed = r == null
         ? null
         : PitchResult(r.frequency * correction, r.clarity, r.rms);
-    if (!_ctl.isClosed) _ctl.add(PitchFrame(fixed, dt, level));
+    final d = _det.last;
+    final diag = MicDiag(d.lastRms, peak, d.lastClarity, d.lastFreq * correction, d.lastReject);
+    if (!_ctl.isClosed) _ctl.add(PitchFrame(fixed, dt, level, diag));
   }
 
   @override

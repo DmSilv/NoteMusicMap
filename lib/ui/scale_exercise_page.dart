@@ -173,7 +173,6 @@ class ScaleExercisePage extends StatelessWidget {
     final hz = targetFreq(m, app.cfg);
     final cur = app.current;
     final onTarget = cur?.midi == m;
-    final zone = app.zone.cents.round();
     final next = [
       for (var k = 1; k <= 3; k++)
         if (e.index + k < e.sequence.length) e.sequence[e.index + k]
@@ -236,7 +235,7 @@ class ScaleExercisePage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          _rule('A próxima nota só aparece quando esta estiver afinada (±$zone cents) '
+          _rule('A próxima nota só aparece quando esta estiver afinada (dentro da faixa verde) '
               'e segurada por meio segundo.'),
         ],
       ),
@@ -249,7 +248,7 @@ class ScaleExercisePage extends StatelessWidget {
     final heard = e.currentFreeMidi;
     final pending = [for (final m in e.freeNotes) if (!e.board.containsKey(m)) m];
     final live = (cur != null && cur.midi == heard) ? cur.cents : null;
-    final color = live == null ? AppColors.text : intonationColor(live, app.zone.cents);
+    final color = live == null ? AppColors.text : intonationColor(live, app.zoneCents);
     return AppCard(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(
@@ -319,7 +318,7 @@ class ScaleExercisePage extends StatelessWidget {
 
   Widget _live(ScaleExercise e) {
     final cur = app.current;
-    final zone = app.zone.cents;
+    final zone = app.zoneCents;
     final valid = cur != null && (e.flow ? e.freeNotes.contains(cur.midi) : cur.midi == e.expected);
     final cents = valid ? cur.cents : null;
     final cue = e.cue(cur?.midi, cur?.cents ?? 0);
@@ -348,7 +347,7 @@ class ScaleExercisePage extends StatelessWidget {
   }
 
   Widget _steps(ScaleExercise e) {
-    final zone = app.zone.cents;
+    final zone = app.zoneCents;
     final cur = app.current;
     if (e.flow) {
       // Painel da escala: cada nota muda de cor conforme a última medida;

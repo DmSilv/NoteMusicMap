@@ -29,21 +29,21 @@ void main() {
     });
 
     test('nota diferente só assume depois do tempo de confirmação e de permanência', () {
-      final f = NoteDisplayFilter(); // commit 0,20 / dwell 0,45
+      final f = NoteDisplayFilter(); // commit 0,10 / dwell 0,18
       feed(f, note(60), 0, 0.6); // Dó em destaque há bastante tempo
       final out = feed(f, note(62), 0.6, 0.6); // Ré começa em 0,6
-      // nos primeiros 0,19 s ainda é Dó
-      expect(out.where((e) => e!.midi == 60).length, greaterThanOrEqualTo(6));
+      // nos primeiros 0,09 s ainda é Dó
+      expect(out.where((e) => e!.midi == 60).length, greaterThanOrEqualTo(3));
       expect(out.first!.midi, 60);
       // e depois vira Ré e fica
       expect(out.last!.midi, 62);
       final firstRe = out.indexWhere((e) => e!.midi == 62);
-      expect(firstRe * 0.03, greaterThanOrEqualTo(0.19));
-      expect(firstRe * 0.03, lessThan(0.27));
+      expect(firstRe * 0.03, greaterThanOrEqualTo(0.09));
+      expect(firstRe * 0.03, lessThan(0.17));
     });
 
     test('tempo mínimo: a nota fica pelo menos o "dwell" na tela', () {
-      final f = NoteDisplayFilter(); // dwell 0,45
+      final f = NoteDisplayFilter(); // dwell 0,18
       f.update(note(60), 0); // Dó aparece em 0
       TrackedNote? at;
       var changedAt = -1.0;
@@ -51,9 +51,9 @@ void main() {
         at = f.update(note(62), t); // Ré estável desde 0,03
         if (at!.midi == 62 && changedAt < 0) changedAt = t;
       }
-      // Ré já era estável em 0,23, mas Dó só pode sair depois de 0,45
-      expect(changedAt, greaterThanOrEqualTo(0.45));
-      expect(changedAt, lessThan(0.55));
+      // Ré já era estável em 0,13, mas Dó só pode sair depois de 0,18
+      expect(changedAt, greaterThanOrEqualTo(0.18));
+      expect(changedAt, lessThan(0.25));
     });
 
     test('nota de passagem rápida nunca aparece', () {
@@ -109,11 +109,11 @@ void main() {
     });
 
     test('silêncio: espera o tempo de soltura e apaga; a próxima nota volta na hora', () {
-      final f = NoteDisplayFilter(); // release 0,30
+      final f = NoteDisplayFilter(); // release 0,25
       f.update(note(60), 0);
       expect(f.update(null, 0.1)?.midi, 60);
-      expect(f.update(null, 0.29)?.midi, 60);
-      expect(f.update(null, 0.31), isNull);
+      expect(f.update(null, 0.24)?.midi, 60);
+      expect(f.update(null, 0.26), isNull);
       expect(f.update(note(64), 0.4)?.midi, 64); // sem esperar confirmação
     });
 
@@ -163,6 +163,45 @@ void main() {
       f.reset();
       expect(f.shown, isNull);
       expect(f.update(note(67), 5)?.midi, 67);
+    });
+
+    /// Toca [midis] (uma nota a cada [step] s, quadros de 30 ms) e devolve as
+    /// notas que chegaram a ser destacadas, na ordem.
+    List<int> shownDuring(NoteDisplayFilter f, List<int> midis, double step) {
+      final shown = <int>[];
+      var t = 0.0;
+      for (final m in midis) {
+        for (var k = 0.0; k < step - 1e-9; k += 0.03) {
+          final s = f.update(note(m), t + k)?.midi;
+          if (s != null && (shown.isEmpty || shown.last != s)) shown.add(s);
+        }
+        t += step;
+      }
+      return shown;
+    }
+
+    test('passagem rápida (semicolcheias): acelera sozinho e mostra quase todas as notas', () {
+      const run = [60, 62, 64, 65, 67, 69, 71, 72]; // 8 notas de 125 ms
+      final normal = shownDuring(NoteDisplayFilter(), run, 0.125);
+      expect(normal.length, greaterThanOrEqualTo(6));
+      // Em ordem e sem inventar notas.
+      for (var i = 1; i < normal.length; i++) {
+        expect(normal[i], greaterThan(normal[i - 1]));
+      }
+    });
+
+    test('devagar continua calmo: notas de passagem rápidas isoladas não pulam o destaque', () {
+      final f = NoteDisplayFilter();
+      feed(f, note(60), 0, 1.0);
+      // um único toque rápido em outra nota (80 ms) não chega a assumir
+      feed(f, note(62), 1.0, 0.08);
+      expect(feed(f, note(60), 1.08, 0.5).every((e) => e!.midi == 60), isTrue);
+    });
+
+    test('a opção Calma nunca é acelerada', () {
+      const run = [60, 62, 64, 65, 67, 69, 71, 72];
+      final calm = shownDuring(NoteDisplayFilter(speed: NoteSwitchSpeed.calm), run, 0.125);
+      expect(calm.length, lessThanOrEqualTo(3));
     });
 
     test('os tempos crescem de Rápida para Calma', () {

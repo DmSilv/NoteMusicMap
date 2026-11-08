@@ -303,7 +303,7 @@ String buildAiPrompt(
   b.writeln('Sessões (da mais recente para a mais antiga):');
   for (final s in recent) {
     final skipped = s.steps.where((x) => x.cents == null).length;
-    b.writeln('- ${s.title}: ${(s.accuracy * 100).round()}% das notas afinadas (tolerância ±${s.zone.round()} cents), '
+    b.writeln('- ${s.title}: ${(s.accuracy * 100).round()}% das notas afinadas (faixa de afinada ±${s.zone.round()}), '
         'desvio médio ${s.meanAbsCents.toStringAsFixed(1)} cents${skipped > 0 ? ', $skipped nota(s) puladas' : ''}.');
   }
 

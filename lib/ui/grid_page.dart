@@ -73,7 +73,7 @@ class _GridPageState extends State<GridPage> {
   // =====================================================================
   Widget _gridSection() {
     final cur = app.shown;
-    final zone = app.zone.cents;
+    final zone = app.zoneCents;
     final rows = app.gridOctaves.$2 - app.gridOctaves.$1 + 1;
     return Column(
       children: [
@@ -81,7 +81,7 @@ class _GridPageState extends State<GridPage> {
         Row(
           children: [
             SizedBox(
-              width: 92,
+              width: 84,
               height: 56,
               child: Align(
                 alignment: Alignment.centerLeft,
@@ -89,24 +89,12 @@ class _GridPageState extends State<GridPage> {
               ),
             ),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: CorrectionHint(cents: cur?.cents, zone: zone, target: cur?.target),
-                  ),
-                  if (app.showFreq)
-                    SizedBox(
-                      height: 16,
-                      child: Text(
-                        cur == null ? ' ' : '${cur.freq.toStringAsFixed(1).replaceAll('.', ',')} Hz',
-                        style: TextStyle(color: AppColors.textDim, fontSize: 12),
-                      ),
-                    ),
-                ],
-              ),
+              child: app.showFreq
+                  ? Text(
+                      cur == null ? ' ' : '${cur.freq.toStringAsFixed(1).replaceAll('.', ',')} Hz',
+                      style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+                    )
+                  : const SizedBox.shrink(),
             ),
             IconButton.filled(
               tooltip: app.listening ? 'Parar de ouvir' : 'Ouvir',
@@ -118,6 +106,19 @@ class _GridPageState extends State<GridPage> {
               icon: Icon(app.listening && !app.demo ? Icons.mic_off : Icons.mic),
               onPressed: () => app.listening ? app.stopListening() : app.startListening(),
             ),
+            const SizedBox(width: 6),
+            // Zerar a sessão: botão próprio e em destaque, logo ao lado do microfone.
+            IconButton.filled(
+              tooltip: 'Zerar a sessão',
+              style: IconButton.styleFrom(
+                minimumSize: const Size(44, 44),
+                backgroundColor: AppColors.sharp.withValues(alpha: 0.22),
+                foregroundColor: AppColors.sharp,
+                side: BorderSide(color: AppColors.sharp.withValues(alpha: 0.7), width: 1.5),
+              ),
+              icon: const Icon(Icons.restart_alt),
+              onPressed: () => confirmResetGrid(context, app),
+            ),
             IconButton(
               tooltip: 'Tela cheia',
               icon: const Icon(Icons.fullscreen),
@@ -126,38 +127,22 @@ class _GridPageState extends State<GridPage> {
                 builder: (_) => GridFullscreen(app: app),
               )),
             ),
-            // Ações menos usadas ficam num menu, para a barra respirar no celular.
-            PopupMenuButton<String>(
-              tooltip: 'Mais opções',
-              icon: const Icon(Icons.more_vert),
-              color: AppColors.surface,
-              onSelected: (v) async {
-                if (v == 'help') {
-                  _explainColors();
-                } else if (v == 'reset') {
-                  await confirmResetGrid(context, app);
-                }
-              },
-              itemBuilder: (ctx) => const [
-                PopupMenuItem(
-                  value: 'help',
-                  child: ListTile(
-                    dense: true,
-                    leading: Icon(Icons.help_outline),
-                    title: Text('Como ler as cores'),
-                  ),
-                ),
-                PopupMenuItem(
-                  value: 'reset',
-                  child: ListTile(
-                    dense: true,
-                    leading: Icon(Icons.restart_alt),
-                    title: Text('Zerar grade'),
-                  ),
-                ),
-              ],
+            IconButton(
+              tooltip: 'Como ler as cores',
+              icon: const Icon(Icons.help_outline),
+              onPressed: _explainColors,
             ),
           ],
+        ),
+        // A dica de correção tem uma linha só dela, com altura fixa (nada pula).
+        SizedBox(
+          height: 26,
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: CorrectionHint(cents: cur?.cents, zone: zone, target: cur?.target),
+            ),
+          ),
         ),
         if (kDevDemo)
           TextButton.icon(
@@ -193,7 +178,7 @@ class _GridPageState extends State<GridPage> {
     );
   }
 
-  /// Resumo dos ajustes ativos ("Lá 440 Hz · Igual · Intermediário (±5)"); toque para mudar.
+  /// Resumo dos ajustes ativos ("Lá 440 Hz · Igual"); toque para mudar.
   Widget _settingsSummary() {
     final hz = app.refA == app.refA.roundToDouble()
         ? app.refA.toStringAsFixed(0)
@@ -202,11 +187,6 @@ class _GridPageState extends State<GridPage> {
       TuningSystem.equal => 'Igual',
       TuningSystem.pythagorean => 'Pitagórico',
       TuningSystem.just => 'Justo',
-    };
-    final lvl = switch (app.zone) {
-      ZoneLevel.beginner => 'Iniciante',
-      ZoneLevel.intermediate => 'Intermediário',
-      ZoneLevel.advanced => 'Avançado',
     };
     final tr = app.transpose == 0 ? '' : ' · transpõe ${app.transpose > 0 ? '+' : ''}${app.transpose}';
     return InkWell(
@@ -220,7 +200,7 @@ class _GridPageState extends State<GridPage> {
             Icon(Icons.tune, size: 15, color: AppColors.textDim),
             const SizedBox(width: 6),
             Flexible(
-              child: Text('Lá $hz Hz · $sys · $lvl$tr',
+              child: Text('Lá $hz Hz · $sys$tr',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
             ),
@@ -488,11 +468,6 @@ class _GridPageState extends State<GridPage> {
   // Seção 3: Ajustes (cada item abre um modal)
   // =====================================================================
   Widget _settingsSection() {
-    final zoneLabel = switch (app.zone) {
-      ZoneLevel.beginner => 'Iniciante (faixa larga)',
-      ZoneLevel.intermediate => 'Intermediário (faixa média)',
-      ZoneLevel.advanced => 'Avançado (faixa estreita)',
-    };
     final histLabel = switch (app.history) {
       HistoryMode.short => '1 segundo',
       HistoryMode.medium => '3 segundos',
@@ -508,20 +483,6 @@ class _GridPageState extends State<GridPage> {
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(
             children: [
-              _tile(Icons.check_circle_outline, 'Nível de exigência', zoneLabel,
-                  () => _pick<ZoneLevel>(
-                        'Nível de exigência',
-                        const [
-                          (ZoneLevel.beginner, 'Iniciante · faixa verde larga'),
-                          (ZoneLevel.intermediate, 'Intermediário · faixa verde média'),
-                          (ZoneLevel.advanced, 'Avançado · faixa verde estreita'),
-                        ],
-                        app.zone,
-                        (z) => app.setTuning(zone: z),
-                        hint:
-                            'Define o quanto a nota pode se afastar do ideal e ainda contar como afinada (verde). Comece pela larga e estreite com o tempo.',
-                      )),
-              const Divider(height: 1),
               _tile(Icons.history, 'Memória da nota', histLabel,
                   () => _pick<HistoryMode>(
                         'Memória da nota',
@@ -615,7 +576,7 @@ class _GridPageState extends State<GridPage> {
       builder: (ctx) => SafeArea(
         child: ListenableBuilder(
           listenable: app,
-          builder: (context, _) => Padding(
+          builder: (context, _) => SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
             child: MicSettingsContent(app: app),
           ),
@@ -640,7 +601,7 @@ class _GridPageState extends State<GridPage> {
               const Text('Como ler as cores',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
               const SizedBox(height: 12),
-              IntonationLegend(zone: app.zone.cents),
+              IntonationLegend(zone: app.zoneCents),
               const SizedBox(height: 12),
               Text(
                 'Cada quadrado é uma nota. Ele ganha cor conforme você toca: azul quando a '
@@ -712,7 +673,7 @@ class _GridPageState extends State<GridPage> {
   }
 
   Widget _reportRow(NoteReport n) {
-    final zone = app.zone.cents;
+    final zone = app.zoneCents;
     final (label, color) = switch (n.status) {
       NoteStatus.notPlayed => ('não tocada', AppColors.textDim),
       NoteStatus.inTune => ('afinada', AppColors.inTune),

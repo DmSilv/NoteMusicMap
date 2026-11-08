@@ -20,7 +20,7 @@ const PROMPTS = {
     '## Por que isso costuma acontecer — 2 a 3 causas técnicas PROVÁVEIS, ditas como hipótese ("pode ser", "costuma acontecer quando").',
     '## Plano de estudo para esta semana — 3 a 4 passos numerados, cada um com COMO fazer e QUANTO tempo.',
     '## Exercício para amanhã — UM exercício concreto e curto (tom, tipo de escala ou arpejo, oitavas, andamento).',
-    'Tamanho: 250 a 400 palavras. Explique termos técnicos na primeira vez. Adapte o tom ao nível (acerto abaixo de 50% = iniciante; acima de 80% = avançado).',
+    'Tamanho: 250 a 400 palavras. Explique termos técnicos na primeira vez. Adapte o tom ao desempenho (acerto abaixo de 50%: explique passo a passo; acima de 80%: seja mais direto e técnico).',
     GUARD,
   ].join(' '),
 

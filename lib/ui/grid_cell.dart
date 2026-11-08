@@ -4,6 +4,9 @@ import '../app_state.dart';
 import 'note_widgets.dart';
 import 'theme.dart';
 
+/// Quanto tempo (s) o brilho na borda dura depois que a nota soou.
+const double _flashSeconds = 0.45;
+
 /// Sustenido/bemol (teclas pretas): Dó♯, Ré♯, Fá♯, Sol♯, Lá♯.
 bool _isAccidental(int midi) => const {1, 3, 6, 8, 10}.contains(midi % 12);
 
@@ -27,13 +30,13 @@ class GridCell extends StatelessWidget {
     required this.midi,
     required this.scale,
     this.labelSize = 17,
-    this.radius = 10,
+    this.radius = 6,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final zone = app.zone.cents;
+    final zone = app.zoneCents;
     final v = app.grid.view(midi, app.now);
     final cur = app.shown;
     final playing = cur?.midi == midi;
@@ -51,10 +54,14 @@ class GridCell extends StatelessWidget {
       // para a grade não virar uma mancha de cores e dar para ver onde está a nota atual.
       // Histórico: a cor das notas já tocadas fica (só muda quando a nota é tocada de novo), um pouco
       // mais suave que a da nota atual, que ganha a borda e a agulha.
-      final recency = playing ? 1.0 : 0.78;
-      final a = playing ? 1.0 : (0.5 + 0.5 * v.confidence) * v.alpha * recency;
+      // Notas curtas (semicolcheias) já aparecem com a cor firme: nada de "fantasma" fraco.
+      final a = playing ? 1.0 : (0.82 + 0.18 * v.confidence) * v.alpha;
       fill = Color.lerp(restFill, intonationColor(v.avgCents, zone), a)!;
     }
+    // Nota que acabou de soar (mas não é a destacada): um brilho curto na borda,
+    // para passagens rápidas mostrarem cada nota assim que ela é tocada.
+    final recent = !playing && v != null && v.age < _flashSeconds;
+    final flash = recent ? 1 - v.age / _flashSeconds : 0.0;
     final dim = !inScale && v == null;
     // Texto sempre legível: ajusta o fundo da célula se o contraste ficar baixo.
     var dark = AppColors.textDim;
@@ -75,8 +82,10 @@ class GridCell extends StatelessWidget {
         duration: const Duration(milliseconds: 120),
         curve: Curves.easeOutBack,
         child: AnimatedContainer(
-          duration: Duration(milliseconds: playing ? 90 : 750),
-          curve: Curves.easeInOutCubic,
+          // Resposta rápida: a cor chega em ~0,1 s (antes levava quase 1 s e as notas
+          // de um trecho rápido só apareciam depois que ele já tinha acabado).
+          duration: Duration(milliseconds: playing ? 70 : 110),
+          curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
             color: dim
                 ? (accidental ? _accidentalTone(AppColors.surface) : AppColors.surface).withValues(alpha: 0.5)
@@ -85,8 +94,10 @@ class GridCell extends StatelessWidget {
             border: Border.all(
               color: playing
                   ? AppColors.text
-                  : (isTarget && v == null ? AppColors.textDim : Colors.transparent),
-              width: playing ? 3 : 1.2,
+                  : (recent
+                      ? AppColors.text.withValues(alpha: 0.85 * flash)
+                      : (isTarget && v == null ? AppColors.textDim : Colors.transparent)),
+              width: playing ? 3 : (recent ? 2.4 : 1.2),
             ),
           ),
           child: Center(

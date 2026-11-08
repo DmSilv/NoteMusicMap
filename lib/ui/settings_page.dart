@@ -332,19 +332,6 @@ class SettingsPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _switch('Mostrar frequência na grade', 'Mostra os Hz da nota que você toca, ao lado da dica.', app.showFreq, app.setShowFreq),
-        _label('Nível de exigência', 'Largura da faixa verde (afinado).'),
-        Wrap(spacing: 6, runSpacing: 4, children: [
-          for (final e in const {
-            ZoneLevel.beginner: 'Iniciante ±10',
-            ZoneLevel.intermediate: 'Intermediário ±5',
-            ZoneLevel.advanced: 'Avançado ±3',
-          }.entries)
-            ChoiceChip(
-              label: Text(e.value),
-              selected: app.zone == e.key,
-              onSelected: (_) => app.setTuning(zone: e.key),
-            ),
-        ]),
         _label('Memória da nota', 'Quanto tempo o que você tocou antes ainda pesa na cor.'),
         Wrap(spacing: 6, runSpacing: 4, children: [
           for (final e in const {

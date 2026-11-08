@@ -72,7 +72,8 @@ class AppState extends ChangeNotifier {
   int transpose = 0;
   String instrumentId = 'violino';
   TunerMode tunerMode = TunerMode.strings;
-  ZoneLevel zone = ZoneLevel.beginner; // margem ampla (±10 cents): quem toca precisa de folga
+  /// Faixa "afinada" (±cents): padrão único do app, sem níveis.
+  double get zoneCents => kInTuneCents;
   HistoryMode history = HistoryMode.medium;
   double holdSeconds = 0; // 0 = a cor fica até zerar a grade (histórico das notas tocadas)
 
@@ -1309,7 +1310,6 @@ class AppState extends ChangeNotifier {
     gridOctCount = 5;
     gridFollow = false;
     tunerMode = TunerMode.strings;
-    zone = ZoneLevel.beginner;
     history = HistoryMode.medium;
     holdSeconds = 0;
     noteSwitch = NoteSwitchSpeed.normal;
@@ -1432,6 +1432,32 @@ class AppState extends ChangeNotifier {
   PitchGrid grid = PitchGrid();
   TrackedNote? current;
   double level = 0;
+
+  // ---- Diagnóstico da captação (painel em Ajustes › Captação) ----
+  /// Última medida do microfone (nível, pico, clareza e o motivo de recusa).
+  MicDiag? diag;
+
+  /// Fração (0..1, média móvel) dos quadros recentes em que houve nota.
+  double diagRate = 0;
+
+  /// Maior pico recente (0..1), para avisar de distorção (clipping).
+  double diagPeakHold = 0;
+
+  /// Nível (rms, 0..1) do ruído de fundo medido pelo usuário, ou null.
+  double? noiseFloor;
+  List<double>? _probe;
+  double _probeEnd = 0;
+
+  /// Mede o ruído de fundo por 2 s (o usuário fica em silêncio).
+  void startNoiseProbe() {
+    if (!listening) return;
+    _probe = [];
+    _probeEnd = now + 2.0;
+    notifyListeners();
+  }
+
+  bool get probingNoise => _probe != null;
+
   bool listening = false;
   bool demo = false;
   String? micError;
@@ -1479,7 +1505,7 @@ class AppState extends ChangeNotifier {
       tonicMidi: scaleTonicMidi,
       type: scaleType,
       octaves: scaleOctaves,
-      zone: zone.cents,
+      zone: kInTuneCents,
       flow: exerciseFlow,
     );
     exerciseDone = false;
@@ -1547,7 +1573,7 @@ class AppState extends ChangeNotifier {
       title:
           '${scaleType.display(noteName(scaleTonicMidi, cfg))} · $scaleOctaves oitava${scaleOctaves > 1 ? 's' : ''}',
       octaves: scaleOctaves,
-      zone: zone.cents,
+      zone: kInTuneCents,
       accuracy: sc.accuracy,
       meanAbsCents: sc.meanAbsCents,
       steps: [
@@ -1660,12 +1686,10 @@ class AppState extends ChangeNotifier {
     transpose = p.getInt('transpose') ?? 0;
     instrumentId = p.getString('instrument') ?? 'violino';
     tunerMode = TunerMode.values[p.getInt('tunerMode') ?? 0];
-    zone = ZoneLevel.values[p.getInt('zone') ?? 0];
     history = HistoryMode.values[p.getInt('history') ?? 1];
     holdSeconds = p.getDouble('hold') ?? 0;
-    // Uma vez: a grade passa a guardar o histórico das notas e a margem de afinação fica mais ampla.
+    // Uma vez: a grade passa a guardar o histórico das notas.
     if ((p.getInt('gridMig') ?? 0) < 1) {
-      zone = ZoneLevel.beginner;
       holdSeconds = 0;
       p.setInt('gridMig', 1);
     }
@@ -1750,7 +1774,6 @@ class AppState extends ChangeNotifier {
     await p.setInt('transpose', transpose);
     await p.setString('instrument', instrumentId);
     await p.setInt('tunerMode', tunerMode.index);
-    await p.setInt('zone', zone.index);
     await p.setInt('history', history.index);
     await p.setDouble('hold', holdSeconds);
     await p.setInt('noteSwitch', noteSwitch.index);
@@ -1776,7 +1799,6 @@ class AppState extends ChangeNotifier {
     int? transpose,
     String? instrumentId,
     TunerMode? tunerMode,
-    ZoneLevel? zone,
     HistoryMode? history,
     double? holdSeconds,
     double? dailyGoalMinutes,
@@ -1796,7 +1818,6 @@ class AppState extends ChangeNotifier {
       _gridLow = null; // volta à faixa padrão do novo instrumento
     }
     if (tunerMode != null) this.tunerMode = tunerMode;
-    if (zone != null) this.zone = zone;
     if (history != null) {
       this.history = history;
       grid.history = history;
@@ -1878,6 +1899,7 @@ class AppState extends ChangeNotifier {
     listening = false;
     micOn.value = false;
     if (kDevDemo) FrameMeter.instance.stop();
+    _gate.close();
     current = null;
     shown = null;
     _display.reset();
@@ -1889,13 +1911,28 @@ class AppState extends ChangeNotifier {
 
   void _onFrame(PitchFrame f) {
     level = f.level;
+    final d = f.diag;
+    if (d != null) {
+      diag = d;
+      diagRate += ((f.result != null ? 1.0 : 0.0) - diagRate) * 0.08;
+      diagPeakHold = d.peak > diagPeakHold ? d.peak : diagPeakHold * 0.995;
+      final probe = _probe;
+      if (probe != null) {
+        probe.add(d.rms);
+        if (now >= _probeEnd) {
+          probe.sort();
+          // Mediana: ignora um estalo isolado durante a medida.
+          noiseFloor = probe.isEmpty ? null : probe[probe.length ~/ 2];
+          _probe = null;
+          notifyListeners();
+        }
+      }
+    }
     final n = tracker.update(f.result, cfg);
     current = n;
     shown = _display.update(n, now);
-    if (n != null) {
-      grid.add(n.midi, n.cents, n.clarity, f.dt, now);
-      _lastNoteSeen = now;
-    }
+    _registerNote(n, f.dt);
+    if (n != null) _lastNoteSeen = now;
     final sh = shown;
     if (gridFollow && sh != null) _followNote(sh.midi);
     _feedExercise(n, f.dt);
@@ -1907,6 +1944,29 @@ class AppState extends ChangeNotifier {
       _lastNotify = t;
       liveTick.value++;
     }
+  }
+
+  // ---- Porta de registro da grade ----
+  // Só vira nota da sessão (cor, ×N, placar) o que se mantém por um tempo mínimo.
+  // Isso corta o que não foi tocado de verdade: a passagem entre duas notas (de Lá
+  // para Si o dedo cruza o Lá♯), ruído do arco, e cordas soltas que ressoam por
+  // simpatia. O destaque ao vivo não passa por aqui (continua imediato).
+  final NoteGate _gate = NoteGate();
+
+  /// Últimas notas ouvidas (mais recente primeiro), com o que foi guardado e o
+  /// que foi descartado por ser curto demais. Aparece no diagnóstico.
+  List<NoteRun> get recentRuns => _gate.runs;
+
+  /// Tempo (s) que uma nota precisa durar para entrar na sessão.
+  double get minNoteSeconds => switch (sensitivity) {
+        MicSensitivity.rigorous => 0.09,
+        MicSensitivity.normal => 0.06,
+        MicSensitivity.free => 0.04,
+      };
+
+  void _registerNote(TrackedNote? n, double dt) {
+    _gate.minSeconds = minNoteSeconds;
+    _gate.update(grid, n, dt, now);
   }
 
   /// Escala de demonstração: Sol maior no violino, com desafinações reais.
@@ -1952,6 +2012,7 @@ class AppState extends ChangeNotifier {
 
   void resetGrid() {
     grid.clear();
+    _gate.reset();
     tracker.reset();
     current = null;
     shown = null;
@@ -2082,7 +2143,7 @@ class AppState extends ChangeNotifier {
 
   double get todaySeconds => studySeconds[dayKey(DateTime.now())] ?? 0;
 
-  ScaleReport buildReport() => buildScaleReport(grid, scaleNotes, cfg, zone, now);
+  ScaleReport buildReport() => buildScaleReport(grid, scaleNotes, cfg, kInTuneCents, now);
 
   Future<void> saveScaleSession(ScaleReport r) async {
     scaleSessions.insert(0, {

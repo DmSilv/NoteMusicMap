@@ -154,8 +154,8 @@ void main() {
       g.add(57, -14, 1, 1, 1); // grave
       g.add(59, 12, 1, 1, 2); // aguda
       // 60 não tocada
-      g.add(62, 6, 1, 1, 3); // iniciante afinada (±10)
-      final r = buildScaleReport(g, midis, eq, ZoneLevel.beginner, 4);
+      g.add(62, 6, 1, 1, 3); // afinada (dentro da faixa padrão)
+      final r = buildScaleReport(g, midis, eq, kInTuneCents, 4);
       expect(r.notes[0].status, NoteStatus.inTune);
       expect(r.notes[1].status, NoteStatus.flat);
       expect(r.notes[2].status, NoteStatus.sharp);
@@ -163,9 +163,11 @@ void main() {
       expect(r.notes[4].status, NoteStatus.inTune);
       expect(r.played, 4);
       expect(r.accuracy, closeTo(0.5, 1e-9));
-      // O mesmo +6 não passa no nível avançado (±3).
-      final adv = buildScaleReport(g, midis, eq, ZoneLevel.advanced, 4);
-      expect(adv.notes[4].status, NoteStatus.sharp);
+      // O relatório aceita uma faixa explícita (o app usa só a padrão): +6 não passa em ±3.
+      final estreita = buildScaleReport(g, midis, eq, 3, 4);
+      expect(estreita.notes[4].status, NoteStatus.sharp);
+      // A faixa padrão é única e fixa.
+      expect(kInTuneCents, 10);
     });
 
     test('conta quantas vezes cada nota foi tocada (pausa = outra tocada)', () {
@@ -206,7 +208,7 @@ void main() {
     test('relatório ignora a retenção da grade', () {
       final g = PitchGrid(holdSeconds: 1, fadeSeconds: 1);
       g.add(55, 0, 1, 1, 0);
-      final r = buildScaleReport(g, [55], eq, ZoneLevel.beginner, 100);
+      final r = buildScaleReport(g, [55], eq, kInTuneCents, 100);
       expect(r.notes.first.status, NoteStatus.inTune);
       expect(g.holdSeconds, 1);
     });

@@ -22,7 +22,34 @@ class PitchResult {
   const PitchResult(this.frequency, this.clarity, this.rms);
 }
 
+/// Por que a última análise não devolveu nota (para o diagnóstico da captação).
+enum PitchReject {
+  /// Houve nota.
+  none('ok'),
+
+  /// Sinal abaixo do nível mínimo.
+  quiet('sinal fraco'),
+
+  /// Nenhum período encontrado (ruído, silêncio, som sem altura).
+  noPeak('sem altura definida'),
+
+  /// Achou um período, mas pouco "limpo" (abaixo da clareza mínima).
+  unclear('som pouco limpo'),
+
+  /// Frequência fora da faixa do instrumento.
+  range('fora da faixa');
+
+  final String label;
+  const PitchReject(this.label);
+}
+
 class McLeodPitchDetector {
+  /// Medidas da última chamada de [detect], mesmo quando não houve nota.
+  double lastRms = 0;
+  double lastClarity = 0;
+  double lastFreq = 0;
+  PitchReject lastReject = PitchReject.quiet;
+
   final int sampleRate;
   final int windowSize;
   final double minFreq;
@@ -54,16 +81,23 @@ class McLeodPitchDetector {
   }
 
   /// [buf] deve ter exatamente [windowSize] amostras (-1..1).
-  PitchResult? detect(List<double> buf) {
-    assert(buf.length >= windowSize);
+  PitchResult? detect(List<double> buf, {int offset = 0}) {
+    assert(buf.length >= offset + windowSize);
     final n = windowSize;
 
     var energy = 0.0;
     for (var i = 0; i < n; i++) {
-      energy += buf[i] * buf[i];
+      final v = buf[offset + i];
+      energy += v * v;
     }
     final rms = math.sqrt(energy / n);
-    if (rms < minRms) return null;
+    lastRms = rms;
+    lastClarity = 0;
+    lastFreq = 0;
+    if (rms < minRms) {
+      lastReject = PitchReject.quiet;
+      return null;
+    }
 
     // NSDF direto: O(n * tauMax). Rápido o bastante para ~20 quadros/s.
     final nsdf = _nsdf;
@@ -72,8 +106,8 @@ class McLeodPitchDetector {
       var m = 0.0;
       final lim = n - tau;
       for (var j = 0; j < lim; j++) {
-        final a = buf[j];
-        final b = buf[j + tau];
+        final a = buf[offset + j];
+        final b = buf[offset + j + tau];
         acf += a * b;
         m += a * a + b * b;
       }
@@ -105,7 +139,10 @@ class McLeodPitchDetector {
         if (peakVal > bestPeakVal) bestPeakVal = peakVal;
       }
     }
-    if (peaks.isEmpty) return null;
+    if (peaks.isEmpty) {
+      lastReject = PitchReject.noPeak;
+      return null;
+    }
 
     final threshold = cutoff * bestPeakVal;
     var chosen = peaks.first;
@@ -124,10 +161,18 @@ class McLeodPitchDetector {
     final shift = denom == 0 ? 0.0 : 0.5 * (a - c) / denom;
     final tauRefined = chosen + shift;
     final clarity = b - 0.25 * (a - c) * shift;
-    if (clarity < minClarity) return null;
-
     final freq = sampleRate / tauRefined;
-    if (freq < minFreq || freq > maxFreq) return null;
+    lastClarity = clarity.clamp(0.0, 1.0);
+    lastFreq = freq;
+    if (clarity < minClarity) {
+      lastReject = PitchReject.unclear;
+      return null;
+    }
+    if (freq < minFreq || freq > maxFreq) {
+      lastReject = PitchReject.range;
+      return null;
+    }
+    lastReject = PitchReject.none;
     return PitchResult(freq, clarity.clamp(0.0, 1.0), rms);
   }
 }
@@ -155,6 +200,67 @@ class DetectorProfile {
     while (w < 4096 && w < 4 * sampleRate / minF) {
       w *= 2;
     }
-    return DetectorProfile(w, math.min(768, w ~/ 2), minF, 3200);
+    // Passo curto (~12 ms) nas janelas pequenas: a nota nova é vista mais cedo.
+    // Janelas grandes (graves) mantêm o passo longo para poupar bateria.
+    return DetectorProfile(w, w <= 2048 ? 512 : 768, minF, 3200);
   }
+}
+
+/// Detector com janela adaptativa: usa a janela curta quando a nota anterior era
+/// aguda (muitos períodos cabem nela) e uma média quando era grave. Janela menor =
+/// leitura mais rápida; os testes mostram a mesma precisão. Instrumentos de janela
+/// grande (violoncelo, contrabaixo) não são alterados.
+class AdaptiveWindowDetector {
+  /// Detectores do mais longo ao mais curto, com a frequência mínima da nota
+  /// anterior para usar cada um.
+  final List<McLeodPitchDetector> _dets;
+  final List<double> _from;
+  double _lastFreq = 0;
+  McLeodPitchDetector _used;
+
+  AdaptiveWindowDetector._(this._dets, this._from) : _used = _dets.first;
+
+  factory AdaptiveWindowDetector.forProfile(DetectorProfile p, {int sampleRate = 44100}) {
+    McLeodPitchDetector mk(int w) => McLeodPitchDetector(
+        sampleRate: sampleRate, windowSize: w, minFreq: p.minFreq, maxFreq: p.maxFreq);
+    if (p.window == 2048) {
+      // Violino/viola: grave (< ~1,9x o limite inferior) 1536; agudo 1024.
+      return AdaptiveWindowDetector._([mk(1536), mk(1024)], [0, p.minFreq * 1.875]);
+    }
+    return AdaptiveWindowDetector._([mk(p.window)], [0]);
+  }
+
+  /// Amostras que o chamador deve fornecer (a janela do perfil, mais antiga primeiro).
+  int get inputSize => _dets.map((d) => d.windowSize).reduce(math.max);
+
+  /// Detector usado na última chamada (para ler as medidas de diagnóstico).
+  McLeodPitchDetector get last => _used;
+
+  set minClarity(double v) {
+    for (final d in _dets) {
+      d.minClarity = v;
+    }
+  }
+
+  set minRms(double v) {
+    for (final d in _dets) {
+      d.minRms = v;
+    }
+  }
+
+  /// [buf] tem [inputSize] amostras (a mais antiga primeiro); a janela escolhida
+  /// usa as mais recentes.
+  PitchResult? detect(List<double> buf) {
+    var k = 0;
+    for (var i = 0; i < _dets.length; i++) {
+      if (_lastFreq >= _from[i]) k = i;
+    }
+    final d = _dets[k];
+    _used = d;
+    final r = d.detect(buf, offset: buf.length - d.windowSize);
+    _lastFreq = r?.frequency ?? 0;
+    return r;
+  }
+
+  void reset() => _lastFreq = 0;
 }
