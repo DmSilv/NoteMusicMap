@@ -34,6 +34,11 @@ class _GridPageState extends State<GridPage> {
 
   @override
   Widget build(BuildContext context) {
+    final asked = app.requestGridSection;
+    if (asked != null) {
+      _section = asked.clamp(0, 2);
+      app.requestGridSection = null;
+    }
     return ListenableBuilder(
       listenable: widget.active ? app.live : kNeverNotifies,
       builder: (context, _) {

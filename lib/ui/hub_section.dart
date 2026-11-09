@@ -10,7 +10,6 @@ import 'agenda_page.dart';
 import 'my_lessons_page.dart' show openMyLessons;
 import 'profile_page.dart';
 import 'qr_scan_page.dart';
-import 'scale_exercise_page.dart';
 import 'settings_page.dart' show SettingsPage, kAppName;
 import 'share_sheet.dart' show shareLink;
 import 'slot_form_page.dart';
@@ -270,7 +269,7 @@ class HubSection extends StatelessWidget {
       if (app.teacherMode) (Icons.calendar_month_outlined, 'Agenda', () => _push(context, AgendaPage(app: app))),
       if (app.teacherMode) (Icons.assessment_outlined, 'Relatórios', () => _push(context, TeacherPage(app: app))),
       (Icons.timer_outlined, 'Metrônomo', () => app.goTab?.call(1)),
-      (Icons.piano, 'Escalas', () => _push(context, ScaleExercisePage(app: app))),
+      (Icons.piano, 'Escalas', () => app.openGridSection(1)),
       (Icons.badge_outlined, 'Perfil', () => _push(context, ProfilePage(app: app))),
       (Icons.settings_outlined, 'Ajustes', () => _push(context, SettingsPage(app: app))),
     ];

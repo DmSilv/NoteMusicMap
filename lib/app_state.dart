@@ -2334,6 +2334,16 @@ class AppState extends ChangeNotifier {
   /// Troca a aba da barra de baixo (0 Afinador, 1 Metrônomo, 2 Grade, 3 Meu espaço). Definido pela tela principal.
   void Function(int)? goTab;
 
+  /// Seção pedida para a aba Grade (0 grade, 1 escala, 2 ajustes); a Grade lê e limpa ao aparecer.
+  int? requestGridSection;
+
+  /// Leva à aba Grade já na seção [section] (ex.: "Escalas" do hub abre a seção Escala).
+  void openGridSection(int section) {
+    requestGridSection = section;
+    goTab?.call(2);
+    notifyListeners();
+  }
+
   /// O usuário dispensou o cartão "Estuda com um professor?" da aba Estudo.
   bool roleCardHidden = false;
 
