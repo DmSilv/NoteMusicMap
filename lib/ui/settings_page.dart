@@ -537,6 +537,13 @@ class SettingsPage extends StatelessWidget {
             'O app funciona sem internet. Ela só é usada se você pedir a análise por IA, e mesmo assim só vão números de afinação, nunca áudio.'),
         _info(Icons.shield_outlined, 'Seu áudio fica com você',
             'O som é analisado no próprio aparelho e descartado na hora. Nada é gravado nem enviado.'),
+        const Divider(height: 20),
+        _switch(
+            'Estatísticas anônimas de uso',
+            'Ajuda a melhorar o app: avisa, sem identificar você, que o app foi aberto, em que tipo de aparelho e '
+                'quais abas são mais usadas. Não envia nome, áudio, localização nem o que você toca.',
+            app.statsEnabled,
+            app.setStatsEnabled),
         const SizedBox(height: 4),
         TextButton.icon(
           onPressed: () => _showPrivacy(context),
@@ -696,7 +703,8 @@ class SettingsPage extends StatelessWidget {
               ('Escrever falando (opcional)', 'Só quando você toca no microfone de um campo de texto. Quem transforma a voz em texto é o serviço de voz do seu aparelho ou do navegador (por exemplo, o do Google ou o da Apple), que pode usar a internet. O Notemusic não grava nem guarda o áudio.'),
               ('Nota e pesquisa rápida (opcional)', 'Só se você tocar em Enviar. Vão a sua resposta, a versão do app e um código do aparelho que o servidor embaralha, sem nome, e-mail nem áudio. Você pode ignorar o convite.'),
               ('Seu perfil e o vínculo online', 'O app cria no seu aparelho um código de identificação, sem cadastro. Seu histórico de exercícios fica só neste aparelho. Se você ligar o Vínculo online (ou vincular alguém lendo um QR), o servidor passa a guardar o seu código, um apelido opcional, um resumo criptográfico do seu segredo e a lista de vínculos com as datas. Se você é professor e encerra uma aula, as tarefas e as observações PASSADAS NAQUELA AULA são enviadas ao servidor para o aluno vinculado buscar (até 60 aulas por aluno). Nunca vão áudio nem o histórico de exercícios. Você pode encerrar um vínculo a qualquer momento: as aulas daquele professor deixam de valer para o aluno.'),
-              ('Conta e dados pessoais', 'Não há login, cadastro, anúncios nem rastreamento. O app não pede nome, e-mail nem localização.'),
+              ('Estatísticas anônimas de uso', 'Para saber quantas pessoas usam o app e em que tipo de aparelho, o app avisa o servidor quando é aberto e, enquanto está aberto, a cada poucos minutos. Vão apenas: um código aleatório do aparelho (que não é o seu código de perfil e não identifica você), o tipo de aparelho e de navegador, a versão do app e quais abas você abriu. Não vão nome, e-mail, localização, áudio, o que você toca e o endereço de IP não é guardado (só um resumo temporário, por até 1 hora, para barrar abusos). Você pode desligar em Configurações › Permissões e privacidade › Estatísticas anônimas de uso.'),
+              ('Conta e dados pessoais', 'Não há login, cadastro nem anúncios. O app não pede nome, e-mail nem localização, e não rastreia o que você faz fora dele.'),
               (
                 'Contato e seus direitos',
                 kContactEmail.isEmpty

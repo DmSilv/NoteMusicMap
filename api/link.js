@@ -16,6 +16,9 @@
 //   lessons  -> ALUNO busca as aulas dos professores a que está vinculado
 //   done     -> ALUNO avisa que fez (ou desmarcou) uma tarefa de um professor { other, lesson, task, done }
 //   rev      -> só os contadores de novidade { lr, dr, kr } (1 comando): o app só baixa listas se mudou
+//   sched_put-> PROFESSOR marca/muda/cancela uma aula { other, slot } e agenda o lembrete (QStash)
+//   sched    -> ALUNO busca as aulas marcadas pelos professores
+//   push_key / push_sub / push_unsub -> notificações (Web Push) deste aparelho
 //   dones    -> PROFESSOR busca o que os alunos marcaram como feito (e a revisão dr no sync)
 //
 // Precisa do Upstash Redis. Sem ele devolve 503 e o app segue só neste aparelho.
@@ -24,6 +27,9 @@
 const crypto = require('node:crypto');
 const { config } = require('./_lib/config');
 const { createStore } = require('./_lib/store');
+const { cleanSlot, scheduleNext, remindersEnabled } = require('./_lib/agenda');
+const { validSubscription } = require('./_lib/webpush');
+const { bump } = require('./_lib/metrics');
 
 const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const MAX_LINKS = 300;
@@ -37,6 +43,8 @@ const LESSONS_KEPT = 60; // aulas guardadas por aluno
 const PULLS_PER_HOUR = 240;
 const DONES_KEPT = 1500; // marcações guardadas por professor
 const ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
+const MAX_SLOTS = 400; // aulas marcadas por professor
+const MAX_DEVICES = 4; // aparelhos com notificação por perfil
 const TASK_KINDS = ['scale', 'method', 'repertoire', 'free'];
 
 /** Código "XXXX-XXXX" válido (mesma verificação do app) ou null. */
@@ -125,6 +133,9 @@ const U = (code) => `u:${code}`; // hash do perfil: h (hash do segredo), n (apel
 const T = (code) => `ut:${code}`; // alunos deste professor: aluno -> JSON
 const S = (code) => `us:${code}`; // professores deste aluno: professor -> JSON
 const UL = (code) => `ul:${code}`; // aulas deste aluno: "professor:idAula" -> JSON
+const SL = (code) => `sl:${code}`; // aulas marcadas pelo professor: idAula -> JSON
+const SS = (code) => `ss:${code}`; // aulas marcadas para este aluno: "professor:idAula" -> JSON
+const PS = (code) => `ps:${code}`; // aparelhos com notificação: hash do endereço -> inscrição
 const DN = (code) => `dn:${code}`; // tarefas que os alunos deste professor marcaram: "aluno:idAula:idTarefa" -> JSON
 
 function parseLinks(h) {
@@ -154,6 +165,8 @@ function makeHandler(deps = {}) {
 
     const cfg = getCfg();
     const store = createStore(cfg, fetchImpl, clock, { allowMemory: !!deps.allowMemory });
+    // Contadores de uso (métricas anônimas): nunca derrubam o pedido.
+    const metric = (event, total) => bump(cfg, fetchImpl, clock, { allowMemory: !!deps.allowMemory }, event, { total });
     if (!store.durable) {
       return send(503, { error: 'sync_unavailable', message: 'O vínculo online ainda não está configurado.' });
     }
@@ -178,7 +191,7 @@ function makeHandler(deps = {}) {
         const day = Math.floor(clock() / 86400000);
         const nw = await store.incr(`lnknew:${ipKey}:${day}`, 86400);
         if (nw.n > NEW_PROFILES_PER_DAY) return send(429, { error: 'Muitos perfis novos desta origem hoje. Tente amanhã.' });
-        await store.hsetnx(U(me), 'h', secretHash); // primeira vez: este segredo passa a ser o dono
+        if (await store.hsetnx(U(me), 'h', secretHash)) await metric(null, { field: 'profiles', by: 1 }); // primeira vez: este segredo passa a ser o dono
         prof = await store.hgetall(U(me));
       }
       const okOwner = prof.h && crypto.timingSafeEqual(Buffer.from(prof.h), Buffer.from(secretHash));
@@ -203,13 +216,13 @@ function makeHandler(deps = {}) {
         // Mudou o apelido: avisa quem está vinculado (o nome fica dentro de cada vínculo).
         if (nameChanged) await propagateName(store, me, name);
         const [asTeacher, asStudent] = await Promise.all([store.hgetall(T(me)), store.hgetall(S(me))]);
-        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: parseLinks(asStudent), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0 });
+        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: parseLinks(asStudent), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0 });
       }
 
       // Consulta barata: o perfil já foi lido na autenticação, então não custa nenhum comando a mais.
       // lr = aulas novas, dr = tarefas marcadas pelos alunos, kr = vínculos mudaram.
       if (action === 'rev') {
-        return send(200, { ok: true, lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0 });
+        return send(200, { ok: true, lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0 });
       }
 
       // O PROFESSOR busca o que os alunos marcaram como feito (só dos alunos ainda vinculados).
@@ -225,6 +238,25 @@ function makeHandler(deps = {}) {
         }
         dones.sort((a, b2) => b2.t - a.t);
         return send(200, { ok: true, dones: dones.slice(0, DONES_KEPT), dr: Number(prof.dr) || 0 });
+      }
+
+      // Lembretes: o app pergunta se o servidor está pronto para enviar notificações.
+      if (action === 'push_key') {
+        return send(200, { ok: true, key: remindersEnabled(cfg) ? cfg.vapid.publicKey : '', enabled: remindersEnabled(cfg) });
+      }
+
+      // O ALUNO busca as aulas marcadas pelos professores a que ainda está vinculado.
+      if (action === 'sched') {
+        const pulls = await store.incr(`lnkpull:${me}:${hour}`, 3600);
+        if (pulls.n > PULLS_PER_HOUR) return send(429, { error: 'Muitas consultas. Tente mais tarde.' });
+        const [mine, raw] = await Promise.all([store.hgetall(S(me)), store.hgetall(SS(me))]);
+        const slots = [];
+        for (const [field, json] of Object.entries(raw)) {
+          const teacher = field.split(':')[0];
+          if (mine[teacher] === undefined) continue; // vínculo encerrado: a aula marcada não vale mais
+          try { slots.push({ ...JSON.parse(json), by: teacher }); } catch (_) { /* linha ruim */ }
+        }
+        return send(200, { ok: true, slots, sr: Number(prof.sr) || 0 });
       }
 
       // O aluno busca as aulas dos professores a que ainda está vinculado.
@@ -245,6 +277,56 @@ function makeHandler(deps = {}) {
       // As demais ações mudam dados: limite por hora para cada perfil.
       const mut = await store.incr(`lnkmut:${me}:${hour}`, 3600);
       if (mut.n > MUTATIONS_PER_HOUR) return send(429, { error: 'Muitas alterações. Tente mais tarde.' });
+
+      // ---- Notificações: inscrição do navegador deste aparelho ----
+      if (action === 'push_sub') {
+        const sub = validSubscription(b.sub);
+        if (!sub) return send(400, { error: 'Inscrição de notificação inválida.' });
+        const field = sha(sub.endpoint).slice(0, 24);
+        if ((await store.hget(PS(me), field)) === undefined && (await store.hlen(PS(me))) >= MAX_DEVICES) {
+          // Passou de 4 aparelhos: sai o mais antigo.
+          const all = await store.hgetall(PS(me));
+          const oldest = Object.entries(all)
+            .map(([f, j]) => { let t = 0; try { t = JSON.parse(j).t || 0; } catch (_) { /* ruim */ } return [f, t]; })
+            .sort((x, y) => x[1] - y[1])[0];
+          if (oldest) await store.hdel(PS(me), oldest[0]);
+        }
+        await store.hset(PS(me), field, JSON.stringify({ ...sub, t: clock() }));
+        return send(200, { ok: true });
+      }
+      if (action === 'push_unsub') {
+        await store.hdel(PS(me), sha(String(b.endpoint || '')).slice(0, 24));
+        return send(200, { ok: true });
+      }
+
+      // ---- Agenda: o PROFESSOR marca, muda ou cancela uma aula (e agenda o lembrete) ----
+      if (action === 'sched_put') {
+        const student = normCode(b.other);
+        if (!student || student === me) return send(400, { error: 'Falta o código do aluno.' });
+        if ((await store.hget(T(me), student)) === undefined) {
+          return send(403, { error: 'Este aluno não está vinculado a você.' });
+        }
+        // Como nas aulas: só entrega para um perfil que o aluno JÁ reivindicou.
+        const sp = await store.hgetall(U(student));
+        if (!sp.h) return send(409, { error: 'student_not_ready', message: 'O aluno ainda não abriu o app com o vínculo online ligado.' });
+        const slot = cleanSlot(b.slot, clock());
+        if (!slot) return send(400, { error: 'Aula marcada inválida.' });
+        const oldRaw = await store.hget(SL(me), slot.id);
+        if (oldRaw !== undefined) {
+          let old = null;
+          try { old = JSON.parse(oldRaw); } catch (_) { /* ruim */ }
+          // Versão mais antiga que a guardada: ignora (um pedido atrasado não desfaz o mais novo).
+          if (old && old.u > slot.u) return send(200, { ok: true, stale: true });
+        } else if ((await store.hlen(SL(me))) >= MAX_SLOTS) {
+          return send(400, { error: 'Limite de aulas marcadas atingido.' });
+        }
+        await store.hset(SL(me), slot.id, JSON.stringify({ ...slot, sc: student }));
+        await store.hset(SS(student), `${me}:${slot.id}`, JSON.stringify({ ...slot, tn: prof.n || '' }));
+        await store.hset(U(student), 'sr', String(clock())); // o aluno vê que a agenda mudou
+        const reminder = await scheduleNext(cfg, fetchImpl, me, student, slot, clock());
+        await metric('slot');
+        return send(200, { ok: true, reminder });
+      }
 
       const other = normCode(b.other);
       const role = b.role === 'teacher' ? 'teacher' : b.role === 'student' ? 'student' : '';
@@ -308,6 +390,7 @@ function makeHandler(deps = {}) {
           for (const [fld] of byAge.slice(0, fields.length - LESSONS_KEPT)) await store.hdel(key, fld);
         }
         await store.hset(U(student), 'lr', String(clock())); // o aluno vê que há novidade
+        await metric('lesson');
         return send(200, { ok: true });
       }
 
@@ -327,12 +410,15 @@ function makeHandler(deps = {}) {
           await store.hset(S(student), teacher, JSON.stringify({ n: nameOfTeacher, t: now, by: role }));
           await store.hset(U(teacher), 'kr', String(now)); // os dois lados veem que os vínculos mudaram
           await store.hset(U(student), 'kr', String(now));
+          await metric('link', { field: 'links', by: 1 });
         }
         return send(200, { ok: true, created: !existed, other: { code: other, name: theirName } });
       }
 
       if (action === 'unlink') {
+        const hadLink = (await store.hget(T(teacher), student)) !== undefined;
         await store.hdel(T(teacher), student);
+        if (hadLink) await metric(null, { field: 'links', by: -1 });
         await store.hdel(S(student), teacher);
         // As aulas desse professor deixam de existir para esse aluno.
         const lk = UL(student);
@@ -341,6 +427,11 @@ function makeHandler(deps = {}) {
         }
         await store.hset(U(teacher), 'kr', String(clock()));
         await store.hset(U(student), 'kr', String(clock()));
+        // As aulas marcadas desse professor para esse aluno.
+        const sk = SS(student);
+        for (const fld of Object.keys(await store.hgetall(sk))) {
+          if (fld.startsWith(`${teacher}:`)) await store.hdel(sk, fld);
+        }
         // E as marcações de tarefa que esse aluno fez para esse professor.
         const dk = DN(teacher);
         for (const fld of Object.keys(await store.hgetall(dk))) {

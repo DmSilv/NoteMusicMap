@@ -50,6 +50,45 @@ async function redePrimeiro(req) {
   }
 }
 
+// ---- Notificações de aula (Web Push) ----
+// O servidor manda { kind: 'lesson', role, start, who } 15 min antes da aula; o texto é montado
+// aqui, com a hora no fuso do aparelho.
+self.addEventListener('push', (event) => {
+  let d = {};
+  try {
+    d = event.data ? event.data.json() : {};
+  } catch (_) {
+    d = {};
+  }
+  if (d.kind !== 'lesson' || !Number.isFinite(Number(d.start))) return;
+  const hhmm = new Date(Number(d.start)).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  const who = typeof d.who === 'string' && d.who ? ` com ${d.who.slice(0, 40)}` : '';
+  event.waitUntil(
+    self.registration.showNotification('Aula em 15 minutos', {
+      body: `Aula${who} às ${hhmm}`,
+      icon: '/icons/Icon-192.png',
+      badge: '/icons/Icon-192.png',
+      tag: `aula-${d.start}`, // a mesma aula não empilha avisos
+      renotify: false,
+      requireInteraction: false,
+      data: { url: '/' },
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    (async () => {
+      const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      for (const c of all) {
+        if ('focus' in c) return c.focus();
+      }
+      return self.clients.openWindow((event.notification.data && event.notification.data.url) || '/');
+    })(),
+  );
+});
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;

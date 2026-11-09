@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app_state.dart';
+import 'agenda_page.dart';
 import 'role_card.dart' show shareTeacherInvite;
 import 'safe_input.dart';
 import '../ai/coach_ai.dart';
@@ -300,6 +301,7 @@ class _TeacherPageState extends State<TeacherPage> {
   void initState() {
     super.initState();
     app.watchLinks(); // alunos que se vinculam pelo QR aparecem sozinhos
+    app.markTab('teacher');
   }
 
   /// Modo "Gerenciar": caixas de seleção para excluir vários alunos.
@@ -344,6 +346,11 @@ class _TeacherPageState extends State<TeacherPage> {
       appBar: AppBar(
         title: const Text('Área do professor'),
         actions: [
+          IconButton(
+            tooltip: 'Agenda de aulas',
+            icon: const Icon(Icons.calendar_month_outlined),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AgendaPage(app: app))),
+          ),
           ListenableBuilder(
             listenable: app,
             builder: (context, _) => app.students.isEmpty || app.teacherLocked

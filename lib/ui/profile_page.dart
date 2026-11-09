@@ -43,6 +43,7 @@ class _ProfilePageState extends State<ProfilePage> {
     // mais depressa (10 s): é quem espera um professor adicioná-lo.
     _fast = app.myTeachers.isEmpty;
     app.watchLinks(fast: _fast);
+    app.markTab('profile');
   }
 
   @override

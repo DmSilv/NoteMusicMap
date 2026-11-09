@@ -146,6 +146,7 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    widget.app.markTab('tuner');
     widget.app.askMicRationale = _micRationale;
     // Primeiro uso: pede de uma vez tudo o que o app precisa.
     if (!widget.app.onboarded) {
@@ -257,10 +258,15 @@ class _HomeShellState extends State<HomeShell> {
 
   static const _titles = ['Afinador', 'Metrônomo', 'Grade', 'Estudo'];
 
-  void _go(int i) => setState(() {
-    _index = i;
-    _visited.add(i);
-  });
+  static const _tabNames = ['tuner', 'metronome', 'grid', 'study'];
+
+  void _go(int i) {
+    widget.app.markTab(_tabNames[i]);
+    setState(() {
+      _index = i;
+      _visited.add(i);
+    });
+  }
 
   /// Botão voltar na tela principal: de outra aba, volta ao Afinador; no
   /// Afinador, pergunta antes de sair do app.
@@ -375,7 +381,10 @@ class _HomeShellState extends State<HomeShell> {
               tooltip: 'Configurações',
               icon: const Icon(Icons.settings_outlined),
               onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => SettingsPage(app: app)),
+                MaterialPageRoute<void>(builder: (_) {
+                  app.markTab('settings');
+                  return SettingsPage(app: app);
+                }),
               ),
             ),
           ],

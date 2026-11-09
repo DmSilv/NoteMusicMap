@@ -75,6 +75,52 @@
       });
     }
   </script>
+  <!-- Notificações de aula (Web Push): ponte simples para o app em Dart. Só funciona com permissão da pessoa. -->
+  <script>
+    window.nmPush = {
+      supported: function () {
+        return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+      },
+      // iPhone/iPad só entregam notificação de site se ele estiver instalado na tela inicial.
+      standalone: function () {
+        return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+      },
+      permission: function () {
+        return 'Notification' in window ? Notification.permission : 'denied';
+      },
+      request: function () {
+        return Notification.requestPermission();
+      },
+      _key: function (b64) {
+        var pad = '='.repeat((4 - (b64.length % 4)) % 4);
+        var raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+        var out = new Uint8Array(raw.length);
+        for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
+        return out;
+      },
+      current: function () {
+        return navigator.serviceWorker.ready.then(function (reg) {
+          return reg.pushManager.getSubscription();
+        }).then(function (s) { return s ? JSON.stringify(s) : ''; });
+      },
+      subscribe: function (publicKey) {
+        return navigator.serviceWorker.ready.then(function (reg) {
+          return reg.pushManager.getSubscription().then(function (s) {
+            return s || reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: window.nmPush._key(publicKey) });
+          });
+        }).then(function (s) { return JSON.stringify(s); });
+      },
+      unsubscribe: function () {
+        return navigator.serviceWorker.ready.then(function (reg) {
+          return reg.pushManager.getSubscription();
+        }).then(function (s) {
+          if (!s) return '';
+          var ep = s.endpoint;
+          return s.unsubscribe().then(function () { return ep; });
+        });
+      },
+    };
+  </script>
   <!-- Motor de áudio (SoLoud) para a web -->
   <script src="assets/packages/flutter_soloud/web/init_soloud.js" defer></script>
 </head>

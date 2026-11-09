@@ -62,6 +62,16 @@ class LinkReply {
 
   /// O pedido foi recusado de vez (4xx): não adianta repetir.
   final bool rejected;
+
+  /// Agenda: revisão das aulas marcadas e as aulas marcadas (resposta de `sched`).
+  final int sr;
+  final List<ClassSlot> slots;
+
+  /// Notificações: chave pública do servidor (vazia = lembretes desligados no servidor).
+  final String pushKey;
+
+  /// Como ficou o lembrete da aula marcada: 'scheduled', 'off', 'none' ou 'error'.
+  final String? reminder;
   const LinkReply({
     this.ok = false,
     this.unavailable = false,
@@ -77,6 +87,10 @@ class LinkReply {
     this.kr = 0,
     this.dones = const [],
     this.rejected = false,
+    this.sr = 0,
+    this.slots = const [],
+    this.pushKey = '',
+    this.reminder,
   });
 }
 
@@ -122,6 +136,10 @@ class LinkService {
         created: j['created'] == true,
         lr: ((j['lr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
         dr: ((j['dr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
+        sr: ((j['sr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
+        pushKey: j['key'] is String && (j['key'] as String).length < 200 ? j['key'] as String : '',
+        reminder: j['reminder'] as String?,
+        slots: [for (final x in ((j['slots'] as List?) ?? const []).take(kMaxSlotsPerTeacher)) ?_slotFrom(x)],
         kr: ((j['kr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
         dones: [
           for (final x in ((j['dones'] as List?) ?? const []).take(1500)) ?DoneEntry.tryFromWire(x)
@@ -133,6 +151,18 @@ class LinkService {
       );
     } catch (_) {
       return const LinkReply(offline: true);
+    }
+  }
+
+  /// Uma aula marcada vinda do servidor: confere o professor e limpa tudo.
+  static ClassSlot? _slotFrom(Object? x) {
+    try {
+      final m = (x as Map).cast<String, dynamic>();
+      final by = formatShareCode((m['by'] as String?) ?? '');
+      if (by == null) return null;
+      return ClassSlot.tryFrom(m, teacherCode: by, teacherName: cleanText(m['tn'] as String?, max: kMaxName));
+    } catch (_) {
+      return null;
     }
   }
 
@@ -181,6 +211,23 @@ class LinkService {
 
   /// PROFESSOR: busca o que os alunos marcaram como feito.
   Future<LinkReply> dones(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'dones'});
+
+  /// PROFESSOR: marca, muda ou cancela uma aula (o servidor agenda o lembrete).
+  Future<LinkReply> schedPut(String code, String secret, {required String student, required ClassSlot slot}) =>
+      _post({..._auth(code, secret, null), 'action': 'sched_put', 'other': student, 'slot': slot.toWire()});
+
+  /// ALUNO: busca as aulas marcadas pelos professores.
+  Future<LinkReply> sched(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'sched'});
+
+  /// Notificações: o servidor está pronto? (devolve a chave pública).
+  Future<LinkReply> pushKey(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'push_key'});
+
+  /// Registra a inscrição de notificação deste aparelho.
+  Future<LinkReply> pushSub(String code, String secret, Map<String, dynamic> sub) =>
+      _post({..._auth(code, secret, null), 'action': 'push_sub', 'sub': sub});
+
+  Future<LinkReply> pushUnsub(String code, String secret, String endpoint) =>
+      _post({..._auth(code, secret, null), 'action': 'push_unsub', 'endpoint': endpoint});
 
   /// ALUNO: busca as aulas dos professores a que está vinculado.
   Future<LinkReply> lessons(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'lessons'});

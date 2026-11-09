@@ -15,11 +15,13 @@ import 'ai/coach_ai.dart';
 import 'dev/frame_meter.dart';
 import 'audio/audio_out.dart';
 import 'platform/hard_reset.dart';
+import 'platform/web_push.dart';
 import 'platform/web_vibrate.dart';
 import 'audio/pitch_source.dart';
 import 'data/repository.dart';
 import 'feedback/feedback_service.dart';
 import 'link/link_service.dart';
+import 'stats/stats_service.dart';
 import 'voice/dictation.dart';
 import 'package:afina_core/afina_core.dart';
 
@@ -45,6 +47,9 @@ class MetroBeat {
 enum StudyMode { pomodoro, stopwatch, custom }
 
 enum TunerMode { strings, chromatic }
+
+/// Situação das notificações de lembrete neste aparelho.
+enum PushStatus { unknown, unsupported, needsInstall, denied, linkOff, serverOff, off, on }
 
 /// Quão permissivo é o microfone.
 /// rigorous: só notas limpas e fortes. free: aceita sons fracos, com ar,
@@ -545,6 +550,7 @@ class AppState extends ChangeNotifier {
       ..clear()
       ..addAll(p.getStringList('unlink_teachers') ?? const []);
     _loadLessons(p);
+    _loadAgenda(p);
     _loadNotices(p);
     // Ao abrir o app, atualiza uma vez (se o vínculo estiver ligado).
     if (linkEnabled) Future<void>.delayed(const Duration(seconds: 3), syncLinks);
@@ -613,6 +619,317 @@ class AppState extends ChangeNotifier {
     if (t == null || DateTime.now().difference(t).inSeconds > 20) unawaited(syncLinks());
   }
 
+  // ---------------- Estatísticas anônimas de uso ----------------
+  /// Aviso anônimo de acesso (para o painel do administrador). Desligável em Configurações.
+  final StatsService stats = StatsService();
+  Timer? _statsTimer;
+
+  bool get statsEnabled => stats.enabled;
+
+  void setStatsEnabled(bool v) {
+    stats.setEnabled(v, _prefs);
+    notifyListeners();
+    if (v) unawaited(stats.open(_prefs));
+  }
+
+  /// A cada ~5 min, com o app à frente, "estou online". Não faz nada em segundo plano.
+  void _startStats() {
+    unawaited(stats.open(_prefs));
+    _statsTimer?.cancel();
+    _statsTimer = Timer.periodic(const Duration(minutes: 5), (_) {
+      if (_foreground) unawaited(stats.beat(_prefs));
+    });
+  }
+
+  /// Uma aba ou tela foi aberta (conta aparelhos distintos por aba, uma vez por dia).
+  void markTab(String name) => stats.markTab(name, _prefs);
+
+  // ---------------- Agenda de aulas ----------------
+  /// PROFESSOR: aulas que marcou (cada regra semanal é UMA entrada).
+  List<ClassSlot> agenda = [];
+
+  /// ALUNO: aulas marcadas pelos professores (sem as canceladas).
+  List<ClassSlot> myAgenda = [];
+  int _agendaRev = 0;
+  bool _agendaSending = false;
+  bool _agendaPulling = false;
+
+  void _loadAgenda(SharedPreferences p) {
+    List<ClassSlot> read(String key, {bool dropCanceled = false}) {
+      try {
+        final raw = p.getString(key);
+        if (raw == null) return [];
+        return [
+          for (final x in (jsonDecode(raw) as List).take(kMaxSlotsPerTeacher))
+            if (ClassSlot.tryFrom(x) case final s? when !(dropCanceled && s.canceled)) s
+        ];
+      } catch (_) {
+        return [];
+      }
+    }
+
+    agenda = read('agenda');
+    myAgenda = read('agenda_in', dropCanceled: true);
+    _agendaRev = p.getInt('agenda_rev') ?? 0;
+  }
+
+  void _saveAgenda() {
+    final p = _prefs;
+    if (p == null) return;
+    p.setString('agenda', jsonEncode([for (final s in agenda) s.toJson()]));
+    p.setString('agenda_in', jsonEncode([for (final s in myAgenda) s.toJson()]));
+    p.setInt('agenda_rev', _agendaRev);
+  }
+
+  /// As aulas marcadas (não canceladas) do professor com o aluno [code].
+  List<ClassSlot> slotsOf(String code) => [for (final s in agenda) if (!s.canceled && s.studentCode == code) s];
+
+  bool _canSendTo(Student s) => s.code != null && s.linkState != 'ended';
+
+  /// Marca ou muda uma aula. Devolve o motivo se não der (aluno, horário que passou, choque
+  /// com outra aula); null se salvou.
+  String? saveSlot(ClassSlot s) {
+    final st = studentByCode(s.studentCode);
+    if (st == null) return 'Escolha o aluno.';
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final old = agenda.where((x) => x.id == s.id).firstOrNull;
+    if (!s.weekly && s.startMs < now - 5 * kMsMinute && (old == null || old.startMs != s.startMs)) {
+      return 'Esse horário já passou. Escolha uma data de hoje em diante.';
+    }
+    final clash = findConflict(s, agenda, now);
+    if (clash != null) {
+      final who = studentByCode(clash.slot.studentCode)?.name ?? 'outro aluno';
+      return 'Choca com a aula de $who (${fmtSlotWhen(clash.start, DateTime.now())}). Escolha outro horário.';
+    }
+    final stamp = old == null ? now : (now > old.updatedMs ? now : old.updatedMs + 1);
+    final saved = s.copyWith(updatedMs: stamp, pending: _canSendTo(st) ? true : null);
+    final i = agenda.indexWhere((x) => x.id == s.id);
+    if (i >= 0) {
+      agenda[i] = saved;
+    } else if (agenda.length >= kMaxSlotsPerTeacher) {
+      return 'Limite de aulas marcadas atingido. Cancele algumas antigas.';
+    } else {
+      agenda.add(saved);
+    }
+    _saveAgenda();
+    notifyListeners();
+    if (saved.pending == true) unawaited(flushAgenda());
+    return null;
+  }
+
+  /// Cancela a aula inteira (regra semanal ou aula única). O aluno é avisado.
+  void cancelSlot(String id) {
+    final i = agenda.indexWhere((x) => x.id == id);
+    if (i < 0) return;
+    final st = studentByCode(agenda[i].studentCode);
+    final now = DateTime.now().millisecondsSinceEpoch;
+    agenda[i] = agenda[i].copyWith(
+        canceled: true,
+        updatedMs: now > agenda[i].updatedMs ? now : agenda[i].updatedMs + 1,
+        pending: st != null && _canSendTo(st) ? true : null);
+    _saveAgenda();
+    notifyListeners();
+    if (agenda[i].pending == true) unawaited(flushAgenda());
+  }
+
+  /// Cancela só a aula do dia [startMs] de uma regra semanal.
+  void skipOccurrence(String id, int startMs) {
+    final i = agenda.indexWhere((x) => x.id == id);
+    if (i < 0) return;
+    final s = agenda[i];
+    if (!s.weekly) return cancelSlot(id);
+    if (s.skipped.length >= kMaxSlotSkips) return;
+    final st = studentByCode(s.studentCode);
+    final now = DateTime.now().millisecondsSinceEpoch;
+    agenda[i] = s.copyWith(
+        skipped: [...s.skipped, startMs],
+        updatedMs: now > s.updatedMs ? now : s.updatedMs + 1,
+        pending: st != null && _canSendTo(st) ? true : null);
+    _saveAgenda();
+    notifyListeners();
+    if (agenda[i].pending == true) unawaited(flushAgenda());
+  }
+
+  /// PROFESSOR: envia ao servidor as aulas marcadas que ainda não foram (e o servidor agenda o lembrete).
+  Future<void> flushAgenda() async {
+    if (_agendaSending || !linkEnabled || linkUnavailable) return;
+    _agendaSending = true;
+    var changed = false;
+    try {
+      for (var i = 0; i < agenda.length; i++) {
+        final s = agenda[i];
+        if (s.pending != true) continue;
+        final st = studentByCode(s.studentCode);
+        if (st == null || !_canSendTo(st)) {
+          agenda[i] = s.copyWith(pending: null);
+          changed = true;
+          continue;
+        }
+        if (st.linkState != 'active') continue; // espera o vínculo ser confirmado
+        final r = await links.schedPut(profile.shareCode, profile.secret, student: s.studentCode, slot: s);
+        if (r.unavailable) {
+          _markLinkUnavailable();
+          break;
+        }
+        if (r.offline) {
+          linkOnline = false;
+          break;
+        }
+        if (r.notReady) {
+          deliveryIssue[s.studentCode] = 'not_ready';
+          changed = true;
+          continue; // o aluno ainda não ligou o vínculo: tenta de novo mais tarde
+        }
+        if (r.ok || r.rejected) {
+          // aceito (ou recusado de vez: não adianta insistir); a aula só deixa de estar na fila
+          agenda[i] = agenda[i].copyWith(pending: false);
+          deliveryIssue.remove(s.studentCode);
+          changed = true;
+          if (!r.ok) say('Não foi possível avisar ${st.name} da aula: ${r.error ?? 'recusada'}.');
+        }
+      }
+    } finally {
+      _agendaSending = false;
+      // Aulas canceladas e já enviadas, com mais de 30 dias, saem da lista guardada.
+      final cut = DateTime.now().millisecondsSinceEpoch - 30 * kMsDay;
+      final before = agenda.length;
+      agenda.removeWhere((s) => s.canceled && s.pending != true && s.updatedMs < cut);
+      if (changed || agenda.length != before) {
+        _saveAgenda();
+        notifyListeners();
+      }
+    }
+  }
+
+  /// ALUNO: traz as aulas marcadas. Avisa se há aula nova, mudada ou cancelada.
+  Future<void> pullAgenda({bool announce = true}) async {
+    if (_agendaPulling || !linkEnabled || linkUnavailable) return;
+    _agendaPulling = true;
+    try {
+      final r = await links.sched(profile.shareCode, profile.secret);
+      if (r.unavailable) return _markLinkUnavailable();
+      if (!r.ok) {
+        if (r.offline) linkOnline = false;
+        return;
+      }
+      linkOnline = true;
+      final before = {for (final s in myAgenda) '${s.teacherCode}:${s.id}': s};
+      final names = {for (final t in myTeachers) t.code: t.name};
+      final now = DateTime.now();
+      final nowMs = now.millisecondsSinceEpoch;
+      final next = <ClassSlot>[];
+      final notes = <String>[];
+      for (final s in r.slots) {
+        final key = '${s.teacherCode}:${s.id}';
+        final who = (s.teacherName.isNotEmpty ? s.teacherName : (names[s.teacherCode] ?? '')).trim();
+        final label = who.isEmpty ? 'Seu professor' : who;
+        final old = before[key];
+        if (s.canceled) {
+          if (old != null && old.nextStart(nowMs) != null) notes.add('$label cancelou a aula marcada.');
+          continue;
+        }
+        next.add(s);
+        final nextAt = s.nextStart(nowMs);
+        if (nextAt == null) continue;
+        if (old == null) {
+          notes.add('$label marcou uma aula: ${fmtSlotWhen(DateTime.fromMillisecondsSinceEpoch(nextAt), now)}.');
+        } else if (s.updatedMs > old.updatedMs && (s.startMs != old.startMs || s.skipped.length > old.skipped.length)) {
+          notes.add('$label mudou a aula: agora ${fmtSlotWhen(DateTime.fromMillisecondsSinceEpoch(nextAt), now)}.');
+        }
+      }
+      myAgenda = next;
+      _agendaRev = r.sr;
+      _saveAgenda();
+      notifyListeners();
+      if (announce && notes.isNotEmpty) {
+        final msg = notes.length == 1 ? notes.first : '${notes.length} novidades na sua agenda de aulas.';
+        addNotice('lesson', msg);
+        say(msg);
+      }
+    } finally {
+      _agendaPulling = false;
+    }
+  }
+
+  /// A próxima aula (ou a que está em andamento) para mostrar ao usuário agora: do professor
+  /// (as que ele marcou) ou do aluno (as que recebeu); vale a que vier primeiro.
+  SlotOccurrence? get nextClass {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final mine = nextOccurrence([...agenda.where((s) => studentByCode(s.studentCode) != null)], now);
+    final theirs = nextOccurrence(myAgenda, now);
+    if (mine == null) return theirs;
+    if (theirs == null) return mine;
+    return mine.startMs <= theirs.startMs ? mine : theirs;
+  }
+
+  // ---------------- Notificações do navegador (lembrete de aula) ----------------
+  PushStatus pushStatus = PushStatus.unknown;
+  bool _pushBusy = false;
+
+  /// Confere o que dá para fazer neste aparelho (suporte, permissão, servidor pronto, inscrição).
+  Future<void> refreshPush() async {
+    if (_pushBusy) return;
+    _pushBusy = true;
+    try {
+      if (!webPushSupported()) {
+        pushStatus = webIsIos() && !webPushStandalone() ? PushStatus.needsInstall : PushStatus.unsupported;
+      } else if (webPushPermission() == 'denied') {
+        pushStatus = PushStatus.denied;
+      } else if (!linkEnabled || linkUnavailable) {
+        pushStatus = PushStatus.linkOff;
+      } else {
+        final k = await links.pushKey(profile.shareCode, profile.secret);
+        if (k.unavailable || (k.ok && k.pushKey.isEmpty)) {
+          pushStatus = PushStatus.serverOff;
+        } else if (!k.ok) {
+          pushStatus = PushStatus.unknown;
+        } else {
+          final cur = await webPushCurrent();
+          pushStatus = webPushPermission() == 'granted' && cur != null ? PushStatus.on : PushStatus.off;
+        }
+      }
+    } finally {
+      _pushBusy = false;
+      notifyListeners();
+    }
+  }
+
+  /// Liga os lembretes neste aparelho (precisa vir de um toque). Devolve uma mensagem se não deu.
+  Future<String?> enablePush() async {
+    if (!webPushSupported()) {
+      return webIsIos() && !webPushStandalone()
+          ? 'No iPhone, instale o app na tela inicial (Compartilhar › Adicionar à Tela de Início) e abra por lá.'
+          : 'Este navegador não permite notificações.';
+    }
+    if (!linkEnabled) return 'Ligue o "Vínculo online" no perfil primeiro: é ele que leva a agenda ao outro lado.';
+    final k = await links.pushKey(profile.shareCode, profile.secret);
+    if (!k.ok || k.pushKey.isEmpty) return 'Os lembretes ainda não estão ativos no servidor.';
+    final perm = await webPushRequestPermission();
+    if (perm != 'granted') {
+      await refreshPush();
+      return 'Sem a permissão do navegador não dá para avisar. Libere as notificações deste site nas configurações do navegador.';
+    }
+    final subJson = await webPushSubscribe(k.pushKey);
+    if (subJson == null) return 'Não foi possível ativar neste aparelho.';
+    try {
+      final sub = (jsonDecode(subJson) as Map).cast<String, dynamic>();
+      final r = await links.pushSub(profile.shareCode, profile.secret, sub);
+      if (!r.ok) return r.error ?? 'O servidor não aceitou a ativação. Tente de novo.';
+    } catch (_) {
+      return 'Não foi possível ativar neste aparelho.';
+    }
+    _prefs?.setBool('push_on', true);
+    await refreshPush();
+    return null;
+  }
+
+  Future<void> disablePush() async {
+    final ep = await webPushUnsubscribe();
+    if (ep != null && linkEnabled) await links.pushUnsub(profile.shareCode, profile.secret, ep);
+    _prefs?.setBool('push_on', false);
+    await refreshPush();
+  }
+
   // ---------------- Consulta barata de novidades (custo por usuário) ----------------
   // O app NÃO baixa listas a cada 30 s: pergunta `rev` (1 comando no servidor) e só faz a
   // atualização completa (vários comandos) quando um contador mudou ou há algo local a enviar.
@@ -627,7 +944,11 @@ class AppState extends ChangeNotifier {
   /// Sem tela à frente (aba escondida, app em segundo plano) não consulta nada.
   void setForeground(bool v) {
     _foreground = v;
-    if (v) onResume();
+    if (v) {
+      onResume();
+      final t = stats.lastOpen;
+      if (t == null || DateTime.now().difference(t).inMinutes >= 30) unawaited(stats.open(_prefs)); // nova sessão
+    }
   }
 
   /// Há algo só aqui que precisa ir ao servidor (desfazer vínculo, aula/tarefa na fila, marcação)?
@@ -635,6 +956,7 @@ class AppState extends ChangeNotifier {
       _unlinkStudents.isNotEmpty ||
       _unlinkTeachers.isNotEmpty ||
       doneOutbox.isNotEmpty ||
+      agenda.any((s) => s.pending == true) ||
       myTeachers.any((t) => t.since == 0) ||
       students.any((s) =>
           s.code != null &&
@@ -671,7 +993,8 @@ class AppState extends ChangeNotifier {
     linkOnline = true;
     final lessonsNew = myTeachers.isNotEmpty && r.lr != lessonsRev;
     final donesNew = students.isNotEmpty && r.dr != _doneRev;
-    if (lessonsNew || donesNew || r.kr != _linkRev) {
+    final agendaNew = myTeachers.isNotEmpty && r.sr != _agendaRev;
+    if (lessonsNew || donesNew || agendaNew || r.kr != _linkRev) {
       _idleTicks = 0;
       await syncLinks();
     } else {
@@ -1335,6 +1658,13 @@ class AppState extends ChangeNotifier {
         unawaited(pullDones());
       } else {
         _doneRev = r.dr;
+      }
+      // Agenda: o professor envia as aulas marcadas pendentes; o aluno busca se mudou.
+      if (agenda.any((s) => s.pending == true)) unawaited(flushAgenda());
+      if (myTeachers.isNotEmpty && r.sr != _agendaRev) {
+        unawaited(pullAgenda());
+      } else if (myTeachers.isEmpty) {
+        _agendaRev = r.sr;
       }
       _linkRev = r.kr;
       if (students.any((x) => x.lessons.any((l) => l.sent == false))) unawaited(flushLessons());
@@ -2378,6 +2708,8 @@ class AppState extends ChangeNotifier {
     _loadClocks(p);
     await _loadTeacher(p);
     _loadLinks(p);
+    stats.load(p);
+    _startStats();
     cameraGranted = p.getBool('cam_granted');
     installHideUntil = p.getInt('install_hide') ?? 0;
     installDone = p.getBool('install_done') ?? false;

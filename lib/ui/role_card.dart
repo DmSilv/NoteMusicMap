@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../app_state.dart';
+import 'agenda_page.dart';
 import 'my_lessons_page.dart' show openMyLessons, taskKindIcon;
 import 'profile_page.dart';
 import 'qr_scan_page.dart';
@@ -25,15 +28,63 @@ class RoleCard extends StatelessWidget {
   const RoleCard({super.key, required this.app});
 
   @override
-  Widget build(BuildContext context) {
-    final hasTeacher = app.myTeachers.isNotEmpty || app.myLessons.isNotEmpty;
+  Widget build(BuildContext context) => _Ticker(builder: _content);
+
+  Widget _content(BuildContext context) {
+    final hasTeacher = app.myTeachers.isNotEmpty || app.myLessons.isNotEmpty || app.myAgenda.isNotEmpty;
     return Column(children: [
+      _soonBanner(context),
       if (app.teacherMode) _teacher(context),
       if (hasTeacher)
         _tasks(context)
       else if (!app.teacherMode && !app.roleCardHidden)
         _student(context),
     ]);
+  }
+
+  // ---------------- Aula começando (aviso dentro do app) ----------------
+  /// "Aula com Ana começa em 12 min": aparece nos 15 minutos antes e durante a aula (os dois lados).
+  Widget _soonBanner(BuildContext context) {
+    final next = app.nextClass;
+    if (next == null) return const SizedBox.shrink();
+    final ms = DateTime.now().millisecondsSinceEpoch;
+    final startsIn = next.startMs - ms;
+    final ongoing = startsIn <= 0;
+    if (!ongoing && startsIn > kReminderMinutes * kMsMinute) return const SizedBox.shrink();
+    final s = next.slot;
+    final student = s.studentCode.isEmpty ? null : app.studentByCode(s.studentCode);
+    final who = student != null ? student.name : (s.teacherName.isNotEmpty ? s.teacherName : 'seu professor');
+    String hm(DateTime d) => '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+    final mins = (startsIn / kMsMinute).ceil();
+    final text = ongoing
+        ? 'Aula com $who em andamento (${hm(next.start)}–${hm(next.end)})'
+        : 'Aula com $who começa ${mins <= 1 ? 'em 1 min' : 'em $mins min'} (${hm(next.start)})';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: AppColors.accent.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            if (student != null) {
+              Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => StudentPage(app: app, studentId: student.id)));
+            } else {
+              Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => MyAgendaPage(app: app)));
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+            child: Row(children: [
+              Icon(ongoing ? Icons.play_circle_outline : Icons.alarm, color: AppColors.accent),
+              const SizedBox(width: 10),
+              Expanded(child: Text(text, style: const TextStyle(fontWeight: FontWeight.w800, height: 1.25))),
+              Icon(Icons.chevron_right, color: AppColors.textDim),
+            ]),
+          ),
+        ),
+      ),
+    );
   }
 
   // ---------------- Aluno com professor: tarefas pendentes ----------------
@@ -117,17 +168,24 @@ class RoleCard extends StatelessWidget {
                 child: Text('+ ${ordered.length - shown.length} em aberto',
                     style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
               ),
+            _nextClassRow(context),
             const SizedBox(height: 4),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
+            Wrap(spacing: 4, children: [
+              TextButton.icon(
                 style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 6), minimumSize: const Size(0, 32)),
+                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8), minimumSize: const Size(0, 32)),
                 onPressed: () => openMyLessons(context, app),
                 icon: const Icon(Icons.menu_book_outlined, size: 18),
-                label: const Text('Ver minhas aulas e tarefas'),
+                label: const Text('Aulas e tarefas'),
               ),
-            ),
+              TextButton.icon(
+                style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8), minimumSize: const Size(0, 32)),
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => MyAgendaPage(app: app))),
+                icon: const Icon(Icons.calendar_month_outlined, size: 18),
+                label: const Text('Minha agenda'),
+              ),
+            ]),
           ],
         ),
       ),
@@ -161,6 +219,28 @@ class RoleCard extends StatelessWidget {
           icon: const Icon(Icons.close, size: 18),
         ),
       ]),
+    );
+  }
+
+  /// "Próxima aula: terça, 15:00 · Marina" (aulas que o professor marcou para o aluno).
+  Widget _nextClassRow(BuildContext context) {
+    final n = nextOccurrence(app.myAgenda, DateTime.now().millisecondsSinceEpoch);
+    if (n == null) return const SizedBox.shrink();
+    final who = n.slot.teacherName.isNotEmpty ? n.slot.teacherName : 'Professor ${n.slot.teacherCode}';
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => MyAgendaPage(app: app))),
+        child: Row(children: [
+          Icon(Icons.event, size: 18, color: AppColors.accent),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text('Próxima aula: ${fmtSlotWhen(n.start, DateTime.now())} · $who',
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5)),
+          ),
+        ]),
+      ),
     );
   }
 
@@ -276,6 +356,12 @@ class RoleCard extends StatelessWidget {
                 ),
               ),
             ]),
+            const SizedBox(height: 8),
+            FilledButton.tonalIcon(
+              onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AgendaPage(app: app))),
+              icon: const Icon(Icons.calendar_month_outlined, size: 18),
+              label: Text(_agendaLabelFor(app), maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
           ],
         ),
       ),
@@ -365,4 +451,42 @@ Future<void> shareTeacherInvite(AppState app) async {
     await Clipboard.setData(ClipboardData(text: text));
     app.say('Convite copiado. Cole numa conversa para enviar.');
   }
+}
+
+/// Texto do botão de agenda do professor: a próxima aula ou "Agenda de aulas".
+String _agendaLabelFor(AppState app) {
+  final n = nextOccurrence(app.agenda.where((s) => app.studentByCode(s.studentCode) != null), DateTime.now().millisecondsSinceEpoch);
+  if (n == null) return 'Agenda de aulas';
+  final st = app.studentByCode(n.slot.studentCode);
+  return 'Agenda · próxima: ${fmtSlotWhen(n.start, DateTime.now())}${st == null ? '' : ' · ${st.name}'}';
+}
+
+/// Refaz a tela a cada 30 s para o aviso "aula começa em N min" andar sozinho.
+class _Ticker extends StatefulWidget {
+  final WidgetBuilder builder;
+  const _Ticker({required this.builder});
+
+  @override
+  State<_Ticker> createState() => _TickerState();
+}
+
+class _TickerState extends State<_Ticker> {
+  Timer? _t;
+
+  @override
+  void initState() {
+    super.initState();
+    _t = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _t?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.builder(context);
 }

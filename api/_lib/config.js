@@ -73,6 +73,21 @@ function config(env = process.env) {
     redisToken: env.UPSTASH_REDIS_REST_TOKEN || env.KV_REST_API_TOKEN || '',
     geminiModel: env.GEMINI_MODEL || '',
     feedbackKey: env.FEEDBACK_ADMIN_KEY || '',
+    // Chave do painel de métricas (o mesmo segredo do painel de feedback, se não houver uma própria).
+    adminKey: env.ADMIN_KEY || env.FEEDBACK_ADMIN_KEY || '',
+    // Lembretes de aula: Web Push (VAPID) + agendamento por evento (QStash). Tudo opcional.
+    appBase: (env.APP_BASE_URL || 'https://notemusicmap.vercel.app').replace(/\/+$/, ''),
+    vapid: {
+      publicKey: env.VAPID_PUBLIC_KEY || '',
+      privateKey: env.VAPID_PRIVATE_KEY || '',
+      subject: env.VAPID_SUBJECT || (env.APP_BASE_URL || 'https://notemusicmap.vercel.app'),
+    },
+    qstash: {
+      token: env.QSTASH_TOKEN || '',
+      url: (env.QSTASH_URL || 'https://qstash.upstash.io').replace(/\/+$/, ''),
+      currentKey: env.QSTASH_CURRENT_SIGNING_KEY || '',
+      nextKey: env.QSTASH_NEXT_SIGNING_KEY || '',
+    },
     env,
   };
 }
