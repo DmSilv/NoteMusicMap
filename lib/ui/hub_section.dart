@@ -131,7 +131,7 @@ class HubSection extends StatelessWidget {
             TextButton(
               onPressed: () {
                 app.dismissNotice(n);
-                if (n.kind == 'lesson') openMyLessons(context, app);
+                if (n.kind == 'lesson' || n.kind == 'task') openMyLessons(context, app);
               },
               child: const Text('Ver'),
             ),

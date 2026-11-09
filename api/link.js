@@ -136,6 +136,7 @@ const UL = (code) => `ul:${code}`; // aulas deste aluno: "professor:idAula" -> J
 const SL = (code) => `sl:${code}`; // aulas marcadas pelo professor: idAula -> JSON
 const SS = (code) => `ss:${code}`; // aulas marcadas para este aluno: "professor:idAula" -> JSON
 const PS = (code) => `ps:${code}`; // aparelhos com notificação: hash do endereço -> inscrição
+const VD = (code) => `vd:${code}`; // decisões do professor sobre as tarefas deste aluno: "professor:idAula:idTarefa" -> JSON
 const DN = (code) => `dn:${code}`; // tarefas que os alunos deste professor marcaram: "aluno:idAula:idTarefa" -> JSON
 
 function parseLinks(h) {
@@ -216,13 +217,28 @@ function makeHandler(deps = {}) {
         // Mudou o apelido: avisa quem está vinculado (o nome fica dentro de cada vínculo).
         if (nameChanged) await propagateName(store, me, name);
         const [asTeacher, asStudent] = await Promise.all([store.hgetall(T(me)), store.hgetall(S(me))]);
-        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: parseLinks(asStudent), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0 });
+        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: parseLinks(asStudent), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0 });
       }
 
       // Consulta barata: o perfil já foi lido na autenticação, então não custa nenhum comando a mais.
       // lr = aulas novas, dr = tarefas marcadas pelos alunos, kr = vínculos mudaram.
       if (action === 'rev') {
-        return send(200, { ok: true, lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0 });
+        return send(200, { ok: true, lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0 });
+      }
+
+      // O ALUNO busca o que o professor decidiu (validou ou devolveu) sobre as suas tarefas.
+      if (action === 'verdicts') {
+        const pulls = await store.incr(`lnkpull:${me}:${hour}`, 3600);
+        if (pulls.n > PULLS_PER_HOUR) return send(429, { error: 'Muitas consultas. Tente mais tarde.' });
+        const [mine, raw] = await Promise.all([store.hgetall(S(me)), store.hgetall(VD(me))]);
+        const out = [];
+        for (const [field, json] of Object.entries(raw)) {
+          const [te, les, tsk] = field.split(':');
+          if (mine[te] === undefined) continue; // vínculo encerrado: a decisão não vale mais
+          try { const j = JSON.parse(json); out.push({ te, l: les, k: tsk, v: j.v, t: j.t || 0 }); } catch (_) { /* linha ruim */ }
+        }
+        out.sort((a, b2) => b2.t - a.t);
+        return send(200, { ok: true, verdicts: out.slice(0, DONES_KEPT), vr: Number(prof.vr) || 0 });
       }
 
       // O PROFESSOR busca o que os alunos marcaram como feito (só dos alunos ainda vinculados).
@@ -330,7 +346,7 @@ function makeHandler(deps = {}) {
 
       const other = normCode(b.other);
       const role = b.role === 'teacher' ? 'teacher' : b.role === 'student' ? 'student' : '';
-      if (!other || (!role && action !== 'lesson' && action !== 'done')) return send(400, { error: 'Falta o código do outro ou o papel.' });
+      if (!other || (!role && action !== 'lesson' && action !== 'done' && action !== 'verdict')) return send(400, { error: 'Falta o código do outro ou o papel.' });
       if (other === me) return send(400, { error: 'Você não pode se vincular a si mesmo.' });
 
       // teacher/student desta ligação, conforme o papel de quem pede.
@@ -359,6 +375,35 @@ function makeHandler(deps = {}) {
           }
         }
         await store.hset(U(teacher), 'dr', String(clock())); // o professor vê que há novidade
+        return send(200, { ok: true });
+      }
+
+      // O PROFESSOR decide sobre uma tarefa de um aluno vinculado: 'ok' valida, 'back' devolve,
+      // vazio apaga a decisão. O aluno vê isso como o status oficial.
+      if (action === 'verdict') {
+        const student = normCode(b.other);
+        if (!student || student === me) return send(400, { error: 'Falta o código do aluno.' });
+        const lid = String(b.lesson || ''), tid = String(b.task || '');
+        if (!/^[a-z0-9]{2,40}$/.test(lid) || !ID_RE.test(tid)) return send(400, { error: 'Tarefa inválida.' });
+        const v = b.verdict === 'ok' ? 'ok' : b.verdict === 'back' ? 'back' : '';
+        if (b.verdict !== undefined && b.verdict !== null && b.verdict !== '' && !v) return send(400, { error: 'Decisão inválida.' });
+        if ((await store.hget(T(me), student)) === undefined) {
+          return send(403, { error: 'Este aluno não está vinculado a você.' });
+        }
+        const field = `${me}:${lid}:${tid}`;
+        if (!v) await store.hdel(VD(student), field);
+        else {
+          await store.hset(VD(student), field, JSON.stringify({ v, t: clock() }));
+          if ((await store.hlen(VD(student))) > DONES_KEPT) {
+            const all = await store.hgetall(VD(student));
+            const fields = Object.keys(all);
+            const byAge = fields.map((f) => { let tt = 0; try { tt = JSON.parse(all[f]).t || 0; } catch (_) { /* ruim */ } return [f, tt]; }).sort((x, y) => x[1] - y[1]);
+            for (const [f] of byAge.slice(0, fields.length - DONES_KEPT)) await store.hdel(VD(student), f);
+          }
+        }
+        // Devolvida: a marcação "fiz" do aluno cai, senão o professor a receberia de novo no próximo envio.
+        if (v === 'back') await store.hdel(DN(me), `${student}:${lid}:${tid}`);
+        await store.hset(U(student), 'vr', String(clock())); // o aluno vê que há decisão nova
         return send(200, { ok: true });
       }
 
@@ -436,6 +481,11 @@ function makeHandler(deps = {}) {
         const dk = DN(teacher);
         for (const fld of Object.keys(await store.hgetall(dk))) {
           if (fld.startsWith(`${student}:`)) await store.hdel(dk, fld);
+        }
+        // E as decisões desse professor sobre as tarefas desse aluno.
+        const vk = VD(student);
+        for (const fld of Object.keys(await store.hgetall(vk))) {
+          if (fld.startsWith(`${teacher}:`)) await store.hdel(vk, fld);
         }
         return send(200, { ok: true });
       }

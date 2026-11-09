@@ -1038,6 +1038,7 @@ class AppState extends ChangeNotifier {
   bool _foreground = true;
   int _linkRev = 0; // kr visto: vínculos
   int _doneRev = 0; // dr visto: tarefas marcadas pelos alunos
+  int _verdictRev = 0; // vr visto: decisões do professor
   int _workBackoffSec = 0;
   int _idleTicks = 0; // consultas seguidas sem novidade: o intervalo vai esticando (até 4x)
   int _skipTicks = 0;
@@ -1097,7 +1098,8 @@ class AppState extends ChangeNotifier {
     final lessonsNew = myTeachers.isNotEmpty && r.lr != lessonsRev;
     final donesNew = students.isNotEmpty && r.dr != _doneRev;
     final agendaNew = myTeachers.isNotEmpty && r.sr != _agendaRev;
-    if (lessonsNew || donesNew || agendaNew || r.kr != _linkRev) {
+    final verdictsNew = myTeachers.isNotEmpty && r.vr != _verdictRev;
+    if (lessonsNew || donesNew || agendaNew || verdictsNew || r.kr != _linkRev) {
       _idleTicks = 0;
       await syncLinks();
     } else {
@@ -1179,6 +1181,15 @@ class AppState extends ChangeNotifier {
           who = s.name;
         }
       }
+      for (final e in r.dones) {
+        _claimLesson[e.taskId] = e.lessonId;
+      }
+      if (_claimLesson.length > 3000) {
+        for (final k in _claimLesson.keys.take(_claimLesson.length - 3000).toList()) {
+          _claimLesson.remove(k);
+        }
+      }
+      _prefs?.setString('claim_lessons', jsonEncode(_claimLesson));
       _doneRev = r.dr;
       _prefs?.setInt('done_rev', _doneRev);
       _saveTeacher();
@@ -1199,7 +1210,117 @@ class AppState extends ChangeNotifier {
   void validateAssignment(Student s, String taskId, {required bool ok}) {
     if (!validateTask(s, taskId, ok: ok)) return;
     _saveTeacher();
+    // O aluno passa a ver a decisão oficial (vai pela fila e reenvia sozinha se estiver sem conexão).
+    final lesson = _claimLesson[taskId];
+    if (lesson != null && s.code != null && linkEnabled) {
+      _queueVerdict(s.code!, lesson, taskId, ok ? Verdict.ok : Verdict.back);
+      unawaited(flushVerdicts());
+    }
     notifyListeners();
+  }
+
+  /// Decisões a enviar ("aluno|aula|tarefa|ok ou back"), guardadas até o servidor aceitar.
+  final List<String> verdictOutbox = [];
+  bool _verdictsSending = false;
+
+  /// Em qual aula veio a marcação de cada tarefa (o professor só guarda o id da tarefa).
+  final Map<String, String> _claimLesson = {};
+
+  static Map<String, String> _decodeClaimLessons(String? raw) {
+    if (raw == null || raw.isEmpty) return {};
+    try {
+      final m = jsonDecode(raw) as Map;
+      return {for (final e in m.entries) if (e.value is String) e.key as String: e.value as String};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  void _queueVerdict(String student, String lesson, String task, Verdict v) {
+    final key = '$student|$lesson|$task|';
+    verdictOutbox.removeWhere((e) => e.startsWith(key));
+    verdictOutbox.add('$key${verdictWire(v)}');
+    if (verdictOutbox.length > 500) verdictOutbox.removeRange(0, verdictOutbox.length - 500);
+    _prefs?.setStringList('verdict_outbox', verdictOutbox);
+  }
+
+  Future<void> flushVerdicts() async {
+    if (_verdictsSending || !linkEnabled || linkUnavailable || verdictOutbox.isEmpty) return;
+    _verdictsSending = true;
+    try {
+      for (final e in [...verdictOutbox]) {
+        final p = e.split('|');
+        final v = p.length == 4 ? verdictFromWire(p[3]) : null;
+        if (v == null) {
+          verdictOutbox.remove(e);
+          continue;
+        }
+        final r = await links.sendVerdict(profile.shareCode, profile.secret,
+            student: p[0], lesson: p[1], task: p[2], verdict: v);
+        if (r.unavailable) return _markLinkUnavailable();
+        if (r.offline) {
+          linkOnline = false;
+          break;
+        }
+        if (r.ok || r.rejected) verdictOutbox.remove(e);
+      }
+    } finally {
+      _verdictsSending = false;
+      _prefs?.setStringList('verdict_outbox', verdictOutbox);
+    }
+  }
+
+  // ---------------- ALUNO: ver o status oficial (decisão do professor) ----------------
+  /// "professor:aula:tarefa" -> 'ok' | 'back'.
+  final Map<String, String> verdictsByKey = {};
+  bool _verdictsPulling = false;
+
+  Verdict? verdictOf(SharedLesson l, Assignment t) => verdictFromWire(verdictsByKey['${l.teacherCode}:${l.id}:${t.id}']);
+
+  /// Estado da tarefa para o aluno: o professor é a fonte oficial; "fiz" é só um sinal.
+  StudentTaskState taskStateOf(SharedLesson l, Assignment t) =>
+      studentTaskState(claimed: lessonTaskDone(l, t), verdict: verdictOf(l, t));
+
+  Future<void> pullVerdicts() async {
+    if (_verdictsPulling || !linkEnabled || linkUnavailable || myTeachers.isEmpty) return;
+    _verdictsPulling = true;
+    try {
+      final r = await links.verdicts(profile.shareCode, profile.secret);
+      if (r.unavailable) return _markLinkUnavailable();
+      if (!r.ok) {
+        if (r.offline) linkOnline = false;
+        return;
+      }
+      linkOnline = true;
+      var validated = 0, returned = 0;
+      final next = <String, String>{};
+      for (final e in r.verdicts) {
+        next[e.key] = verdictWire(e.verdict);
+        if (verdictsByKey[e.key] != next[e.key]) {
+          e.verdict == Verdict.ok ? validated++ : returned++;
+        }
+        // Validada = feita; devolvida = volta a pendente (o aluno precisa refazer e marcar de novo).
+        final k = '${e.lessonId}:${e.taskId}';
+        e.verdict == Verdict.ok ? lessonTasksDone.add(k) : lessonTasksDone.remove(k);
+      }
+      verdictsByKey
+        ..clear()
+        ..addAll(next);
+      _verdictRev = r.vr;
+      _prefs?.setInt('verdict_rev', _verdictRev);
+      _prefs?.setStringList('verdicts', [for (final e in verdictsByKey.entries) '${e.key}|${e.value}']);
+      _saveLessons();
+      notifyListeners();
+      if (returned > 0) {
+        final msg = returned == 1 ? 'Seu professor devolveu 1 tarefa para refazer.' : 'Seu professor devolveu $returned tarefas para refazer.';
+        addNotice('task', msg);
+        say(msg);
+      } else if (validated > 0) {
+        say(validated == 1 ? 'Seu professor validou 1 tarefa.' : 'Seu professor validou $validated tarefas.');
+      }
+    } finally {
+      _verdictsPulling = false;
+    }
   }
 
   // ---------------- Aulas ----------------
@@ -1258,6 +1379,19 @@ class AppState extends ChangeNotifier {
       ..clear()
       ..addAll((p.getStringList('done_outbox') ?? const []).take(500));
     _doneRev = p.getInt('done_rev') ?? 0;
+    _verdictRev = p.getInt('verdict_rev') ?? 0;
+    verdictOutbox
+      ..clear()
+      ..addAll((p.getStringList('verdict_outbox') ?? const []).take(500));
+    verdictsByKey
+      ..clear()
+      ..addEntries([
+        for (final e in (p.getStringList('verdicts') ?? const []).take(2000))
+          if (e.lastIndexOf('|') > 0) MapEntry(e.substring(0, e.lastIndexOf('|')), e.substring(e.lastIndexOf('|') + 1))
+      ]);
+    _claimLesson
+      ..clear()
+      ..addAll(_decodeClaimLessons(p.getString('claim_lessons')));
     lessonTasksDone
       ..clear()
       ..addAll((p.getStringList('lessons_done') ?? const []).take(2000));
@@ -1520,6 +1654,12 @@ class AppState extends ChangeNotifier {
     final k = '${l.id}:${t.id}';
     final nowDone = !lessonTasksDone.remove(k);
     if (nowDone) lessonTasksDone.add(k);
+    // Marcou de novo uma tarefa devolvida: aguarda uma nova decisão do professor.
+    final vk = '${l.teacherCode}:${l.id}:${t.id}';
+    if (nowDone && verdictsByKey[vk] == 'back') {
+      verdictsByKey.remove(vk);
+      _prefs?.setStringList('verdicts', [for (final e in verdictsByKey.entries) '${e.key}|${e.value}']);
+    }
     _saveLessons();
     // Avisa o professor (ele valida): vai pela fila e reenvia sozinha se estiver sem conexão.
     if (l.teacherCode.isNotEmpty) {
@@ -1761,6 +1901,13 @@ class AppState extends ChangeNotifier {
         unawaited(pullDones());
       } else {
         _doneRev = r.dr;
+      }
+      // Decisões do professor: ele envia as pendentes; o aluno busca se mudou.
+      if (verdictOutbox.isNotEmpty) unawaited(flushVerdicts());
+      if (myTeachers.isNotEmpty && r.vr != _verdictRev) {
+        unawaited(pullVerdicts());
+      } else if (myTeachers.isEmpty) {
+        _verdictRev = r.vr;
       }
       // Agenda: o professor envia as aulas marcadas pendentes; o aluno busca se mudou.
       if (agenda.any((s) => s.pending == true)) unawaited(flushAgenda());

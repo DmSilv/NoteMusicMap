@@ -535,7 +535,7 @@ test('rev: consulta barata devolve só os contadores e muda quando há novidade'
   const h = mk();
   await vincula(h);
   const a = (await call(h, { action: 'rev', code: ALU, secret: S_ALU })).json();
-  assert.deepEqual(Object.keys(a).sort(), ['dr', 'kr', 'lr', 'ok', 'sr']);
+  assert.deepEqual(Object.keys(a).sort(), ['dr', 'kr', 'lr', 'ok', 'sr', 'vr']);
   assert.ok(a.kr > 0, 'o vínculo mudou os contadores de vínculos');
   await publish(h, lessonOf('aula0001'));
   const b = (await call(h, { action: 'rev', code: ALU, secret: S_ALU })).json();
@@ -561,4 +561,86 @@ test('compatível com app antigo: sync ganha dr e kr sem perder nada do que já 
   for (const k of ['ok', 'asTeacher', 'asStudent', 'lr']) assert.ok(k in j);
   assert.equal(typeof j.dr, 'number');
   assert.equal(typeof j.kr, 'number');
+});
+
+// ---- Decisão oficial do professor (validar / devolver) e o que o aluno vê ----
+const decide = (h, verdict, task = 'k1', lesson = 'aula0001', student = ALU, who = [PROF, S_PROF]) =>
+  call(h, { action: 'verdict', code: who[0], secret: who[1], other: student, lesson, task, verdict });
+const studentVerdicts = (h, c = ALU, s = S_ALU) => call(h, { action: 'verdicts', code: c, secret: s });
+
+test('professor valida: o aluno vê a decisão e a revisão vr muda', async () => {
+  const h = mk();
+  await vincula(h);
+  assert.equal((await sync(h, ALU, S_ALU)).vr, 0);
+  assert.equal((await decide(h, 'ok')).statusCode, 200);
+  assert.ok((await sync(h, ALU, S_ALU)).vr > 0);
+  const j = (await studentVerdicts(h)).json();
+  assert.equal(j.verdicts.length, 1);
+  assert.deepEqual({ te: j.verdicts[0].te, l: j.verdicts[0].l, k: j.verdicts[0].k, v: j.verdicts[0].v }, { te: PROF, l: 'aula0001', k: 'k1', v: 'ok' });
+});
+
+test('devolver troca a decisão (não duplica) e vazio apaga', async () => {
+  const h = mk();
+  await vincula(h);
+  await decide(h, 'ok');
+  await decide(h, 'back');
+  let j = (await studentVerdicts(h)).json();
+  assert.equal(j.verdicts.length, 1);
+  assert.equal(j.verdicts[0].v, 'back');
+  await decide(h, '');
+  j = (await studentVerdicts(h)).json();
+  assert.equal(j.verdicts.length, 0);
+});
+
+test('só o professor vinculado decide; entradas inválidas são recusadas', async () => {
+  const h = mk();
+  await vincula(h);
+  const intruso = code(88888);
+  assert.equal((await decide(h, 'ok', 'k1', 'aula0001', ALU, [intruso, secret(9)])).statusCode, 403); // perfil novo (anônimo) sem vínculo
+  await sync(h, ALU2, S_ALU2);
+  assert.equal((await decide(h, 'ok', 'k1', 'aula0001', ALU2)).statusCode, 403, 'aluno não vinculado a este professor');
+  assert.equal((await decide(h, 'talvez')).statusCode, 400);
+  assert.equal((await decide(h, 'ok', 'k 1')).statusCode, 400);
+  assert.equal((await decide(h, 'ok', 'k1', 'AULA 1')).statusCode, 400);
+  assert.equal((await decide(h, 'ok', 'k1', 'aula0001', PROF)).statusCode, 400, 'não decide sobre si mesmo');
+  assert.equal((await studentVerdicts(h)).json().verdicts.length, 0);
+});
+
+test('um aluno não lê as decisões de outro; aluno não consegue decidir', async () => {
+  const h = mk();
+  await vincula(h);
+  await sync(h, ALU2, S_ALU2);
+  await decide(h, 'ok');
+  assert.equal((await studentVerdicts(h, ALU2, S_ALU2)).json().verdicts.length, 0);
+  // o aluno tentando "decidir" como se fosse professor: não está vinculado como professor de ninguém
+  const r = await call(h, { action: 'verdict', code: ALU, secret: S_ALU, other: PROF, lesson: 'aula0001', task: 'k1', verdict: 'ok' });
+  assert.equal(r.statusCode, 403);
+});
+
+test('desvincular apaga as decisões; decisão de vínculo antigo não aparece', async () => {
+  const h = mk();
+  await vincula(h);
+  await decide(h, 'ok');
+  await call(h, { action: 'unlink', code: ALU, secret: S_ALU, role: 'student', other: PROF });
+  assert.equal((await studentVerdicts(h)).json().verdicts.length, 0);
+});
+
+test('compatibilidade: app antigo ignora vr e as ações antigas continuam iguais', async () => {
+  const h = mk();
+  await vincula(h);
+  const s = await sync(h, ALU, S_ALU);
+  for (const k of ['lr', 'dr', 'kr', 'sr']) assert.equal(typeof s[k], 'number');
+  assert.equal((await markDone(h)).statusCode, 200);
+  assert.equal((await teacherDones(h)).json().dones.length, 1);
+});
+
+test('devolver tira a marcação "fiz" do aluno (não volta a pedir validação); validar mantém', async () => {
+  const h = mk();
+  await vincula(h);
+  await markDone(h);
+  await markDone(h, 'k2');
+  await decide(h, 'back', 'k1');
+  await decide(h, 'ok', 'k2');
+  const ks = (await teacherDones(h)).json().dones.map((d) => d.k);
+  assert.deepEqual(ks, ['k2']);
 });

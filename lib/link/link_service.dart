@@ -67,6 +67,10 @@ class LinkReply {
   final int sr;
   final List<ClassSlot> slots;
 
+  /// Decisões do professor sobre tarefas (resposta de `verdicts`) e a revisão delas (vr).
+  final int vr;
+  final List<VerdictEntry> verdicts;
+
   /// Notificações: chave pública do servidor (vazia = lembretes desligados no servidor).
   final String pushKey;
 
@@ -88,6 +92,8 @@ class LinkReply {
     this.dones = const [],
     this.rejected = false,
     this.sr = 0,
+    this.vr = 0,
+    this.verdicts = const [],
     this.slots = const [],
     this.pushKey = '',
     this.reminder,
@@ -137,6 +143,10 @@ class LinkService {
         lr: ((j['lr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
         dr: ((j['dr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
         sr: ((j['sr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
+        vr: ((j['vr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
+        verdicts: [
+          for (final x in ((j['verdicts'] as List?) ?? const []).take(1500)) ?VerdictEntry.tryFromWire(x)
+        ],
         pushKey: j['key'] is String && (j['key'] as String).length < 200 ? j['key'] as String : '',
         reminder: j['reminder'] as String?,
         slots: [for (final x in ((j['slots'] as List?) ?? const []).take(kMaxSlotsPerTeacher)) ?_slotFrom(x)],
@@ -208,6 +218,21 @@ class LinkService {
   Future<LinkReply> markDone(String code, String secret,
           {required String teacher, required String lesson, required String task, required bool done}) =>
       _post({..._auth(code, secret, null), 'action': 'done', 'other': teacher, 'lesson': lesson, 'task': task, 'done': done});
+
+  /// PROFESSOR: valida ([verdict] ok), devolve (back) ou apaga a decisão (null) sobre uma tarefa do aluno.
+  Future<LinkReply> sendVerdict(String code, String secret,
+          {required String student, required String lesson, required String task, Verdict? verdict}) =>
+      _post({
+        ..._auth(code, secret, null),
+        'action': 'verdict',
+        'other': student,
+        'lesson': lesson,
+        'task': task,
+        'verdict': verdict == null ? '' : verdictWire(verdict),
+      });
+
+  /// ALUNO: busca as decisões do professor sobre as suas tarefas.
+  Future<LinkReply> verdicts(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'verdicts'});
 
   /// PROFESSOR: busca o que os alunos marcaram como feito.
   Future<LinkReply> dones(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'dones'});

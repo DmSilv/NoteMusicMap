@@ -96,8 +96,21 @@ class ValidationCard extends StatelessWidget {
 /// última vez. Marcadas = confirmar (finaliza); desmarcadas = devolver (volta a pendente).
 /// "Decidir depois" não muda nada. Não bloqueia a aula.
 Future<void> showValidationDialog(BuildContext context, AppState app, Student s) async {
-  final list = app.awaitingOf(s);
-  if (list.isEmpty) return;
+  final sum = summarizeTasks(s);
+  final list = sum.toValidate;
+  if (list.isEmpty) {
+    // Nada a validar: se há tarefas pendentes, mostra só o resumo (não bloqueia; um toque e segue).
+    if (sum.pending.isEmpty) return;
+    await showDialog<void>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text('Resumo de ${s.name}'),
+        content: SingleChildScrollView(child: _summaryBody(sum, showValidateHint: false)),
+        actions: [FilledButton(onPressed: () => Navigator.pop(c), child: const Text('Começar a aula'))],
+      ),
+    );
+    return;
+  }
   final keep = {for (final t in list) t.id: true};
   final ok = await showDialog<bool>(
     context: context,
@@ -111,6 +124,8 @@ Future<void> showValidationDialog(BuildContext context, AppState app, Student s)
               'a que precisa refazer (volta a pendente).',
               style: TextStyle(color: AppColors.textDim, fontSize: 13, height: 1.3),
             ),
+            const SizedBox(height: 6),
+            Text(sum.line, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
             const SizedBox(height: 8),
             for (final t in list)
               CheckboxListTile(
@@ -122,6 +137,10 @@ Future<void> showValidationDialog(BuildContext context, AppState app, Student s)
                 title: Text(t.title, style: const TextStyle(fontWeight: FontWeight.w700)),
                 subtitle: Text('Marcada ${_when(t.claimedAt!)}', style: const TextStyle(fontSize: 12)),
               ),
+            if (sum.pending.isNotEmpty) ...[
+              const Divider(height: 18),
+              _pendingList(sum),
+            ],
           ]),
         ),
         actions: [
@@ -139,4 +158,34 @@ Future<void> showValidationDialog(BuildContext context, AppState app, Student s)
     yes ? done++ : back++;
   }
   app.say('$done confirmada${done == 1 ? '' : 's'}${back > 0 ? ', $back devolvida${back == 1 ? '' : 's'}' : ''}.');
+}
+
+Widget _summaryBody(TaskSummary sum, {required bool showValidateHint}) => Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(sum.line, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+        const SizedBox(height: 8),
+        _pendingList(sum),
+      ],
+    );
+
+/// Tarefas ainda pendentes (até 5; o resto vira "e mais N").
+Widget _pendingList(TaskSummary sum) {
+  final shown = sum.pending.take(5).toList();
+  final more = sum.pending.length - shown.length;
+  return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+    Text('Ainda pendentes', style: TextStyle(color: AppColors.textDim, fontSize: 12.5, fontWeight: FontWeight.w700)),
+    const SizedBox(height: 4),
+    for (final t in shown)
+      Padding(
+        padding: const EdgeInsets.only(bottom: 3),
+        child: Row(children: [
+          Icon(taskKindIcon(t.kind), size: 15, color: AppColors.textDim),
+          const SizedBox(width: 6),
+          Expanded(child: Text(t.title, style: const TextStyle(height: 1.25))),
+        ]),
+      ),
+    if (more > 0) Text('e mais $more', style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+  ]);
 }

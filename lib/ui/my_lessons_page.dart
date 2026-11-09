@@ -307,6 +307,7 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
 
   Widget _taskTile(SharedLesson l, Assignment t, {bool today = false, bool overdue = false}) {
     final done = app.lessonTaskDone(l, t);
+    final st = app.taskStateOf(l, t);
     return ListTile(
       contentPadding: EdgeInsets.zero,
       dense: true,
@@ -319,6 +320,9 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
         ),
         if (!done && overdue) _tag('atrasada', AppColors.sharp),
         if (!done && today && !overdue) _tag('hoje', AppColors.accent),
+        if (st == StudentTaskState.validated) _tag('validada', AppColors.inTune),
+        if (st == StudentTaskState.claimed) _tag('aguardando o professor', AppColors.accent),
+        if (st == StudentTaskState.returned) _tag('refazer', AppColors.sharp),
       ]),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
