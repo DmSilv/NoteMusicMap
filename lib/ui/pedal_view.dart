@@ -23,6 +23,9 @@ class _PedalViewState extends State<PedalView> {
 
   int get _base => 12 * (_octave + 1);
 
+  /// Altura reservada para as notas ligadas (até 4 botões, em 2 linhas): constante, para o teclado ficar parado.
+  static const double _chipsHeight = 86;
+
   @override
   void initState() {
     super.initState();
@@ -111,6 +114,10 @@ class _PedalViewState extends State<PedalView> {
               ]),
             ]),
           ),
+          if (app.pedalNotes.length >= 2) ...[
+            const SizedBox(height: 12),
+            _intervals(names),
+          ],
           const SizedBox(height: 12),
           AppCard(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -167,19 +174,55 @@ class _PedalViewState extends State<PedalView> {
   Widget _active(TuningConfig names) {
     final notes = app.pedalNotes;
     if (notes.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
-        child: Row(children: [
-          Icon(Icons.piano, color: AppColors.textDim),
-          const SizedBox(width: 10),
-          Expanded(child: Text('Nenhuma nota ligada. Toque numa tecla ou escolha um atalho.', style: TextStyle(color: AppColors.textDim))),
-        ]),
+      return SizedBox(
+        height: _chipsHeight,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
+          child: Row(children: [
+            Icon(Icons.piano, color: AppColors.textDim),
+            const SizedBox(width: 10),
+            Expanded(child: Text('Nenhuma nota ligada. Toque numa tecla ou escolha um atalho.', style: TextStyle(color: AppColors.textDim))),
+          ]),
+        ),
       );
     }
     final f = pedalFrequencies(notes, app.cfg);
+    return SizedBox(
+      height: _chipsHeight,
+      child: Wrap(spacing: 8, runSpacing: 8, children: [
+        for (var i = 0; i < notes.length; i++)
+          InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: () => _tap(notes[i]),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.accent.withValues(alpha: 0.6)),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                NoteLabel.midi(notes[i], names, size: 17, color: AppColors.text),
+                const SizedBox(width: 6),
+                Text('${f[i].toStringAsFixed(1).replaceAll('.', ',')} Hz', style: TextStyle(color: AppColors.textDim, fontSize: 11.5)),
+                const SizedBox(width: 4),
+                Icon(Icons.close, size: 16, color: AppColors.textDim),
+              ]),
+            ),
+          ),
+      ]),
+    );
+  }
+
+  /// O que as notas ligadas formam entre si (intervalo, razão pura e tremor). Fica ABAIXO do teclado:
+  /// cresce à vontade sem empurrar as teclas.
+  Widget _intervals(TuningConfig names) {
+    final notes = app.pedalNotes;
+    if (notes.length < 2) return const SizedBox.shrink();
+    final f = pedalFrequencies(notes, app.cfg);
     final lines = <Widget>[];
-    if (notes.length >= 2) {
+    {
       for (var i = 1; i < notes.length; i++) {
         final iv = pedalInterval(notes.first, notes[i], f.first, f[i]);
         lines.add(Padding(
@@ -208,31 +251,12 @@ class _PedalViewState extends State<PedalView> {
         ));
       }
     }
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Wrap(spacing: 8, runSpacing: 8, children: [
-        for (var i = 0; i < notes.length; i++)
-          InkWell(
-            borderRadius: BorderRadius.circular(20),
-            onTap: () => _tap(notes[i]),
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(12, 6, 8, 6),
-              decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: AppColors.accent.withValues(alpha: 0.6)),
-              ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                NoteLabel.midi(notes[i], names, size: 17, color: AppColors.text),
-                const SizedBox(width: 6),
-                Text('${f[i].toStringAsFixed(1).replaceAll('.', ',')} Hz', style: TextStyle(color: AppColors.textDim, fontSize: 11.5)),
-                const SizedBox(width: 4),
-                Icon(Icons.close, size: 16, color: AppColors.textDim),
-              ]),
-            ),
-          ),
+    return AppCard(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('O que está soando', style: TextStyle(fontWeight: FontWeight.w800)),
+        ...lines,
       ]),
-      ...lines,
-    ]);
+    );
   }
 }
 
