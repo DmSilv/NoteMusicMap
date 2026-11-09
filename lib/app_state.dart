@@ -517,7 +517,59 @@ class AppState extends ChangeNotifier {
   bool linkEnabled = false;
 
   /// null = ainda não tentou; true = o servidor respondeu; false = sem conexão.
-  bool? linkOnline;
+  bool? _linkOnline;
+
+  /// Última vez que o servidor respondeu bem (para "Última atualização há 3 min").
+  DateTime? linkOkAt;
+  bool? get linkOnline => _linkOnline;
+  set linkOnline(bool? v) {
+    _linkOnline = v;
+    if (v == true) linkOkAt = DateTime.now();
+  }
+
+  /// Quantos itens esperam para ir ao servidor (aulas, tarefas marcadas, agenda, desfazer vínculo).
+  int get linkQueueSize =>
+      doneOutbox.length +
+      _unlinkStudents.length +
+      _unlinkTeachers.length +
+      agenda.where((s) => s.pending == true).length +
+      students.fold<int>(0, (a, s) => a + s.lessons.where((l) => l.sent == false).length);
+
+  /// O estado do vínculo em linguagem simples (para a tela).
+  LinkStatusInfo get linkStatus => describeLink(
+      enabled: linkEnabled,
+      serverUnavailable: linkUnavailable,
+      online: _linkOnline,
+      queued: linkQueueSize,
+      lastOkAt: linkOkAt,
+      now: DateTime.now());
+
+  /// "Reconectar agora": zera o que ficou emperrado (servidor marcado como indisponível, esperas
+  /// e intervalos) e tenta de novo. Não apaga nada da fila. Devolve a frase para mostrar à pessoa.
+  Future<String> reconnectLink() async {
+    if (!linkEnabled) return 'O vínculo online está desligado. Ligue para conectar.';
+    linkUnavailable = false;
+    _linkOnline = null;
+    _idleTicks = 0;
+    _skipTicks = 0;
+    _workBackoffSec = 0;
+    _nextWork = DateTime.fromMillisecondsSinceEpoch(0);
+    notifyListeners();
+    await syncLinks();
+    if (linkEnabled && !linkUnavailable) {
+      // O que estava na fila tenta sair agora, sem esperar o relógio.
+      await flushLessons();
+      await flushDones();
+      await flushAgenda();
+    }
+    notifyListeners();
+    if (linkUnavailable) return 'O servidor ainda não está disponível. Tente de novo em alguns minutos.';
+    if (_linkOnline == true) {
+      final q = linkQueueSize;
+      return q > 0 ? 'Conectado. $q ${q == 1 ? 'item ainda espera' : 'itens ainda esperam'} para ser enviado.' : 'Conectado.';
+    }
+    return 'Ainda sem conexão. Confira a internet e tente de novo.';
+  }
 
   /// O servidor não tem o vínculo online configurado (sem Redis): não insistir.
   bool linkUnavailable = false;

@@ -216,38 +216,105 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  /// Liga e desliga o vínculo online e mostra se está conectado.
+  /// Estado do vínculo online em linguagem simples, com desligar, ligar e reconectar.
   Widget _linkOnlineCard() {
-    final on = app.linkEnabled;
-    final (icon, color, status) = !on
-        ? (Icons.cloud_off_outlined, AppColors.textDim, 'Desligado')
-        : app.linkUnavailable
-            ? (Icons.cloud_off_outlined, AppColors.flat, 'Ainda não disponível no servidor')
-            : app.linkOnline == false
-                ? (Icons.sync_problem, AppColors.flat, 'Sem conexão agora')
-                : app.linkOnline == true
-                    ? (Icons.cloud_done_outlined, AppColors.inTune, 'Conectado')
-                    : (Icons.sync, AppColors.textDim, 'Conectando…');
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            secondary: Icon(icon, color: color),
-            title: const Text('Vínculo online', style: TextStyle(fontWeight: FontWeight.w800)),
-            subtitle: Text(
-              'Quando um professor ler o seu QR (ou você ler o dele), o vínculo aparece nos dois aparelhos em '
-              'poucos segundos. O servidor guarda os códigos, o apelido, a data do vínculo e, quando o professor encerra uma aula, as tarefas e observações dela para você receber.',
-              style: const TextStyle(fontSize: 12.5),
-            ),
-            value: on,
-            onChanged: app.setLinkEnabled,
+    return ListenableBuilder(
+      listenable: app,
+      builder: (context, _) {
+        final st = app.linkStatus;
+        final (icon, color) = switch (st.health) {
+          LinkHealth.off => (Icons.cloud_off_outlined, AppColors.textDim),
+          LinkHealth.connecting => (Icons.sync, AppColors.textDim),
+          LinkHealth.online => (Icons.cloud_done_outlined, AppColors.inTune),
+          LinkHealth.offline => (Icons.sync_problem, AppColors.flat),
+          LinkHealth.serverDown => (Icons.cloud_off_outlined, AppColors.flat),
+        };
+        return AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Icon(icon, color: color),
+                const SizedBox(width: 10),
+                const Expanded(child: Text('Vínculo online', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(color: color.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(10)),
+                  child: Text(st.title, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 12.5)),
+                ),
+              ]),
+              const SizedBox(height: 8),
+              Text(st.text, style: TextStyle(color: AppColors.textDim, fontSize: 13, height: 1.3)),
+              const SizedBox(height: 12),
+              Wrap(spacing: 8, runSpacing: 8, children: [
+                if (st.canReconnect)
+                  FilledButton.icon(
+                    onPressed: _reconnecting ? null : _reconnect,
+                    icon: _reconnecting
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.refresh, size: 18),
+                    label: const Text('Reconectar agora'),
+                  ),
+                if (app.linkEnabled)
+                  OutlinedButton.icon(
+                    onPressed: _confirmOff,
+                    icon: const Icon(Icons.power_settings_new, size: 18),
+                    label: const Text('Desativar'),
+                  )
+                else
+                  FilledButton.icon(
+                    onPressed: () {
+                      app.setLinkEnabled(true);
+                      app.say('Vínculo online ligado.');
+                    },
+                    icon: const Icon(Icons.cloud_outlined, size: 18),
+                    label: const Text('Ativar vínculo'),
+                  ),
+              ]),
+              const SizedBox(height: 10),
+              Text(
+                'O que o servidor guarda: seu código, o apelido (opcional), a data de cada vínculo e as tarefas e '
+                'observações das aulas que o professor envia. Nunca áudio nem seu histórico de exercícios.',
+                style: TextStyle(color: AppColors.textDim, fontSize: 11.5, height: 1.3),
+              ),
+            ],
           ),
-          Text(status, style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.w700)),
+        );
+      },
+    );
+  }
+
+  bool _reconnecting = false;
+
+  Future<void> _reconnect() async {
+    setState(() => _reconnecting = true);
+    final msg = await app.reconnectLink();
+    if (!mounted) return;
+    setState(() => _reconnecting = false);
+    app.say(msg);
+  }
+
+  Future<void> _confirmOff() async {
+    final q = app.linkQueueSize;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Desativar o vínculo online?'),
+        content: Text(
+          'Nada será enviado nem recebido enquanto estiver desligado. Suas aulas, tarefas e agenda continuam neste aparelho'
+          '${q > 0 ? ', e os $q itens da fila ficam guardados até você ligar de novo' : ''}. '
+          'Você pode ligar de novo quando quiser, por exemplo se a conexão estiver instável.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Desativar')),
         ],
       ),
     );
+    if (ok == true) {
+      app.setLinkEnabled(false);
+      app.say('Vínculo online desligado.');
+    }
   }
 
   /// Aluno: seus professores (lidos pelo QR ou digitados). Aparece nos dois lados.

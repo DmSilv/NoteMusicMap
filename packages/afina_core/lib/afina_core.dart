@@ -4,6 +4,7 @@ export 'agenda.dart';
 export 'identity.dart';
 export 'input_guard.dart';
 export 'lesson.dart';
+export 'link_status.dart';
 export 'lesson_week.dart';
 export 'methods.dart';
 export 'metronome_engine.dart';

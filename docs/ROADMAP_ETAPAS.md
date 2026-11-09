@@ -20,7 +20,7 @@ Custo e escala entram em toda etapa (medir comandos do Redis; ver `memory/scalab
 ## Etapas deste pedido (ordem de execução)
 Legenda: ⬜ a fazer · 🟨 em andamento · ✅ pronto (local) · 🚀 publicado
 
-### Etapa 1 · Vínculo online claro e reversível — ⬜
+### Etapa 1 · Vínculo online claro e reversível — 🚀 publicada
 **Por quê primeiro:** é pequena, independente e ajuda a diagnosticar todo o resto.
 - Cartão de status em linguagem simples: Desligado / Conectando / Conectado / Sem internet / Servidor indisponível / Aguardando o outro lado, com a última atualização.
 - Botões: **Desativar**, **Ativar** e **Reconectar agora** (desliga e liga + sincroniza), com confirmação do que muda.
@@ -41,9 +41,9 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ pronto (local) · 🚀 publicad
 - **Testes:** resumo (núcleo), ações do servidor (API), compatibilidade com o app antigo.
 
 ### Etapa 4 · Horários disponíveis e pedidos de horário — ⬜
-- Professor cadastra, altera e gerencia **horários disponíveis** (semanais ou avulsos, com duração) e vê/aprova/recusa **pedidos**.
-- Aluno vê os horários do **seu professor** (só de quem já está vinculado) e pede um; recebe a resposta; ao aprovar vira aula na agenda (com lembrete).
-- Regras: sem choque com aulas marcadas, sem horário passado, sem pedido duplicado, limites por aluno e por professor.
+- Professor cadastra, altera e gerencia **horários disponíveis** (semanais ou avulsos, com duração) e **move/cancela** a aula de qualquer aluno.
+- Aluno vê os horários livres do **seu professor** (só de quem já está vinculado) e **pega** um: confirma na hora (primeiro a pegar leva) e vira aula na agenda, com lembrete.
+- Regras: sem choque com aulas marcadas, sem horário passado, um horário só pode ser pego uma vez, limites por aluno e por professor.
 - **Testes:** modelo e regras (núcleo), ações e segurança do servidor (API: só vinculados, versão, limites), custo por ação documentado.
 
 ### Etapa 5 · Painel do administrador: indicadores e usuários — ⬜
@@ -55,6 +55,9 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ pronto (local) · 🚀 publicad
 - Revisão de custo de Redis por ação e de polling; limites; textos; acessibilidade; regressão completa (núcleo + API + roteiro manual); atualizar este documento.
 
 ## Decisões já tomadas
+- **Sem cadastro/login** (decisão do Daniel, 09/11): administrador trabalha com perfis anônimos (código, apelido, entrou em, última atividade, papel, vínculos, uso).
+- **Horários:** o professor pré-define os horários disponíveis; o aluno **pega** um (confirma na hora, sem aprovação) e o professor pode mover/cancelar depois, com controle total.
+- **Status das tarefas:** o professor é a fonte oficial; a cada aula valida o que passou na anterior e passa tarefas novas. O aluno só sinaliza "fiz".
 - Notificações com o app fechado: Web Push + QStash (feito); chaves já configuradas.
 - Métricas anônimas, desligáveis em Configurações (feito).
 
