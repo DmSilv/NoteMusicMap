@@ -34,14 +34,14 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ pronto (local) · 🚀 publicad
 - Tela do aluno com foco nas **aulas agendadas**.
 - **Testes:** regras de quais seções cada papel vê (núcleo), navegação nos dois papéis, conferência visual em celular e tela larga.
 
-### Etapa 3 · Status das tarefas com o professor no comando — 🟨 pronta, aguardando publicação
+### Etapa 3 · Status das tarefas com o professor no comando — 🚀 publicada
 - O professor é a fonte oficial do status (pendente / concluída / devolvida). O aluno pode sinalizar "fiz" (já existe).
 - **Resumo ao começar a próxima aula:** pendentes × concluídas × a validar, sem bloquear a aula; notificação ao professor quando o aluno sinaliza.
 - O aluno passa a **ver o status oficial** (volta do servidor: ação nova, aditiva).
 - **Testes:** resumo (núcleo), ações do servidor (API), compatibilidade com o app antigo.
 - **Feito:** `task_status.dart` (resumo, estado oficial, `VerdictEntry`); API `verdict` (professor decide; "devolver" também derruba o "fiz") e `verdicts` (aluno busca) + contador `vr` em `rev`/`sync` (aditivo); fila de envio no professor; aluno vê "validada / aguardando o professor / refazer"; diálogo de início de aula com resumo e pendentes. Custo: decisão = 3 comandos no servidor; aluno só busca quando `vr` muda.
 
-### Etapa 4 · Horários disponíveis e pedidos de horário — ⬜
+### Etapa 4 · Horários disponíveis e pedidos de horário — 🟨 em andamento
 - Professor cadastra, altera e gerencia **horários disponíveis** (semanais ou avulsos, com duração) e **move/cancela** a aula de qualquer aluno.
 - Aluno vê os horários livres do **seu professor** (só de quem já está vinculado) e **pega** um: confirma na hora (primeiro a pegar leva) e vira aula na agenda, com lembrete.
 - Regras: sem choque com aulas marcadas, sem horário passado, um horário só pode ser pego uma vez, limites por aluno e por professor.
