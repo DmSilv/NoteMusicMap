@@ -9,6 +9,7 @@ import 'ref_a_dialog.dart';
 import 'note_widgets.dart';
 import 'theme.dart';
 import 'tuning_guide.dart';
+import 'pedal_view.dart';
 import 'widgets.dart';
 
 class TunerPage extends StatefulWidget {
@@ -148,6 +149,7 @@ class _TunerPageState extends State<TunerPage> {
       builder: (context, _) {
         final inst = app.instrument;
         final stringsMode = app.tunerMode == TunerMode.strings;
+        if (app.tunerMode == TunerMode.pedal) return _pedalBody();
         final cur = app.current;
 
         // Leitura exibida
@@ -187,35 +189,18 @@ class _TunerPageState extends State<TunerPage> {
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: SegmentedButton<TunerMode>(
-                    segments: const [
-                      ButtonSegment(value: TunerMode.strings, label: Text('Cordas soltas'), icon: Icon(Icons.queue_music)),
-                      ButtonSegment(value: TunerMode.chromatic, label: Text('Cromático'), icon: Icon(Icons.graphic_eq)),
-                    ],
-                    selected: {app.tunerMode},
-                    onSelectionChanged: (s) => app.setTuning(tunerMode: s.first),
-                    showSelectedIcon: false,
-                  ),
-                ),
-                const HelpButton(
-                  title: 'Cordas soltas ou Cromático?',
-                  sections: Help.modes,
-                  footer: Help.modesFooter,
-                ),
-              ],
-            ),
+            _modeRow(),
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 200),
                 child: Text(
-                  stringsMode
-                      ? 'Para AFINAR o instrumento: toque uma corda solta e ajuste até ficar verde.'
-                      : 'Para ESTUDAR: reconhece qualquer nota e mostra se está afinada.',
-                  key: ValueKey(stringsMode),
+                  switch (app.tunerMode) {
+                    TunerMode.strings => 'Para AFINAR o instrumento: toque uma corda solta e ajuste até ficar verde.',
+                    TunerMode.chromatic => 'Para ESTUDAR: reconhece qualquer nota e mostra se está afinada.',
+                    TunerMode.pedal => 'Para OUVIR: notas que soam juntas, para tocar por cima e treinar o ouvido.',
+                  },
+                  key: ValueKey(app.tunerMode),
                   style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
                 ),
               ),
@@ -354,6 +339,58 @@ class _TunerPageState extends State<TunerPage> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Escolha entre Cordas soltas, Cromático e Pedal.
+  Widget _modeRow() {
+    Widget seg(String t) => FittedBox(fit: BoxFit.scaleDown, child: Text(t, style: const TextStyle(fontSize: 13)));
+    return Row(
+      children: [
+        Expanded(
+          child: SegmentedButton<TunerMode>(
+            segments: [
+              ButtonSegment(value: TunerMode.strings, label: seg('Cordas soltas')),
+              ButtonSegment(value: TunerMode.chromatic, label: seg('Cromático')),
+              ButtonSegment(value: TunerMode.pedal, label: seg('Pedal')),
+            ],
+            selected: {app.tunerMode},
+            onSelectionChanged: (s) => app.setTuning(tunerMode: s.first),
+            showSelectedIcon: false,
+          ),
+        ),
+        const HelpButton(
+          title: 'Cordas soltas, Cromático ou Pedal?',
+          sections: Help.modes,
+          footer: Help.modesFooter,
+        ),
+      ],
+    );
+  }
+
+  /// Modo Pedal: teclado de notas que soam juntas + Lá e sistema de afinação para ajustar ali mesmo.
+  Widget _pedalBody() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      children: [
+        _modeRow(),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 6, 4, 10),
+          child: Text('Para OUVIR: notas que soam juntas, para tocar por cima e treinar o ouvido.',
+              style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+        ),
+        // Em telas largas o teclado não estica sem limite.
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Column(children: [
+              PedalView(app: app),
+              const SizedBox(height: 12),
+              _tuningCard(false),
+            ]),
+          ),
+        ),
+      ],
     );
   }
 

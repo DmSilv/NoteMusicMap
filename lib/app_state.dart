@@ -46,7 +46,7 @@ class MetroBeat {
 /// Jeito de marcar o tempo de estudo.
 enum StudyMode { pomodoro, stopwatch, custom }
 
-enum TunerMode { strings, chromatic }
+enum TunerMode { strings, chromatic, pedal }
 
 /// Situação das notificações de lembrete neste aparelho.
 enum PushStatus { unknown, unsupported, needsInstall, denied, linkOff, serverOff, off, on }
@@ -619,6 +619,56 @@ class AppState extends ChangeNotifier {
     if (t == null || DateTime.now().difference(t).inSeconds > 20) unawaited(syncLinks());
   }
 
+  // ---------------- Pedal (bordão) ----------------
+  final PedalPlayer pedal = PedalPlayer();
+
+  /// Notas do pedal que estão soando (MIDI, do grave ao agudo).
+  List<int> pedalNotes = [];
+
+  /// Liga ou desliga uma nota. Devolve um aviso se não deu (limite de notas).
+  String? pedalToggle(int midi) {
+    // O pedal e o microfone juntos se confundem: ao ligar o pedal, o microfone para.
+    if (listening && !pedalNotes.contains(midi)) unawaited(stopListening(quiet: true));
+    if (tone.running) tone.stop();
+    final r = togglePedalNote(pedalNotes, midi);
+    if (r.result == PedalToggle.full) return 'No máximo $kMaxPedalVoices notas ao mesmo tempo. Toque numa nota ligada para tirar.';
+    if (r.result == PedalToggle.outOfRange) return 'Essa nota está fora do teclado do pedal.';
+    pedalNotes = r.notes;
+    _applyPedal();
+    return null;
+  }
+
+  /// Troca todas as notas de uma vez (atalhos como "Quinta" ou "Acorde maior").
+  void setPedalNotes(List<int> midis) {
+    if (listening && midis.isNotEmpty) unawaited(stopListening(quiet: true));
+    if (tone.running) tone.stop();
+    pedalNotes = ([...midis]..sort()).take(kMaxPedalVoices).toList();
+    _applyPedal();
+  }
+
+  void clearPedal() {
+    if (pedalNotes.isEmpty && !pedal.running) return;
+    pedalNotes = [];
+    unawaited(pedal.stop());
+    notifyListeners();
+  }
+
+  /// Aplica as notas ao som, nas frequências do sistema de afinação escolhido.
+  void _applyPedal() {
+    pedal
+      ..timbre = tone.timbre
+      ..volume = tone.volume;
+    final f = pedalFrequencies(pedalNotes, cfg);
+    unawaited(pedal.setNotes([for (var i = 0; i < pedalNotes.length; i++) (pedalNotes[i], f[i])]));
+    notifyListeners();
+  }
+
+  /// Prepara as notas de uma oitava do teclado para tocarem na hora.
+  void preloadPedalRange(int fromMidi, int toMidi) {
+    final f = pedalFrequencies([for (var m = fromMidi; m <= toMidi; m++) m], cfg);
+    unawaited(pedal.preload(f));
+  }
+
   // ---------------- Estatísticas anônimas de uso ----------------
   /// Aviso anônimo de acesso (para o painel do administrador). Desligável em Configurações.
   final StatsService stats = StatsService();
@@ -944,6 +994,7 @@ class AppState extends ChangeNotifier {
   /// Sem tela à frente (aba escondida, app em segundo plano) não consulta nada.
   void setForeground(bool v) {
     _foreground = v;
+    if (!v) clearPedal(); // em segundo plano o pedal para (bateria)
     if (v) {
       onResume();
       final t = stats.lastOpen;
@@ -2580,6 +2631,7 @@ class AppState extends ChangeNotifier {
   double get toneVolume => tone.volume;
   void setToneVolume(double v) {
     tone.setVolume(v);
+    pedal.setVolume(v);
     _prefs?.setDouble('toneVol', tone.volume);
     notifyListeners();
   }
@@ -2597,6 +2649,7 @@ class AppState extends ChangeNotifier {
   void setToneTimbre(ToneTimbre t) {
     tone.timbre = t;
     _prefs?.setInt('timbre', t.index);
+    if (pedalNotes.isNotEmpty) _applyPedal();
     // Se estiver tocando, recomeça a mesma nota no novo timbre.
     if (tone.running) tone.play(tone.frequency);
     notifyListeners();
@@ -2644,7 +2697,7 @@ class AppState extends ChangeNotifier {
     spellingAuto = p.getBool('spellAuto') ?? true;
     transpose = p.getInt('transpose') ?? 0;
     instrumentId = p.getString('instrument') ?? 'violino';
-    tunerMode = TunerMode.values[p.getInt('tunerMode') ?? 0];
+    tunerMode = TunerMode.values[(p.getInt('tunerMode') ?? 0).clamp(0, TunerMode.values.length - 1)];
     history = HistoryMode.values[p.getInt('history') ?? 1];
     holdSeconds = p.getDouble('hold') ?? 0;
     // Uma vez: a grade passa a guardar o histórico das notas.
@@ -2782,7 +2835,16 @@ class AppState extends ChangeNotifier {
       this.instrumentId = instrumentId;
       _gridLow = null; // volta à faixa padrão do novo instrumento
     }
-    if (tunerMode != null) this.tunerMode = tunerMode;
+    if (tunerMode != null) {
+      this.tunerMode = tunerMode;
+      // Sair do Pedal para o Afinador silencia o pedal (senão o microfone escutaria o próprio pedal);
+      // entrar nele para o microfone e o diapasão.
+      if (tunerMode != TunerMode.pedal) clearPedal();
+      if (tunerMode == TunerMode.pedal) {
+        if (listening) unawaited(stopListening(quiet: true));
+        if (tone.running) tone.stop();
+      }
+    }
     if (history != null) {
       this.history = history;
       grid.history = history;
@@ -2797,6 +2859,7 @@ class AppState extends ChangeNotifier {
     // O alvo mudou: o que foi acumulado deixa de fazer sentido.
     if (refA != null || system != null || tonicPc != null || anchor != null) {
       resetGrid();
+      if (pedalNotes.isNotEmpty) _applyPedal(); // o pedal acompanha o novo Lá/sistema
     }
     _save();
     notifyListeners();

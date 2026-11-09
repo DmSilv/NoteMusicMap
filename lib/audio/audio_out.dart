@@ -250,3 +250,118 @@ class ChimePlayer {
     SoLoud.instance.play(src, volume: volume.clamp(0.05, 1.0));
   }
 }
+
+/// Pedal (bordão): várias notas ao mesmo tempo, cada uma em laço (como o diapasão), com entrada
+/// e saída suaves. Cada nota é uma "voz" independente; o volume de cada uma cai com o número
+/// de notas para a soma não estourar.
+class PedalPlayer {
+  static const Duration _fade = Duration(milliseconds: 140);
+
+  ToneTimbre timbre = ToneTimbre.fork;
+
+  /// Volume geral de 0 a 1.
+  double volume = 0.9;
+
+  final Map<String, AudioSource> _cache = {};
+  final List<String> _cacheOrder = [];
+  final Map<String, SoundHandle> _voices = {}; // "midi|freq|timbre" -> som
+  int _seq = 0; // descarta pedidos antigos se o usuário tocar rápido
+
+  bool get running => _voices.isNotEmpty;
+  int get voices => _voices.length;
+
+  Future<AudioSource> _source(double freq) async {
+    final key = '${freq.toStringAsFixed(3)}-${timbre.index}';
+    final hit = _cache[key];
+    if (hit != null) return hit;
+    final loop = buildToneLoop(freq, sampleRate: kOutRate, timbre: timbre);
+    final src = await SoLoud.instance.loadMem('pedal-$key', pcm16Wav(loop.samples, loop.sampleRate));
+    _cache[key] = src;
+    _cacheOrder.add(key);
+    while (_cacheOrder.length > 48) {
+      final old = _cacheOrder.removeAt(0);
+      final s = _cache.remove(old);
+      if (s != null) {
+        try {
+          await SoLoud.instance.disposeSource(s);
+        } catch (_) {}
+      }
+    }
+    return src;
+  }
+
+  /// Prepara as notas com antecedência (uma por vez, com pausas curtas) para tocar na hora.
+  Future<void> preload(Iterable<double> freqs) async {
+    try {
+      await ensureAudio();
+      for (final f in freqs) {
+        await _source(f);
+        await Future<void>.delayed(const Duration(milliseconds: 40));
+      }
+    } catch (_) {}
+  }
+
+  double _gain(int n) => pedalVoiceGain(n) * volume;
+
+  /// Faz o pedal soar EXATAMENTE estas notas ([midi], [Hz]): entram as novas, saem as que
+  /// sumiram e as que continuam só ajustam o volume. Mudar a frequência (outro Lá ou sistema)
+  /// troca a nota com um cruzamento suave.
+  Future<void> setNotes(List<(int, double)> notes) async {
+    final my = ++_seq;
+    if (notes.isEmpty) return stop();
+    await ensureAudio();
+    final want = <String, double>{
+      for (final n in notes) '${n.$1}|${n.$2.toStringAsFixed(3)}|${timbre.index}': n.$2,
+    };
+    final fresh = <String, AudioSource>{};
+    for (final e in want.entries) {
+      if (!_voices.containsKey(e.key)) fresh[e.key] = await _source(e.value);
+      if (my != _seq) return; // chegou um pedido mais novo
+    }
+    for (final k in _voices.keys.where((k) => !want.containsKey(k)).toList()) {
+      _fadeOutAndStop(_voices.remove(k)!);
+    }
+    final g = _gain(want.length);
+    for (final h in _voices.values) {
+      try {
+        SoLoud.instance.fadeVolume(h, g, _fade);
+      } catch (_) {}
+    }
+    for (final e in fresh.entries) {
+      final h = SoLoud.instance.play(e.value, looping: true, volume: 0);
+      SoLoud.instance.fadeVolume(h, g, _fade);
+      _voices[e.key] = h;
+    }
+  }
+
+  /// Muda o volume geral na hora, mesmo com as notas tocando.
+  void setVolume(double v) {
+    volume = v.clamp(0.2, 1.0).toDouble();
+    final g = _gain(_voices.length);
+    for (final h in _voices.values) {
+      try {
+        SoLoud.instance.setVolume(h, g);
+      } catch (_) {}
+    }
+  }
+
+  void _fadeOutAndStop(SoundHandle h) {
+    try {
+      SoLoud.instance.fadeVolume(h, 0, _fade);
+    } catch (_) {}
+    Future<void>.delayed(_fade + const Duration(milliseconds: 40), () async {
+      try {
+        await SoLoud.instance.stop(h);
+      } catch (_) {}
+    });
+  }
+
+  Future<void> stop() async {
+    _seq++;
+    final hs = _voices.values.toList();
+    _voices.clear();
+    for (final h in hs) {
+      _fadeOutAndStop(h);
+    }
+  }
+}

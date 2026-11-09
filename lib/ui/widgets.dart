@@ -610,9 +610,11 @@ class Help {
         'Você escolhe o instrumento e o app mostra qual corda está soando (por exemplo Sol, Ré, Lá, Mi) e quanto falta para ela ficar certa. Toque a corda solta e gire a cravelha até a agulha ficar no verde. Cada corda tem um botão para ouvir a nota de referência.'),
     ('Cromático: para ESTUDAR',
         'Reconhece qualquer nota (Dó, Dó♯, Ré…) e mostra a afinação dela. Use ao tocar peças e escalas, ou para conferir uma nota apertada com o dedo. Aqui vale o sistema de afinação que você escolheu (igual, pitagórico ou justo).'),
+    ('Pedal: para OUVIR notas juntas',
+        'Um teclado onde você liga até 4 notas que ficam soando ao mesmo tempo (um bordão). Toque uma melodia por cima, ou treine o ouvido com quintas, oitavas e acordes. As notas seguem o Lá de referência e o sistema de afinação: em Justo, uma quinta fica pura e o tremor (batimento) some. O microfone fica desligado neste modo.'),
   ];
   static const modesFooter =
-      'Em dúvida? Para afinar antes de tocar, use Cordas soltas. Para estudar entonação, use Cromático.';
+      'Em dúvida? Para afinar antes de tocar, use Cordas soltas. Para estudar entonação, use Cromático. Para ouvir uma nota ou um intervalo soando, use Pedal.';
 
   static const system = <(String, String)>[
     ('Igual',

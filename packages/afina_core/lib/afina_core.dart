@@ -11,6 +11,7 @@ export 'rhythm_challenge.dart';
 export 'needle_spring.dart';
 export 'note_display.dart';
 export 'note_gate.dart';
+export 'pedal.dart';
 export 'pitch_detector.dart';
 export 'pitch_grid.dart';
 export 'practice_coach.dart';
