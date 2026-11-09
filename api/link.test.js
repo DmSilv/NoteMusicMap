@@ -464,3 +464,101 @@ test('o controle de envio do professor (snt) nunca é guardado no servidor', asy
   assert.ok(got);
   for (const t of got.tasks) assert.equal('snt' in t, false);
 });
+
+// ---- Tarefas marcadas como feitas pelo aluno (o professor valida) ----
+const markDone = (h, task = 'k1', done = true, lesson = 'aula0001', teacher = PROF) =>
+  call(h, { action: 'done', code: ALU, secret: S_ALU, other: teacher, lesson, task, done });
+const teacherDones = (h) => call(h, { action: 'dones', code: PROF, secret: S_PROF });
+
+test('aluno marca tarefa como feita: o professor vê a marcação e a revisão dr muda', async () => {
+  const h = mk();
+  await vincula(h);
+  assert.equal((await sync(h, PROF, S_PROF)).dr, 0);
+  const r = await markDone(h);
+  assert.equal(r.statusCode, 200);
+  assert.ok((await sync(h, PROF, S_PROF)).dr > 0, 'dr avisa o professor');
+  const j = (await teacherDones(h)).json();
+  assert.equal(j.dones.length, 1);
+  assert.deepEqual({ s: j.dones[0].s, l: j.dones[0].l, k: j.dones[0].k }, { s: ALU, l: 'aula0001', k: 'k1' });
+  assert.ok(j.dones[0].t > 0);
+});
+
+test('aluno desmarca: a marcação some para o professor', async () => {
+  const h = mk();
+  await vincula(h);
+  await markDone(h);
+  await markDone(h, 'k2');
+  await markDone(h, 'k1', false);
+  const j = (await teacherDones(h)).json();
+  assert.deepEqual(j.dones.map((d) => d.k), ['k2']);
+});
+
+test('marcar a mesma tarefa duas vezes não duplica', async () => {
+  const h = mk();
+  await vincula(h);
+  await markDone(h);
+  await markDone(h);
+  assert.equal((await teacherDones(h)).json().dones.length, 1);
+});
+
+test('só o aluno vinculado marca; ids inválidos e professor não vinculado são recusados', async () => {
+  const h = mk();
+  await vincula(h);
+  const outro = code(99999);
+  assert.equal((await markDone(h, 'k1', true, 'aula0001', outro)).statusCode, 403);
+  assert.equal((await markDone(h, 'k 1')).statusCode, 400);
+  assert.equal((await markDone(h, 'k1', true, 'AULA 1')).statusCode, 400);
+  assert.equal((await markDone(h, 'k1', true, 'aula0001', 'xxxx')).statusCode, 400);
+  assert.equal((await teacherDones(h)).json().dones.length, 0);
+});
+
+test('professor só vê marcações de aluno ainda vinculado; desvincular apaga as marcações', async () => {
+  const h = mk();
+  await vincula(h);
+  await markDone(h);
+  const u = await call(h, { action: 'unlink', code: ALU, secret: S_ALU, role: 'student', other: PROF });
+  assert.equal(u.statusCode, 200);
+  assert.equal((await teacherDones(h)).json().dones.length, 0);
+});
+
+test('um aluno não lê nem apaga as marcações de outro aluno', async () => {
+  const h = mk();
+  await vincula(h);
+  await sync(h, ALU2, S_ALU2);
+  await call(h, { action: 'link', code: PROF, secret: S_PROF, role: 'teacher', other: ALU2, name: 'B' });
+  await markDone(h);
+  await call(h, { action: 'done', code: ALU2, secret: S_ALU2, other: PROF, lesson: 'aula0001', task: 'k1', done: false });
+  assert.equal((await teacherDones(h)).json().dones.length, 1, 'a marcação do aluno A continua');
+});
+
+test('rev: consulta barata devolve só os contadores e muda quando há novidade', async () => {
+  const h = mk();
+  await vincula(h);
+  const a = (await call(h, { action: 'rev', code: ALU, secret: S_ALU })).json();
+  assert.deepEqual(Object.keys(a).sort(), ['dr', 'kr', 'lr', 'ok']);
+  assert.ok(a.kr > 0, 'o vínculo mudou os contadores de vínculos');
+  await publish(h, lessonOf('aula0001'));
+  const b = (await call(h, { action: 'rev', code: ALU, secret: S_ALU })).json();
+  assert.ok(b.lr > a.lr, 'aula nova muda lr');
+  assert.equal(b.kr, a.kr, 'sem mudança de vínculo, kr igual');
+  const t1 = (await call(h, { action: 'rev', code: PROF, secret: S_PROF })).json();
+  await markDone(h);
+  const t2 = (await call(h, { action: 'rev', code: PROF, secret: S_PROF })).json();
+  assert.ok(t2.dr > t1.dr, 'marcação do aluno muda dr do professor');
+});
+
+test('rev exige o segredo do perfil (não vaza contadores de outro código)', async () => {
+  const h = mk();
+  await vincula(h);
+  const r = await call(h, { action: 'rev', code: ALU, secret: S_PROF });
+  assert.equal(r.statusCode, 403);
+});
+
+test('compatível com app antigo: sync ganha dr e kr sem perder nada do que já devolvia', async () => {
+  const h = mk();
+  await vincula(h);
+  const j = await sync(h, ALU, S_ALU);
+  for (const k of ['ok', 'asTeacher', 'asStudent', 'lr']) assert.ok(k in j);
+  assert.equal(typeof j.dr, 'number');
+  assert.equal(typeof j.kr, 'number');
+});

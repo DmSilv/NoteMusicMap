@@ -5,6 +5,8 @@ Assignment task(String id, DateTime created, {bool? sent, String title = 'Escala
     Assignment(id: id, title: title, created: created, sent: sent);
 
 void main() {
+  claims();
+  notReady();
   messages();
   final t0 = DateTime(2026, 11, 9, 10, 0);
 
@@ -169,6 +171,89 @@ void messages() {
     test('sem nome do professor e várias novidades', () {
       expect(newLessonsMessage([l(name: '')]), 'Seu professor passou 2 tarefas para você.');
       expect(newLessonsMessage([l(), l(d: 900, tasks: 1)]), '2 novidades dos seus professores: 3 tarefas novas.');
+    });
+  });
+}
+
+void notReady() {
+  test('aluno que ainda não ligou o vínculo online: fila, com o motivo e o que fazer', () {
+    final s = Student(id: 's1', name: 'Ana', code: 'K7QM-4TXD', linkState: 'active');
+    final d = taskDeliveryFor(s, inLessonWithThis: false, linkOn: true, serverUp: true, studentReady: false);
+    expect(d.mode, DeliveryMode.queued);
+    expect(d.canSend, isTrue);
+    expect(d.text, contains('Vínculo online'));
+    // pronto (padrão): recebe na hora
+    expect(taskDeliveryFor(s, inLessonWithThis: false, linkOn: true, serverUp: true).mode, DeliveryMode.now);
+    // em aula, a regra da aula vale primeiro
+    expect(taskDeliveryFor(s, inLessonWithThis: true, linkOn: true, serverUp: true, studentReady: false).mode,
+        DeliveryMode.inLesson);
+  });
+}
+
+void claims() {
+  final t0 = DateTime(2026, 11, 9, 10, 0);
+  Assignment task(String id, {bool done = false}) => Assignment(id: id, title: 'T $id', created: t0, done: done);
+  const code = 'K7QM-4TXK';
+  DoneEntry e(String k, [int at = 1000]) => DoneEntry(code, 'aula0001', k, at);
+
+  group('tarefa feita pelo aluno, validada pelo professor', () {
+    test('marcação do aluno vira "aguardando validação", sem finalizar', () {
+      final s = Student(id: 's1', name: 'Ana', tasks: [task('a'), task('b')]);
+      expect(applyClaims(s, [e('a', 5000)]), 1);
+      expect(s.tasks[0].awaitsValidation, isTrue);
+      expect(s.tasks[0].done, isFalse);
+      expect(s.tasks[1].awaitsValidation, isFalse);
+      expect(awaitingValidation(s).map((t) => t.id), ['a']);
+    });
+
+    test('marcação repetida não conta como novidade; desmarcar tira a marca', () {
+      final s = Student(id: 's1', name: 'Ana', tasks: [task('a')]);
+      applyClaims(s, [e('a')]);
+      expect(applyClaims(s, [e('a')]), 0);
+      expect(applyClaims(s, const []), 0);
+      expect(s.tasks[0].claimedAt, isNull);
+    });
+
+    test('o que o professor já validou não é mexido pelo aluno', () {
+      final s = Student(id: 's1', name: 'Ana', tasks: [task('a', done: true)]);
+      expect(applyClaims(s, [e('a')]), 0);
+      expect(s.tasks[0].claimedAt, isNull);
+      expect(applyClaims(s, const []), 0);
+      expect(s.tasks[0].done, isTrue);
+    });
+
+    test('validar finaliza como feita; devolver tira a marca e volta a pendente', () {
+      final s = Student(id: 's1', name: 'Ana', tasks: [task('a'), task('b')]);
+      applyClaims(s, [e('a'), e('b')]);
+      expect(validateTask(s, 'a', ok: true), isTrue);
+      expect(s.tasks[0].done, isTrue);
+      expect(validateTask(s, 'b', ok: false), isTrue);
+      expect(s.tasks[1].done, isFalse);
+      expect(s.tasks[1].claimedAt, isNull);
+      expect(awaitingValidation(s), isEmpty);
+      expect(validateTask(s, 'nao', ok: true), isFalse);
+    });
+
+    test('fila de validação: da marcação mais antiga para a mais nova', () {
+      final s = Student(id: 's1', name: 'Ana', tasks: [task('a'), task('b'), task('c')]);
+      applyClaims(s, [e('a', 3000), e('b', 1000), e('c', 2000)]);
+      expect(awaitingValidation(s).map((t) => t.id), ['b', 'c', 'a']);
+    });
+
+    test('a marca vai e volta no disco, mas nunca no pacote enviado ao aluno', () {
+      final s = Student(id: 's1', name: 'Ana', tasks: [task('a')]);
+      applyClaims(s, [e('a', 5000)]);
+      final back = Assignment.tryFrom(s.tasks[0].toJson())!;
+      expect(back.claimedAt, isNotNull);
+      final wire = SharedLesson(id: 'x1', atMs: 1, tasks: s.tasks).toWire();
+      expect((wire['tasks'] as List).first.containsKey('cl'), isFalse);
+    });
+
+    test('entrada do servidor malformada é ignorada', () {
+      expect(DoneEntry.tryFromWire({'s': 'xxxx', 'l': 'a', 'k': 't1', 't': 1}), isNull);
+      expect(DoneEntry.tryFromWire({'s': code, 'l': 'a', 'k': 'tem espaco', 't': 1}), isNull);
+      expect(DoneEntry.tryFromWire('lixo'), isNull);
+      expect(DoneEntry.tryFromWire({'s': code, 'l': 'aula1', 'k': 't1', 't': 99})!.taskId, 't1');
     });
   });
 }

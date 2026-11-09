@@ -74,6 +74,10 @@ class Assignment {
   /// Só do lado do professor: a tarefa já foi enviada ao aluno (true), ainda não (false)
   /// ou não se aplica / vem de dados antigos (null). Nunca vai para o servidor.
   final bool? sent;
+
+  /// Só do lado do professor: quando o ALUNO marcou como feita (null = não marcou). A tarefa só
+  /// passa a "feita" (done) quando o professor valida. Nunca vai para o servidor como parte da tarefa.
+  final DateTime? claimedAt;
   const Assignment({
     required this.id,
     required this.title,
@@ -88,6 +92,7 @@ class Assignment {
     this.done = false,
     required this.created,
     this.sent,
+    this.claimedAt,
   });
 
   bool get isScale => kind == TaskKind.scale;
@@ -115,8 +120,29 @@ class Assignment {
         goal: goal,
         done: done ?? this.done,
         created: created,
-        sent: sent ?? this.sent);
+        sent: sent ?? this.sent,
+        claimedAt: claimedAt);
   }
+
+  /// Cópia com a marca do aluno ligada ([at]) ou desligada (null).
+  Assignment withClaim(DateTime? at) => Assignment(
+      id: id,
+      title: title,
+      kind: kind,
+      subject: subject,
+      detail: detail,
+      note: note,
+      scaleTypeIndex: scaleTypeIndex,
+      tonicPc: tonicPc,
+      octaves: octaves,
+      goal: goal,
+      done: done,
+      created: created,
+      sent: sent,
+      claimedAt: at);
+
+  /// O aluno marcou como feita e o professor ainda não validou.
+  bool get awaitsValidation => claimedAt != null && !done;
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -132,6 +158,7 @@ class Assignment {
         'done': done,
         'c': created.toIso8601String(),
         if (sent != null) 'snt': sent,
+        if (claimedAt != null) 'cl': claimedAt!.toIso8601String(),
       };
 
   static Assignment? tryFrom(Map<String, dynamic> j) {
@@ -152,6 +179,7 @@ class Assignment {
         done: j['done'] == true,
         created: DateTime.parse(j['c'] as String),
         sent: j['snt'] as bool?,
+        claimedAt: j['cl'] is String ? DateTime.tryParse(j['cl'] as String) : null,
       );
     } catch (_) {
       return null;

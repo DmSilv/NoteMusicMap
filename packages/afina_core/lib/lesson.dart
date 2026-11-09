@@ -3,6 +3,7 @@
 /// Dart puro e testável (o relógio é sempre passado de fora).
 library;
 
+import 'identity.dart' show formatShareCode;
 import 'input_guard.dart';
 import 'lesson_week.dart' show fmtLessonDay;
 import 'teacher.dart';
@@ -103,8 +104,8 @@ class SharedLesson {
         'id': id,
         't': atMs,
         'd': durationSec,
-        // 'snt' (enviada) é controle do professor: não sai do aparelho.
-        'tasks': [for (final t in tasks) (t.toJson()..remove('snt'))],
+        // 'snt' (enviada) e 'cl' (marcada pelo aluno) são controle do professor: não saem do aparelho.
+        'tasks': [for (final t in tasks) (t.toJson()..remove('snt')..remove('cl'))],
         'notes': notes,
       };
 
@@ -323,6 +324,7 @@ TaskDelivery taskDeliveryFor(
   required bool inLessonWithThis,
   required bool linkOn,
   required bool serverUp,
+  bool studentReady = true,
 }) {
   final n = s.name;
   if (inLessonWithThis) {
@@ -349,6 +351,11 @@ TaskDelivery taskDeliveryFor(
     return TaskDelivery(
         DeliveryMode.queued, '$n ainda não está vinculado: a tarefa fica guardada e vai quando ele se vincular.');
   }
+  if (!studentReady) {
+    return TaskDelivery(
+        DeliveryMode.queued,
+        '$n ainda não ligou o "Vínculo online" no app dele: a tarefa fica na fila e chega assim que ele ligar.');
+  }
   return TaskDelivery(DeliveryMode.now, '$n recebe na hora, em Estudo › Tarefas do professor.');
 }
 
@@ -369,4 +376,63 @@ String newLessonsMessage(List<SharedLesson> fresh) {
   return total > 0
       ? '${fresh.length} novidades dos seus professores: ${tasks(total)} nova${total == 1 ? '' : 's'}.'
       : '${fresh.length} novidades dos seus professores.';
+}
+
+/// Uma marcação de "feita" que o aluno enviou (como o servidor devolve ao professor).
+class DoneEntry {
+  final String studentCode;
+  final String lessonId;
+  final String taskId;
+  final int atMs;
+  const DoneEntry(this.studentCode, this.lessonId, this.taskId, this.atMs);
+
+  static DoneEntry? tryFromWire(Object? j) {
+    try {
+      final m = (j as Map).cast<String, dynamic>();
+      final code = formatShareCode((m['s'] as String?) ?? '');
+      final task = (m['k'] as String?) ?? '';
+      final lesson = (m['l'] as String?) ?? '';
+      if (code == null || !RegExp(r'^[A-Za-z0-9_-]{1,40}$').hasMatch(task)) return null;
+      return DoneEntry(code, lesson, task, ((m['t'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000));
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+/// Aplica ao aluno [s] as marcações que ele enviou: tarefa marcada passa a "aguardando
+/// validação"; tarefa que ele desmarcou perde a marca. O que o professor já validou
+/// (done) não muda. Devolve quantas tarefas foram marcadas agora (novidades).
+int applyClaims(Student s, Iterable<DoneEntry> mine) {
+  final byTask = {for (final e in mine) e.taskId: e};
+  var fresh = 0;
+  for (var i = 0; i < s.tasks.length; i++) {
+    final t = s.tasks[i];
+    if (t.done) continue;
+    final e = byTask[t.id];
+    if (e != null && t.claimedAt == null) {
+      s.tasks[i] = t.withClaim(DateTime.fromMillisecondsSinceEpoch(e.atMs == 0 ? DateTime.now().millisecondsSinceEpoch : e.atMs));
+      fresh++;
+    } else if (e == null && t.claimedAt != null) {
+      s.tasks[i] = t.withClaim(null);
+    }
+  }
+  return fresh;
+}
+
+/// Tarefas que o aluno marcou como feitas e esperam o professor validar (mais antigas primeiro).
+List<Assignment> awaitingValidation(Student s) {
+  final l = [for (final t in s.tasks) if (t.awaitsValidation) t];
+  l.sort((a, b) => a.claimedAt!.compareTo(b.claimedAt!));
+  return l;
+}
+
+/// Valida ([ok] = true: finaliza como feita) ou devolve ([ok] = false: tira a marca e ela volta a ser
+/// pendente). Devolve false se a tarefa não existe.
+bool validateTask(Student s, String taskId, {required bool ok}) {
+  final i = s.tasks.indexWhere((t) => t.id == taskId);
+  if (i < 0) return false;
+  final t = s.tasks[i];
+  s.tasks[i] = ok ? t.copyWith(done: true) : t.withClaim(null);
+  return true;
 }

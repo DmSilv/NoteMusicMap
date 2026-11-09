@@ -197,7 +197,8 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
   /// Ao voltar para o app (reabrir, trocar de aba), confere se um professor adicionou o aluno.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) widget.app.onResume();
+    // Em segundo plano o app não consulta o servidor (custo e bateria).
+    widget.app.setForeground(state == AppLifecycleState.resumed);
   }
 
   /// Acompanha o claro/escuro do sistema quando o modo é "Automático".

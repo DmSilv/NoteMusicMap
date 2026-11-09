@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app_state.dart';
+import 'role_card.dart' show shareTeacherInvite;
 import 'safe_input.dart';
 import '../ai/coach_ai.dart';
 import 'dictation_button.dart';
@@ -13,6 +14,7 @@ import 'qr_scan_page.dart';
 import 'scale_exercise_page.dart';
 import 'student_identity.dart';
 import 'task_form_page.dart';
+import 'validation_ui.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -578,6 +580,9 @@ class _TeacherPageState extends State<TeacherPage> {
                           : '${sum.sessions} sessões · média ${(sum.recentAverage! * 100).round()}% · última ${_day(sum.last!)}',
                       style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
                     ),
+                    if (app.awaitingOf(s).isNotEmpty)
+                      Text('${app.awaitingOf(s).length} para validar',
+                          style: TextStyle(color: AppColors.accent, fontSize: 12.5, fontWeight: FontWeight.w700)),
                     if (open > 0)
                       Text('$open tarefa${open > 1 ? 's' : ''} em aberto',
                           style: TextStyle(color: AppColors.flat, fontSize: 12.5)),
@@ -800,6 +805,8 @@ class StudentPage extends StatelessWidget {
                   onNewNote: () => _newNote(context, s),
                 ),
                 const SizedBox(height: 10),
+                ValidationCard(app: app, student: s),
+                _deliveryCard(context, s),
                 if (tips.isNotEmpty) ...[
                   AppCard(
                     child: Column(
@@ -827,6 +834,81 @@ class StudentPage extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  /// Quando há aula ou tarefas esperando envio, explica POR QUE ainda não chegaram e o que fazer.
+  /// A causa mais comum: o aluno ainda não ligou o "Vínculo online" no app dele (vem desligado).
+  Widget _deliveryCard(BuildContext context, Student s) {
+    final waiting = s.lessons.where((r) => r.sent == false).length;
+    if (waiting == 0 || s.code == null || s.linkState == 'ended') return const SizedBox.shrink();
+    final issue = app.deliveryIssue[s.code];
+
+    String title = 'Aguardando envio para ${s.name}';
+    String text;
+    var showInvite = false;
+    var showTurnOn = false;
+    if (!app.linkEnabled) {
+      text = 'O vínculo online está desligado no SEU app, por isso nada sai daqui. Ligue para enviar.';
+      showTurnOn = true;
+    } else if (app.linkUnavailable) {
+      text = 'O servidor ainda não recebe aulas. Elas ficam guardadas e vão quando ele voltar.';
+    } else if (issue == 'not_ready') {
+      title = '${s.name} ainda não recebeu';
+      text = 'O app de ${s.name} ainda não ligou o "Vínculo online" (ele vem desligado). Sem isso o servidor não '
+          'entrega nada. Peça para abrir Perfil › Vínculo online e ligar, ou mande o convite abaixo: ao abrir o '
+          'link, o vínculo liga sozinho. Quando ele ligar, chega em até 30 segundos.';
+      showInvite = true;
+    } else if (issue == 'offline' || app.linkOnline == false) {
+      text = 'Sem conexão com o servidor agora. Fica guardado e vai quando a internet voltar.';
+    } else if (s.linkState != 'active') {
+      text = '${s.name} ainda não está vinculado. Vai assim que o vínculo for confirmado. '
+          'Se ele nunca abriu o app com o vínculo ligado, mande o convite.';
+      showInvite = true;
+    } else {
+      text = 'Na fila. O envio é tentado a cada 30 segundos; toque em "Tentar agora" para forçar.';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: AppCard(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(Icons.schedule_send_outlined, color: AppColors.flat),
+            const SizedBox(width: 8),
+            Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+          ]),
+          const SizedBox(height: 4),
+          Text(text, style: TextStyle(color: AppColors.textDim, fontSize: 13, height: 1.3)),
+          const SizedBox(height: 10),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            if (showTurnOn)
+              FilledButton.icon(
+                onPressed: () => app.setLinkEnabled(true),
+                icon: const Icon(Icons.cloud_outlined, size: 18),
+                label: const Text('Ligar vínculo online'),
+              )
+            else ...[
+              if (showInvite)
+                FilledButton.icon(
+                  onPressed: () => shareTeacherInvite(app),
+                  icon: const Icon(Icons.send, size: 18),
+                  label: const Text('Enviar convite'),
+                ),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  await app.syncLinks();
+                  await app.flushLessons();
+                  final still = s.lessons.any((r) => r.sent == false);
+                  app.say(still ? 'Ainda não chegou. Veja o motivo no cartão.' : 'Enviado para ${s.name}.');
+                },
+                icon: const Icon(Icons.refresh, size: 18),
+                label: const Text('Tentar agora'),
+              ),
+            ],
+          ]),
+        ]),
+      ),
     );
   }
 
@@ -981,6 +1063,7 @@ class StudentPage extends StatelessWidget {
                 children: [
                   Text(t.isScale ? 'Meta ${(t.goal * 100).round()}% de acerto' : t.kind.label),
                   _sentChip(s, t),
+                  _claimChip(t),
                   if (t.note.isNotEmpty)
                     Text(t.note,
                         maxLines: 3,
@@ -1027,6 +1110,20 @@ class StudentPage extends StatelessWidget {
         const SizedBox(width: 4),
         Text(sent ? 'Enviada ao aluno' : (queued ? 'Na fila de envio' : 'A enviar'),
             style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.w700)),
+      ]),
+    );
+  }
+
+  /// "O aluno marcou como feita": aguarda a validação do professor.
+  Widget _claimChip(Assignment t) {
+    if (!t.awaitsValidation) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.fact_check_outlined, size: 13, color: AppColors.accent),
+        const SizedBox(width: 4),
+        Text('Aluno marcou como feita',
+            style: TextStyle(color: AppColors.accent, fontSize: 11.5, fontWeight: FontWeight.w700)),
       ]),
     );
   }
@@ -1276,7 +1373,11 @@ class _LessonCardState extends State<_LessonCard> {
     if (s.linkState != 'active') {
       return 'O aluno ainda não está vinculado: a aula fica guardada e vai quando ele se vincular.';
     }
-    return 'Ao encerrar, as tarefas e observações desta aula vão para ${s.name}, em Meu perfil › Minhas aulas.';
+    if (app.deliveryIssue[s.code] == 'not_ready') {
+      return 'O app de ${s.name} ainda não ligou o "Vínculo online": a aula fica na fila e chega assim que ele ligar. '
+          'Você pode mandar um convite pela ficha.';
+    }
+    return 'Ao encerrar, as tarefas e observações desta aula vão para ${s.name}, em Estudo › Tarefas do professor.';
   }
 
   Future<void> _end() async {
@@ -1357,10 +1458,12 @@ class _LessonCardState extends State<_LessonCard> {
                 else
                 FilledButton.icon(
                   style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                  onPressed: () {
-                          final err = app.startLesson(s);
-                          app.say(err ?? 'Aula começou. As tarefas e observações que você passar agora vão para ${s.name} ao encerrar.');
-                        },
+                  onPressed: () async {
+                    // Primeiro confere o que o aluno marcou como feito desde a última aula.
+                    await showValidationDialog(context, app, s);
+                    final err = app.startLesson(s);
+                    app.say(err ?? 'Aula começou. As tarefas e observações que você passar agora vão para ${s.name} ao encerrar.');
+                  },
                   icon: const Icon(Icons.play_arrow),
                   label: const Text('Começar a aula'),
                 ),

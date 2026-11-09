@@ -52,6 +52,16 @@ class LinkReply {
 
   /// O aluno ainda não abriu o app com o vínculo online ligado: tentar de novo depois.
   final bool notReady;
+
+  /// Contadores de novidade: dr = tarefas marcadas pelos alunos, kr = vínculos mudaram.
+  final int dr;
+  final int kr;
+
+  /// Marcações de "feita" dos alunos (resposta de `dones`).
+  final List<DoneEntry> dones;
+
+  /// O pedido foi recusado de vez (4xx): não adianta repetir.
+  final bool rejected;
   const LinkReply({
     this.ok = false,
     this.unavailable = false,
@@ -63,6 +73,10 @@ class LinkReply {
     this.lr = 0,
     this.lessons = const [],
     this.notReady = false,
+    this.dr = 0,
+    this.kr = 0,
+    this.dones = const [],
+    this.rejected = false,
   });
 }
 
@@ -95,7 +109,10 @@ class LinkService {
       }
       if (r.statusCode != 200) {
         // 5xx: servidor com problema, tentar depois. 4xx: o pedido foi recusado de vez.
-        return LinkReply(offline: r.statusCode >= 500, error: (j['error'] as String?) ?? 'Não foi possível vincular.');
+        return LinkReply(
+            offline: r.statusCode >= 500,
+            rejected: r.statusCode >= 400 && r.statusCode < 500 && r.statusCode != 429,
+            error: (j['error'] as String?) ?? 'Não foi possível vincular.');
       }
       List<LinkedPerson> list(Object? v) => [for (final x in (v as List? ?? const [])) ?LinkedPerson.tryFrom(x)];
       return LinkReply(
@@ -104,6 +121,11 @@ class LinkService {
         asStudent: list(j['asStudent']),
         created: j['created'] == true,
         lr: ((j['lr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
+        dr: ((j['dr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
+        kr: ((j['kr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
+        dones: [
+          for (final x in ((j['dones'] as List?) ?? const []).take(1500)) ?DoneEntry.tryFromWire(x)
+        ],
         lessons: [
           for (final x in ((j['lessons'] as List?) ?? const []).take(kMaxLessonKept))
             ?_lessonFrom(x)
@@ -148,6 +170,17 @@ class LinkService {
   Future<LinkReply> publishLesson(String code, String secret,
           {required String other, required Map<String, dynamic> lesson}) =>
       _post({..._auth(code, secret, null), 'action': 'lesson', 'other': other, 'lesson': lesson});
+
+  /// Só os contadores de novidade (1 comando no servidor): o app baixa listas só se algo mudou.
+  Future<LinkReply> rev(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'rev'});
+
+  /// ALUNO: avisa que fez (ou desmarcou) a tarefa [task] da aula [lesson] do professor [teacher].
+  Future<LinkReply> markDone(String code, String secret,
+          {required String teacher, required String lesson, required String task, required bool done}) =>
+      _post({..._auth(code, secret, null), 'action': 'done', 'other': teacher, 'lesson': lesson, 'task': task, 'done': done});
+
+  /// PROFESSOR: busca o que os alunos marcaram como feito.
+  Future<LinkReply> dones(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'dones'});
 
   /// ALUNO: busca as aulas dos professores a que está vinculado.
   Future<LinkReply> lessons(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'lessons'});

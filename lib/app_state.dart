@@ -613,6 +613,169 @@ class AppState extends ChangeNotifier {
     if (t == null || DateTime.now().difference(t).inSeconds > 20) unawaited(syncLinks());
   }
 
+  // ---------------- Consulta barata de novidades (custo por usuário) ----------------
+  // O app NÃO baixa listas a cada 30 s: pergunta `rev` (1 comando no servidor) e só faz a
+  // atualização completa (vários comandos) quando um contador mudou ou há algo local a enviar.
+  bool _foreground = true;
+  int _linkRev = 0; // kr visto: vínculos
+  int _doneRev = 0; // dr visto: tarefas marcadas pelos alunos
+  int _workBackoffSec = 0;
+  int _idleTicks = 0; // consultas seguidas sem novidade: o intervalo vai esticando (até 4x)
+  int _skipTicks = 0;
+  DateTime _nextWork = DateTime.fromMillisecondsSinceEpoch(0);
+
+  /// Sem tela à frente (aba escondida, app em segundo plano) não consulta nada.
+  void setForeground(bool v) {
+    _foreground = v;
+    if (v) onResume();
+  }
+
+  /// Há algo só aqui que precisa ir ao servidor (desfazer vínculo, aula/tarefa na fila, marcação)?
+  bool _hasLocalWork() =>
+      _unlinkStudents.isNotEmpty ||
+      _unlinkTeachers.isNotEmpty ||
+      doneOutbox.isNotEmpty ||
+      myTeachers.any((t) => t.since == 0) ||
+      students.any((s) =>
+          s.code != null &&
+          (s.linkState == null || s.linkState == 'pending' || s.lessons.any((l) => l.sent == false)));
+
+  /// Uma "batida" do relógio de consulta: barata quando nada mudou.
+  Future<void> _linkTick() async {
+    if (!_foreground || !linkEnabled || linkUnavailable || _linkSyncing) return;
+    if (_skipTicks > 0) {
+      _skipTicks--;
+      return;
+    }
+    final now = DateTime.now();
+    if (_hasLocalWork() && !now.isBefore(_nextWork)) {
+      await syncLinks();
+      // Se continua pendente (aluno que não ligou o vínculo, sem rede…), espera cada vez mais.
+      if (_hasLocalWork()) {
+        _workBackoffSec = _workBackoffSec == 0 ? 30 : (_workBackoffSec * 2).clamp(30, 600);
+        _nextWork = DateTime.now().add(Duration(seconds: _workBackoffSec));
+      } else {
+        _workBackoffSec = 0;
+      }
+      return;
+    }
+    final r = await links.rev(profile.shareCode, profile.secret);
+    if (r.unavailable) return _markLinkUnavailable();
+    if (!r.ok) {
+      if (r.offline) {
+        linkOnline = false;
+        notifyListeners();
+      }
+      return;
+    }
+    linkOnline = true;
+    final lessonsNew = myTeachers.isNotEmpty && r.lr != lessonsRev;
+    final donesNew = students.isNotEmpty && r.dr != _doneRev;
+    if (lessonsNew || donesNew || r.kr != _linkRev) {
+      _idleTicks = 0;
+      await syncLinks();
+    } else {
+      // Nada mudou: espera um pouco mais na próxima (mais barato para o servidor e para a bateria).
+      _idleTicks = (_idleTicks + 1).clamp(0, 9);
+      _skipTicks = _idleTicks ~/ 3;
+    }
+  }
+
+  // ---------------- ALUNO: avisar o professor que fez a tarefa ----------------
+  /// Marcações a enviar ("professor|aula|tarefa|1 ou 0"), guardadas até o servidor aceitar.
+  final List<String> doneOutbox = [];
+  bool _donesSending = false;
+
+  void _queueDone(String teacher, String lesson, String task, bool done) {
+    final key = '$teacher|$lesson|$task|';
+    doneOutbox.removeWhere((e) => e.startsWith(key));
+    doneOutbox.add('$key${done ? 1 : 0}');
+    if (doneOutbox.length > 500) doneOutbox.removeRange(0, doneOutbox.length - 500);
+    _prefs?.setStringList('done_outbox', doneOutbox);
+  }
+
+  Future<void> flushDones() async {
+    if (_donesSending || !linkEnabled || linkUnavailable || doneOutbox.isEmpty) return;
+    _donesSending = true;
+    try {
+      for (final e in [...doneOutbox]) {
+        final p = e.split('|');
+        if (p.length != 4) {
+          doneOutbox.remove(e);
+          continue;
+        }
+        final r = await links.markDone(profile.shareCode, profile.secret,
+            teacher: p[0], lesson: p[1], task: p[2], done: p[3] == '1');
+        if (r.unavailable) return _markLinkUnavailable();
+        if (r.offline) {
+          linkOnline = false;
+          break;
+        }
+        if (r.ok || r.rejected) doneOutbox.remove(e); // aceito, ou recusado de vez (professor desvinculado)
+      }
+    } finally {
+      _donesSending = false;
+      _prefs?.setStringList('done_outbox', doneOutbox);
+    }
+  }
+
+  // ---------------- PROFESSOR: ver e validar o que o aluno marcou ----------------
+  /// Tarefas que [s] marcou como feitas e esperam a validação do professor.
+  List<Assignment> awaitingOf(Student s) => awaitingValidation(s);
+
+  /// Total de tarefas esperando validação (todos os alunos).
+  int get awaitingTotal => students.fold<int>(0, (a, s) => a + awaitingValidation(s).length);
+
+  /// Traz o que os alunos marcaram e aplica nas fichas. Avisa o professor se houver novidade.
+  Future<void> pullDones() async {
+    if (_donesPulling || !linkEnabled || linkUnavailable || students.isEmpty) return;
+    _donesPulling = true;
+    try {
+      final r = await links.dones(profile.shareCode, profile.secret);
+      if (r.unavailable) return _markLinkUnavailable();
+      if (!r.ok) {
+        if (r.offline) linkOnline = false;
+        return;
+      }
+      linkOnline = true;
+      final byStudent = <String, List<DoneEntry>>{};
+      for (final e in r.dones) {
+        (byStudent[e.studentCode] ??= []).add(e);
+      }
+      var fresh = 0;
+      String? who;
+      for (final s in students) {
+        final c = s.code;
+        if (c == null) continue;
+        final n = applyClaims(s, byStudent[c] ?? const []);
+        if (n > 0) {
+          fresh += n;
+          who = s.name;
+        }
+      }
+      _doneRev = r.dr;
+      _prefs?.setInt('done_rev', _doneRev);
+      _saveTeacher();
+      notifyListeners();
+      if (fresh > 0) {
+        say(fresh == 1 && who != null
+            ? '$who marcou 1 tarefa como feita. Valide na ficha ou ao começar a próxima aula.'
+            : '$fresh tarefas marcadas como feitas pelos alunos. Valide na ficha de cada um.');
+      }
+    } finally {
+      _donesPulling = false;
+    }
+  }
+
+  bool _donesPulling = false;
+
+  /// Confirma (finaliza) ou devolve (volta a pendente) uma tarefa que o aluno marcou.
+  void validateAssignment(Student s, String taskId, {required bool ok}) {
+    if (!validateTask(s, taskId, ok: ok)) return;
+    _saveTeacher();
+    notifyListeners();
+  }
+
   // ---------------- Aulas ----------------
   // PROFESSOR: começa a aula na ficha do aluno, pode pausar e, ao encerrar, o que ele
   // passou nela (tarefas e observações) é enviado ao aluno. ALUNO: recebe e vê em
@@ -665,6 +828,10 @@ class AppState extends ChangeNotifier {
       myLessons = [];
     }
     lessonsRev = p.getInt('lessons_rev') ?? 0;
+    doneOutbox
+      ..clear()
+      ..addAll((p.getStringList('done_outbox') ?? const []).take(500));
+    _doneRev = p.getInt('done_rev') ?? 0;
     lessonTasksDone
       ..clear()
       ..addAll((p.getStringList('lessons_done') ?? const []).take(2000));
@@ -780,7 +947,14 @@ class AppState extends ChangeNotifier {
 
   /// Como uma tarefa nova chega a [s] agora (em aula, na hora, na fila ou só na ficha).
   TaskDelivery deliveryFor(Student s) => taskDeliveryFor(s,
-      inLessonWithThis: hasLessonWith(s.id), linkOn: linkEnabled, serverUp: !linkUnavailable);
+      inLessonWithThis: hasLessonWith(s.id),
+      linkOn: linkEnabled,
+      serverUp: !linkUnavailable,
+      studentReady: deliveryIssue[s.code] != 'not_ready');
+
+  /// Por que o envio para um aluno está parado (código do aluno -> 'not_ready' | 'offline').
+  /// Só na memória: some ao fechar o app e é refeito na próxima tentativa.
+  final Map<String?, String> deliveryIssue = {};
 
   /// Quantas tarefas de [s] ainda esperam envio.
   int pendingTaskCount(Student s) => pendingTasks(s).length;
@@ -840,15 +1014,21 @@ class AppState extends ChangeNotifier {
             r.sent = true;
             r.wire = null;
             changed = true;
-            say('Aula enviada para ${s.name}.');
+            deliveryIssue.remove(c);
+            say('Enviado para ${s.name}.');
           } else if (rep.unavailable) {
             _markLinkUnavailable();
             break outer;
           } else if (rep.offline) {
             linkOnline = false;
+            deliveryIssue[c] = 'offline';
+            changed = true;
             break outer;
           } else if (rep.notReady) {
-            continue; // o aluno ainda não ligou o vínculo: tenta de novo mais tarde
+            // O aluno ainda não ligou o vínculo no app dele: guarda o motivo para a ficha explicar.
+            if (deliveryIssue[c] != 'not_ready') changed = true;
+            deliveryIssue[c] = 'not_ready';
+            continue;
           } else {
             // O servidor recusou de vez (pacote inválido): não adianta insistir.
             r.sent = null;
@@ -912,8 +1092,14 @@ class AppState extends ChangeNotifier {
 
   void toggleLessonTask(SharedLesson l, Assignment t) {
     final k = '${l.id}:${t.id}';
-    if (!lessonTasksDone.remove(k)) lessonTasksDone.add(k);
+    final nowDone = !lessonTasksDone.remove(k);
+    if (nowDone) lessonTasksDone.add(k);
     _saveLessons();
+    // Avisa o professor (ele valida): vai pela fila e reenvia sozinha se estiver sem conexão.
+    if (l.teacherCode.isNotEmpty) {
+      _queueDone(l.teacherCode, l.id, t.id, nowDone);
+      unawaited(flushDones());
+    }
     notifyListeners();
   }
 
@@ -940,6 +1126,8 @@ class AppState extends ChangeNotifier {
   /// "em tempo real" do vínculo é essa consulta, não uma conexão contínua).
   /// [fast]: quem ainda espera um professor o adicionar (aluno sem professor) consulta a cada 10 s.
   void watchLinks({bool fast = false}) {
+    _idleTicks = 0;
+    _skipTicks = 0;
     _linkWatchers++;
     if (fast) _fastWatchers++;
     if (linkEnabled && !linkUnavailable) {
@@ -966,7 +1154,7 @@ class AppState extends ChangeNotifier {
   void _restartLinkTimer() {
     _linkTimer?.cancel();
     final secs = _fastWatchers > 0 ? 10 : 30;
-    _linkTimer = Timer.periodic(Duration(seconds: secs), (_) => syncLinks());
+    _linkTimer = Timer.periodic(Duration(seconds: secs), (_) => _linkTick());
   }
 
   void _markLinkUnavailable() {
@@ -1141,6 +1329,14 @@ class AppState extends ChangeNotifier {
       _applyLinkLists(r);
       // Aulas: o aluno busca quando o servidor avisa que há novidade; o professor envia as pendentes.
       if (r.lr != lessonsRev && myTeachers.isNotEmpty) unawaited(pullLessons());
+      // Marcações de tarefa: o aluno envia as pendentes; o professor busca as novas.
+      if (doneOutbox.isNotEmpty) unawaited(flushDones());
+      if (students.isNotEmpty && r.dr != _doneRev) {
+        unawaited(pullDones());
+      } else {
+        _doneRev = r.dr;
+      }
+      _linkRev = r.kr;
       if (students.any((x) => x.lessons.any((l) => l.sent == false))) unawaited(flushLessons());
     } finally {
       _linkSyncing = false;

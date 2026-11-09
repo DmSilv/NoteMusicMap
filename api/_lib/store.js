@@ -124,6 +124,12 @@ function createStore(cfg, fetchImpl, clock = Date.now, opts = {}) {
       if (!opts.allowMemory) throw new Error('no-redis');
       return Object.fromEntries(hashes.get(key) || []);
     },
+    /** Um campo de um hash (1 comando; bem mais barato que ler o hash todo). */
+    async hget(key, field) {
+      if (useRedis) { const v = await redis(['HGET', key, field]); return v == null ? undefined : v; }
+      if (!opts.allowMemory) throw new Error('no-redis');
+      return hashes.get(key)?.get(field);
+    },
     async hset(key, field, value) {
       if (useRedis) { await redis(['HSET', key, field, String(value)]); return; }
       if (!opts.allowMemory) throw new Error('no-redis');

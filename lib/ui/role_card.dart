@@ -223,9 +223,12 @@ class RoleCard extends StatelessWidget {
   // ---------------- Professor ----------------
   Widget _teacher(BuildContext context) {
     final n = app.students.length;
-    final subtitle = app.activeStudent != null
-        ? 'Em aula: ${app.activeStudent!.name}'
-        : (n == 0 ? 'Nenhum aluno ainda. Convide o primeiro.' : '$n aluno${n > 1 ? 's' : ''} · tarefas e relatórios');
+    final toValidate = app.awaitingTotal;
+    final subtitle = toValidate > 0
+        ? '$toValidate tarefa${toValidate > 1 ? 's' : ''} para validar'
+        : (app.activeStudent != null
+            ? 'Em aula: ${app.activeStudent!.name}'
+            : (n == 0 ? 'Nenhum aluno ainda. Convide o primeiro.' : '$n aluno${n > 1 ? 's' : ''} · tarefas e relatórios'));
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: AppCard(
@@ -238,7 +241,11 @@ class RoleCard extends StatelessWidget {
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const Text('Área do professor', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-                  Text(subtitle, style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+                  Text(subtitle,
+                      style: TextStyle(
+                          color: toValidate > 0 ? AppColors.accent : AppColors.textDim,
+                          fontSize: 12.5,
+                          fontWeight: toValidate > 0 ? FontWeight.w700 : FontWeight.w400)),
                 ]),
               ),
             ]),
@@ -275,18 +282,7 @@ class RoleCard extends StatelessWidget {
     );
   }
 
-  /// Envia (ou copia) o link que abre o app já pedindo ao aluno para vincular este professor.
-  Future<void> _invite(BuildContext context) async {
-    final link = '${shareLink()}/?professor=${app.profile.shareCode}';
-    final text = 'Sou seu professor no $kAppName. Abra este link e toque em "Vincular" para eu acompanhar '
-        'suas tarefas: $link';
-    try {
-      await SharePlus.instance.share(ShareParams(text: text, title: kAppName));
-    } catch (_) {
-      await Clipboard.setData(ClipboardData(text: text));
-      app.say('Convite copiado. Cole numa conversa para enviar.');
-    }
-  }
+  Future<void> _invite(BuildContext context) => shareTeacherInvite(app);
 
   // ---------------- Aluno sem professor ----------------
   Widget _student(BuildContext context) {
@@ -354,5 +350,19 @@ class RoleCard extends StatelessWidget {
     if (s == null) return;
     final err = await app.addMyTeacher(s.code);
     if (err != null) app.say(err);
+  }
+}
+
+/// Envia (ou copia) o link que abre o app já pedindo ao aluno para vincular este professor.
+/// Abrir o link também liga o "Vínculo online" no app do aluno.
+Future<void> shareTeacherInvite(AppState app) async {
+  final link = '${shareLink()}/?professor=${app.profile.shareCode}';
+  final text = 'Sou seu professor no $kAppName. Abra este link e toque em "Vincular" para eu acompanhar '
+      'suas tarefas: $link';
+  try {
+    await SharePlus.instance.share(ShareParams(text: text, title: kAppName));
+  } catch (_) {
+    await Clipboard.setData(ClipboardData(text: text));
+    app.say('Convite copiado. Cole numa conversa para enviar.');
   }
 }
