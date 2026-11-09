@@ -404,7 +404,8 @@ class AppState extends ChangeNotifier {
             tonicPc: tonicPc,
             octaves: octaves,
             goal: goal,
-            created: DateTime.now()));
+            created: DateTime.now(),
+            sent: false)); // ainda não enviada ao aluno
     if (kind == TaskKind.method) _learnFromTask(subject, detail);
     _saveTeacher();
     notifyListeners();
@@ -756,17 +757,57 @@ class AppState extends ChangeNotifier {
     }
     final rec = buildLessonRecord(s, l, end, teacherName: profile.name ?? '');
     // Aluno com código: a enviar pelo vínculo online. Sem código: fica só aqui.
-    rec.sent = s.code != null ? false : null;
+    rec.sent = (s.code != null && s.linkState != 'ended') ? false : null;
     if (rec.sent == null) rec.wire = null;
     s.lessons.insert(0, rec);
     while (s.lessons.length > 200) {
       final i = s.lessons.lastIndexWhere((x) => x.sent != false);
       s.lessons.removeAt(i < 0 ? s.lessons.length - 1 : i);
     }
+    // As tarefas que foram no pacote deixam de estar "a enviar" (já estão na fila de envio).
+    if (rec.sent == false) _markTasksSent(s, taskIdsOf(rec));
     _saveTeacher();
     notifyListeners();
     if (rec.sent == false) unawaited(flushLessons());
     return rec;
+  }
+
+  void _markTasksSent(Student s, Set<String> ids) {
+    for (var i = 0; i < s.tasks.length; i++) {
+      if (ids.contains(s.tasks[i].id)) s.tasks[i] = s.tasks[i].copyWith(sent: true);
+    }
+  }
+
+  /// Como uma tarefa nova chega a [s] agora (em aula, na hora, na fila ou só na ficha).
+  TaskDelivery deliveryFor(Student s) => taskDeliveryFor(s,
+      inLessonWithThis: hasLessonWith(s.id), linkOn: linkEnabled, serverUp: !linkUnavailable);
+
+  /// Quantas tarefas de [s] ainda esperam envio.
+  int pendingTaskCount(Student s) => pendingTasks(s).length;
+
+  /// Envia as tarefas pendentes de [s] fora de uma aula (a aula leva as suas sozinha).
+  /// Devolve a mensagem para o professor.
+  String sendPendingTasks(Student s) {
+    final rule = deliveryFor(s);
+    if (rule.mode == DeliveryMode.inLesson) {
+      return 'Há uma aula em andamento com ${s.name}: as tarefas vão quando você encerrar a aula.';
+    }
+    if (!rule.canSend) return rule.text;
+    final rec = buildTasksPackage(s, DateTime.now(), teacherName: profile.name ?? '');
+    if (rec == null) return 'Nenhuma tarefa esperando envio.';
+    rec.sent = false;
+    s.lessons.insert(0, rec);
+    while (s.lessons.length > 200) {
+      final i = s.lessons.lastIndexWhere((x) => x.sent != false);
+      s.lessons.removeAt(i < 0 ? s.lessons.length - 1 : i);
+    }
+    _markTasksSent(s, taskIdsOf(rec));
+    _saveTeacher();
+    notifyListeners();
+    unawaited(flushLessons());
+    final n = rec.taskCount;
+    final what = '$n tarefa${n == 1 ? '' : 's'}';
+    return rule.mode == DeliveryMode.now ? 'Enviando $what para ${s.name}…' : '$what na fila de envio. ${rule.text}';
   }
 
   /// Envia ao servidor as aulas encerradas que ainda não foram. Roda ao encerrar, a cada
@@ -779,7 +820,19 @@ class AppState extends ChangeNotifier {
       outer:
       for (final s in students) {
         final c = s.code;
-        if (c == null || s.linkState != 'active') continue;
+        if (c == null) continue;
+        if (s.linkState == 'ended') {
+          // O aluno encerrou o vínculo: as aulas que esperavam envio ficam só neste aparelho.
+          for (final r in s.lessons) {
+            if (r.sent == false) {
+              r.sent = null;
+              r.wire = null;
+              changed = true;
+            }
+          }
+          continue;
+        }
+        if (s.linkState != 'active') continue;
         for (final r in s.lessons) {
           if (r.sent != false || r.wire == null) continue;
           final rep = await links.publishLesson(profile.shareCode, profile.secret, other: c, lesson: r.wire!);
@@ -846,10 +899,7 @@ class AppState extends ChangeNotifier {
       _saveLessons();
       notifyListeners();
       if (announce && fresh.isNotEmpty) {
-        final n = fresh.fold<int>(0, (a, l) => a + l.tasks.length);
-        final msg = fresh.length == 1
-            ? 'Nova aula recebida: $n tarefa${n == 1 ? '' : 's'} para fazer.'
-            : '${fresh.length} aulas novas recebidas.';
+        final msg = newLessonsMessage(fresh);
         addNotice('lesson', msg);
         say(msg);
       }
@@ -1652,6 +1702,15 @@ class AppState extends ChangeNotifier {
   /// Microfone captando agora (alimenta o aviso fixo na barra superior).
   final ValueNotifier<bool> micOn = ValueNotifier(false);
 
+  /// O usuário dispensou o cartão "Estuda com um professor?" da aba Estudo.
+  bool roleCardHidden = false;
+
+  void hideRoleCard() {
+    roleCardHidden = true;
+    _prefs?.setBool('roleCardHidden', true);
+    notifyListeners();
+  }
+
   bool onboarded = false;
 
   void markOnboarded() {
@@ -2077,6 +2136,7 @@ class AppState extends ChangeNotifier {
     metroPlayer.outputLatencyMs = outputLatencyMs;
     micRationaleSeen = p.getBool('micRationale') ?? false;
     onboarded = p.getBool('onboarded') ?? false;
+    roleCardHidden = p.getBool('roleCardHidden') ?? false;
     await ai.load();
     await feedback.load(p);
     await dictation.load(p);

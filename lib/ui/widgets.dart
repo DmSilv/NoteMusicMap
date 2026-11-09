@@ -26,6 +26,71 @@ class AppCard extends StatelessWidget {
       );
 }
 
+/// Botões de escolha com LARGURA IGUAL, em [columns] colunas e linhas completas:
+/// sem botão "sobrando" sozinho na linha de baixo e sem bordas desencontradas.
+/// O rótulo nunca quebra: se faltar espaço, encolhe um pouco (FittedBox).
+class ChipGrid extends StatelessWidget {
+  final List<Widget> labels;
+  final int? selected;
+  final ValueChanged<int> onSelected;
+  final int? columns;
+  final double spacing;
+  const ChipGrid({
+    super.key,
+    required this.labels,
+    required this.selected,
+    required this.onSelected,
+    this.columns,
+    this.spacing = 6,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cols = (columns ?? labels.length).clamp(1, labels.length);
+    final rows = <Widget>[];
+    for (var start = 0; start < labels.length; start += cols) {
+      if (rows.isNotEmpty) rows.add(SizedBox(height: spacing));
+      rows.add(Row(children: [
+        for (var c = 0; c < cols; c++) ...[
+          if (c > 0) SizedBox(width: spacing),
+          Expanded(
+            child: start + c < labels.length
+                ? ChoiceChip(
+                    showCheckmark: false,
+                    padding: EdgeInsets.zero,
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
+                    label: SizedBox(
+                      width: double.infinity,
+                      child: FittedBox(fit: BoxFit.scaleDown, child: labels[start + c]),
+                    ),
+                    selected: selected == start + c,
+                    onSelected: (_) => onSelected(start + c),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ]));
+    }
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: rows);
+  }
+}
+
+/// Rótulo de duas linhas para um botão de escolha: título e uma explicação curta.
+class ChipLabel2 extends StatelessWidget {
+  final String title;
+  final String sub;
+  const ChipLabel2(this.title, this.sub, {super.key});
+
+  @override
+  Widget build(BuildContext context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w700, height: 1.2)),
+          Text(sub, style: const TextStyle(fontSize: 10.5, height: 1.2)),
+        ],
+      );
+}
+
 /// Escala de -50 a +50 com faixa "afinada" e ponteiro de movimento fluido.
 class NeedleGauge extends StatelessWidget {
   final double? cents;
@@ -59,15 +124,12 @@ class MicSettingsContent extends StatelessWidget {
         children: [
           const Text('Captação do microfone', style: TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
-          Wrap(spacing: 6, children: [
-            for (final s in MicSensitivity.values)
-              ChoiceChip(
-                label: Text(s.label),
-                selected: app.sensitivity == s,
-                onSelected: (_) => app.setMic(sensitivity: s),
-              ),
-          ]),
-          const SizedBox(height: 4),
+          ChipGrid(
+            labels: [for (final s in MicSensitivity.values) Text(s.label)],
+            selected: MicSensitivity.values.indexOf(app.sensitivity),
+            onSelected: (i) => app.setMic(sensitivity: MicSensitivity.values[i]),
+          ),
+          const SizedBox(height: 8),
           Text(
             switch (app.sensitivity) {
               MicSensitivity.rigorous => 'Só notas limpas e fortes. Mais exato, mas perde sons fracos.',
@@ -214,25 +276,22 @@ class SpellingPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sel = app.spellingAuto ? 0 : (app.preferFlats ? 2 : 1);
-    Widget chip(int i, String label) => ChoiceChip(
-          label: Text(label),
-          selected: sel == i,
-          onSelected: (_) => app.setTuning(
-              spellingAuto: i == 0, preferFlats: i == 2 ? true : (i == 1 ? false : null)),
-        );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(spacing: 6, runSpacing: 4, children: [
-          chip(0, 'Automático'),
-          chip(1, 'Sempre ♯'),
-          chip(2, 'Sempre ♭'),
-        ]),
-        const SizedBox(height: 4),
+        ChipGrid(
+          labels: const [Text('Automático'), Text('Sustenidos'), Text('Bemóis')],
+          selected: sel,
+          onSelected: (i) => app.setTuning(
+              spellingAuto: i == 0, preferFlats: i == 2 ? true : (i == 1 ? false : null)),
+        ),
+        const SizedBox(height: 8),
         Text(
           sel == 0
-              ? 'Alterna os dois (Lá♭, Fá♯…) e segue a tonalidade da escala que você escolher.'
-              : (sel == 1 ? 'Mostra Lá♯, Sol♯… (só sustenidos).' : 'Mostra Si♭, Lá♭… (só bemóis).'),
+              ? 'Alterna entre sustenidos e bemóis e segue a tonalidade da escala que você escolher.'
+              : (sel == 1
+                  ? 'As teclas pretas aparecem sempre como sustenido (Lá sustenido, Sol sustenido…).'
+                  : 'As teclas pretas aparecem sempre como bemol (Si bemol, Lá bemol…).'),
           style: TextStyle(color: AppColors.textDim, fontSize: 12),
         ),
       ],
@@ -557,20 +616,20 @@ class Help {
 
   static const system = <(String, String)>[
     ('Igual',
-        'As 12 notas são equidistantes. É a afinação do piano, do violão e da guitarra (os trastes são fixos). Escolha ao tocar junto com piano/teclado ou em instrumentos de trastes.'),
+        'As 12 notas ficam à mesma distância umas das outras. É a afinação do piano, do violão e da guitarra (os trastes são fixos). Escolha ao tocar junto com piano, teclado ou em instrumentos de trastes.'),
     ('Pitagórico',
-        'Baseado em quintas puras. As notas de melodia ficam um pouco mais "brilhantes" (a terça maior sobe cerca de 8 cents e a sensível chega mais perto da tônica). É assim que violinistas, violistas e violoncelistas costumam tocar melodias. Escolha ao estudar melodias e escalas em instrumentos de arco.'),
+        'Constrói as notas com quintas puras (proporção 3:2). A terça maior e a sensível ficam mais altas que no piano, o que deixa as melodias mais brilhantes. É assim que violinistas, violistas e violoncelistas costumam tocar melodias. Escolha ao estudar melodias e escalas em instrumentos de arco.'),
     ('Justo',
-        'Intervalos puros, pensados para acordes (a terça maior fica cerca de 14 cents mais baixa que na afinação igual). Soa mais "limpo" em acordes e em duos ou quartetos de cordas sem piano.'),
+        'Mede cada nota contra a tônica por proporções simples (quinta 3:2, terça maior 5:4). Com essas proporções as ondas se encaixam e some o tremor chamado batimento. A terça maior fica mais baixa que no piano e a quinta um pouco mais alta. Escolha para acordes e música em conjunto sem piano: toque a tônica como referência e afine a terça e a quinta contra ela.'),
   ];
   static const systemFooter =
-      'Mudar o sistema muda o ALVO de cada nota: a mesma nota pode aparecer "baixa" no igual e "afinada" no justo. Não é erro do app. Se não tiver certeza, use Igual. As cordas soltas não dependem desta opção.';
+      'Mudar o sistema muda o ALVO de cada nota: a mesma nota pode aparecer "baixa" no Igual e "afinada" no Justo, e isso não é erro do app. Na tabela "Entender" você vê, em Hz, o alvo de cada nota. Se não tiver certeza, use Igual. As cordas soltas não dependem desta opção.';
 
   static const tonic = <(String, String)>[
     ('Tônica (tom da peça)',
         'É a nota que dá nome ao tom: em Sol maior, a tônica é Sol. Só importa nos sistemas Pitagórico e Justo, porque nesses as notas são afinadas em relação à tônica.'),
     ('Manter o Lá fixo',
-        'Ligado: o Lá continua exatamente na referência (por exemplo 440 Hz) e as outras notas se ajustam em torno dele. É o recomendado para instrumentos de arco, que se afinam pelo Lá. Desligado: a tônica fica na afinação igual e o Lá pode mudar alguns cents.'),
+        'Ligado: o Lá continua exatamente na referência (por exemplo 440 Hz) e as outras notas se ajustam em torno dele. É o recomendado para instrumentos de arco, que se afinam pelo Lá. Desligado: a tônica fica na afinação igual e o Lá pode mudar um pouco.'),
   ];
 
   static const refA = <(String, String)>[
@@ -602,7 +661,7 @@ class SystemAdvice extends StatelessWidget {
     } else {
       rec = '${inst.name} é de arco: Pitagórico para melodias e escalas, Justo para acordes e conjunto.';
       if (sys == TuningSystem.equal) {
-        warn = 'No Igual, algumas notas boas do arco (como terças e sensíveis) podem aparecer alguns cents "fora". Para estudar melodias, experimente o Pitagórico.';
+        warn = 'No Igual, algumas notas boas do arco (como terças e sensíveis) podem aparecer um pouco "fora". Para estudar melodias, experimente o Pitagórico.';
       }
     }
     return Column(

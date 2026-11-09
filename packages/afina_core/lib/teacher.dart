@@ -70,6 +70,10 @@ class Assignment {
   final double goal; // 0..1 (taxa de acerto)
   final bool done;
   final DateTime created;
+
+  /// Só do lado do professor: a tarefa já foi enviada ao aluno (true), ainda não (false)
+  /// ou não se aplica / vem de dados antigos (null). Nunca vai para o servidor.
+  final bool? sent;
   const Assignment({
     required this.id,
     required this.title,
@@ -83,6 +87,7 @@ class Assignment {
     this.goal = 0.8,
     this.done = false,
     required this.created,
+    this.sent,
   });
 
   bool get isScale => kind == TaskKind.scale;
@@ -94,7 +99,7 @@ class Assignment {
     return d.isEmpty ? s : '$s · $d';
   }
 
-  Assignment copyWith({bool? done, String? subject, String? detail, String? note}) {
+  Assignment copyWith({bool? done, String? subject, String? detail, String? note, bool? sent}) {
     final sub = subject ?? this.subject;
     final det = detail ?? this.detail;
     return Assignment(
@@ -109,7 +114,8 @@ class Assignment {
         octaves: octaves,
         goal: goal,
         done: done ?? this.done,
-        created: created);
+        created: created,
+        sent: sent ?? this.sent);
   }
 
   Map<String, dynamic> toJson() => {
@@ -125,6 +131,7 @@ class Assignment {
         'goal': goal,
         'done': done,
         'c': created.toIso8601String(),
+        if (sent != null) 'snt': sent,
       };
 
   static Assignment? tryFrom(Map<String, dynamic> j) {
@@ -144,6 +151,7 @@ class Assignment {
         goal: ((j['goal'] as num?) ?? 0.8).toDouble().clamp(0.0, 1.0),
         done: j['done'] == true,
         created: DateTime.parse(j['c'] as String),
+        sent: j['snt'] as bool?,
       );
     } catch (_) {
       return null;

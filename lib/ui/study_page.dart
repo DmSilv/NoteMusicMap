@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import 'feedback_sheet.dart';
 import 'study_timers.dart';
-import 'teacher_page.dart';
 import 'progress_cards.dart';
+import 'role_card.dart';
 import 'perf.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -44,22 +44,9 @@ class StudyPage extends StatelessWidget {
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
-            if (app.teacherMode) ...[
-              AppCard(
-                child: ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: Icon(Icons.school_outlined, color: AppColors.accent),
-                  title: const Text('Área do professor', style: TextStyle(fontWeight: FontWeight.w800)),
-                  subtitle: Text(app.activeStudent == null
-                      ? 'Alunos, tarefas e relatórios'
-                      : 'Em aula: ${app.activeStudent!.name}'),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context)
-                      .push(MaterialPageRoute<void>(builder: (_) => TeacherPage(app: app))),
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
+            // Cartões de papel: professor (alunos, convidar), aluno com professor (tarefas
+            // pendentes da semana) e aluno ainda sem professor (convite para vincular).
+            RoleCard(app: app),
             FeedbackInviteCard(app: app),
             StudyTimerSection(app: app),
             const SizedBox(height: 12),

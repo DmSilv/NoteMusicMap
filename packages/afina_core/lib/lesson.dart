@@ -4,6 +4,7 @@
 library;
 
 import 'input_guard.dart';
+import 'lesson_week.dart' show fmtLessonDay;
 import 'teacher.dart';
 
 /// Máximos por aula (valem no app e no servidor).
@@ -102,9 +103,24 @@ class SharedLesson {
         'id': id,
         't': atMs,
         'd': durationSec,
-        'tasks': [for (final t in tasks) t.toJson()],
+        // 'snt' (enviada) é controle do professor: não sai do aparelho.
+        'tasks': [for (final t in tasks) (t.toJson()..remove('snt'))],
         'notes': notes,
       };
+
+  /// Pacote só de tarefas (sem aula): o professor passou tarefas fora de uma aula.
+  bool get tasksOnly => durationSec == 0 && tasks.isNotEmpty;
+
+  /// "Aula de segunda, 09/11" ou, se foram só tarefas, "Tarefas de segunda, 09/11".
+  String get label => '${tasksOnly ? 'Tarefas' : 'Aula'} de ${fmtLessonDay(date)}';
+
+  /// Quem passou: "Marina · K7QM-4TXD" (nome e código), só o código ou "Professor".
+  String get teacherLabel {
+    final n = teacherName.trim(), c = teacherCode.trim();
+    if (n.isNotEmpty && c.isNotEmpty) return '$n · $c';
+    if (n.isNotEmpty) return n;
+    return c.isNotEmpty ? 'Professor $c' : 'Professor';
+  }
 
   /// Lê o formato do servidor, limpando e limitando tudo (o servidor também confere,
   /// mas o app não confia em nada que vem de fora).
@@ -205,9 +221,11 @@ LessonRecord buildLessonRecord(Student s, ActiveLesson l, DateTime end, {String 
   bool inside(DateTime d) =>
       !d.isBefore(start.subtract(const Duration(seconds: 1))) &&
       !d.isAfter(end.add(const Duration(seconds: 1)));
+  // Vai com a aula: o que foi passado durante ela e o que ficou esperando envio. O que já
+  // foi enviado antes (sent == true) nunca vai de novo.
   final tasks = [
     for (final t in s.tasks)
-      if (inside(t.created)) t
+      if (t.sent != true && (inside(t.created) || t.sent == false)) t
   ].take(kMaxLessonTasks).toList();
   final notes = [
     for (final n in s.notes)
@@ -242,4 +260,113 @@ String fmtLessonDuration(int seconds) {
   if (seconds >= 600) return '${seconds ~/ 60} min';
   if (seconds >= 60) return '${seconds ~/ 60} min ${(seconds % 60).toString().padLeft(2, '0')} s';
   return '$seconds s';
+}
+
+/// Ids das tarefas que o pacote [rec] leva (para marcá-las como enviadas).
+Set<String> taskIdsOf(LessonRecord rec) => {
+      for (final t in (rec.wire?['tasks'] as List? ?? const []))
+        if (t is Map && t['id'] is String) t['id'] as String
+    };
+
+/// Tarefas do aluno que ainda esperam envio (mais recentes primeiro).
+List<Assignment> pendingTasks(Student s) => [
+      for (final t in s.tasks)
+        if (t.sent == false) t
+    ];
+
+/// Pacote só com as tarefas ainda não enviadas, para mandar fora de uma aula. Sai sem
+/// duração (durationSec 0): o aluno vê "Tarefas de …" em vez de "Aula de …". Null se não há nada.
+LessonRecord? buildTasksPackage(Student s, DateTime now, {String teacherName = '', String? id}) {
+  final tasks = pendingTasks(s).take(kMaxLessonTasks).toList();
+  if (tasks.isEmpty) return null;
+  final pkgId = id ?? now.microsecondsSinceEpoch.toRadixString(36);
+  final pkg = SharedLesson(id: pkgId, atMs: now.millisecondsSinceEpoch, durationSec: 0, tasks: tasks);
+  return LessonRecord(
+    id: pkgId,
+    startedAt: now,
+    endedAt: now,
+    durationSec: 0,
+    taskCount: tasks.length,
+    noteCount: 0,
+    wire: {...pkg.toWire(), if (teacherName.isNotEmpty) 'tn': cleanText(teacherName, max: kMaxName)},
+  );
+}
+
+/// Como uma tarefa nova chega ao aluno.
+enum DeliveryMode {
+  /// Há aula em andamento com ele: vai junto quando ela terminar.
+  inLesson,
+
+  /// Pode ser enviada agora (a entrega depende só da conexão).
+  now,
+
+  /// Pode ser enviada, mas vai ficar na fila (vínculo ligado depois, aluno ainda não vinculado, servidor indisponível).
+  queued,
+
+  /// Não há como enviar: sem código ou o aluno encerrou o vínculo. Fica só na ficha.
+  localOnly,
+}
+
+class TaskDelivery {
+  final DeliveryMode mode;
+  final String text;
+  const TaskDelivery(this.mode, this.text);
+
+  /// Dá para mandar (agora ou na fila) sem estar em aula.
+  bool get canSend => mode == DeliveryMode.now || mode == DeliveryMode.queued;
+}
+
+/// A regra de entrega das tarefas: em aula, vai com a aula; fora dela, o professor
+/// escolhe enviar na hora. Sem código ou com vínculo encerrado, só fica na ficha.
+TaskDelivery taskDeliveryFor(
+  Student s, {
+  required bool inLessonWithThis,
+  required bool linkOn,
+  required bool serverUp,
+}) {
+  final n = s.name;
+  if (inLessonWithThis) {
+    return TaskDelivery(DeliveryMode.inLesson, 'Vai para $n quando você encerrar a aula.');
+  }
+  if (s.code == null) {
+    return TaskDelivery(
+        DeliveryMode.localOnly,
+        '$n não tem código: a tarefa fica só na sua ficha. Para enviar, '
+        'informe o código dele (menu ⋮ › Código do aluno).');
+  }
+  if (s.linkState == 'ended') {
+    return TaskDelivery(DeliveryMode.localOnly, '$n encerrou o vínculo: a tarefa fica só na sua ficha.');
+  }
+  if (!linkOn) {
+    return const TaskDelivery(
+        DeliveryMode.queued, 'O vínculo online está desligado: a tarefa fica guardada e vai quando você ligá-lo.');
+  }
+  if (!serverUp) {
+    return const TaskDelivery(
+        DeliveryMode.queued, 'O servidor ainda não recebe tarefas: ela fica guardada e vai quando ficar disponível.');
+  }
+  if (s.linkState != 'active') {
+    return TaskDelivery(
+        DeliveryMode.queued, '$n ainda não está vinculado: a tarefa fica guardada e vai quando ele se vincular.');
+  }
+  return TaskDelivery(DeliveryMode.now, '$n recebe na hora, em Estudo › Tarefas do professor.');
+}
+
+/// Texto do aviso para o aluno quando chegam aulas ou tarefas novas.
+String newLessonsMessage(List<SharedLesson> fresh) {
+  String who(SharedLesson l) => l.teacherName.trim().isNotEmpty ? l.teacherName.trim() : 'Seu professor';
+  String tasks(int k) => '$k tarefa${k == 1 ? '' : 's'}';
+  final total = fresh.fold<int>(0, (a, l) => a + l.tasks.length);
+  if (fresh.length == 1) {
+    final l = fresh.first;
+    final k = l.tasks.length;
+    if (l.tasksOnly) return '${who(l)} passou ${tasks(k)} para você.';
+    if (k > 0) return '${who(l)} encerrou a aula e passou ${tasks(k)}.';
+    return l.notes.isNotEmpty
+        ? '${who(l)} encerrou a aula e deixou observações.'
+        : '${who(l)} encerrou a aula.';
+  }
+  return total > 0
+      ? '${fresh.length} novidades dos seus professores: ${tasks(total)} nova${total == 1 ? '' : 's'}.'
+      : '${fresh.length} novidades dos seus professores.';
 }

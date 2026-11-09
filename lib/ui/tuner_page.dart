@@ -6,7 +6,9 @@ import '../app_state.dart';
 import 'package:afina_core/afina_core.dart';
 import 'perf.dart';
 import 'ref_a_dialog.dart';
+import 'note_widgets.dart';
 import 'theme.dart';
+import 'tuning_guide.dart';
 import 'widgets.dart';
 
 class TunerPage extends StatefulWidget {
@@ -19,6 +21,7 @@ class TunerPage extends StatefulWidget {
 }
 
 class _TunerPageState extends State<TunerPage> {
+  static const _refAs = [415.0, 432.0, 440.0, 442.0, 443.0];
   int? _playingString; // índice da corda cujo tom está tocando
   bool _playingA = false;
 
@@ -239,15 +242,19 @@ class _TunerPageState extends State<TunerPage> {
                   const SizedBox(height: 16),
                   NeedleGauge(cents: cents, zone: zone),
                   const SizedBox(height: 12),
+                  // Três colunas de largura igual: esquerda, centro (no meio do cartão) e direita.
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _stat(
                           'Desvio',
                           cents == null || targetHz == null ? '—' : fmtHz(hzOff(cents, targetHz)),
-                          color),
-                      _stat('Frequência', hz == null ? '—' : '${hz.toStringAsFixed(1)} Hz', AppColors.text),
-                      _stat('Alvo', targetHz == null ? '—' : '${targetHz.toStringAsFixed(2)} Hz', AppColors.text),
+                          color,
+                          CrossAxisAlignment.start),
+                      _stat('Frequência', hz == null ? '—' : '${hz.toStringAsFixed(1)} Hz',
+                          AppColors.text, CrossAxisAlignment.center),
+                      _stat('Alvo', targetHz == null ? '—' : '${targetHz.toStringAsFixed(2)} Hz',
+                          AppColors.text, CrossAxisAlignment.end),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -321,13 +328,34 @@ class _TunerPageState extends State<TunerPage> {
     );
   }
 
-  Widget _stat(String label, String value, Color c) => Column(
+  Widget _stat(String label, String value, Color c, CrossAxisAlignment align) {
+    final a = switch (align) {
+      CrossAxisAlignment.start => Alignment.centerLeft,
+      CrossAxisAlignment.end => Alignment.centerRight,
+      _ => Alignment.center,
+    };
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: align,
         children: [
           Text(label, style: TextStyle(color: AppColors.textDim, fontSize: 12)),
           const SizedBox(height: 2),
-          Text(value, style: TextStyle(color: c, fontSize: 18, fontWeight: FontWeight.w700)),
+          // Nunca vaza nem quebra: se o número for largo, encolhe.
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: a,
+            child: Text(value,
+                maxLines: 1,
+                style: TextStyle(
+                    color: c,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    fontFeatures: const [FontFeature.tabularFigures()])),
+          ),
         ],
-      );
+      ),
+    );
+  }
 
   Widget _instrumentPicker() {
     return PickerField<String>(
@@ -347,23 +375,45 @@ class _TunerPageState extends State<TunerPage> {
   }
 
   Widget _stringsRow(Instrument inst, int? hit) {
-    return Row(
-      children: [
-        for (var i = 0; i < inst.strings.length; i++)
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: _StringChip(
-                label: noteName(inst.strings[i].midi, app.cfg),
-                octave: ((inst.strings[i].midi + app.cfg.transpose) ~/ 12 - 1).toString(),
-                hz: inst.stringFreq(i, app.refA),
-                active: hit == i,
-                playing: _playingString == i,
-                onTap: () => _toggleString(i),
+    // Todos os cartões têm a MESMA altura (stretch) e o texto nunca quebra de linha
+    // (FittedBox), então a fileira fica alinhada em qualquer instrumento e largura.
+    // Ao trocar de instrumento ou de grafia das notas, a fileira inteira faz uma
+    // transição suave; ao mudar o Lá de referência, os números deslizam até o novo valor.
+    final names = [for (final st in inst.strings) noteName(st.midi, app.cfg)];
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 260),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      layoutBuilder: (current, previous) => Stack(
+        alignment: Alignment.topCenter,
+        children: [...previous, ?current],
+      ),
+      transitionBuilder: (child, anim) => FadeTransition(
+        opacity: anim,
+        child: ScaleTransition(scale: Tween(begin: 0.97, end: 1.0).animate(anim), child: child),
+      ),
+      child: IntrinsicHeight(
+        key: ValueKey('${app.instrumentId}|${names.join(',')}'),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (var i = 0; i < inst.strings.length; i++)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  child: _StringChip(
+                    label: names[i],
+                    octave: ((inst.strings[i].midi + app.cfg.transpose) ~/ 12 - 1).toString(),
+                    hz: inst.stringFreq(i, app.refA),
+                    active: hit == i,
+                    playing: _playingString == i,
+                    onTap: () => _toggleString(i),
+                  ),
+                ),
               ),
-            ),
-          ),
-      ],
+          ],
+        ),
+      ),
     );
   }
 
@@ -379,25 +429,10 @@ class _TunerPageState extends State<TunerPage> {
           ]),
           const SizedBox(height: 8),
           // Cinco botões de largura igual: sempre cabem, em qualquer tela.
-          Row(
-            children: [
-              for (final hz in const [415.0, 432.0, 440.0, 442.0, 443.0])
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 3),
-                    child: ChoiceChip(
-                      padding: EdgeInsets.zero,
-                      labelPadding: EdgeInsets.zero,
-                      label: SizedBox(
-                        width: double.infinity,
-                        child: Text(hz.toStringAsFixed(0), textAlign: TextAlign.center),
-                      ),
-                      selected: app.refA == hz,
-                      onSelected: (_) => app.setTuning(refA: hz),
-                    ),
-                  ),
-                ),
-            ],
+          ChipGrid(
+            labels: [for (final hz in _refAs) Text(hz.toStringAsFixed(0))],
+            selected: _refAs.contains(app.refA) ? _refAs.indexOf(app.refA) : null,
+            onSelected: (i) => app.setTuning(refA: _refAs[i]),
           ),
           const SizedBox(height: 6),
           // Ajuste fino em linha própria, centralizado.
@@ -449,25 +484,18 @@ class _TunerPageState extends State<TunerPage> {
                   footer: Help.systemFooter),
             ]),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              children: [
-                ChoiceChip(
-                    label: const Text('Igual (piano, violão)'),
-                    selected: app.system == TuningSystem.equal,
-                    onSelected: (_) => app.setTuning(system: TuningSystem.equal)),
-                ChoiceChip(
-                    label: const Text('Pitagórico (melodia)'),
-                    selected: app.system == TuningSystem.pythagorean,
-                    onSelected: (_) => app.setTuning(system: TuningSystem.pythagorean)),
-                ChoiceChip(
-                    label: const Text('Justo (acordes)'),
-                    selected: app.system == TuningSystem.just,
-                    onSelected: (_) => app.setTuning(system: TuningSystem.just)),
+            ChipGrid(
+              labels: const [
+                ChipLabel2('Igual', 'piano, violão'),
+                ChipLabel2('Pitagórico', 'melodia'),
+                ChipLabel2('Justo', 'acordes'),
               ],
+              selected: TuningSystem.values.indexOf(app.system),
+              onSelected: (i) => app.setTuning(system: TuningSystem.values[i]),
             ),
             const SizedBox(height: 6),
             SystemAdvice(app: app),
+            TuningSystemGuide(app: app),
             if (app.system != TuningSystem.equal) ...[
               const SizedBox(height: 10),
               Row(children: [
@@ -477,17 +505,15 @@ class _TunerPageState extends State<TunerPage> {
                 const HelpButton(title: 'Tônica e Lá fixo', sections: Help.tonic),
               ]),
               const SizedBox(height: 6),
-              Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: [
+              ChipGrid(
+                columns: 6,
+                labels: [
                   for (var pc = 0; pc < 12; pc++)
-                    ChoiceChip(
-                      label: Text(noteName(pc + 60, app.cfg.copyWith(transpose: 0))),
-                      selected: app.tonicPc == pc,
-                      onSelected: (_) => app.setTuning(tonicPc: pc),
-                    ),
+                    NoteLabel.midi(pc + 60, app.cfg.copyWith(transpose: 0),
+                        withOctave: false, size: 14, weight: FontWeight.w600, color: AppColors.text),
                 ],
+                selected: app.tonicPc,
+                onSelected: (pc) => app.setTuning(tonicPc: pc),
               ),
               const SizedBox(height: 8),
               SwitchListTile(
@@ -542,27 +568,56 @@ class _StringChip extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          constraints: const BoxConstraints(minHeight: 82),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(color: border, width: active || playing ? 2 : 1),
           ),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(label, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                  Text(octave, style: TextStyle(fontSize: 12, color: AppColors.textDim)),
-                ],
+              // Altura fixa para a linha da nota: o ♯/♭ usa outra fonte e, sem isto,
+              // deixaria o cartão mais alto que os vizinhos.
+              SizedBox(
+                height: 26,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      NoteLabel(
+                        name: label,
+                        octave: int.tryParse(octave),
+                        size: 20,
+                        color: AppColors.text,
+                      ),
+                    ],
+                  ),
+                ),
               ),
               const SizedBox(height: 2),
-              Text('${hz.toStringAsFixed(1)} Hz',
-                  style: TextStyle(fontSize: 11, color: AppColors.textDim)),
+              // O número desliza até o novo valor quando o Lá de referência muda.
+              TweenAnimationBuilder<double>(
+                tween: Tween<double>(end: hz),
+                duration: const Duration(milliseconds: 380),
+                curve: Curves.easeOutCubic,
+                builder: (context, v, _) => FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text('${v.toStringAsFixed(1)} Hz',
+                      maxLines: 1,
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textDim,
+                          fontFeatures: const [FontFeature.tabularFigures()])),
+                ),
+              ),
+              const SizedBox(height: 2),
               Icon(playing ? Icons.volume_up : Icons.volume_mute,
                   size: 14, color: playing ? AppColors.flat : AppColors.textDim),
             ],

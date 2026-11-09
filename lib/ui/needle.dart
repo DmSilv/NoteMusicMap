@@ -149,11 +149,13 @@ class _NeedlePainter extends CustomPainter {
       for (final c in [-50, -25, 0, 25, 50]) {
         final tp = TextPainter(
           text: TextSpan(
-              text: c > 0 ? '+$c' : '$c',
+              text: c > 0 ? '+$c' : (c < 0 ? '−${-c}' : '0'),
               style: TextStyle(color: AppColors.textDim, fontSize: 11)),
           textDirection: TextDirection.ltr,
         )..layout();
-        tp.paint(canvas, Offset(x(c.toDouble()) - tp.width / 2, y + 26));
+        // Centrado no traço, mas sem passar das bordas do medidor.
+        final left = (x(c.toDouble()) - tp.width / 2).clamp(0.0, w - tp.width);
+        tp.paint(canvas, Offset(left, y + 26));
       }
     }
 

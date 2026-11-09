@@ -392,3 +392,75 @@ test('aluno que ainda não reivindicou o código não recebe aula (ninguém "rou
   assert.equal(thief.statusCode, 200);
   assert.equal(thief.json().lessons.length, 0);
 });
+
+// ---------------- dois professores para o mesmo aluno ----------------
+const PROF2 = code(44444);
+const S_PROF2 = secret(4);
+async function vinculaDois(h) {
+  await sync(h, ALU, S_ALU);
+  for (const [c, s] of [[PROF, S_PROF], [PROF2, S_PROF2]]) {
+    const r = await call(h, { action: 'link', code: c, secret: s, role: 'teacher', other: ALU });
+    assert.equal(r.statusCode, 200);
+  }
+}
+
+test('dois professores: o aluno recebe as aulas dos dois, mesmo com o mesmo id de aula', async () => {
+  const h = mk();
+  await vinculaDois(h);
+  const a = await call(h, { action: 'lesson', code: PROF, secret: S_PROF, other: ALU, lesson: lessonOf('mesmoid01') });
+  const b = await call(h, { action: 'lesson', code: PROF2, secret: S_PROF2, other: ALU, lesson: lessonOf('mesmoid01', { tn: 'Prof. B' }) });
+  assert.equal(a.statusCode, 200);
+  assert.equal(b.statusCode, 200);
+  const j = (await pull(h)).json();
+  assert.equal(j.lessons.length, 2);
+  assert.deepEqual(j.lessons.map((l) => l.by).sort(), [PROF, PROF2].sort());
+});
+
+test('dois professores: desvincular um só apaga as aulas dele', async () => {
+  const h = mk();
+  await vinculaDois(h);
+  await call(h, { action: 'lesson', code: PROF, secret: S_PROF, other: ALU, lesson: lessonOf('aula0020') });
+  await call(h, { action: 'lesson', code: PROF2, secret: S_PROF2, other: ALU, lesson: lessonOf('aula0021') });
+  const u = await call(h, { action: 'unlink', code: ALU, secret: S_ALU, role: 'student', other: PROF });
+  assert.equal(u.statusCode, 200);
+  const j = (await pull(h)).json();
+  assert.deepEqual(j.lessons.map((l) => l.id), ['aula0021']);
+  assert.equal(j.lessons[0].by, PROF2);
+});
+
+test('compatível com app antigo: sync continua devolvendo as listas e só acrescenta lr', async () => {
+  const h = mk();
+  await vincula(h);
+  const j = await sync(h, ALU, S_ALU);
+  assert.equal(j.ok, true);
+  assert.ok(Array.isArray(j.asStudent) && Array.isArray(j.asTeacher));
+  assert.equal(typeof j.lr, 'number');
+  assert.deepEqual(Object.keys(j.asStudent[0]).sort(), ['by', 'code', 'name', 'since']);
+});
+
+test('tarefas avulsas (fora de aula, sem duração) são aceitas e chegam ao aluno', async () => {
+  const h = mk();
+  await vincula(h);
+  const pkg = lessonOf('avulsa001', { d: 0, notes: [] });
+  const r = await call(h, { action: 'lesson', code: PROF, secret: S_PROF, other: ALU, lesson: pkg });
+  assert.equal(r.statusCode, 200);
+  const j = (await pull(h)).json();
+  const got = j.lessons.find((l) => l.id === 'avulsa001');
+  assert.ok(got, 'o aluno recebe o pacote');
+  assert.equal(got.d, 0);
+  assert.ok(got.tasks.length >= 1);
+  assert.equal(got.by, PROF);
+});
+
+test('o controle de envio do professor (snt) nunca é guardado no servidor', async () => {
+  const h = mk();
+  await vincula(h);
+  const pkg = lessonOf('avulsa002', { d: 0 });
+  pkg.tasks = pkg.tasks.map((t) => ({ ...t, snt: false }));
+  const r = await call(h, { action: 'lesson', code: PROF, secret: S_PROF, other: ALU, lesson: pkg });
+  assert.equal(r.statusCode, 200);
+  const j = (await pull(h)).json();
+  const got = j.lessons.find((l) => l.id === 'avulsa002');
+  assert.ok(got);
+  for (const t of got.tasks) assert.equal('snt' in t, false);
+});

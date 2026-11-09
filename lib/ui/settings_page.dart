@@ -13,6 +13,7 @@ import 'qr_scan_page.dart';
 import 'ref_a_dialog.dart';
 import 'share_sheet.dart';
 import 'theme.dart';
+import 'tuning_guide.dart';
 import 'widgets.dart';
 
 const String kAppName = 'Notemusic';
@@ -220,13 +221,14 @@ class SettingsPage extends StatelessWidget {
           child: Text('Define como cada nota é medida no modo Cromático. As cordas soltas usam a afinação do próprio instrumento.',
               style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
         ),
-        _choice('Igual', 'Padrão do piano e do violão. Boa para tocar com teclados.',
+        _choice('Igual', 'Piano, violão e instrumentos de trastes: as 12 notas à mesma distância.',
             app.system == TuningSystem.equal, () => app.setTuning(system: TuningSystem.equal)),
-        _choice('Pitagórico', 'Melodias e escalas no violino, viola e violoncelo: notas "puxadas" para cima.',
+        _choice('Pitagórico', 'Melodias e escalas em instrumentos de arco: terças e sensível mais altas, quintas puras.',
             app.system == TuningSystem.pythagorean, () => app.setTuning(system: TuningSystem.pythagorean)),
-        _choice('Justo', 'Acordes e conjunto: terças e quintas sem batimento.',
+        _choice('Justo', 'Acordes e conjunto: terças e quintas puras, sem tremor. A terça fica mais baixa que no piano.',
             app.system == TuningSystem.just, () => app.setTuning(system: TuningSystem.just)),
         SystemAdvice(app: app),
+        TuningSystemGuide(app: app),
 
         // ---- 3. Som do diapasão ----
         const Divider(height: 28),

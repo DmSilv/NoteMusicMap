@@ -11,6 +11,8 @@ import 'markdown_lite.dart';
 import 'methods_page.dart';
 import 'qr_scan_page.dart';
 import 'scale_exercise_page.dart';
+import 'student_identity.dart';
+import 'task_form_page.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -562,8 +564,13 @@ class _TeacherPageState extends State<TeacherPage> {
                         Text('Código ${s.code}',
                             style: TextStyle(color: AppColors.textDim, fontSize: 12, letterSpacing: 0.5)),
                         const SizedBox(width: 8),
-                        _linkBadge(s),
+                        linkBadge(s),
                       ]),
+                    if (remoteNameOf(s) != null)
+                      Text('Nome no perfil dele: ${remoteNameOf(s)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: AppColors.textDim, fontSize: 12)),
                     const SizedBox(height: 2),
                     Text(
                       sum.sessions == 0
@@ -722,21 +729,6 @@ class _PinGateState extends State<_PinGate> {
   }
 }
 
-/// Selo do vínculo online do aluno.
-Widget _linkBadge(Student s) {
-  final (icon, color, text) = switch (s.linkState) {
-    'active' => (Icons.link, AppColors.inTune, 'Vinculado'),
-    'pending' => (Icons.sync_problem, AppColors.flat, 'A vincular'),
-    'ended' => (Icons.link_off, AppColors.sharp, 'Encerrado pelo aluno'),
-    _ => (Icons.phone_android, AppColors.textDim, 'Só neste aparelho'),
-  };
-  return Row(mainAxisSize: MainAxisSize.min, children: [
-    Icon(icon, size: 13, color: color),
-    const SizedBox(width: 3),
-    Text(text, style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.w700)),
-  ]);
-}
-
 /// Detalhe de um aluno: evolução, orientações, tarefas e observações.
 class StudentPage extends StatelessWidget {
   final AppState app;
@@ -797,9 +789,16 @@ class StudentPage extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(14, 8, 14, 24),
               children: [
+                AppCard(child: StudentIdentity(app: app, student: s, large: true)),
+                const SizedBox(height: 10),
                 _summary(sum, s),
                 const SizedBox(height: 10),
-                _LessonCard(app: app, student: s),
+                _LessonCard(
+                  app: app,
+                  student: s,
+                  onNewTask: () => _taskDialog(context, s),
+                  onNewNote: () => _newNote(context, s),
+                ),
                 const SizedBox(height: 10),
                 if (tips.isNotEmpty) ...[
                   AppCard(
@@ -962,6 +961,7 @@ class StudentPage extends StatelessWidget {
                 'Nenhuma tarefa ainda. Toque em "Nova tarefa" para passar uma escala, uma lição de método, '
                 'uma peça do repertório ou outra atividade, com observações se quiser.',
                 style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+          _pendingBanner(s),
           for (final t in s.tasks)
             ListTile(
               contentPadding: EdgeInsets.zero,
@@ -980,6 +980,7 @@ class StudentPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(t.isScale ? 'Meta ${(t.goal * 100).round()}% de acerto' : t.kind.label),
+                  _sentChip(s, t),
                   if (t.note.isNotEmpty)
                     Text(t.note,
                         maxLines: 3,
@@ -1008,6 +1009,51 @@ class StudentPage extends StatelessWidget {
             ),
         ],
       ),
+    );
+  }
+
+  /// Se [s] pode receber (tem código e não encerrou o vínculo), mostra se a tarefa já foi enviada.
+  Widget _sentChip(Student s, Assignment t) {
+    final canReceive = s.code != null && s.linkState != 'ended';
+    if (!canReceive || t.sent == null) return const SizedBox.shrink();
+    // "Na fila": já empacotada, mas o servidor ainda não aceitou (sem conexão, aluno por vincular…).
+    final queued = t.sent == true && s.lessons.any((r) => r.sent == false && taskIdsOf(r).contains(t.id));
+    final sent = t.sent == true && !queued;
+    final color = sent ? AppColors.inTune : AppColors.flat;
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(sent ? Icons.mark_email_read_outlined : Icons.schedule_send_outlined, size: 13, color: color),
+        const SizedBox(width: 4),
+        Text(sent ? 'Enviada ao aluno' : (queued ? 'Na fila de envio' : 'A enviar'),
+            style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.w700)),
+      ]),
+    );
+  }
+
+  /// "N tarefas ainda não enviadas" com o botão de enviar (fora de aula e com envio possível).
+  Widget _pendingBanner(Student s) {
+    final n = app.pendingTaskCount(s);
+    if (n == 0 || !app.deliveryFor(s).canSend) return const SizedBox.shrink();
+    return Container(
+      margin: const EdgeInsets.only(top: 4, bottom: 6),
+      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: AppColors.flat.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(children: [
+        Icon(Icons.schedule_send_outlined, size: 20, color: AppColors.flat),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text('$n tarefa${n == 1 ? '' : 's'} ainda não enviada${n == 1 ? '' : 's'} a ${s.name}.',
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+        ),
+        FilledButton.tonal(
+          onPressed: () => app.say(app.sendPendingTasks(s)),
+          child: const Text('Enviar'),
+        ),
+      ]),
     );
   }
 
@@ -1041,220 +1087,39 @@ class StudentPage extends StatelessWidget {
     Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ScaleExercisePage(app: app)));
   }
 
-  /// Criar ([edit] nulo) ou editar uma tarefa. Quatro tipos: escala/arpejo (medida
-  /// pelo app), método e lição, repertório e outra atividade. Todos aceitam
-  /// uma observação livre.
+  /// Criar ([edit] nulo) ou editar uma tarefa, pelo formulário em tela cheia. Depois de criar,
+  /// envia na hora se o professor deixou ligado e a regra de entrega permite (não precisa
+  /// estar em aula); em aula, a tarefa vai junto quando a aula for encerrada.
   Future<void> _taskDialog(BuildContext context, Student s, {Assignment? edit}) async {
-    var kind = edit?.kind ?? TaskKind.scale;
-    var type = edit != null && edit.isScale ? ScaleType.values[edit.scaleTypeIndex] : app.scaleType;
-    var pc = edit != null && edit.isScale ? edit.tonicPc : app.scaleTonicMidi % 12;
-    var oct = edit?.octaves ?? 1;
-    var goal = edit?.goal ?? 0.8;
-    final names = app.cfg.copyWith(transpose: 0);
-    final subject = TextEditingController(text: edit?.subject ?? '');
-    final detail = TextEditingController(text: edit?.detail ?? '');
-    final note = TextEditingController(text: edit?.note ?? '');
-    String? subjectErr;
-    final isEdit = edit != null;
-    final methods = app.methodNames();
-
-    String subjectLabel() => switch (kind) {
-          TaskKind.method => 'Método ou livro',
-          TaskKind.repertoire => 'Peça ou obra',
-          _ => 'O que estudar',
-        };
-    String? detailLabel() => switch (kind) {
-          TaskKind.method => 'Lição ou exercício (ex.: Lição 5)',
-          TaskKind.repertoire => 'Trecho ou compassos (opcional)',
-          _ => null,
-        };
-
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (c) => StatefulBuilder(
-        builder: (c, setS) => AlertDialog(
-          title: Text(isEdit ? 'Editar tarefa' : 'Nova tarefa'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (!isEdit) ...[
-                  Wrap(spacing: 6, runSpacing: 4, children: [
-                    for (final k in TaskKind.values)
-                      ChoiceChip(
-                        avatar: Icon(_kindIcon(k), size: 16),
-                        label: Text(k.label),
-                        selected: kind == k,
-                        onSelected: (_) => setS(() => kind = k),
-                      ),
-                  ]),
-                  const SizedBox(height: 12),
-                ],
-                if (kind == TaskKind.scale) ...[
-                  if (isEdit)
-                    Text(edit.title, style: const TextStyle(fontWeight: FontWeight.w800))
-                  else ...[
-                    PickerField<ScaleType>(
-                      label: 'Escala ou arpejo',
-                      value: type,
-                      options: [for (final t in ScaleType.values) OptionItem(t, t.label)],
-                      onChanged: (v) => setS(() => type = v),
-                    ),
-                    const SizedBox(height: 10),
-                    const Text('Nota inicial'),
-                    Wrap(spacing: 5, runSpacing: 2, children: [
-                      for (var i = 0; i < 12; i++)
-                        ChoiceChip(
-                          label: Text(noteName(i + 60, names)),
-                          selected: pc == i,
-                          onSelected: (_) => setS(() => pc = i),
-                        ),
-                    ]),
-                    const SizedBox(height: 10),
-                    const Text('Oitavas'),
-                    Wrap(spacing: 6, children: [
-                      for (final o in [1, 2, 3])
-                        ChoiceChip(label: Text('$o'), selected: oct == o, onSelected: (_) => setS(() => oct = o)),
-                    ]),
-                    const SizedBox(height: 10),
-                    const Text('Meta de acerto'),
-                    Wrap(spacing: 6, children: [
-                      for (final g in [0.6, 0.7, 0.8, 0.9])
-                        ChoiceChip(
-                            label: Text('${(g * 100).round()}%'),
-                            selected: goal == g,
-                            onSelected: (_) => setS(() => goal = g)),
-                    ]),
-                  ],
-                ] else ...[
-                  TextField(
-                    controller: subject,
-                    inputFormatters: const [SafeText.title()],
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: InputDecoration(
-                      labelText: subjectLabel(),
-                      errorText: subjectErr,
-                      suffixIcon: DictationButton(app: app, controller: subject),
-                    ),
-                    onChanged: (_) => setS(() => subjectErr = null),
-                  ),
-                  if (kind == TaskKind.method) ...[
-                    const SizedBox(height: 6),
-                    Wrap(spacing: 6, runSpacing: 0, children: [
-                      for (final m in methods.take(8))
-                        ActionChip(
-                          label: Text(m),
-                          visualDensity: VisualDensity.compact,
-                          onPressed: () => setS(() {
-                            subject.text = m;
-                            subjectErr = null;
-                          }),
-                        ),
-                    ]),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: TextButton.icon(
-                        onPressed: () => Navigator.of(context)
-                            .push(MaterialPageRoute<void>(builder: (_) => MethodsPage(app: app)))
-                            .then((_) => setS(() {})),
-                        icon: const Icon(Icons.library_books_outlined, size: 18),
-                        label: const Text('Meus métodos e lições'),
-                      ),
-                    ),
-                  ],
-                  if (detailLabel() != null) ...[
-                    const SizedBox(height: 4),
-                    TextField(
-                      controller: detail,
-                      inputFormatters: const [SafeText.line()],
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        labelText: detailLabel(),
-                        suffixIcon: DictationButton(app: app, controller: detail),
-                      ),
-                    ),
-                    // Lições já cadastradas para o método escolhido: um toque preenche.
-                    // (escuta o campo: o texto também muda por ditado, sem passar pelo onChanged)
-                    if (kind == TaskKind.method)
-                      ListenableBuilder(
-                        listenable: subject,
-                        builder: (context, _) {
-                          final lessons = findMethod(app.methodLibrary, subject.text)?.lessons ?? const <String>[];
-                          if (lessons.isEmpty) return const SizedBox.shrink();
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 6),
-                            child: Wrap(spacing: 6, runSpacing: 0, children: [
-                              for (final l in lessons.take(12))
-                                ActionChip(
-                                  label: Text(l),
-                                  visualDensity: VisualDensity.compact,
-                                  onPressed: () => detail.text = l,
-                                ),
-                            ]),
-                          );
-                        },
-                      ),
-                  ],
-                ],
-                const SizedBox(height: 14),
-                TextField(
-                  controller: note,
-                  inputFormatters: const [SafeText.note()],
-                  minLines: 2,
-                  maxLines: 5,
-                  maxLength: 500,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    labelText: 'Observações (opcional)',
-                    alignLabelWithHint: true,
-                    helperText: 'O que merece atenção ou estudar mais. Toque no microfone para ditar.',
-                    helperMaxLines: 3,
-                    suffixIcon: DictationButton(app: app, controller: note),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
-            FilledButton(
-              onPressed: () {
-                if (kind != TaskKind.scale && subject.text.trim().isEmpty) {
-                  setS(() => subjectErr = 'Escreva o que o aluno vai estudar');
-                  return;
-                }
-                Navigator.pop(c, true);
-              },
-              child: Text(isEdit ? 'Salvar' : 'Passar tarefa'),
-            ),
-          ],
-        ),
-      ),
-    );
-    final subjectText = subject.text, detailText = detail.text, noteText = note.text;
-    subject.dispose();
-    detail.dispose();
-    note.dispose();
-    if (ok != true) return;
-    if (isEdit) {
+    final d = await openTaskForm(context, app, s, edit: edit);
+    if (d == null) return;
+    if (edit != null) {
       app.editAssignment(s, edit.id,
-          subject: edit.isScale ? null : subjectText, detail: edit.isScale ? null : detailText, note: noteText);
-    } else if (kind == TaskKind.scale) {
+          subject: edit.isScale ? null : d.subject, detail: edit.isScale ? null : d.detail, note: d.note);
+      app.say('Tarefa salva.');
+      return;
+    }
+    final rule = app.deliveryFor(s);
+    if (d.kind == TaskKind.scale) {
       app.addAssignment(s,
-          title: '${type.display(noteName(pc + 60, names))} · $oct oitava${oct > 1 ? 's' : ''}',
-          scaleTypeIndex: type.index,
-          tonicPc: pc,
-          octaves: oct,
-          goal: goal,
-          note: noteText);
+          title: d.title,
+          scaleTypeIndex: d.scaleType.index,
+          tonicPc: d.tonicPc,
+          octaves: d.octaves,
+          goal: d.goal,
+          note: d.note);
     } else {
       app.addAssignment(s,
-          title: Assignment.titleFor(subjectText, detailText),
-          kind: kind,
-          subject: subjectText,
-          detail: detailText,
-          note: noteText);
+          title: d.title, kind: d.kind, subject: d.subject, detail: d.detail, note: d.note);
+    }
+    if (rule.mode == DeliveryMode.inLesson) {
+      app.say('Tarefa passada. Vai para ${s.name} quando você encerrar a aula.');
+    } else if (d.sendNow && rule.canSend) {
+      app.say(app.sendPendingTasks(s));
+    } else if (rule.mode == DeliveryMode.localOnly) {
+      app.say('Tarefa passada. Fica só na sua ficha: ${s.name} ainda não pode receber.');
+    } else {
+      app.say('Tarefa passada. Ainda não foi enviada: use "Enviar" na ficha ou ela vai com a próxima aula.');
     }
   }
 
@@ -1274,9 +1139,11 @@ class StudentPage extends StatelessWidget {
                 l.sent == true ? Icons.mark_email_read_outlined : (l.sent == false ? Icons.schedule_send_outlined : Icons.phone_android),
                 color: l.sent == true ? AppColors.inTune : (l.sent == false ? AppColors.flat : AppColors.textDim),
               ),
-              title: Text('${_day(l.endedAt)} · ${fmtLessonDuration(l.durationSec)}'),
+              title: Text(l.durationSec == 0
+                  ? '${_day(l.endedAt)} · tarefas enviadas fora de aula'
+                  : '${_day(l.endedAt)} · aula de ${fmtLessonDuration(l.durationSec)}'),
               subtitle: Text(
-                '${l.taskCount} tarefa${l.taskCount == 1 ? '' : 's'}, ${l.noteCount} observaç${l.noteCount == 1 ? 'ão' : 'ões'} · '
+                '${l.taskCount} tarefa${l.taskCount == 1 ? '' : 's'}${l.noteCount > 0 ? ', ${l.noteCount} observaç${l.noteCount == 1 ? 'ão' : 'ões'}' : ''} · '
                 '${l.sent == true ? 'enviada ao aluno' : (l.sent == false ? 'aguardando envio' : 'só neste aparelho')}',
                 style: const TextStyle(fontSize: 12.5),
               ),
@@ -1321,6 +1188,11 @@ class StudentPage extends StatelessWidget {
     );
   }
 
+  Future<void> _newNote(BuildContext context, Student s) async {
+    final t = await _askText(context, 'Nova observação', 'O que anotar?', multiline: true, voice: app);
+    if (t != null) app.addTeacherNote(s, t);
+  }
+
   Widget _notes(BuildContext context, Student s) {
     return AppCard(
       child: Column(
@@ -1329,10 +1201,7 @@ class StudentPage extends StatelessWidget {
           Row(children: [
             const Expanded(child: Text('Observações', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
             TextButton.icon(
-              onPressed: () async {
-                final t = await _askText(context, 'Nova observação', 'O que anotar?', multiline: true, voice: app);
-                if (t != null) app.addTeacherNote(s, t);
-              },
+              onPressed: () => _newNote(context, s),
               icon: const Icon(Icons.edit_note),
               label: const Text('Anotar'),
             ),
@@ -1359,7 +1228,9 @@ class StudentPage extends StatelessWidget {
 class _LessonCard extends StatefulWidget {
   final AppState app;
   final Student student;
-  const _LessonCard({required this.app, required this.student});
+  final VoidCallback onNewTask;
+  final VoidCallback onNewNote;
+  const _LessonCard({required this.app, required this.student, required this.onNewTask, required this.onNewNote});
 
   @override
   State<_LessonCard> createState() => _LessonCardState();
@@ -1518,6 +1389,25 @@ class _LessonCardState extends State<_LessonCard> {
                 '${tally.tasks} tarefa${tally.tasks == 1 ? '' : 's'} e ${tally.notes} observaç${tally.notes == 1 ? 'ão' : 'ões'} nesta aula até agora.',
                 style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
               ),
+              const SizedBox(height: 10),
+              // Atalhos: passar tarefa e anotar sem sair do cartão da aula.
+              Row(children: [
+                Expanded(
+                  child: FilledButton.tonalIcon(
+                    onPressed: widget.onNewTask,
+                    icon: const Icon(Icons.add_task, size: 18),
+                    label: const Text('Nova tarefa'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton.tonalIcon(
+                    onPressed: widget.onNewNote,
+                    icon: const Icon(Icons.edit_note, size: 18),
+                    label: const Text('Anotar'),
+                  ),
+                ),
+              ]),
               const SizedBox(height: 10),
               Row(children: [
                 Expanded(
