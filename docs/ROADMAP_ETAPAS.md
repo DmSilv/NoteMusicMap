@@ -27,7 +27,7 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ pronto (local) · 🚀 publicad
 - Aviso curto do que cada estado significa e o que fazer.
 - **Testes:** função pura de estado (núcleo), reconexão e fila preservada (estado do app), textos por estado.
 
-### Etapa 2 · Navegação e telas por papel (hub) — ⬜
+### Etapa 2 · Navegação e telas por papel (hub) — 🚀 publicada
 - Tirar a dependência do ícone do topo: um **hub** com seções por papel.
   - Aluno: Próxima aula · Agenda · Tarefas · Pedir horário · Ferramentas (metrônomo, escalas, timers) · Perfil e vínculo.
   - Professor: Hoje · Alunos · Agenda e horários · Pedidos · Relatórios · Ferramentas · Perfil e vínculo.

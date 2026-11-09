@@ -2331,6 +2331,9 @@ class AppState extends ChangeNotifier {
   /// Microfone captando agora (alimenta o aviso fixo na barra superior).
   final ValueNotifier<bool> micOn = ValueNotifier(false);
 
+  /// Troca a aba da barra de baixo (0 Afinador, 1 Metrônomo, 2 Grade, 3 Meu espaço). Definido pela tela principal.
+  void Function(int)? goTab;
+
   /// O usuário dispensou o cartão "Estuda com um professor?" da aba Estudo.
   bool roleCardHidden = false;
 

@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../app_state.dart';
 import 'agenda_page.dart';
-import 'role_card.dart' show shareTeacherInvite;
+import 'hub_section.dart' show shareTeacherInvite;
 import 'safe_input.dart';
 import '../ai/coach_ai.dart';
 import 'dictation_button.dart';

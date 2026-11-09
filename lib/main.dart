@@ -252,11 +252,24 @@ class HomeShell extends StatefulWidget {
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    // O hub (Meu espaço) usa isto para levar a outras abas (ex.: Metrônomo).
+    widget.app.goTab = _go;
+  }
+
+  @override
+  void dispose() {
+    widget.app.goTab = null;
+    super.dispose();
+  }
+
   /// Abas já abertas. As outras só são criadas na primeira visita, o que acelera
   /// a abertura do app e evita construir telas que talvez nunca sejam usadas.
   final Set<int> _visited = {0};
 
-  static const _titles = ['Afinador', 'Metrônomo', 'Grade', 'Estudo'];
+  static const _titles = ['Afinador', 'Metrônomo', 'Grade', 'Meu espaço'];
 
   static const _tabNames = ['tuner', 'metronome', 'grid', 'study'];
 
@@ -420,7 +433,7 @@ class _HomeShellState extends State<HomeShell> {
               icon: Icon(Icons.grid_view_rounded),
               label: 'Grade',
             ),
-            NavigationDestination(icon: Icon(Icons.insights), label: 'Estudo'),
+            NavigationDestination(icon: Icon(Icons.insights), label: 'Meu espaço'),
           ],
         ),
       ),

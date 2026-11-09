@@ -4,7 +4,7 @@ import '../app_state.dart';
 import 'feedback_sheet.dart';
 import 'study_timers.dart';
 import 'progress_cards.dart';
-import 'role_card.dart';
+import 'hub_section.dart';
 import 'perf.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -44,9 +44,12 @@ class StudyPage extends StatelessWidget {
         return ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
-            // Cartões de papel: professor (alunos, convidar), aluno com professor (tarefas
-            // pendentes da semana) e aluno ainda sem professor (convite para vincular).
-            RoleCard(app: app),
+            // Hub por papel: destaque (o que importa agora), blocos que pedem ação e ferramentas.
+            HubSection(app: app),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
+              child: Text('Seu estudo', style: TextStyle(color: AppColors.textDim, fontSize: 12.5, fontWeight: FontWeight.w700)),
+            ),
             FeedbackInviteCard(app: app),
             StudyTimerSection(app: app),
             const SizedBox(height: 12),

@@ -1,6 +1,7 @@
 library;
 
 export 'agenda.dart';
+export 'hub.dart';
 export 'identity.dart';
 export 'input_guard.dart';
 export 'lesson.dart';
