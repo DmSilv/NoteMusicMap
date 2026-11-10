@@ -63,3 +63,11 @@ Manual, com dois aparelhos/abas (professor e aluno), vínculo online ligado:
 
 **Proteções de custo:** o app envia o mesmo problema no máximo 1 vez a cada 10 min e até 20 por sessão; por aparelho 10/hora; teto global por dia `ERRORS_DAILY_CAP` (padrão **150** eventos ≈ 3,5 mil comandos no pior dia, ~20% do uso diário da cota gratuita); chave de desligar `ERRORS_DISABLED=1` (para tudo sem publicar). Por padrão o app só envia sozinho os erros **graves** (`APP-99`, falha ao abrir); os demais só se a pessoa escolher "Todos os erros" ou tocar em "Enviar relatório".
 **Chaves novas no Redis (`er:*`):** `er:f:<fp>` (bug), `er:fd:<fp>` (aparelhos, HyperLogLog), `er:t:<fp>` (tendência por dia), `er:o:<fp>` (últimas 10 ocorrências), `er:idx` (índice por última vez), `er:rs` (resolvidos), `er:n` (anotações), `er:b` (versões vistas), `er:d:<dia>` (contadores do dia e por hora), `er:rl:*` e `er:cap:*` (limites, expiram sozinhas). **Limpeza pendente:** `er:f:*`/`er:t:*` de bugs antigos não expiram (cresce devagar; limpeza no Pacote 3).
+
+## Painel preciso e lúdico (Pacote 3, 10/11/2026)
+- **Contadores novos por dia** (`st:ct:d:<dia>`): `verdict` (tarefa validada/devolvida, +1 comando), `pick` (horário pego, +1), `h00..h23` (aberturas por hora, +1 por abertura → **abertura passa de ~10 para ~11 comandos**) e `rev10` (1 em cada 10 consultas baratas do vínculo, ~+0,1 por consulta).
+- **Estatísticas completas:** +2 comandos (aparelhos do período anterior: 7 e 30 dias antes).
+- **Painel (só quando o admin abre):** `health` ≈ 16 comandos (a cada 5 min com o painel aberto), `costs` ≈ 90, `kpis` ≈ 35 (+ coortes sem custo extra), `bugs` ≈ até 115 (+1 da limpeza).
+- **Erros do próprio servidor** (link, admin, stats, remind) entram no painel de bugs como plataforma `server` (mesmo custo de ~23 comandos, sujeito ao teto diário e ao limite de 10/h do "aparelho" do servidor).
+- **Limpeza:** a cada abertura da lista de bugs, até 10 bugs sem ocorrência há mais de 90 dias são apagados (`DEL` das chaves `er:*` do bug).
+- **Tabela de custo por ação usada na estimativa do painel** (`api/admin.js`, `COST`): abertura 11, aparelho novo +1, consulta de vínculo 1, aula enviada 6, aula marcada 8, lembrete 4, vínculo 12, validação 4, horário pego 12, relatório de erro 23, batidas ~6 por usuário/dia. É estimativa: o Upstash não informa o uso real por aqui.

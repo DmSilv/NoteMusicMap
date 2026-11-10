@@ -13,6 +13,7 @@ const crypto = require('node:crypto');
 const { config } = require('./_lib/config');
 const { createCmd } = require('./_lib/store_cmd');
 const { K, TABS, dayKey } = require('./_lib/metrics');
+const { serverError } = require('./_lib/error_store');
 
 const sha = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
 const ONLINE_WINDOW = 5 * 60 * 1000;
@@ -20,6 +21,7 @@ const STALE = 15 * 60 * 1000; // quem não bate há 15 min sai do conjunto "onli
 const ID_RE = /^[a-z0-9]{16,40}$/;
 const OPENS_PER_HOUR = 200; // por origem (muita gente atrás do mesmo IP é comum)
 
+const hourBr = (ms) => new Date(ms - 3 * 3600 * 1000).toISOString().slice(11, 13);
 const clip = (v, re) => (typeof v === 'string' && re.test(v) ? v : '');
 
 function clientIp(req) {
@@ -74,6 +76,11 @@ function makeHandler(deps = {}) {
         cmds.push(['PFCOUNT', ...days.slice(-7).map(K.day)]);
         cmds.push(['PFCOUNT', ...days.map(K.day)]);
         cmds.push(['PFCOUNT', K.all]);
+        // Período anterior (mesma duração) para comparar: 7 dias antes dos últimos 7 e 30 antes dos últimos 30.
+        const prevDays = [];
+        for (let i = 59; i >= 30; i--) prevDays.push(dayKey(now - i * 86400000)); // dias -59..-30
+        cmds.push(['PFCOUNT', ...days.slice(-14, -7).map(K.day)]);
+        cmds.push(['PFCOUNT', ...prevDays.map(K.day)]);
         cmds.push(['HGETALL', K.total]);
         cmds.push(['HGETALL', K.dim(today)]);
         for (const t of TABS) cmds.push(['PFCOUNT', K.tab(today, t)]);
@@ -86,12 +93,14 @@ function makeHandler(deps = {}) {
         };
         const series = days.map((d, i) => {
           const ct = hash(r[i * 2 + 1]);
-          return { day: d, users: Number(r[i * 2]) || 0, opens: ct.open || 0, news: ct.new || 0, lessons: ct.lesson || 0, slots: ct.slot || 0, reminders: ct.remind || 0, links: ct.link || 0 };
+          return { day: d, hours: Array.from({ length: 24 }, (_, hh) => ct['h' + String(hh).padStart(2, '0')] || 0), verdicts: ct.verdict || 0, picks: ct.pick || 0, users: Number(r[i * 2]) || 0, opens: ct.open || 0, news: ct.new || 0, lessons: ct.lesson || 0, slots: ct.slot || 0, reminders: ct.remind || 0, links: ct.link || 0 };
         });
         let k = days.length * 2;
         const wau = Number(r[k++]) || 0;
         const mau = Number(r[k++]) || 0;
         const total = Number(r[k++]) || 0;
+        const wauPrev = Number(r[k++]) || 0;
+        const mauPrev = Number(r[k++]) || 0;
         const totals = hash(r[k++]);
         const dimRaw = hash(r[k++]);
         const dims = { pl: {}, in: {}, v: {} };
@@ -103,7 +112,7 @@ function makeHandler(deps = {}) {
         for (const t of TABS) tabs[t] = Number(r[k++]) || 0;
         return send(200, {
           ok: true, now, today, online5: Number(on5) || 0, online1: Number(on1) || 0,
-          total, wau, mau, series, dims, tabs, totals,
+          total, wau, mau, wauPrev, mauPrev, series, dims, tabs, totals, generatedAt: now,
         });
       }
 
@@ -138,6 +147,7 @@ function makeHandler(deps = {}) {
         ['PFADD', K.all, id], // 1 = aparelho novo
         ['PFADD', K.day(today), id],
         ['HINCRBY', K.ct(today), 'open', '1'],
+        ['HINCRBY', K.ct(today), 'h' + hourBr(now), '1'], // aberturas por hora (mapa de calor)
         ['ZADD', K.online, String(now), id],
       ];
       const d = b.d && typeof b.d === 'object' ? b.d : null;
@@ -158,6 +168,7 @@ function makeHandler(deps = {}) {
     } catch (e) {
       if (String(e.message) === 'no-redis') return send(503, { error: 'sync_unavailable' });
       console.error('stats error', e && e.message);
+      await serverError({ cfg, fetchImpl, clock, allowMemory: !!deps.allowMemory }, 'stats', e);
       return send(200, { ok: false }); // métrica nunca atrapalha o app
     }
   };

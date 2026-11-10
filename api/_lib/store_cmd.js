@@ -116,6 +116,16 @@ function memCmd(a) {
       }
       return out;
     }
+    case 'DEL': {
+      let n = 0;
+      for (const k of a.slice(1)) {
+        if (hashes.delete(k)) n++;
+        if (zsets.delete(k)) n++;
+        if (lists.delete(k)) n++;
+        if (sets.delete(k)) n++;
+      }
+      return n;
+    }
     case 'HLEN':
       return (hashes.get(key) || new Map()).size;
     case 'HGET':

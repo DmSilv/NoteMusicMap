@@ -6,18 +6,16 @@
 // Ninguém lê isto sem a chave de admin (painel `/api/admin`, ações `bugs`).
 //
 // Proteções: tamanho máximo, limite por aparelho/hora, teto global por dia, chave de desligar
-// (ERRORS_DISABLED=1) e modo "leve" para bug que já se repetiu demais.
+// (ERRORS_DISABLED=1) e modo "leve" para bug que já se repetiu demais (ver `_lib/error_store.js`).
 // Custo no Redis (medido nos testes): ~23 comandos por evento (3 chamadas em lote); modo leve ~16.
 'use strict';
 
-const crypto = require('node:crypto');
 const { config } = require('./_lib/config');
 const { createCmd } = require('./_lib/store_cmd');
-const { cleanReport, day, hour, K } = require('./_lib/errors_lib');
+const { cleanReport } = require('./_lib/errors_lib');
+const { checkLimits, storeReport } = require('./_lib/error_store');
 
 const MAX_BODY = 4096;
-const PER_DEVICE_HOUR = 10;
-const LIGHT_AFTER = 200; // depois de tantas repetições, só os contadores
 
 function makeHandler(deps = {}) {
   const fetchImpl = deps.fetch || globalThis.fetch;
@@ -45,61 +43,13 @@ function makeHandler(deps = {}) {
     if (!r) return send(400, { error: 'Relatório inválido.' });
 
     const now = clock();
-    const d = day(now);
     try {
-      // 1) Limites: por aparelho (por hora) e global (por dia).
-      const hk = K.rateDevice(crypto.createHash('sha256').update(r.id).digest('hex').slice(0, 16), Math.floor(now / 3600000));
-      const gk = K.rateGlobal(d);
-      const [dev, , glob] = await m.pipeline([['INCR', hk], ['EXPIRE', hk, '3600', 'NX'], ['INCR', gk], ['EXPIRE', gk, '90000', 'NX']]);
-      if (Number(dev) > PER_DEVICE_HOUR) return send(429, { error: 'Muitos relatórios deste aparelho. Tente mais tarde.' });
-      if (Number(glob) > (cfg.errorsDailyCap || 150)) return send(200, { ok: true, dropped: true }); // teto do dia
-
-      // 2) Estado atual do bug (status, quantas vezes já veio, se foi resolvido e quando).
-      // A versão (build) é registrada antes, para a "primeira vez vista" valer já neste evento.
-      const [cur, resolvedRaw, , firstSeenRaw] = await m.pipeline([
-        ['HMGET', K.bug(r.fp), 'st', 'n'], ['HGET', K.resolved, r.fp],
-        ['HSETNX', K.builds, r.v, String(now)], ['HGET', K.builds, r.v],
-      ]);
-      const [status, nRaw] = cur || [];
-      const n = Number(nRaw) || 0;
-      const light = n >= LIGHT_AFTER;
-
-      // Reabre se estava resolvido e veio de uma versão publicada DEPOIS da correção.
-      let nextStatus = status || 'new';
-      if (status === 'resolved') {
-        let at = 0;
-        try { at = Number(JSON.parse(resolvedRaw || '{}').at) || 0; } catch (_) { /* ruim */ }
-        const firstSeen = Number(firstSeenRaw) || 0;
-        if (firstSeen && at && firstSeen > at) nextStatus = 'reopened';
+      const lim = await checkLimits(m, cfg, now, r.id);
+      if (!lim.ok) {
+        return lim.dropped ? send(200, { ok: true, dropped: true }) : send(429, { error: 'Muitos relatórios deste aparelho. Tente mais tarde.' });
       }
-
-      // 3) Grava (em lote).
-      const list = [
-        ['HINCRBY', K.bug(r.fp), 'n', '1'],
-        ['HINCRBY', K.daily(d), 'total', '1'],
-        ['HINCRBY', K.daily(d), r.s, '1'],
-        ['HINCRBY', K.daily(d), `h${hour(now)}`, '1'],
-        ['HINCRBY', K.trend(r.fp), d, '1'],
-        ['ZADD', K.idx, String(now), r.fp],
-      ];
-      if (!light) {
-        list.push(
-          ['HSETNX', K.bug(r.fp), 'first', String(now)],
-          ['HSET', K.bug(r.fp), 'last', String(now), 'c', r.c, 's', r.s, 'w', r.w, 'msg', r.d],
-          ['HINCRBY', K.bug(r.fp), `v:${r.v}`, '1'],
-          ['HINCRBY', K.bug(r.fp), `p:${r.pl}`, '1'],
-          ['HINCRBY', K.bug(r.fp), `i:${r.in}`, '1'],
-          ['PFADD', K.devices(r.fp), r.id],
-          ['LPUSH', K.recent(r.fp), JSON.stringify({
-            t: now, v: r.v, pl: r.pl, in: r.in, lk: r.lk, vw: r.vw, bc: r.bc,
-            dv: crypto.createHash('sha256').update(r.id).digest('hex').slice(0, 8),
-          })],
-          ['LTRIM', K.recent(r.fp), '0', '9'],
-        );
-      }
-      if (nextStatus !== status) list.push(['HSET', K.bug(r.fp), 'st', nextStatus]);
-      await m.pipeline(list);
-      return send(200, { ok: true, fp: r.fp, status: nextStatus });
+      const status = await storeReport(m, now, r);
+      return send(200, { ok: true, fp: r.fp, status });
     } catch (e) {
       if (String(e.message) === 'no-redis') return send(503, { error: 'sync_unavailable' });
       console.error('errors error', e && e.message);

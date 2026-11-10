@@ -32,6 +32,7 @@ const { validSubscription } = require('./_lib/webpush');
 const { bump } = require('./_lib/metrics');
 const { createCmd } = require('./_lib/store_cmd');
 const profiles = require('./_lib/profiles');
+const { serverError } = require('./_lib/error_store');
 
 const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const MAX_LINKS = 300;
@@ -239,6 +240,8 @@ function makeHandler(deps = {}) {
       // Consulta barata: o perfil já foi lido na autenticação, então não custa nenhum comando a mais.
       // lr = aulas novas, dr = tarefas marcadas pelos alunos, kr = vínculos mudaram.
       if (action === 'rev') {
+        // Conta 1 em cada 10 consultas (barato) para o painel estimar o custo do polling.
+        if (Math.random() < 0.1) await metric('rev10');
         return send(200, { ok: true, lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0 });
       }
 
@@ -423,6 +426,7 @@ function makeHandler(deps = {}) {
         await store.hset(SS(me), `${teacher}:${cid}`, JSON.stringify({ ...cls, tn: tp.n || '' }));
         await store.hset(U(me), 'sr', String(now));
         await store.hset(U(teacher), 'ar', String(now)); // o professor vê que um aluno pegou um horário
+        await metric('pick');
         const reminder = await scheduleNext(cfg, fetchImpl, teacher, me, cls, now);
         await metric('slot');
         return send(200, { ok: true, slot: cls, reminder });
@@ -517,6 +521,7 @@ function makeHandler(deps = {}) {
         // Devolvida: a marcação "fiz" do aluno cai, senão o professor a receberia de novo no próximo envio.
         if (v === 'back') await store.hdel(DN(me), `${student}:${lid}:${tid}`);
         await store.hset(U(student), 'vr', String(clock())); // o aluno vê que há decisão nova
+        await metric('verdict');
         return send(200, { ok: true });
       }
 
@@ -614,6 +619,7 @@ function makeHandler(deps = {}) {
     } catch (e) {
       if (String(e.message) === 'no-redis') return send(503, { error: 'sync_unavailable' });
       console.error('link error', e && e.message);
+      await serverError({ cfg, fetchImpl, clock, allowMemory: !!deps.allowMemory }, 'link', e);
       return send(500, { error: 'Erro ao registrar o vínculo. Tente de novo.' });
     }
   };

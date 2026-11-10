@@ -21,7 +21,7 @@ const K = {
 };
 
 const TABS = ['tuner', 'pedal', 'metronome', 'grid', 'study', 'profile', 'teacher', 'agenda', 'settings'];
-const EVENTS = ['lesson', 'slot', 'remind', 'link', 'done'];
+const EVENTS = ['lesson', 'slot', 'remind', 'link', 'done', 'verdict', 'pick', 'rev10'];
 
 /** Soma 1 num contador do dia (e, se pedido, no total). Silencioso se der erro. */
 async function bump(cfg, fetchImpl, clock, opts, event, { total } = {}) {

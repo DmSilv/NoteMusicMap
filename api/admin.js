@@ -22,6 +22,7 @@ const { createStore } = require('./_lib/store');
 const { createCmd } = require('./_lib/store_cmd');
 const { K, dayKey, BR_OFFSET } = require('./_lib/metrics');
 const profiles = require('./_lib/profiles');
+const { serverError } = require('./_lib/error_store');
 const { K: EK, day: errDay, hour: errHour, sanitize } = require('./_lib/errors_lib');
 
 const { Z } = profiles;
@@ -34,6 +35,9 @@ const U = (c) => `u:${c}`, T = (c) => `ut:${c}`, S = (c) => `us:${c}`, SL = (c) 
 const UL = (c) => `ul:${c}`, DN = (c) => `dn:${c}`, VD = (c) => `vd:${c}`, AV = (c) => `av:${c}`, TK = (c) => `tk:${c}`, PS = (c) => `ps:${c}`;
 const CODE_RE = /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$/;
 const LOG = 'adm:log';
+const BUDGET = 500000; // comandos por mês no plano gratuito do Upstash
+// Comandos do Redis por ação (aproximado; ver docs/CUSTOS_E_REGRESSAO.md).
+const COST = { open: 11, new: 1, rev: 1, lesson: 6, slot: 8, remind: 4, link: 12, verdict: 4, pick: 12, error: 23, beatsPerUser: 6 };
 const SCAN_BUGS = 60; // quantos bugs (do mais recente) a lista examina por consulta
 const BUG_PAGE = 25;
 const FP_RE = /^[0-9a-f]{12}$/;
@@ -127,6 +131,7 @@ function makeHandler(deps = {}) {
         const cohort = pairs(r[11]).map(([c, ca]) => ({ c: String(c), ca }));
         // Retenção: dos que entraram há pelo menos N dias, quantos voltaram a partir do dia N.
         let retention = { d1: null, d7: null, d30: null, sample: cohort.length };
+        let cohorts = [];
         if (cohort.length) {
           const lasts = await cmd.cmd(['ZMSCORE', Z.last, ...cohort.map((x) => x.c)]);
           const rows = cohort.map((x, i) => ({ ca: x.ca, la: Number(lasts[i]) || 0 }));
@@ -137,6 +142,23 @@ function makeHandler(deps = {}) {
             return { pct: Math.round((back / el.length) * 100), back, of: el.length };
           };
           retention = { d1: calc(1), d7: calc(7), d30: calc(30), sample: cohort.length };
+          // Coortes por semana de entrada (segunda-feira, horário do Brasil): quantos voltaram em D1, D7 e D30.
+          const weeks = new Map();
+          for (const x of rows) {
+            const dt = new Date(x.ca - 3 * 3600 * 1000);
+            const dow = (dt.getUTCDay() + 6) % 7; // segunda = 0
+            const wk = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate() - dow)).toISOString().slice(0, 10);
+            (weeks.get(wk) || weeks.set(wk, []).get(wk)).push(x);
+          }
+          cohorts = [...weeks.entries()].sort((p, q) => (p[0] < q[0] ? 1 : -1)).slice(0, 8).map(([week, rs]) => {
+            const at = (n) => {
+              const el = rs.filter((x) => x.ca <= now - n * DAY);
+              if (!el.length) return null;
+              const back = el.filter((x) => x.la >= x.ca + n * DAY).length;
+              return { pct: Math.round((back / el.length) * 100), back, of: el.length };
+            };
+            return { week, size: rs.length, d1: at(1), d7: at(7), d30: at(30) };
+          });
         }
         const total = Number(r[0]) || 0;
         const active30 = Number(r[3]) || 0;
@@ -147,7 +169,7 @@ function makeHandler(deps = {}) {
           students: { total: Number(r[8]) || 0, active30: Number(r[9]) || 0 },
           links: totals.links || 0,
           growth: days.map((d, i) => ({ day: d, news: Number(r[12 + i]) || 0 })),
-          retention,
+          retention, cohorts,
         });
       }
 
@@ -248,6 +270,11 @@ function makeHandler(deps = {}) {
           code: String(b.code || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 8),
           q: sanitize(b.q, 60).toLowerCase(),
         };
+        // Limpeza: bugs sem ocorrência há mais de 90 dias saem do Redis (poucos por consulta).
+        const old = (await cmd.cmd(['ZRANGEBYSCORE', EK.idx, '-inf', String(now - 90 * DAY), 'LIMIT', '0', '10'])) || [];
+        for (const ofp of old.map(String)) {
+          await cmd.pipeline([['DEL', EK.bug(ofp), EK.devices(ofp), EK.trend(ofp), EK.recent(ofp)], ['ZREM', EK.idx, ofp], ['HDEL', EK.resolved, ofp], ['HDEL', EK.notes, ofp]]);
+        }
         const today = errDay(now);
         const [fps, dayHash, opensToday] = await cmd.pipeline([
           ['ZREVRANGEBYSCORE', EK.idx, '+inf', String(now - days * DAY), 'LIMIT', '0', String(SCAN_BUGS)],
@@ -286,7 +313,7 @@ function makeHandler(deps = {}) {
         const hours = Array.from({ length: 24 }, (_, i) => dh['h' + String(i).padStart(2, '0')] || 0);
         const open = rows.filter((r) => ['new', 'seen', 'reopened'].includes(r.status));
         return send(200, {
-          ok: true, days, offset, page: BUG_PAGE, total: match.length, scanned: ids.length, scanLimit: SCAN_BUGS,
+          ok: true, days, offset, page: BUG_PAGE, gc: old.length, total: match.length, scanned: ids.length, scanLimit: SCAN_BUGS,
           items,
           filters: {
             versions: [...new Set(rows.flatMap((r) => Object.keys(r.versions)))].sort(),
@@ -303,6 +330,71 @@ function makeHandler(deps = {}) {
             opensToday: Number(opensToday) || 0,
             hours,
           },
+        });
+      }
+
+      // ---------------- Saúde (semáforo do painel) ----------------
+      if (action === 'health') {
+        const dayKeys = [];
+        for (let i = 13; i >= 0; i--) dayKeys.push(errDay(now - i * DAY));
+        const [opensRaw, ...hashes] = await cmd.pipeline([['HGET', K.ct(errDay(now)), 'open'], ...dayKeys.map((d2) => ['HGETALL', EK.daily(d2)])]);
+        const parse = (flat) => { const o = {}; for (let j = 0; j + 1 < (flat || []).length; j += 2) o[flat[j]] = Number(flat[j + 1]) || 0; return o; };
+        const days = hashes.map(parse);
+        const today = days[days.length - 1];
+        const opens = Number(opensRaw) || 0;
+        const hoursNow = Number(errHour(now));
+        const last2h = (today['h' + String(hoursNow).padStart(2, '0')] || 0) + (today['h' + String((hoursNow + 23) % 24).padStart(2, '0')] || 0);
+        let clean = 0;
+        for (let i = days.length - 2; i >= 0 && !days[i].critical; i--) clean++; // dias seguidos sem erro grave (até ontem)
+        const per100 = opens >= 20 ? Math.round((((today.total || 0) / opens) * 100) * 10) / 10 : null;
+        const reasons = [];
+        let level = 'green';
+        if ((today.critical || 0) > 0) { level = 'red'; reasons.push('Erro grave hoje'); }
+        if (last2h >= 5 && last2h > ((today.total || 0) / 24) * 4) { level = 'red'; reasons.push('Pico de erros nas últimas 2 horas'); }
+        if (level !== 'red') {
+          if (per100 !== null && per100 > 5) { level = 'yellow'; reasons.push('Muitos erros por abertura'); }
+          if ((today.srv || 0) > 0) { level = 'yellow'; reasons.push('Falha no servidor hoje'); }
+        }
+        return send(200, {
+          ok: true, level, reasons, errorsToday: today.total || 0, criticalToday: today.critical || 0, serverToday: today.srv || 0,
+          opensToday: opens, per100, last2h, cleanDays: clean, cleanCapped: clean >= days.length - 1,
+        });
+      }
+
+      // ---------------- Custos (estimativa de comandos do Redis) ----------------
+      if (action === 'costs') {
+        const dayKeys = [];
+        for (let i = 29; i >= 0; i--) dayKeys.push(errDay(now - i * DAY));
+        const res = await cmd.pipeline([...dayKeys.map((d2) => ['HGETALL', K.ct(d2)]), ...dayKeys.map((d2) => ['HGETALL', EK.daily(d2)]), ...dayKeys.map((d2) => ['PFCOUNT', K.day(d2)])]);
+        const parse = (flat) => { const o = {}; for (let j = 0; j + 1 < (flat || []).length; j += 2) o[flat[j]] = Number(flat[j + 1]) || 0; return o; };
+        const kinds = {};
+        const daysOut = dayKeys.map((d2, i) => {
+          const ct = parse(res[i]);
+          const er = parse(res[30 + i]);
+          const users = Number(res[60 + i]) || 0;
+          const parts = {
+            'Aberturas': (ct.open || 0) * COST.open + (ct.new || 0) * COST.new,
+            'Consultas de vínculo': (ct.rev10 || 0) * 10 * COST.rev,
+            'Aulas enviadas': (ct.lesson || 0) * COST.lesson,
+            'Aulas marcadas': (ct.slot || 0) * COST.slot,
+            'Lembretes': (ct.remind || 0) * COST.remind,
+            'Vínculos': (ct.link || 0) * COST.link,
+            'Tarefas validadas': (ct.verdict || 0) * COST.verdict,
+            'Horários pegos': (ct.pick || 0) * COST.pick,
+            'Relatórios de erro': (er.total || 0) * COST.error,
+            'Batidas (online agora)': users * COST.beatsPerUser,
+          };
+          let total = 0;
+          for (const [k2, v] of Object.entries(parts)) { kinds[k2] = (kinds[k2] || 0) + v; total += v; }
+          return { day: d2, total };
+        });
+        const month = daysOut.reduce((a, x) => a + x.total, 0);
+        const last7 = daysOut.slice(-7).reduce((a, x) => a + x.total, 0);
+        return send(200, {
+          ok: true, budget: BUDGET, month, pct: Math.round((month / BUDGET) * 1000) / 10,
+          projection: Math.round((last7 / 7) * 30), perDay: daysOut,
+          kinds: Object.entries(kinds).map(([name, n]) => ({ name, n })).sort((a, b) => b.n - a.n),
+          note: 'Estimativa: contadores do app × custo por ação (ver docs/CUSTOS_E_REGRESSAO.md). A consulta de vínculo é amostrada (1 em 10).',
         });
       }
 
@@ -363,6 +455,7 @@ function makeHandler(deps = {}) {
     } catch (e) {
       if (String(e.message) === 'no-redis') return send(503, { error: 'sync_unavailable' });
       console.error('admin error', e && e.message);
+      await serverError({ cfg, fetchImpl, clock, allowMemory: !!deps.allowMemory }, 'admin', e);
       return send(500, { error: 'Erro no painel.' });
     }
   };

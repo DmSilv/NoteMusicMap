@@ -10,6 +10,7 @@ const { config } = require('./_lib/config');
 const { createStore } = require('./_lib/store');
 const { nextStart, validRemindSig, remindersEnabled, scheduleNext, verifyQstashJwt, MIN } = require('./_lib/agenda');
 const { sendPush, validSubscription } = require('./_lib/webpush');
+const { serverError } = require('./_lib/error_store');
 const { bump } = require('./_lib/metrics');
 
 const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -107,6 +108,7 @@ function makeHandler(deps = {}) {
     } catch (e) {
       if (String(e.message) === 'no-redis') return send(503, { error: 'sync_unavailable' });
       console.error('remind error', e && e.message);
+      await serverError({ cfg, fetchImpl, clock, allowMemory: !!deps.allowMemory }, 'remind', e);
       return send(500, { error: 'Erro ao enviar o lembrete.' }); // o QStash tenta de novo
     }
   };
