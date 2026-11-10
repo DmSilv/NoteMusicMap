@@ -2775,6 +2775,19 @@ class AppState extends ChangeNotifier {
   /// A pessoa já instalou (ou disse que instalou): não mostrar mais.
   bool installDone = false;
 
+  // ---------------- Tablet deitado: duas telas lado a lado ----------------
+  /// Qual tela fica à esquerda e à direita (0 Afinador, 1 Metrônomo, 2 Grade, 3 Meu espaço).
+  int splitLeft = 0;
+  int splitRight = 1;
+
+  void setSplit(int left, int right) {
+    splitLeft = left.clamp(0, 3);
+    splitRight = right.clamp(0, 3);
+    if (splitLeft == splitRight) splitRight = (splitLeft + 1) % 4;
+    _prefs?.setInt('split_l', splitLeft);
+    _prefs?.setInt('split_r', splitRight);
+  }
+
   // ---------------- Apelido (convite da tela inicial) ----------------
   /// Esconde o convite "Como posso te chamar?" até este instante (ms).
   int nickHideUntil = 0;
@@ -3400,6 +3413,9 @@ class AppState extends ChangeNotifier {
     cameraGranted = p.getBool('cam_granted');
     installHideUntil = p.getInt('install_hide') ?? 0;
     nickHideUntil = p.getInt('nick_hide') ?? 0;
+    splitLeft = (p.getInt('split_l') ?? 0).clamp(0, 3);
+    splitRight = (p.getInt('split_r') ?? 1).clamp(0, 3);
+    if (splitLeft == splitRight) splitRight = (splitLeft + 1) % 4;
     updateHideUntil = p.getInt('upd_hide') ?? 0;
     installDone = p.getBool('install_done') ?? false;
     _readIncomingCode();

@@ -303,7 +303,7 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
               final mq = MediaQuery.of(context);
               // No navegador/tela larga o app não estica: fica numa coluna de
               // largura de celular, centralizada, e as laterais ficam escuras.
-              if (mq.size.width <= kMaxAppWidth) return tree;
+              if (mq.size.width <= kMaxAppWidth || isSplitLayout(mq.size)) return tree;
               return ColoredBox(
                 color: Color.lerp(AppColors.bg, Colors.black, dark ? 0.45 : 0.08)!,
                 child: Center(
@@ -327,6 +327,11 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
 
 /// Largura máxima do app em tela larga (navegador no computador).
 const double kMaxAppWidth = 560;
+
+/// Largura a partir da qual, com a tela deitada, o app mostra duas telas lado a lado.
+const double kSplitMinWidth = 900;
+
+bool isSplitLayout(Size s) => s.width >= kSplitMinWidth && s.width > s.height;
 
 class HomeShell extends StatefulWidget {
   final AppState app;
@@ -360,8 +365,25 @@ class _HomeShellState extends State<HomeShell> {
 
   static const _tabNames = ['tuner', 'metronome', 'grid', 'study'];
 
+  static const _icons = [Icons.tune, Icons.timer_outlined, Icons.grid_view_rounded, Icons.insights];
+
+  /// Em duas telas: qual lado recebe o próximo atalho (o último que a pessoa tocou).
+  bool _focusRight = true;
+
   void _go(int i) {
     widget.app.markTab(_tabNames[i]);
+    if (isSplitLayout(MediaQuery.sizeOf(context))) {
+      final a = widget.app;
+      if (i != a.splitLeft && i != a.splitRight) {
+        if (_focusRight) {
+          a.setSplit(a.splitLeft, i);
+        } else {
+          a.setSplit(i, a.splitRight);
+        }
+      }
+      setState(() => _index = i);
+      return;
+    }
     setState(() {
       _index = i;
       _visited.add(i);
@@ -371,7 +393,7 @@ class _HomeShellState extends State<HomeShell> {
   /// Botão voltar na tela principal: de outra aba, volta ao Afinador; no
   /// Afinador, pergunta antes de sair do app.
   Future<void> _onBack() async {
-    if (_index != 0) {
+    if (_index != 0 && !isSplitLayout(MediaQuery.sizeOf(context))) {
       _go(0);
       return;
     }
@@ -397,6 +419,78 @@ class _HomeShellState extends State<HomeShell> {
     if (leave == true) SystemNavigator.pop();
   }
 
+  /// Uma tela inteira dentro de um dos lados (as duas ficam ativas ao mesmo tempo).
+  Widget _pagePane(int i) {
+    final app = widget.app;
+    return TickerMode(
+      enabled: true,
+      child: switch (i) {
+        0 => TunerPage(app: app, active: true),
+        1 => MetronomePage(app: app, active: true),
+        2 => GridPage(app: app, active: true),
+        _ => StudyPage(app: app, active: true),
+      },
+    );
+  }
+
+  Widget _paneSelector(bool left, int cur, int other) {
+    final a = widget.app;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+      child: SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<int>(
+          showSelectedIcon: false,
+          style: SegmentedButton.styleFrom(visualDensity: VisualDensity.compact),
+          segments: [
+            for (var i = 0; i < 4; i++)
+              ButtonSegment<int>(
+                value: i,
+                icon: Icon(_icons[i], size: 18),
+                label: Text(_titles[i], maxLines: 1, overflow: TextOverflow.ellipsis),
+                enabled: i == cur || i != other, // a mesma tela não aparece nos dois lados
+              ),
+          ],
+          selected: {cur},
+          onSelectionChanged: (s) {
+            final v = s.first;
+            if (left) {
+              a.setSplit(v, a.splitRight);
+            } else {
+              a.setSplit(a.splitLeft, v);
+            }
+            a.markTab(_tabNames[v]);
+            setState(() {
+              _focusRight = !left;
+              _index = v;
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _splitBody() {
+    final a = widget.app;
+    Widget pane(bool left, int cur, int other) => Expanded(
+          child: Column(children: [
+            _paneSelector(left, cur, other),
+            const Divider(height: 1),
+            Expanded(child: KeyedSubtree(key: ValueKey('pane${left ? 'L' : 'R'}-$cur'), child: _pagePane(cur))),
+          ]),
+        );
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1500),
+        child: Row(children: [
+          pane(true, a.splitLeft, a.splitRight),
+          const VerticalDivider(width: 1),
+          pane(false, a.splitRight, a.splitLeft),
+        ]),
+      ),
+    );
+  }
+
   Widget _page(int i) {
     if (!_visited.contains(i)) return const SizedBox.shrink();
     final app = widget.app;
@@ -414,6 +508,7 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final app = widget.app;
+    final split = isSplitLayout(MediaQuery.sizeOf(context));
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
@@ -426,7 +521,7 @@ class _HomeShellState extends State<HomeShell> {
             children: [
               const AppLogo(size: 30),
               const SizedBox(width: 10),
-              Text(_titles[_index]),
+              Text(split ? 'Notemusic' : _titles[_index]),
             ],
           ),
           actions: [
@@ -473,20 +568,23 @@ class _HomeShellState extends State<HomeShell> {
               // Versão nova disponível (faixa fixa, com botão).
               UpdateBar(app: app),
               // Vínculo desligado com gente dependendo dele: avisa que está offline.
-              if (_index == 0 || _index == 3) LinkOffBar(app: app),
-              if (_index == 0 || _index == 3) HelloBar(app: app),
+              if (split || _index == 0 || _index == 3) LinkOffBar(app: app),
+              if (split || _index == 0 || _index == 3) HelloBar(app: app),
               // "Instale o Notemusic no celular": só no navegador, enquanto não instalou.
               InstallBanner(app: app),
               Expanded(
-                child: IndexedStack(
-                  index: _index,
-                  children: [for (var i = 0; i < 4; i++) _page(i)],
-                ),
+                child: split
+                    ? _splitBody()
+                    : IndexedStack(
+                        index: _index,
+                        children: [for (var i = 0; i < 4; i++) _page(i)],
+                      ),
               ),
             ],
           ),
         ),
-        bottomNavigationBar: NavigationBar(
+        // Em duas telas, cada lado tem o seu seletor: a barra de baixo não é necessária.
+        bottomNavigationBar: split ? null : NavigationBar(
           selectedIndex: _index,
           onDestinationSelected: _go,
           destinations: const [
