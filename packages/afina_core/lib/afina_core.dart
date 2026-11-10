@@ -13,6 +13,7 @@ export 'class_rules.dart';
 export 'markdown_lite.dart';
 export 'hub_view.dart';
 export 'errors.dart';
+export 'error_report.dart';
 export 'methods.dart';
 export 'metronome_engine.dart';
 export 'rhythm_challenge.dart';

@@ -161,7 +161,17 @@ class _ProblemsPageState extends State<ProblemsPage> {
             ]),
           ),
         ),
-        actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Fechar'))],
+        actions: [
+          TextButton.icon(
+            onPressed: () async {
+              final ok = await app.sendReport(e);
+              app.say(ok ? 'Relatório enviado. Obrigado!' : 'Não foi possível enviar agora. Tente de novo mais tarde.');
+            },
+            icon: const Icon(Icons.send, size: 18),
+            label: const Text('Enviar relatório'),
+          ),
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Fechar')),
+        ],
       ),
     );
   }

@@ -21,6 +21,7 @@ import 'audio/pitch_source.dart';
 import 'data/repository.dart';
 import 'feedback/feedback_service.dart';
 import 'link/link_service.dart';
+import 'stats/error_service.dart';
 import 'stats/stats_service.dart';
 import 'voice/dictation.dart';
 import 'package:afina_core/afina_core.dart';
@@ -756,7 +757,26 @@ class AppState extends ChangeNotifier {
   }
 
   /// Uma aba ou tela foi aberta (conta aparelhos distintos por aba, uma vez por dia).
-  void markTab(String name) => stats.markTab(name, _prefs);
+  void markTab(String name) {
+    stats.markTab(name, _prefs);
+    final label = _tabLabels[name];
+    if (label != null) {
+      crumb(label);
+      markWhere(label);
+    }
+  }
+
+  static const _tabLabels = {
+    'tuner': 'Afinador',
+    'pedal': 'Pedal',
+    'metronome': 'Metrônomo',
+    'grid': 'Grade',
+    'study': 'Meu espaço',
+    'profile': 'Minha conta',
+    'teacher': 'Alunos',
+    'agenda': 'Agenda',
+    'settings': 'Ajustes',
+  };
 
   // ---------------- Agenda de aulas ----------------
   /// PROFESSOR: aulas que marcou (cada regra semanal é UMA entrada).
@@ -787,6 +807,7 @@ class AppState extends ChangeNotifier {
     _agendaRev = p.getInt('agenda_rev') ?? 0;
     openSlots = read('open_slots');
     errorLog = ErrorLog.fromJsonString(p.getString('error_log'));
+    reportMode = ReportMode.values.where((m) => m.name == p.getString('report_mode')).firstOrNull ?? ReportMode.critical;
     hubViewPref = switch (p.getString('hub_view')) {
       'student' => HubView.student,
       'teacher' => HubView.teacher,
@@ -813,6 +834,7 @@ class AppState extends ChangeNotifier {
   /// Marca ou muda uma aula. Devolve o motivo se não der (aluno, horário que passou, choque
   /// com outra aula); null se salvou.
   String? saveSlot(ClassSlot s) {
+    crumb('Marcar aula');
     final st = studentByCode(s.studentCode);
     if (st == null) return 'Escolha o aluno.';
     final now = DateTime.now().millisecondsSinceEpoch;
@@ -941,6 +963,7 @@ class AppState extends ChangeNotifier {
 
   /// Cria ou muda um horário disponível. Devolve o motivo se não der; null se salvou.
   String? saveOpenSlot(ClassSlot s) {
+    crumb('Publicar horário livre');
     final now = DateTime.now().millisecondsSinceEpoch;
     final p = checkNewOpenSlot(s, open: openSlots.where((x) => !x.canceled), classes: agenda.where((x) => !x.canceled), nowMs: now);
     if (p != null) return slotProblemText(p);
@@ -1075,6 +1098,7 @@ class AppState extends ChangeNotifier {
   bool _taking = false;
 
   Future<String?> _takeOpenSlot(String teacher, ClassSlot slot) async {
+    crumb('Pegar horário');
     final now = DateTime.now().millisecondsSinceEpoch;
     final mine = myAgenda.where((s) => s.teacherCode == teacher && s.nextStart(now) != null).length;
     final p = checkPick(slot, teacherClasses: const [], studentUpcoming: mine, nowMs: now);
@@ -1424,6 +1448,7 @@ class AppState extends ChangeNotifier {
 
   /// Confirma (finaliza) ou devolve (volta a pendente) uma tarefa que o aluno marcou.
   void validateAssignment(Student s, String taskId, {required bool ok}) {
+    crumb(ok ? 'Validar tarefa' : 'Devolver tarefa');
     if (!validateTask(s, taskId, ok: ok)) return;
     _saveTeacher();
     // O aluno passa a ver a decisão oficial (vai pela fila e reenvia sozinha se estiver sem conexão).
@@ -1631,6 +1656,7 @@ class AppState extends ChangeNotifier {
 
   /// Começa a aula com [s]. Devolve o motivo se não der (já há outra aula em andamento).
   String? startLesson(Student s) {
+    crumb('Começar aula');
     final cur = lesson;
     if (cur != null) {
       final other = studentById(cur.studentId);
@@ -1687,6 +1713,7 @@ class AppState extends ChangeNotifier {
 
   /// Encerra a aula e a coloca para enviar ao aluno. Devolve o registro (ou null).
   LessonRecord? endLesson() {
+    crumb('Encerrar aula');
     final l = lesson;
     if (l == null) return null;
     final s = studentById(l.studentId);
@@ -1890,6 +1917,7 @@ class AppState extends ChangeNotifier {
       0, (a, l) => a + l.tasks.where((t) => !lessonTasksDone.contains('${l.id}:${t.id}')).length);
 
   void setLinkEnabled(bool v) {
+    crumb(v ? 'Ligar vínculo' : 'Desligar vínculo');
     linkEnabled = v;
     if (!v) {
       _linkTimer?.cancel();
@@ -2562,6 +2590,44 @@ class AppState extends ChangeNotifier {
   /// A tela/aba em que a pessoa está (vai no registro do erro).
   void markWhere(String where) => _where = where;
 
+  // ---- Relatórios de erro (para o painel do administrador) ----
+  ReportMode reportMode = ReportMode.critical;
+  final Breadcrumbs crumbs = Breadcrumbs();
+  final ReportGate _reportGate = ReportGate();
+
+  void setReportMode(ReportMode m) {
+    reportMode = m;
+    _prefs?.setString('report_mode', m.name);
+    notifyListeners();
+  }
+
+  /// Anota um passo na trilha (só nomes fixos de telas e ações).
+  void crumb(String step) => crumbs.add(step);
+
+  ReportEnv _reportEnv() => ReportEnv(
+        deviceId: stats.deviceId.length >= 16 ? stats.deviceId : ErrorReportService.tempId(),
+        build: StatsService.versionTag(),
+        platform: StatsService.platformTag(),
+        install: StatsService.installTag(),
+        link: linkStatus.health.name.toLowerCase(),
+        view: canSwitchHub || teacherMode || hasTeacherSide ? hubView.name : '',
+      );
+
+  /// Envia o relatório de [e] ao servidor (a pessoa tocou em "Enviar" ou o modo automático pediu).
+  Future<bool> sendReport(AppError e) async {
+    try {
+      return await ErrorReportService.send(buildErrorReport(e, _reportEnv(), crumbs.items));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  void _autoSend(AppError e) {
+    if (!shouldAutoSend(reportMode, e.severity)) return;
+    if (!_reportGate.allow(e.shortId, DateTime.now())) return;
+    unawaited(sendReport(e));
+  }
+
   /// Registra um erro inesperado: classifica, guarda e (se for novo e importante) avisa.
   void reportError(Object error, StackTrace? stack, {String where = ''}) {
     try {
@@ -2584,6 +2650,7 @@ class AppState extends ChangeNotifier {
     errorLog.add(e);
     _prefs?.setString('error_log', errorLog.toJsonString());
     Future.microtask(notifyListeners);
+    _autoSend(e);
     say('$message (${e.shortId})');
   }
 
@@ -2591,6 +2658,7 @@ class AppState extends ChangeNotifier {
     final isNew = errorLog.add(e);
     _prefs?.setString('error_log', errorLog.toJsonString());
     Future.microtask(notifyListeners); // a lista de problemas e o contador em Ajustes se atualizam
+    if (isNew) _autoSend(e);
     if (!isNew || e.severity == ErrorSeverity.info) return;
     final now = DateTime.now();
     final last = _lastErrorToast;

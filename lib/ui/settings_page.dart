@@ -95,6 +95,29 @@ class SettingsPage extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ProblemsPage(app: app))),
         ),
+        const Divider(height: 20),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text('Enviar relatório de erro ao desenvolvedor', style: const TextStyle(fontWeight: FontWeight.w700)),
+        ),
+        const SizedBox(height: 4),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text('Só dados técnicos: nada de nome, código de perfil, áudio ou o que você toca.',
+              style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+        ),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Wrap(spacing: 8, children: [
+            for (final m in ReportMode.values)
+              ChoiceChip(
+                label: Text(reportModeLabel(m)),
+                selected: app.reportMode == m,
+                onSelected: (_) => app.setReportMode(m),
+              ),
+          ]),
+        ),
         if (kDevDemo)
           ListTile(
             contentPadding: EdgeInsets.zero,

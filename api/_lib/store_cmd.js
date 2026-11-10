@@ -86,6 +86,21 @@ function memCmd(a) {
       }
       return out;
     }
+    case 'ZREVRANGEBYSCORE': {
+      const hi = bound(a[2], Infinity), lo = bound(a[3], -Infinity);
+      let i = 4;
+      let withScores = false;
+      if (String(a[i] || '').toUpperCase() === 'WITHSCORES') { withScores = true; i++; }
+      let off = 0, cnt = Infinity;
+      if (String(a[i] || '').toUpperCase() === 'LIMIT') { off = Number(a[i + 1]); cnt = Number(a[i + 2]); }
+      const arr = [...(zsets.get(key) || new Map())].filter(([, v]) => v >= lo && v <= hi).sort((x, y) => y[1] - x[1]);
+      const out = [];
+      for (const [mm, v] of arr.slice(off, off + cnt)) {
+        out.push(mm);
+        if (withScores) out.push(String(v));
+      }
+      return out;
+    }
     case 'ZRANGEBYSCORE': {
       const lo = bound(a[2], -Infinity), hi = bound(a[3], Infinity);
       let i = 4;
@@ -107,8 +122,24 @@ function memCmd(a) {
       return (hashes.get(key) || new Map()).get(String(a[2])) ?? null;
     case 'HSET': {
       const h = hashes.get(key) || hashes.set(key, new Map()).get(key);
+      let added = 0;
+      for (let i = 2; i + 1 < a.length; i += 2) {
+        if (!h.has(String(a[i]))) added++;
+        h.set(String(a[i]), String(a[i + 1]));
+      }
+      return added;
+    }
+    case 'HSETNX': {
+      const h = hashes.get(key) || hashes.set(key, new Map()).get(key);
+      if (h.has(String(a[2]))) return 0;
       h.set(String(a[2]), String(a[3]));
       return 1;
+    }
+    case 'HDEL': {
+      const h = hashes.get(key);
+      let n = 0;
+      for (const f of a.slice(2)) if (h && h.delete(String(f))) n++;
+      return n;
     }
     case 'HMGET': {
       const h = hashes.get(key) || new Map();

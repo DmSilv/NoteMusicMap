@@ -59,6 +59,22 @@
     .danger { background: var(--bad); color: #2a0707; border-color: transparent; font-weight: 700; }
     .kv { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
     .kv span:first-child { color: var(--dim); }
+    .tabs { display: flex; gap: 6px; padding: 8px 16px 0; border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: 57px; z-index: 4; }
+    .tabs button { border: 0; border-bottom: 3px solid transparent; border-radius: 8px 8px 0 0; background: transparent; color: var(--dim); font-weight: 700; padding: 9px 14px; }
+    .tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+    .filters select, .filters input { padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; }
+    .spark { display: inline-flex; align-items: flex-end; gap: 1px; height: 22px; }
+    .spark i { display: block; width: 4px; background: var(--accent); border-radius: 1px; min-height: 1px; opacity: .85; }
+    .tag.ok { color: var(--accent); } .tag.b { color: var(--blue); }
+    .sevdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; background: var(--dim); }
+    .sevdot.critical { background: var(--bad); } .sevdot.action { background: var(--warn); } .sevdot.info { background: var(--blue); }
+    #bugDetail { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 20; }
+    #bugDetail .box { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; max-width: 640px; width: 100%; max-height: 92vh; overflow: auto; }
+    pre.stack { background: var(--card2); border-radius: 10px; padding: 10px; font-size: 12px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; color: var(--dim); margin: 6px 0 10px; }
+    .occ { border-top: 1px solid var(--line); padding: 8px 0; font-size: 13px; }
+    .occ .bc { color: var(--dim); font-size: 12px; }
+    textarea#bugNote { width: 100%; min-height: 56px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; resize: vertical; }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -71,6 +87,8 @@
     <p id="msg"></p>
   </section>
 
+  <div id="bugDetail" hidden><div class="box" id="bugBox"></div></div>
+
   <div id="detail" hidden><div class="box" id="detailBox"></div></div>
 
   <div id="app" hidden>
@@ -80,7 +98,8 @@
       <button id="refresh">Atualizar</button>
       <button id="out">Sair</button>
     </header>
-    <main>
+    <nav class="tabs"><button id="tabBtnO" class="on">Visão geral</button><button id="tabBtnB">Bugs <span id="bugBadge" class="tag x" hidden></span></button></nav>
+    <main id="tabOverview">
       <div class="grid">
         <div class="card big"><div class="k">Online agora</div><div class="v" id="on5">–</div><div class="s">últimos 5 min · <span id="on1">–</span> no último minuto</div></div>
         <div class="card"><div class="k">Usuários hoje</div><div class="v" id="dau">–</div><div class="s"><span id="opens">–</span> aberturas</div></div>
@@ -136,6 +155,34 @@
       <h2>Ações do administrador</h2>
       <div class="card"><div id="logRows" class="empty">Nada ainda.</div></div>
       <p class="note">Contagens anônimas: cada aparelho tem um código aleatório, sem nome, IP ou áudio. Quem limpa os dados do navegador ou reinstala conta como aparelho novo, então o total é aproximado. O dia vale no horário de Brasília.</p>
+    </main>
+
+    <main id="tabBugs" hidden>
+      <div class="grid">
+        <div class="card big"><div class="k">Bugs abertos</div><div class="v" id="bOpen">–</div><div class="s"><span id="bCrit">–</span> graves · <span id="bReopen">–</span> reabertos</div></div>
+        <div class="card"><div class="k">Novos hoje</div><div class="v" id="bNew">–</div><div class="s">bugs que apareceram hoje</div></div>
+        <div class="card"><div class="k">Erros hoje</div><div class="v" id="bToday">–</div><div class="s"><span id="bTodayC">–</span> graves · <span id="bTodayA">–</span> de ação · <span id="bTodayI">–</span> de conexão</div></div>
+        <div class="card"><div class="k">Por 100 aberturas</div><div class="v" id="bRate">–</div><div class="s">erros hoje ÷ aberturas hoje</div></div>
+        <div class="card"><div class="k">Últimas 2 horas</div><div class="v" id="bTwoH">–</div><div class="s" id="bSpike"></div></div>
+      </div>
+      <h2>Erros por hora (hoje)</h2>
+      <div class="card"><div class="bars" id="bHours"></div><div class="axis"><span>0h</span><span>12h</span><span>23h</span></div></div>
+      <h2>Bugs agrupados</h2>
+      <div class="filters">
+        <select id="fDays"><option value="1">Últimas 24 h</option><option value="7" selected>7 dias</option><option value="30">30 dias</option><option value="90">90 dias</option></select>
+        <select id="fSev"><option value="">Toda gravidade</option><option value="critical">Grave</option><option value="action">De ação</option><option value="info">De conexão</option></select>
+        <select id="fStatus"><option value="">Todo status</option><option value="open">Abertos</option><option value="new">Novos</option><option value="seen">Vistos</option><option value="reopened">Reabertos</option><option value="resolved">Resolvidos</option><option value="ignored">Ignorados</option></select>
+        <select id="fVer"><option value="">Toda versão</option></select>
+        <select id="fPlat"><option value="">Toda plataforma</option></select>
+        <select id="fCode"><option value="">Todo código</option></select>
+        <input id="fQ" placeholder="Buscar (tela, mensagem)" maxlength="60">
+        <button id="fGo" class="primary">Filtrar</button>
+      </div>
+      <div class="card" style="overflow:auto">
+        <table><thead><tr><th>Bug</th><th>Onde</th><th>Vezes</th><th>Aparelhos</th><th>Última</th><th>14 dias</th><th>Status</th></tr></thead><tbody id="bRows"></tbody></table>
+        <div class="toolbar" style="margin-top:10px"><button id="bPrev">‹ Anterior</button><button id="bNext">Próxima ›</button><span class="empty" id="bNote"></span></div>
+      </div>
+      <p class="note">Relatórios anônimos enviados pelo app (sem nome, código de perfil, e-mail ou áudio). Um bug "resolvido" volta como "reaberto" se aparecer numa versão publicada depois da correção.</p>
     </main>
   </div>
 
@@ -386,6 +433,124 @@
     }).catch(function () {});
   }
 
+  // ---------------- Bugs ----------------
+  var bOffset = 0, bTab = false;
+  var SEV = { critical: 'Grave', action: 'De ação', info: 'De conexão' };
+  var ST = { 'new': ['Novo', 'x'], seen: ['Visto', 'b'], resolved: ['Resolvido', 'ok'], ignored: ['Ignorado', ''], reopened: ['Reaberto', 'i'] };
+  function sevDot(sev) { var d = document.createElement('span'); d.className = 'sevdot ' + sev; d.title = SEV[sev] || sev; return d; }
+  function spark(arr) {
+    var w = document.createElement('span'); w.className = 'spark';
+    var max = 1; arr.forEach(function (v) { max = Math.max(max, v); });
+    arr.forEach(function (v) { var i = document.createElement('i'); i.style.height = Math.max(1, Math.round((v / max) * 22)) + 'px'; if (!v) i.style.opacity = '.25'; w.appendChild(i); });
+    return w;
+  }
+  function fill(sel, list, label) {
+    var cur = sel.value; sel.innerHTML = '';
+    var o0 = document.createElement('option'); o0.value = ''; o0.textContent = label; sel.appendChild(o0);
+    list.forEach(function (x) { var o = document.createElement('option'); o.value = x; o.textContent = x; sel.appendChild(o); });
+    sel.value = cur;
+  }
+  function chips(obj) {
+    var f = document.createDocumentFragment();
+    Object.keys(obj).sort(function (a, b) { return obj[b] - obj[a]; }).slice(0, 3).forEach(function (k) { f.appendChild(tag(k + ' ×' + obj[k])); });
+    return f;
+  }
+  function renderBugs(j) {
+    var sm = j.summary;
+    $('bOpen').textContent = fmt(sm.open); $('bCrit').textContent = fmt(sm.criticalOpen); $('bReopen').textContent = fmt(sm.reopened);
+    $('bNew').textContent = fmt(sm.newToday);
+    $('bToday').textContent = fmt(sm.today.total); $('bTodayC').textContent = fmt(sm.today.critical); $('bTodayA').textContent = fmt(sm.today.action); $('bTodayI').textContent = fmt(sm.today.info);
+    $('bRate').textContent = sm.opensToday > 0 ? (Math.round((sm.today.total / sm.opensToday) * 1000) / 10).toLocaleString('pt-BR') : '–';
+    $('bTwoH').textContent = fmt(sm.last2h);
+    var avg = sm.today.total / 24;
+    $('bSpike').textContent = sm.last2h >= 5 && sm.last2h > avg * 4 ? 'Pico: bem acima da média de hoje' : 'Dentro do normal';
+    var bb = $('bugBadge');
+    var alerts = sm.criticalOpen + sm.reopened;
+    bb.hidden = alerts === 0; bb.textContent = String(alerts);
+    var hb = $('bHours'), max = 1;
+    sm.hours.forEach(function (v) { max = Math.max(max, v); });
+    hb.innerHTML = '';
+    sm.hours.forEach(function (v, i) {
+      var d = document.createElement('div'); d.className = 'bar';
+      d.style.height = Math.max(2, Math.round((v / max) * 100)) + '%';
+      d.setAttribute('data-t', i + 'h: ' + fmt(v)); hb.appendChild(d);
+    });
+    fill($('fVer'), j.filters.versions, 'Toda versão'); fill($('fPlat'), j.filters.platforms, 'Toda plataforma'); fill($('fCode'), j.filters.codes, 'Todo código');
+    var body = $('bRows'); body.innerHTML = '';
+    if (!j.items.length) {
+      var tr0 = document.createElement('tr'), td0 = document.createElement('td');
+      td0.colSpan = 7; td0.className = 'empty'; td0.textContent = 'Nenhum bug neste filtro. Bom sinal!'; tr0.appendChild(td0); body.appendChild(tr0);
+    }
+    j.items.forEach(function (b) {
+      var tr = document.createElement('tr'); tr.className = 'pick';
+      var c1 = document.createElement('td'); c1.appendChild(sevDot(b.sev));
+      var st = document.createElement('strong'); st.textContent = b.code; c1.appendChild(st);
+      var m = document.createElement('div'); m.className = 'empty'; m.textContent = (b.msg || '').split('\n')[0].slice(0, 70); c1.appendChild(m);
+      var c2 = document.createElement('td'); c2.textContent = b.where || '—';
+      var c3 = document.createElement('td'); c3.textContent = fmt(b.n);
+      var c4 = document.createElement('td'); c4.textContent = fmt(b.devices);
+      var c5 = document.createElement('td'); c5.textContent = ago(b.last);
+      var c6 = document.createElement('td'); c6.appendChild(spark(b.trend));
+      var c7 = document.createElement('td'); var s2 = ST[b.status] || ST['new']; c7.appendChild(tag(s2[0], s2[1]));
+      [c1, c2, c3, c4, c5, c6, c7].forEach(function (c) { tr.appendChild(c); });
+      tr.onclick = function () { openBug(b.fp); };
+      body.appendChild(tr);
+    });
+    var from = j.items.length ? j.offset + 1 : 0;
+    $('bNote').textContent = from + '–' + (j.offset + j.items.length) + ' de ' + fmt(j.total) + (j.scanned >= j.scanLimit ? ' · examinados os ' + j.scanLimit + ' mais recentes' : '');
+    $('bPrev').disabled = j.offset <= 0; $('bNext').disabled = j.offset + j.page >= j.total;
+  }
+  function loadBugs() {
+    post({ action: 'bugs', days: Number($('fDays').value), sev: $('fSev').value, status: $('fStatus').value, ver: $('fVer').value, plat: $('fPlat').value, code: $('fCode').value, q: $('fQ').value, offset: bOffset })
+      .then(function (r) { if (r.status === 200) renderBugs(r.j); else fail(r.status, r.j); }).catch(function () {});
+  }
+  function showTab(bugs) {
+    bTab = bugs;
+    $('tabOverview').hidden = bugs; $('tabBugs').hidden = !bugs;
+    $('tabBtnO').className = bugs ? '' : 'on'; $('tabBtnB').className = bugs ? 'on' : '';
+    if (bugs) loadBugs();
+  }
+  function closeBug() { $('bugDetail').hidden = true; }
+  function openBug(fp) {
+    post({ action: 'bug', fp: fp }).then(function (r) {
+      if (r.status !== 200) { if (!fail(r.status, r.j)) alert(r.j.error || 'Não foi possível abrir.'); return; }
+      var d = r.j, box = $('bugBox'); box.innerHTML = '';
+      var h = document.createElement('h3'); h.appendChild(sevDot(d.sev)); h.appendChild(document.createTextNode(d.code + ' · ' + (SEV[d.sev] || d.sev))); box.appendChild(h);
+      function kv(k, v) { var row = document.createElement('div'); row.className = 'kv'; var a = document.createElement('span'); a.textContent = k; var b2 = document.createElement('span'); b2.textContent = v; row.appendChild(a); row.appendChild(b2); box.appendChild(row); }
+      kv('Onde', d.where || '—'); kv('Status', (ST[d.status] || ST['new'])[0]);
+      kv('Ocorrências', fmt(d.n)); kv('Aparelhos afetados', fmt(d.devices));
+      kv('Primeira vez', dt(d.first)); kv('Última vez', dt(d.last) + ' (' + ago(d.last) + ')');
+      if (d.resolved && d.resolved.at) kv('Resolvido em', dt(d.resolved.at));
+      var l1 = document.createElement('h2'); l1.textContent = 'Mensagem e pilha'; box.appendChild(l1);
+      var pre = document.createElement('pre'); pre.className = 'stack'; pre.textContent = d.msg || '—'; box.appendChild(pre);
+      var l2 = document.createElement('h2'); l2.textContent = 'Onde acontece'; box.appendChild(l2);
+      function dist(title, obj) { var p = document.createElement('div'); p.className = 'kv'; var a = document.createElement('span'); a.textContent = title; var b3 = document.createElement('span'); b3.appendChild(chips(obj)); p.appendChild(a); p.appendChild(b3); box.appendChild(p); }
+      dist('Versões', d.versions); dist('Plataformas', d.platforms); dist('Instalação', d.installs);
+      var l3 = document.createElement('h2'); l3.textContent = 'Últimos 30 dias'; box.appendChild(l3);
+      var sp = spark(d.trend.map(function (x) { return x.n; })); sp.style.height = '40px'; box.appendChild(sp);
+      var l4 = document.createElement('h2'); l4.textContent = 'Últimas ocorrências'; box.appendChild(l4);
+      if (!d.occurrences.length) { var e0 = document.createElement('div'); e0.className = 'empty'; e0.textContent = 'Sem detalhe (o bug se repetiu muito e entrou em modo leve).'; box.appendChild(e0); }
+      d.occurrences.forEach(function (o) {
+        var row = document.createElement('div'); row.className = 'occ';
+        var t = document.createElement('div'); t.textContent = dt(o.t) + ' · ' + o.v + ' · ' + o.pl + ' · ' + o.in + (o.lk ? ' · vínculo ' + o.lk : '') + (o.vw ? ' · visão ' + o.vw : '') + ' · aparelho ' + o.dv;
+        var bc = document.createElement('div'); bc.className = 'bc'; bc.textContent = o.bc && o.bc.length ? o.bc.join(' › ') : 'sem trilha';
+        row.appendChild(t); row.appendChild(bc); box.appendChild(row);
+      });
+      var l5 = document.createElement('h2'); l5.textContent = 'Anotação'; box.appendChild(l5);
+      var ta = document.createElement('textarea'); ta.id = 'bugNote'; ta.maxLength = 300; ta.value = d.note || ''; ta.placeholder = 'Ex.: causa, issue, versão da correção'; box.appendChild(ta);
+      var bar = document.createElement('div'); bar.className = 'toolbar'; bar.style.marginTop = '12px';
+      function act(label, status, cls) {
+        var bt = document.createElement('button'); if (cls) bt.className = cls; bt.textContent = label;
+        bt.onclick = function () { post({ action: 'bug_status', fp: fp, status: status, note: ta.value }).then(function (r2) { if (r2.status === 200) { closeBug(); loadBugs(); } else alert(r2.j.error || 'Não foi possível salvar.'); }); };
+        bar.appendChild(bt);
+      }
+      act('Visto', 'seen'); act('Resolvido', 'resolved', 'primary'); act('Ignorar', 'ignored'); act('Reabrir', 'new');
+      var cl = document.createElement('button'); cl.textContent = 'Fechar'; cl.onclick = closeBug; bar.appendChild(cl);
+      box.appendChild(bar);
+      $('bugDetail').hidden = false;
+    }).catch(function () {});
+  }
+
   function start() {
     loadProfiles();
     show(true);
@@ -411,7 +576,14 @@
     }).catch(function () { $('msg').textContent = 'Sem conexão com o servidor.'; });
   };
   $('key').onkeydown = function (e) { if (e.key === 'Enter') $('enter').onclick(); };
-  $('refresh').onclick = function () { loadFull(); loadProfiles(); };
+  $('refresh').onclick = function () { loadFull(); loadProfiles(); if (bTab) loadBugs(); };
+  $('tabBtnO').onclick = function () { showTab(false); };
+  $('tabBtnB').onclick = function () { showTab(true); };
+  $('fGo').onclick = function () { bOffset = 0; loadBugs(); };
+  $('fQ').onkeydown = function (e) { if (e.key === 'Enter') $('fGo').onclick(); };
+  $('bPrev').onclick = function () { bOffset = Math.max(0, bOffset - 25); loadBugs(); };
+  $('bNext').onclick = function () { bOffset += 25; loadBugs(); };
+  $('bugDetail').onclick = function (e) { if (e.target === $('bugDetail')) closeBug(); };
   $('qGo').onclick = function () { query = $('q').value.trim(); offset = 0; loadList(); };
   $('q').onkeydown = function (e) { if (e.key === 'Enter') $('qGo').onclick(); };
   $('pPrev').onclick = function () { offset = Math.max(0, offset - 25); loadList(); };

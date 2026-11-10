@@ -69,7 +69,7 @@ class StatsService {
   }
 
   /// "android-chrome", "ios-safari", "windows-edge"… (ou "android-app" no app nativo).
-  static String _platform() {
+  static String platformTag() {
     if (!kIsWeb) {
       return switch (defaultTargetPlatform) {
         TargetPlatform.android => 'android-app',
@@ -106,9 +106,12 @@ class StatsService {
     return '$os-$br';
   }
 
-  String get _install => !kIsWeb ? 'app' : (webPushStandalone() ? 'pwa' : 'browser');
+  static String installTag() => !kIsWeb ? 'app' : (webPushStandalone() ? 'pwa' : 'browser');
 
-  static String _version() {
+  /// Código aleatório deste aparelho (o mesmo das estatísticas; NÃO é o código de perfil).
+  String get deviceId => _id;
+
+  static String versionTag() {
     const b = String.fromEnvironment('BUILD_ID');
     if (b.isEmpty || b == 'local') return 'dev';
     return b.length > 7 ? b.substring(0, 7) : b;
@@ -151,7 +154,7 @@ class StatsService {
     final day = _today();
     final body = <String, dynamic>{'t': 'open', 'id': _id};
     if (_dimsDay != day) {
-      body['d'] = {'pl': _platform(), 'in': _install, 'v': _version()};
+      body['d'] = {'pl': platformTag(), 'in': installTag(), 'v': versionTag()};
       _dimsDay = day;
       p?.setString('stats_dims_day', day);
     }

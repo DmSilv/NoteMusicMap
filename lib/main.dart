@@ -7,6 +7,8 @@ import 'package:flutter/services.dart';
 import 'package:toastification/toastification.dart';
 
 import 'app_state.dart';
+import 'stats/error_service.dart';
+import 'stats/stats_service.dart';
 import 'ui/app_logo.dart';
 import 'ui/error_ui.dart';
 import 'ui/status_strip.dart';
@@ -33,6 +35,17 @@ Future<void> _start() async {
     final err = classifyError(e, stack: st, where: 'Início do app');
     final critical = AppError(
         code: 'APP-99', severity: ErrorSeverity.critical, where: err.where, detail: err.detail, atMs: err.atMs);
+    // Falha ao abrir é grave: avisa o desenvolvedor sozinho (anônimo, só dados técnicos).
+    unawaited(ErrorReportService.send(buildErrorReport(
+      critical,
+      ReportEnv(
+        deviceId: ErrorReportService.tempId(),
+        build: StatsService.versionTag(),
+        platform: StatsService.platformTag(),
+        install: StatsService.installTag(),
+      ),
+      const [],
+    )));
     runApp(MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: buildTheme(dark: true),

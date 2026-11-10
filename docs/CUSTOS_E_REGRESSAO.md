@@ -52,3 +52,14 @@ Manual, com dois aparelhos/abas (professor e aluno), vínculo online ligado:
 - **API:** código só aceito como texto (lista/objeto não viram código); `api/guardrails.test.js` cobre corpo ausente/gigante/malformado, `__proto__`, ids hostis, apelido com caracteres invisíveis, segredo/hash nunca na resposta, erro sem rastro interno, chave do painel só no cabeçalho.
 - **App:** "Pegar horário" trava contra toque duplo; apagar horário livre pede confirmação. Já existiam confirmações para excluir aluno, desvincular professor, apagar tudo e vincular por convite/QR.
 - **Não alterado de propósito:** o painel ainda aceita `FEEDBACK_ADMIN_KEY` como alternativa à `ADMIN_KEY` (tirar agora poderia trancar o administrador para fora); trocar quando a `ADMIN_KEY` própria estiver configurada na Vercel.
+
+## Relatórios de erro e aba Bugs (Pacote 2, 10/11/2026)
+| Ação | Quem | Comandos do Redis |
+|---|---|---|
+| Relatório de erro novo ou repetido (`/api/errors`) | app | **~23** (medido em `api/errors.test.js`: novo 23, repetição 22); modo leve (bug com 200+ repetições) ~16 |
+| Aba Bugs: lista (`bugs`) | admin | 3 + até 60 (um por bug examinado) + 2 por bug da página (até 25) ≈ **até ~115** |
+| Detalhe de um bug (`bug`) | admin | 6 |
+| Mudar status (`bug_status`) | admin | 2–4 |
+
+**Proteções de custo:** o app envia o mesmo problema no máximo 1 vez a cada 10 min e até 20 por sessão; por aparelho 10/hora; teto global por dia `ERRORS_DAILY_CAP` (padrão **150** eventos ≈ 3,5 mil comandos no pior dia, ~20% do uso diário da cota gratuita); chave de desligar `ERRORS_DISABLED=1` (para tudo sem publicar). Por padrão o app só envia sozinho os erros **graves** (`APP-99`, falha ao abrir); os demais só se a pessoa escolher "Todos os erros" ou tocar em "Enviar relatório".
+**Chaves novas no Redis (`er:*`):** `er:f:<fp>` (bug), `er:fd:<fp>` (aparelhos, HyperLogLog), `er:t:<fp>` (tendência por dia), `er:o:<fp>` (últimas 10 ocorrências), `er:idx` (índice por última vez), `er:rs` (resolvidos), `er:n` (anotações), `er:b` (versões vistas), `er:d:<dia>` (contadores do dia e por hora), `er:rl:*` e `er:cap:*` (limites, expiram sozinhas). **Limpeza pendente:** `er:f:*`/`er:t:*` de bugs antigos não expiram (cresce devagar; limpeza no Pacote 3).
