@@ -24,14 +24,34 @@ Legenda: ✅ conferido em tela e funcionou · ⬜ ainda não conferido · ❌ de
 | Chave de recuperação (mostrar/copiar) | abre a chave com aviso | ⬜ |
 | Aba "Professor" | mostra a área de professor | ⬜ |
 
-## Pendentes de conferir (roteiro para a próxima rodada)
-- **Meu espaço:** destaque (botões de cada estado: sem aula, próxima, em andamento), blocos "Para validar", "Alunos", "Tarefas", "Agenda do aluno", ferramentas (Agenda do professor, Horários livres, Pegar horário, Relatórios, Metrônomo, Escalas, Perfil, Ajustes), faixa de aviso (Ver / Dispensar), selo de conexão.
-- **Agendas:** Hoje, Semana/Mês, setas, "Marcar aula", menu da aula (Editar, Abrir ficha, Cancelar só esta, Cancelar todas), ativar lembretes.
-- **Horários livres:** Novo horário (data, hora, duração, repetir, Publicar), apagar (com confirmação), Pegar horário (confirmar).
-- **Alunos e ficha:** Novo aluno, Ler QR do aluno, Importar, Começar a aula (resumo), validar/devolver, Nova tarefa, menu de tarefa, excluir aluno (confirmação).
-- **Ajustes:** cada interruptor e botão de ajuda "?".
-- **Afinador / Metrônomo / Grade:** modos, "Ouvir", pedal, escalas.
+## Meu espaço (professor, com 1 aluno, 1 aula e 1 horário livre) — segunda rodada, sem tocar na API de produção
+| Botão | Resultado | Estado |
+|---|---|---|
+| Destaque "Agenda do professor" | abre a agenda com a aula de amanhã | ✅ |
+| Destaque "Ficha de Marina" | abre a ficha (aula, "1 tarefa para validar" com Devolver/Confirmar, lista de tarefas) | ✅ |
+| Bloco "Para validar" | abre a Área do professor | ✅ (ver achado 1) |
+| Bloco "Alunos" | abre a Área do professor | ✅ (ver achado 1) |
+| Ferramenta "Horários livres" | lista o horário livre, com lixeira e "Novo horário" | ✅ |
+| Ferramenta "Relatórios" | abre a Área do professor | ✅ (ver achado 1) |
+| Ferramenta "Metrônomo" | muda para a aba Metrônomo | ✅ |
+| Ferramenta "Escalas" | abre a aba Grade na seção Escala | ✅ |
+| Ferramenta "Ajustes" | abre Configurações | ✅ |
+| Agenda: Semana / Mês | alterna as visões; o dia com aula mostra a marca | ✅ |
+| Agenda: "Marcar aula" | abre o formulário (aluno, dia, hora, duração, repetir, observação) | ✅ |
+| Formulário: horário no passado | mostra o aviso "Esse horário já passou…" | ✅ |
+| Formulário: microfone (ditado) | abre o aviso "Escrever falando" | ✅ |
 
-## Achados até agora
-- Nenhum defeito encontrado nos botões conferidos.
-- Observação: o app de teste local fala com a API **de produção**; o perfil de teste usado aqui existe lá (código de teste). Na próxima rodada usar a API local de demonstração para não criar perfis reais.
+## Ainda não conferido (próxima rodada)
+- Agenda: menu ⋮ da aula (Editar, Abrir ficha, Cancelar só esta, Cancelar todas), setas de semana/mês, "Hoje", "Ligar vínculo online".
+- Formulário de aula: botão X (fechar), "Cancelar" e "Marcar aula" com data válida.
+- Horários livres: "Novo horário" (data, hora, duração, repetir, Publicar), lixeira (confirmação), "Pegar horário" no lado do aluno.
+- Ficha do aluno: "Começar a aula" (resumo), Confirmar/Devolver, "Nova tarefa", menu da tarefa, Iniciar, excluir aluno.
+- Área do professor: Novo aluno, Ler QR do aluno, Meus métodos, Importar, Definir senha.
+- Ajustes: interruptores e botões "?"; Perfil: Adicionar outro professor, desvincular, chave de recuperação, aba Professor.
+- Afinador, Pedal e Grade: modos, "Ouvir", teclas, escalas.
+- Lado do aluno inteiro (Agenda do aluno, Minhas aulas, marcar "fiz", Pegar horário).
+
+## Achados
+1. **Três atalhos para a mesma tela:** "Para validar", "Alunos" e "Relatórios" abrem a mesma Área do professor. "Para validar" deveria levar direto à validação do aluno que tem tarefa marcada. Entra na Fase 1 (navegação).
+2. Nenhum botão quebrado nos itens conferidos. O aviso de horário no passado e os diálogos de confirmação funcionam.
+3. O teste é instável neste ambiente (a janela do navegador mudou de tamanho e depois a aba caiu); por isso o que não está marcado ✅ **não foi validado**, não que esteja certo.
