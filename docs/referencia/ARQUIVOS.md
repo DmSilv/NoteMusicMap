@@ -46,7 +46,7 @@
 | `lib/ui/install_banner.dart` | Faixa "Instale o Notemusic no celular" (só no navegador, enquanto não instalou). |
 | `lib/ui/link_bar.dart` | Aviso do alto da tela quando o vínculo online está DESLIGADO mas há quem dependa dele (modo professor, professor ou aluno vinculado): sem ele, nada chega ao aparelho. |
 | `lib/ui/markdown_lite.dart` | Mostra um texto em Markdown simples (o que a IA devolve): títulos com `##`, tópicos com `-`, listas numeradas, **negrito** e *itálico*. A leitura dos trechos mora no núcleo (`parseInline`), com testes; aqui só se… |
-| `lib/ui/methods_page.dart` | "Meus métodos e lições": a biblioteca do professor. Cadastrar, editar, importar de um texto colado e exportar. Ela também cresce sozinha com o que é digitado nas tarefas. |
+| `lib/ui/methods_page.dart` | "Meus métodos e lições": a biblioteca do professor. Cadastrar, editar, copiar a lista. Ela também cresce sozinha com o que é digitado nas tarefas. |
 | `lib/ui/metronome_page.dart` | Aba Metrônomo: andamento, compasso, subdivisão, som, tap tempo e modo desafio. |
 | `lib/ui/mic_pill.dart` | Aviso fixo na barra superior enquanto o microfone está captando: ponto pulsante + "Ouvindo". Visível em qualquer aba; tocar desliga. |
 | `lib/ui/my_lessons_page.dart` | Minhas aulas (aluno): aulas e tarefas recebidas do professor, com o status oficial (validada, aguardando, refazer) e o botão de treinar. |

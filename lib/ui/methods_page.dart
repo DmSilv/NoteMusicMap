@@ -9,7 +9,7 @@ import 'theme.dart';
 import 'widgets.dart';
 
 /// "Meus métodos e lições": a biblioteca do professor. Cadastrar, editar,
-/// importar de um texto colado e exportar. Ela também cresce sozinha com o que
+/// copiar a lista. Ela também cresce sozinha com o que
 /// é digitado nas tarefas.
 class MethodsPage extends StatelessWidget {
   final AppState app;
@@ -21,19 +21,10 @@ class MethodsPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Meus métodos e lições'),
         actions: [
-          PopupMenuButton<String>(
-            tooltip: 'Importar e exportar',
-            onSelected: (v) => switch (v) {
-              'import' => _import(context),
-              'copy' => _copy(context, json: false),
-              'json' => _copy(context, json: true),
-              _ => null,
-            },
-            itemBuilder: (c) => const [
-              PopupMenuItem(value: 'import', child: Text('Importar de um texto')),
-              PopupMenuItem(value: 'copy', child: Text('Copiar lista (texto)')),
-              PopupMenuItem(value: 'json', child: Text('Copiar para outro aparelho')),
-            ],
+          IconButton(
+            tooltip: 'Copiar lista',
+            icon: const Icon(Icons.copy_all_outlined),
+            onPressed: () => _copy(context, json: false),
           ),
         ],
       ),
@@ -54,7 +45,7 @@ class MethodsPage extends StatelessWidget {
                   child: Text(
                     'Guarde aqui os métodos e livros que você usa (Suzuki, Ševčík, Mazas…) e as lições de cada um. '
                     'Ao passar uma tarefa, você escolhe com um toque. Se digitar um método ou lição novo numa '
-                    'tarefa, ele entra aqui sozinho. Para trazer uma lista pronta, use ⋮ › Importar de um texto.',
+                    'tarefa, ele entra aqui sozinho.',
                     style: TextStyle(color: AppColors.textDim, fontSize: 13, height: 1.3),
                   ),
                 ),
@@ -67,14 +58,8 @@ class MethodsPage extends StatelessWidget {
                       const SizedBox(height: 8),
                       const Text('Nenhum método ainda', style: TextStyle(fontWeight: FontWeight.w800)),
                       const SizedBox(height: 4),
-                      Text('Toque em "Novo método" ou importe uma lista.',
+                      Text('Toque em "Novo método" para cadastrar o primeiro.',
                           style: TextStyle(color: AppColors.textDim)),
-                      const SizedBox(height: 12),
-                      OutlinedButton.icon(
-                        onPressed: () => _import(context),
-                        icon: const Icon(Icons.paste),
-                        label: const Text('Importar de um texto'),
-                      ),
                     ]),
                   ),
                 for (final m in lib)
@@ -219,70 +204,12 @@ class MethodsPage extends StatelessWidget {
     }
   }
 
-  /// Importar de um texto colado (de uma anotação, planilha, mensagem ou do outro aparelho).
-  Future<void> _import(BuildContext context) async {
-    final ctl = TextEditingController();
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Importar métodos'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                  'Copie a lista de qualquer lugar (anotações, planilha, mensagem, outro aparelho) e cole aqui. '
-                  'Formatos aceitos:',
-                  style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-              const SizedBox(height: 6),
-              const Text(
-                  '• Um método por linha\n'
-                  '• Suzuki Livro 1: Lição 1; Lição 2\n'
-                  '• Método numa linha e as lições abaixo, com "-" na frente\n'
-                  '• A lista copiada de outro aparelho (⋮ › Copiar para outro aparelho)',
-                  style: TextStyle(fontSize: 13, height: 1.35)),
-              const SizedBox(height: 10),
-              TextField(
-                controller: ctl,
-                inputFormatters: const [SafeText.import()],
-                autofocus: true,
-                minLines: 5,
-                maxLines: 10,
-                decoration: InputDecoration(
-                  hintText: 'Cole aqui',
-                  suffixIcon: IconButton(
-                    tooltip: 'Colar',
-                    icon: const Icon(Icons.paste),
-                    onPressed: () async {
-                      final d = await Clipboard.getData(Clipboard.kTextPlain);
-                      if (d?.text != null) {
-                        ctl.text = stripUnsafe(d!.text!, max: kMaxImport, multiline: true);
-                      }
-                    },
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
-          FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.download, size: 18), label: const Text('Importar')),
-        ],
-      ),
-    );
-    final text = ctl.text;
-    ctl.dispose();
-    if (ok == true && text.trim().isNotEmpty) app.say(app.importMethods(text));
-  }
-
   Future<void> _copy(BuildContext context, {required bool json}) async {
     if (app.methodLibrary.isEmpty) {
       app.say('Sua lista está vazia.');
       return;
     }
     await Clipboard.setData(ClipboardData(text: json ? app.exportMethodsAsJson() : app.exportMethods()));
-    app.say(json ? 'Copiado: use "Importar de um texto" no outro aparelho.' : 'Lista copiada.');
+    app.say('Lista copiada.');
   }
 }
