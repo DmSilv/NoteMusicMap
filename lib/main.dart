@@ -10,8 +10,6 @@ import 'ui/grid_page.dart';
 import 'ui/install_banner.dart';
 import 'ui/notifications_sheet.dart';
 import 'ui/profile_page.dart' show ProfilePage, handleIncomingTeacherCode;
-import 'ui/settings_page.dart';
-import 'ui/share_sheet.dart';
 import 'ui/metronome_page.dart';
 import 'ui/study_page.dart';
 import 'ui/theme.dart';
@@ -344,36 +342,6 @@ class _HomeShellState extends State<HomeShell> {
             ],
           ),
           actions: [
-            // Só este botão reage à troca de tema, não a barra inteira.
-            ValueListenableBuilder<ThemeMode>(
-              valueListenable: app.themeNotifier,
-              builder: (context, mode, _) {
-                final (icon, tip) = switch (mode) {
-                  ThemeMode.system => (
-                    Icons.brightness_auto,
-                    'Tema: automático (toque para claro)',
-                  ),
-                  ThemeMode.light => (
-                    Icons.light_mode,
-                    'Tema: claro (toque para escuro)',
-                  ),
-                  ThemeMode.dark => (
-                    Icons.dark_mode,
-                    'Tema: escuro (toque para automático)',
-                  ),
-                };
-                return IconButton(
-                  tooltip: tip,
-                  icon: Icon(icon),
-                  onPressed: app.cycleTheme,
-                );
-              },
-            ),
-            IconButton(
-              tooltip: 'Compartilhar',
-              icon: const Icon(Icons.ios_share),
-              onPressed: () => showShareSheet(context),
-            ),
             // Central de avisos: tudo o que chegou (aulas, tarefas, horários) num só lugar.
             ListenableBuilder(
               listenable: app,
@@ -392,7 +360,7 @@ class _HomeShellState extends State<HomeShell> {
             ListenableBuilder(
               listenable: app,
               builder: (context, _) => IconButton(
-                tooltip: 'Meu perfil',
+                tooltip: 'Eu: perfil, ajustes e compartilhar',
                 icon: Badge(
                   smallSize: 8,
                   isLabelVisible: app.profile.recoveryShownAt == null,
@@ -402,16 +370,6 @@ class _HomeShellState extends State<HomeShell> {
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(builder: (_) => ProfilePage(app: app)),
                 ),
-              ),
-            ),
-            IconButton(
-              tooltip: 'Configurações',
-              icon: const Icon(Icons.settings_outlined),
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) {
-                  app.markTab('settings');
-                  return SettingsPage(app: app);
-                }),
               ),
             ),
           ],

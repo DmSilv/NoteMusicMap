@@ -8,7 +8,8 @@ import 'my_lessons_page.dart';
 import 'safe_input.dart';
 import '../link/link_service.dart' show LinkedPerson;
 import 'qr_scan_page.dart';
-import 'share_sheet.dart' show shareLink;
+import 'settings_page.dart' show SettingsPage;
+import 'share_sheet.dart' show shareLink, showShareSheet;
 import 'teacher_page.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -448,6 +449,27 @@ class _ProfilePageState extends State<ProfilePage> {
               _noticeCard(context, n),
               const SizedBox(height: 12),
             ],
+            Row(children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) {
+                    app.markTab('settings');
+                    return SettingsPage(app: app);
+                  })),
+                  icon: const Icon(Icons.settings_outlined, size: 18),
+                  label: const Text('Ajustes'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => showShareSheet(context),
+                  icon: const Icon(Icons.ios_share, size: 18),
+                  label: const Text('Compartilhar app'),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 12),
             AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

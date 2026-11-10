@@ -82,3 +82,8 @@ Hoje cada tela define seus próprios valores; no celular vê-se aperto e ritmo i
 ## Ordem e publicação
 Fase 0 validar botões → Fase 1 navegação → Fase 2 textos → **Espaçamento** → **Guardrails** (CSP em somente relatório primeiro). Cada pacote separado, com testes, conferência no Chrome e o seu "sim" antes de publicar.
 Observação: guardrails 1, 3, 4 e 9–10 não mudam o visual e podem ir antes de tudo, se preferir segurança primeiro.
+
+---
+## Andamento (10/11/2026)
+- **Fase 1, pacote 1 (pronto, aguardando publicação):** barra de cima só com **Avisos** e **Eu**; "Eu" (Perfil) ganhou os botões **Ajustes** e **Compartilhar app** no topo (o tema continua em Ajustes › Aparência); Meu espaço sem atalhos repetidos (saíram Perfil, Ajustes e Relatórios das ferramentas); "Para validar" abre direto a ficha do aluno que espera validação (se houver mais de um, a lista de alunos).
+- Falta da Fase 1: fundir a "Área do professor" em Alunos + Relatórios, trilha curta nas telas fundas, padrão de tela (título, voltar, "?", ação principal) e retorno ao ponto de partida após cada ação.

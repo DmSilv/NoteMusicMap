@@ -55,3 +55,7 @@ Legenda: ✅ conferido em tela e funcionou · ⬜ ainda não conferido · ❌ de
 1. **Três atalhos para a mesma tela:** "Para validar", "Alunos" e "Relatórios" abrem a mesma Área do professor. "Para validar" deveria levar direto à validação do aluno que tem tarefa marcada. Entra na Fase 1 (navegação).
 2. Nenhum botão quebrado nos itens conferidos. O aviso de horário no passado e os diálogos de confirmação funcionam.
 3. O teste é instável neste ambiente (a janela do navegador mudou de tamanho e depois a aba caiu); por isso o que não está marcado ✅ **não foi validado**, não que esteja certo.
+
+## Rodada 3 (após a navegação, pacote 1)
+- ✅ Barra de cima: Avisos e Eu. ✅ Eu › Ajustes (abre Configurações com Aparência Auto/Claro/Escuro). ✅ Eu › Compartilhar app (QR, copiar link, enviar).
+- ✅ Meu espaço: ferramentas agora são Agenda do professor, Horários livres, Metrônomo e Escalas. ✅ "Para validar" abre direto a ficha com a tarefa a validar.

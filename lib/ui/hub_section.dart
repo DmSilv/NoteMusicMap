@@ -11,7 +11,7 @@ import 'my_lessons_page.dart' show openMyLessons;
 import 'notifications_sheet.dart' show openNoticeTarget;
 import 'profile_page.dart';
 import 'qr_scan_page.dart';
-import 'settings_page.dart' show SettingsPage, kAppName;
+import 'settings_page.dart' show kAppName;
 import 'share_sheet.dart' show shareLink;
 import 'slot_form_page.dart';
 import 'teacher_page.dart';
@@ -61,7 +61,7 @@ class HubSection extends StatelessWidget {
       const SizedBox(height: 12),
       if (isT)
         _pair(
-          _tile(context, validateTile(app.awaitingTotal), Icons.fact_check_outlined, null),
+          _tile(context, validateTile(app.awaitingTotal), Icons.fact_check_outlined, () => _openValidation(context)),
           _tile(context, studentsTile(app.students.length), Icons.groups_outlined, null),
         ),
       if (isT && _hasTeacher) const SizedBox(height: 10),
@@ -74,6 +74,12 @@ class HubSection extends StatelessWidget {
       _tools(context),
       const SizedBox(height: 12),
     ]);
+  }
+
+  /// "Para validar": se só um aluno espera validação, abre a ficha dele; senão a lista de alunos.
+  void _openValidation(BuildContext context) {
+    final waiting = [for (final s in app.students) if (app.awaitingOf(s).isNotEmpty) s];
+    _push(context, waiting.length == 1 ? StudentPage(app: app, studentId: waiting.first.id) : TeacherPage(app: app));
   }
 
   void _push(BuildContext c, Widget w) => Navigator.of(c).push(MaterialPageRoute<void>(builder: (_) => w));
@@ -274,11 +280,8 @@ class HubSection extends StatelessWidget {
       if (app.teacherMode) (Icons.calendar_month_outlined, 'Agenda do professor', () => _push(context, AgendaPage(app: app))),
       if (app.teacherMode) (Icons.event_available_outlined, 'Horários livres', () => _push(context, OpenSlotsPage(app: app))),
       if (app.myTeachers.isNotEmpty) (Icons.event_available_outlined, 'Pegar horário', () => _push(context, PickSlotPage(app: app))),
-      if (app.teacherMode) (Icons.assessment_outlined, 'Relatórios', () => _push(context, TeacherPage(app: app))),
       (Icons.timer_outlined, 'Metrônomo', () => app.goTab?.call(1)),
       (Icons.piano, 'Escalas', () => app.openGridSection(1)),
-      (Icons.badge_outlined, 'Perfil', () => _push(context, ProfilePage(app: app))),
-      (Icons.settings_outlined, 'Ajustes', () => _push(context, SettingsPage(app: app))),
     ];
     return LayoutBuilder(builder: (context, box) {
     final cols = items.length > 4 ? 3 : items.length;
