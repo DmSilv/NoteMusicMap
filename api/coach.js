@@ -22,7 +22,7 @@
 const crypto = require('node:crypto');
 const { config, LABELS } = require('./_lib/config');
 const { createStore, memory } = require('./_lib/store');
-const { callProvider, pickModels } = require('./_lib/providers');
+const { callProvider, pickModels, finishText } = require('./_lib/providers');
 const { PROMPTS } = require('./_lib/prompts');
 const { KINDS, isKind, candidates, markBad } = require('./_lib/router');
 const queue = require('./_lib/queue');
@@ -176,7 +176,7 @@ function makeHandler(deps = {}) {
       });
       if (r.status === 'ok') {
         return send(res, 200, {
-          text: r.text, provider: pid, label: LABELS[pid], model: r.model, kind: v.kind, remainingToday,
+          text: finishText(r.text, r.truncated), truncated: !!r.truncated, provider: pid, label: LABELS[pid], model: r.model, kind: v.kind, remainingToday,
         });
       }
       console.error(`ia ${pid} falhou: ${r.status}${r.httpStatus ? ' ' + r.httpStatus : ''}`);

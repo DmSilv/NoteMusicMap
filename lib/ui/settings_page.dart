@@ -31,7 +31,7 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Configurações')),
+      appBar: AppBar(title: const Text('Ajustes')),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: Listenable.merge([app, app.feedback]),
@@ -50,7 +50,7 @@ class SettingsPage extends StatelessWidget {
               _section('Grade', [_grid()]),
               _section('Estudo', [_study(context)]),
               _section('Permissões e privacidade', [_permissions(context)]),
-              _section('Perfil e professor', [_profileHub(context)]),
+              _section('Minha conta', [_profileHub(context)]),
               _section('Sobre', [_about(context)]),
               _section('Problemas?', [_resetAll(context)]),
             ],

@@ -286,3 +286,23 @@ test('escolhe o flash mais novo da conta e ignora lite/imagem', () => {
   ];
   assert.deepEqual(_internal.pickModels(list), ['gemini-3.8-flash', 'gemini-2.5-flash']);
 });
+
+// ---- Resposta cortada pelo serviço: nunca termina no meio da palavra ----
+const { finishText } = require('./_lib/providers');
+
+test('finishText: resposta completa não muda', () => {
+  assert.equal(finishText('## A\n- um.\n- dois.', false), '## A\n- um.\n- dois.');
+});
+
+test('finishText: corta a última frase incompleta e avisa', () => {
+  const r = finishText('## Plano\n1. Notas longas por 10 minutos.\n2. Leitura individual no afinador (10 min). Exercício para am', true);
+  assert.equal(r.includes('Exercício para am'), false);
+  assert.ok(r.includes('Notas longas por 10 minutos.'));
+  assert.ok(r.includes('A resposta foi cortada'));
+});
+
+test('finishText: texto de uma linha só cortada ainda devolve algo', () => {
+  const r = finishText('Resposta que foi interrompida no meio da pal', true);
+  assert.ok(r.startsWith('Resposta que foi interrompida'));
+  assert.ok(r.includes('cortada'));
+});

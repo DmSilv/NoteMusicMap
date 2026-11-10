@@ -51,8 +51,9 @@ async function callOpenAiLike(id, a) {
   }, a.timeoutMs);
   if (!r.ok) return { status: classify(r.status), httpStatus: r.status, retryAfterMs: retryAfter(r), model };
   const data = await r.json();
-  const text = String(((data.choices || [])[0] || {}).message?.content || '').trim();
-  return text ? { status: 'ok', text, model } : { status: 'error', model };
+  const choice = (data.choices || [])[0] || {};
+  const text = String(choice.message?.content || '').trim();
+  return text ? { status: 'ok', text, model, truncated: choice.finish_reason === 'length' } : { status: 'error', model };
 }
 
 async function callAnthropic(a) {
@@ -67,7 +68,7 @@ async function callAnthropic(a) {
   if (!r.ok) return { status: classify(r.status), httpStatus: r.status, retryAfterMs: retryAfter(r), model };
   const data = await r.json();
   const text = (data.content || []).map((p) => p.text || '').join('').trim();
-  return text ? { status: 'ok', text, model } : { status: 'error', model };
+  return text ? { status: 'ok', text, model, truncated: data.stop_reason === 'max_tokens' } : { status: 'error', model };
 }
 
 // ---- Gemini: descobre na própria conta o modelo "flash" mais novo ----
@@ -103,7 +104,8 @@ async function geminiModels(a) {
 async function callGemini(a) {
   let last = { status: 'error' };
   for (const model of await geminiModels(a)) {
-    const gen = { temperature: 0.4, maxOutputTokens: a.maxTokens };
+    // Modelos que "pensam" gastam parte do limite antes de escrever: sem folga, a resposta é cortada no meio.
+    const gen = { temperature: 0.4, maxOutputTokens: Math.min(8192, a.maxTokens * 3) };
     if (/2\.5-flash/.test(model)) gen.thinkingConfig = { thinkingBudget: 0 };
     let r;
     try {
@@ -133,7 +135,7 @@ async function callGemini(a) {
     const data = await r.json();
     const parts = data?.candidates?.[0]?.content?.parts;
     const text = (parts || []).map((p) => p.text || '').join('').trim();
-    if (text) return { status: 'ok', text, model };
+    if (text) return { status: 'ok', text, model, truncated: data?.candidates?.[0]?.finishReason === 'MAX_TOKENS' };
     last = { status: 'error', model };
   }
   return last;
@@ -151,4 +153,15 @@ async function callProvider(id, a) {
   }
 }
 
-module.exports = { callProvider, modelFor, pickModels, OPENAI_LIKE };
+/** Se o serviço cortou a resposta, tira a última frase pela metade e avisa (nunca termina no meio da palavra). */
+function finishText(text, truncated) {
+  const t = String(text || '').trim();
+  if (!truncated) return t;
+  const lines = t.split('\n');
+  // descarta a última linha se ela não termina em pontuação (frase incompleta)
+  while (lines.length > 1 && !/[.!?:)\]*_"”»…]$/.test(lines[lines.length - 1].trim())) lines.pop();
+  const cut = lines.join('\n').trim();
+  return (cut || t) + '\n\n_A resposta foi cortada pelo serviço de IA. Toque em "Analisar de novo" para tentar outra vez._';
+}
+
+module.exports = { callProvider, modelFor, pickModels, finishText, OPENAI_LIKE };

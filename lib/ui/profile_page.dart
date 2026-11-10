@@ -100,10 +100,10 @@ class _ProfilePageState extends State<ProfilePage> {
       initialIndex: widget.initialTab,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Perfil e professor'),
+          title: const Text('Minha conta'),
           bottom: const TabBar(
             tabs: [
-              Tab(icon: Icon(Icons.badge_outlined), text: 'Meu perfil'),
+              Tab(icon: Icon(Icons.badge_outlined), text: 'Perfil'),
               Tab(icon: Icon(Icons.school_outlined), text: 'Professor'),
             ],
           ),
@@ -120,7 +120,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return ListenableBuilder(
       listenable: app,
       builder: (context, _) => ListView(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 28),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
           AppCard(
             child: Column(
@@ -166,7 +166,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           if (app.teacherMode) ...[
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -246,7 +246,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ]),
               const SizedBox(height: 8),
               Text(st.text, style: TextStyle(color: AppColors.textDim, fontSize: 13, height: 1.3)),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               Wrap(spacing: 8, runSpacing: 8, children: [
                 if (st.canReconnect)
                   FilledButton.icon(
@@ -443,11 +443,11 @@ class _ProfilePageState extends State<ProfilePage> {
         final p = app.profile;
         final key = recoveryKeyFor(p);
         return ListView(
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 28),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
           children: [
             for (final n in app.notices.where((n) => !n.seen)) ...[
               _noticeCard(context, n),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
             ],
             Row(children: [
               Expanded(
@@ -465,11 +465,11 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: OutlinedButton.icon(
                   onPressed: () => showShareSheet(context),
                   icon: const Icon(Icons.ios_share, size: 18),
-                  label: const Text('Compartilhar app'),
+                  label: const Text('Compartilhar'),
                 ),
               ),
             ]),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -540,15 +540,15 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             _linkOnlineCard(),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             _myTeacherCard(context),
             if (app.myTeachers.isNotEmpty || app.myLessons.isNotEmpty) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               MyLessonsCard(app: app),
             ],
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -637,7 +637,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -671,7 +671,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Text(

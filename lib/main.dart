@@ -360,7 +360,7 @@ class _HomeShellState extends State<HomeShell> {
             ListenableBuilder(
               listenable: app,
               builder: (context, _) => IconButton(
-                tooltip: 'Eu: perfil, ajustes e compartilhar',
+                tooltip: 'Minha conta: perfil, ajustes e compartilhar',
                 icon: Badge(
                   smallSize: 8,
                   isLabelVisible: app.profile.recoveryShownAt == null,

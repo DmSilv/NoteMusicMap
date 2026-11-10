@@ -59,7 +59,7 @@ class _OpenSlotsPageState extends State<OpenSlotsPage> {
       builder: (context, _) {
         final list = app.openSlotsActive;
         return Scaffold(
-          appBar: AppBar(title: const Text('Horários disponíveis')),
+          appBar: AppBar(title: const Text('Horários livres')),
           floatingActionButton: FloatingActionButton.extended(
             onPressed: _add,
             icon: const Icon(Icons.add),

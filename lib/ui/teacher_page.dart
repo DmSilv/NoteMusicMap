@@ -385,6 +385,7 @@ class _TeacherPageState extends State<TeacherPage> {
       children: [
         _LessonBanner(app: app),
         const SizedBox(height: 10),
+        _summaryStrip(),
         if (app.students.length > 5)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
@@ -457,68 +458,121 @@ class _TeacherPageState extends State<TeacherPage> {
           label: const Text('Novo aluno', style: TextStyle(fontWeight: FontWeight.w700)),
         ),
         const SizedBox(height: 8),
-        FilledButton.tonalIcon(
-          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-          onPressed: () async {
-            final s = await scanShareCode(context,
-                title: 'Ler QR do aluno', want: 'aluno', check: (code) => app.checkStudent('aluno', code).code,
-                          onCamera: app.setCameraStatus);
-            if (s == null || !context.mounted) return;
-            final r = await _newStudentDialog(context, app, code0: s.code);
-            if (r != null) app.addStudent(r.$1, code: r.$2);
-          },
-          icon: const Icon(Icons.qr_code_scanner),
-          label: const Text('Ler QR do aluno', style: TextStyle(fontWeight: FontWeight.w700)),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: () => Navigator.of(context)
-              .push(MaterialPageRoute<void>(builder: (_) => MethodsPage(app: app))),
-          icon: const Icon(Icons.library_books_outlined),
-          label: Text(app.methodLibrary.isEmpty
-              ? 'Meus métodos e lições'
-              : 'Meus métodos e lições (${app.methodLibrary.length})'),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: () async {
-            final t = await _askText(context, 'Importar aluno',
-                'Cole aqui os dados copiados do outro aparelho',
-                multiline: true, action: 'Importar');
-            if (t != null && t.trim().isNotEmpty) app.say(app.importStudentText(t));
-          },
-          icon: const Icon(Icons.download),
-          label: const Text('Importar dados de um aluno'),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: () async {
-            final pin = await _askText(context, 'Trava com senha (opcional)',
-                'Senha de 4 números (vazio remove)',
-                action: 'Definir');
-            if (pin != null) {
-              final p = pin.trim();
-              if (p.isEmpty) {
-                app.setTeacherPin(null);
-                app.say('Trava removida');
-              } else if (RegExp(r'^\d{4}$').hasMatch(p)) {
-                app.setTeacherPin(p);
-                app.say('Trava definida: peça a senha ao abrir esta área');
-              } else {
-                app.say('Use exatamente 4 números');
-              }
-            }
-          },
-          icon: Icon(app.teacherPinHash == null ? Icons.lock_open : Icons.lock_outline),
-          label: Text(app.teacherPinHash == null ? 'Definir senha desta área' : 'Trocar ou remover a senha'),
+        Row(children: [
+          Expanded(
+            child: FilledButton.tonalIcon(
+              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(46)),
+              onPressed: () async {
+                final s = await scanShareCode(context,
+                    title: 'Ler QR do aluno', want: 'aluno', check: (code) => app.checkStudent('aluno', code).code,
+                    onCamera: app.setCameraStatus);
+                if (s == null || !context.mounted) return;
+                final r = await _newStudentDialog(context, app, code0: s.code);
+                if (r != null) app.addStudent(r.$1, code: r.$2);
+              },
+              icon: const Icon(Icons.qr_code_scanner, size: 20),
+              label: const Text('Ler QR'),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: FilledButton.tonalIcon(
+              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(46)),
+              onPressed: () async {
+                final t = await _askText(context, 'Importar aluno',
+                    'Cole aqui os dados copiados do outro aparelho',
+                    multiline: true, action: 'Importar');
+                if (t != null && t.trim().isNotEmpty) app.say(app.importStudentText(t));
+              },
+              icon: const Icon(Icons.download, size: 20),
+              label: const Text('Importar'),
+            ),
+          ),
+        ]),
+        const SizedBox(height: 16),
+        AppCard(
+          padding: EdgeInsets.zero,
+          child: Column(children: [
+            ListTile(
+              leading: const Icon(Icons.library_books_outlined),
+              title: Text(app.methodLibrary.isEmpty ? 'Meus métodos e lições' : 'Meus métodos e lições (${app.methodLibrary.length})'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => MethodsPage(app: app))),
+            ),
+            Divider(height: 1, color: AppColors.outline),
+            ListTile(
+              leading: Icon(app.teacherPinHash == null ? Icons.lock_open : Icons.lock_outline),
+              title: Text(app.teacherPinHash == null ? 'Senha desta tela' : 'Trocar ou remover a senha'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () async {
+                final pin = await _askText(context, 'Trava com senha (opcional)',
+                    'Senha de 4 números (vazio remove)',
+                    action: 'Definir');
+                if (pin != null) {
+                  final p = pin.trim();
+                  if (p.isEmpty) {
+                    app.setTeacherPin(null);
+                    app.say('Trava removida');
+                  } else if (RegExp(r'^\d{4}$').hasMatch(p)) {
+                    app.setTeacherPin(p);
+                    app.say('Trava definida: peça a senha ao abrir esta área');
+                  } else {
+                    app.say('Use exatamente 4 números');
+                  }
+                }
+              },
+            ),
+          ]),
         ),
       ],
     );
   }
 
+  /// Faixa de números do topo: quantos alunos, quantas tarefas esperam validação e aulas de hoje.
+  Widget _summaryStrip() {
+    final today = classesToday(app.visibleAgenda, DateTime.now()).count;
+    final waiting = app.awaitingTotal;
+    Widget chip(IconData icon, String text, {bool alert = false}) {
+      final color = alert ? AppColors.accent : AppColors.textDim;
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: alert ? 0.16 : 0.10),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: color.withValues(alpha: alert ? 0.6 : 0.3)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 15, color: color),
+          const SizedBox(width: 5),
+          Text(text, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: color)),
+        ]),
+      );
+    }
+
+    final n = app.students.length;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Wrap(spacing: 8, runSpacing: 8, children: [
+        chip(Icons.groups_outlined, n == 1 ? '1 aluno' : '$n alunos'),
+        if (waiting > 0) chip(Icons.fact_check_outlined, '$waiting para validar', alert: true),
+        if (today > 0) chip(Icons.event_outlined, today == 1 ? '1 aula hoje' : '$today aulas hoje'),
+      ]),
+    );
+  }
+
+  Widget _tag(String text, Color color) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(8)),
+        child: Text(text, style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: color)),
+      );
+
   Widget _studentCard(BuildContext context, Student s) {
     final sum = summarizeStudent(s);
     final open = s.tasks.where((t) => !t.done).length;
+    final awaiting = app.awaitingOf(s).length;
+    final nowD = DateTime.now();
+    final nextOcc = s.code == null ? null : nextOccurrence(app.slotsOf(s.code!), nowD.millisecondsSinceEpoch);
+    final nextClassText = nextOcc == null ? null : 'Próxima aula: ${fmtSlotWhen(nextOcc.start, nowD)}';
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: AppCard(
@@ -547,32 +601,29 @@ class _TeacherPageState extends State<TeacherPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(s.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                    if (s.code != null)
-                      Row(children: [
-                        Text('Código ${s.code}',
-                            style: TextStyle(color: AppColors.textDim, fontSize: 12, letterSpacing: 0.5)),
-                        const SizedBox(width: 8),
-                        linkBadge(s),
-                      ]),
-                    if (remoteNameOf(s) != null)
-                      Text('Nome no perfil dele: ${remoteNameOf(s)}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: AppColors.textDim, fontSize: 12)),
-                    const SizedBox(height: 2),
+                    Row(children: [
+                      Flexible(
+                        child: Text(s.name,
+                            maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                      ),
+                      const SizedBox(width: 8),
+                      linkBadge(s),
+                    ]),
+                    const SizedBox(height: 3),
                     Text(
-                      sum.sessions == 0
-                          ? 'Sem exercícios ainda'
-                          : '${sum.sessions} sessões · média ${(sum.recentAverage! * 100).round()}% · última ${_day(sum.last!)}',
+                      nextClassText ??
+                          (sum.sessions == 0
+                              ? 'Sem exercícios ainda'
+                              : '${sum.sessions} sessões · média ${(sum.recentAverage! * 100).round()}%'),
                       style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
                     ),
-                    if (app.awaitingOf(s).isNotEmpty)
-                      Text('${app.awaitingOf(s).length} para validar',
-                          style: TextStyle(color: AppColors.accent, fontSize: 12.5, fontWeight: FontWeight.w700)),
-                    if (open > 0)
-                      Text('$open tarefa${open > 1 ? 's' : ''} em aberto',
-                          style: TextStyle(color: AppColors.flat, fontSize: 12.5)),
+                    if (awaiting > 0 || open > 0) ...[
+                      const SizedBox(height: 6),
+                      Wrap(spacing: 6, runSpacing: 4, children: [
+                        if (awaiting > 0) _tag('$awaiting para validar', AppColors.accent),
+                        if (open > 0) _tag('$open em aberto', AppColors.flat),
+                      ]),
+                    ],
                   ],
                 ),
               ),

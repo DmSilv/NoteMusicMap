@@ -1,26 +1,26 @@
+import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'theme.dart';
 
 /// Mostra um texto em Markdown simples (o que a IA devolve): títulos com `##`,
-/// tópicos com `-`, listas numeradas e **negrito**. Sem dependências externas.
+/// tópicos com `-`, listas numeradas, **negrito** e *itálico*. A leitura dos trechos mora no núcleo
+/// (`parseInline`), com testes; aqui só se desenha.
 class MarkdownLite extends StatelessWidget {
   final String text;
   const MarkdownLite(this.text, {super.key});
 
-  /// Quebra "texto **negrito** texto" em trechos com estilo.
-  static List<InlineSpan> _inline(String s, TextStyle base) {
-    final spans = <InlineSpan>[];
-    final re = RegExp(r'\*\*(.+?)\*\*');
-    var i = 0;
-    for (final m in re.allMatches(s)) {
-      if (m.start > i) spans.add(TextSpan(text: s.substring(i, m.start)));
-      spans.add(TextSpan(text: m.group(1), style: const TextStyle(fontWeight: FontWeight.w800)));
-      i = m.end;
-    }
-    if (i < s.length) spans.add(TextSpan(text: s.substring(i)));
-    return spans;
-  }
+  static List<InlineSpan> _inline(String s) => [
+        for (final r in parseInline(s))
+          TextSpan(
+            text: r.text,
+            style: TextStyle(
+              fontWeight: r.bold ? FontWeight.w800 : null,
+              fontStyle: r.italic ? FontStyle.italic : null,
+            ),
+          ),
+      ];
 
   @override
   Widget build(BuildContext context) {
@@ -38,7 +38,7 @@ class MarkdownLite extends StatelessWidget {
       if (head != null) {
         children.add(Padding(
           padding: EdgeInsets.only(top: children.isEmpty ? 0 : 10, bottom: 4),
-          child: Text(head.group(1)!.replaceAll('**', ''),
+          child: Text(stripInline(head.group(1)!),
               style: TextStyle(
                   color: AppColors.accent, fontSize: 15.5, fontWeight: FontWeight.w800)),
         ));
@@ -56,14 +56,14 @@ class MarkdownLite extends StatelessWidget {
                     style: base.copyWith(
                         color: AppColors.accent, fontWeight: FontWeight.w800)),
               ),
-              Expanded(child: Text.rich(TextSpan(style: base, children: _inline(body, base)))),
+              Expanded(child: Text.rich(TextSpan(style: base, children: _inline(body)))),
             ],
           ),
         ));
       } else {
         children.add(Padding(
           padding: const EdgeInsets.only(bottom: 4),
-          child: Text.rich(TextSpan(style: base, children: _inline(line.trim(), base))),
+          child: Text.rich(TextSpan(style: base, children: _inline(line.trim()))),
         ));
       }
     }
@@ -71,4 +71,25 @@ class MarkdownLite extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children),
     );
   }
+}
+
+/// Botão que copia a resposta da IA como texto puro, COM as quebras de linha
+/// (selecionar e copiar direto da tela junta os blocos sem separação).
+class CopyAnswerButton extends StatelessWidget {
+  final String text;
+  const CopyAnswerButton(this.text, {super.key});
+
+  @override
+  Widget build(BuildContext context) => TextButton.icon(
+        onPressed: () async {
+          await Clipboard.setData(ClipboardData(text: markdownToPlain(text)));
+          if (context.mounted) {
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(const SnackBar(content: Text('Resposta copiada.'), duration: Duration(seconds: 2)));
+          }
+        },
+        icon: const Icon(Icons.copy, size: 18),
+        label: const Text('Copiar resposta'),
+      );
 }
