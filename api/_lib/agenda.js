@@ -55,6 +55,34 @@ function nextStart(slot, after) {
   return null;
 }
 
+/** Inícios das ocorrências de [slot] em [from, to) (ms). Aula cancelada não tem. */
+function occurrences(slot, from, to) {
+  if (slot.c) return [];
+  const skipped = new Set(slot.x || []);
+  const out = [];
+  if (!slot.w) {
+    if (slot.s >= from && slot.s < to && !skipped.has(slot.s)) out.push(slot.s);
+    return out;
+  }
+  let k = from <= slot.s ? 0 : Math.ceil((from - slot.s) / WEEK);
+  for (; slot.s + k * WEEK < to && out.length < 400; k++) {
+    const s = slot.s + k * WEEK;
+    if (!skipped.has(s)) out.push(s);
+  }
+  return out;
+}
+
+/** As duas aulas se sobrepõem em algum dia dos próximos [horizonDays] dias? */
+function slotsOverlap(a, b, now, horizonDays = 120) {
+  const from = now - DAY, to = now + horizonDays * DAY;
+  const mine = occurrences(a, from, to);
+  if (!mine.length) return false;
+  for (const o of occurrences(b, from, to)) {
+    for (const m of mine) if (m < o + b.d * MIN && o < m + a.d * MIN) return true;
+  }
+  return false;
+}
+
 /** Assinatura própria da mensagem de lembrete: só quem tem o segredo do servidor consegue criar uma. */
 function remindSecret(cfg) {
   const base = cfg.qstash.token || cfg.qstash.currentKey || '';
@@ -138,5 +166,5 @@ function verifyQstashJwt(cfg, token, nowSec) {
 
 module.exports = {
   MIN, DAY, WEEK, REMINDER_MIN, MAX_SLOTS,
-  cleanSlot, nextStart, remindSig, validRemindSig, remindersEnabled, scheduleNext, verifyQstashJwt,
+  cleanSlot, nextStart, occurrences, slotsOverlap, remindSig, validRemindSig, remindersEnabled, scheduleNext, verifyQstashJwt,
 };

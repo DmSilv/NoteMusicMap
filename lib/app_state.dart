@@ -773,6 +773,8 @@ class AppState extends ChangeNotifier {
     agenda = read('agenda');
     myAgenda = read('agenda_in', dropCanceled: true);
     _agendaRev = p.getInt('agenda_rev') ?? 0;
+    openSlots = read('open_slots');
+    _picksRev = p.getInt('picks_rev') ?? 0;
   }
 
   void _saveAgenda() {
@@ -781,6 +783,8 @@ class AppState extends ChangeNotifier {
     p.setString('agenda', jsonEncode([for (final s in agenda) s.toJson()]));
     p.setString('agenda_in', jsonEncode([for (final s in myAgenda) s.toJson()]));
     p.setInt('agenda_rev', _agendaRev);
+    p.setString('open_slots', jsonEncode([for (final s in openSlots) s.toJson()]));
+    p.setInt('picks_rev', _picksRev);
   }
 
   /// As aulas marcadas (não canceladas) do professor com o aluno [code].
@@ -901,6 +905,154 @@ class AppState extends ChangeNotifier {
         notifyListeners();
       }
     }
+  }
+
+  // ---------------- Horários disponíveis (professor) e pegar horário (aluno) ----------------
+  /// PROFESSOR: horários que deixou livres para os alunos pegarem.
+  List<ClassSlot> openSlots = [];
+  bool _openSending = false;
+  bool _picksPulling = false;
+
+  /// Horários livres ainda válidos (sem os cancelados e os que já passaram).
+  List<ClassSlot> get openSlotsActive {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final l = [for (final s in openSlots) if (!s.canceled && s.nextStart(now) != null) s];
+    l.sort((a, b) => a.nextStart(now)!.compareTo(b.nextStart(now)!));
+    return l;
+  }
+
+  /// Cria ou muda um horário disponível. Devolve o motivo se não der; null se salvou.
+  String? saveOpenSlot(ClassSlot s) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final p = checkNewOpenSlot(s, open: openSlots.where((x) => !x.canceled), classes: agenda.where((x) => !x.canceled), nowMs: now);
+    if (p != null) return slotProblemText(p);
+    final saved = s.copyWith(updatedMs: now, pending: true);
+    final i = openSlots.indexWhere((x) => x.id == s.id);
+    i >= 0 ? openSlots[i] = saved : openSlots.add(saved);
+    _saveAgenda();
+    notifyListeners();
+    unawaited(flushOpenSlots());
+    return null;
+  }
+
+  /// Apaga um horário disponível (some para os alunos).
+  void removeOpenSlot(String id) {
+    final i = openSlots.indexWhere((x) => x.id == id);
+    if (i < 0) return;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    openSlots[i] = openSlots[i].copyWith(canceled: true, updatedMs: now, pending: true);
+    _saveAgenda();
+    notifyListeners();
+    unawaited(flushOpenSlots());
+  }
+
+  Future<void> flushOpenSlots() async {
+    if (_openSending || !linkEnabled || linkUnavailable) return;
+    _openSending = true;
+    var changed = false;
+    try {
+      for (var i = 0; i < openSlots.length; i++) {
+        final s = openSlots[i];
+        if (s.pending != true) continue;
+        final r = await links.availPut(profile.shareCode, profile.secret, slot: s);
+        if (r.unavailable) {
+          _markLinkUnavailable();
+          break;
+        }
+        if (r.offline) {
+          linkOnline = false;
+          break;
+        }
+        if (r.ok || r.rejected) {
+          openSlots[i] = s.copyWith(pending: false);
+          changed = true;
+          if (!r.ok) say('Não foi possível publicar o horário: ${_slotError(r.error)}');
+        }
+      }
+    } finally {
+      _openSending = false;
+      openSlots.removeWhere((s) => s.canceled && s.pending != true);
+      if (changed) {
+        _saveAgenda();
+        notifyListeners();
+      }
+    }
+  }
+
+  static String _slotError(String? code) => switch (code) {
+        'slot_gone' => 'Este horário não está mais disponível.',
+        'slot_taken' => 'Alguém acabou de pegar este horário.',
+        'slot_past' => 'Este horário já passou.',
+        'slot_soon' => 'Falta pouco para este horário: peça direto ao professor.',
+        'slot_conflict' => 'Este horário bate com outra aula do professor.',
+        'pick_limit' => 'Você já tem muitas aulas marcadas com este professor.',
+        _ => code ?? 'tente de novo.',
+      };
+
+  /// PROFESSOR: traz as aulas que alunos pegaram e as coloca na agenda.
+  Future<void> pullPicks() async {
+    if (_picksPulling || !linkEnabled || linkUnavailable || students.isEmpty) return;
+    _picksPulling = true;
+    try {
+      final r = await links.picks(profile.shareCode, profile.secret);
+      if (r.unavailable) return _markLinkUnavailable();
+      if (!r.ok) {
+        if (r.offline) linkOnline = false;
+        return;
+      }
+      linkOnline = true;
+      final now = DateTime.now();
+      final notes = <String>[];
+      for (final s in r.picks) {
+        if (agenda.any((x) => x.id == s.id)) continue;
+        final st = studentByCode(s.studentCode);
+        if (st == null) continue;
+        agenda.add(s.copyWith(pending: false));
+        // O horário disponível que originou essa aula já foi levado no servidor: tira daqui também.
+        openSlots.removeWhere((o) => o.startMs == s.startMs && o.durationMin == s.durationMin && o.weekly == s.weekly);
+        final at = s.nextStart(now.millisecondsSinceEpoch);
+        notes.add('${st.name} pegou o horário${at == null ? '' : ' de ${fmtSlotWhen(DateTime.fromMillisecondsSinceEpoch(at), now)}'}.');
+      }
+      _picksRev = r.ar;
+      _saveAgenda();
+      notifyListeners();
+      if (notes.isNotEmpty) {
+        final msg = notes.length == 1 ? notes.first : '${notes.length} alunos pegaram horários.';
+        addNotice('lesson', msg);
+        say(msg);
+      }
+    } finally {
+      _picksPulling = false;
+    }
+  }
+
+  /// ALUNO: horários livres do professor [teacher] (null = não deu para consultar).
+  Future<List<ClassSlot>?> loadOpenSlots(String teacher) async {
+    final r = await links.avail(profile.shareCode, profile.secret, teacher: teacher);
+    if (r.unavailable) {
+      _markLinkUnavailable();
+      return null;
+    }
+    if (!r.ok) {
+      if (r.offline) linkOnline = false;
+      return null;
+    }
+    final now = DateTime.now().millisecondsSinceEpoch;
+    return pickableSlots(r.open, nowMs: now);
+  }
+
+  /// ALUNO: pega o horário [slot] do professor [teacher]. Devolve o motivo se não der; null se pegou.
+  Future<String?> takeOpenSlot(String teacher, ClassSlot slot) async {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final mine = myAgenda.where((s) => s.teacherCode == teacher && s.nextStart(now) != null).length;
+    final p = checkPick(slot, teacherClasses: const [], studentUpcoming: mine, nowMs: now);
+    if (p != null && p != SlotProblem.conflict) return slotProblemText(p);
+    final r = await links.availTake(profile.shareCode, profile.secret, teacher: teacher, slotId: slot.id);
+    if (r.unavailable) return 'Sem conexão com o servidor. Tente de novo.';
+    if (r.offline) return 'Sem internet. Tente de novo.';
+    if (!r.ok) return _slotError(r.error);
+    unawaited(pullAgenda(announce: false));
+    return null;
   }
 
   /// ALUNO: traz as aulas marcadas. Avisa se há aula nova, mudada ou cancelada.
@@ -1039,6 +1191,7 @@ class AppState extends ChangeNotifier {
   int _linkRev = 0; // kr visto: vínculos
   int _doneRev = 0; // dr visto: tarefas marcadas pelos alunos
   int _verdictRev = 0; // vr visto: decisões do professor
+  int _picksRev = 0; // ar visto: horários que alunos pegaram
   int _workBackoffSec = 0;
   int _idleTicks = 0; // consultas seguidas sem novidade: o intervalo vai esticando (até 4x)
   int _skipTicks = 0;
@@ -1099,7 +1252,8 @@ class AppState extends ChangeNotifier {
     final donesNew = students.isNotEmpty && r.dr != _doneRev;
     final agendaNew = myTeachers.isNotEmpty && r.sr != _agendaRev;
     final verdictsNew = myTeachers.isNotEmpty && r.vr != _verdictRev;
-    if (lessonsNew || donesNew || agendaNew || verdictsNew || r.kr != _linkRev) {
+    final picksNew = students.isNotEmpty && r.ar != _picksRev;
+    if (lessonsNew || donesNew || agendaNew || verdictsNew || picksNew || r.kr != _linkRev) {
       _idleTicks = 0;
       await syncLinks();
     } else {
@@ -1901,6 +2055,13 @@ class AppState extends ChangeNotifier {
         unawaited(pullDones());
       } else {
         _doneRev = r.dr;
+      }
+      // Horários disponíveis: o professor envia os pendentes e busca o que alunos pegaram.
+      if (openSlots.any((s) => s.pending == true)) unawaited(flushOpenSlots());
+      if (students.isNotEmpty && r.ar != _picksRev) {
+        unawaited(pullPicks());
+      } else if (students.isEmpty) {
+        _picksRev = r.ar;
       }
       // Decisões do professor: ele envia as pendentes; o aluno busca se mudou.
       if (verdictOutbox.isNotEmpty) unawaited(flushVerdicts());

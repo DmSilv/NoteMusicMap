@@ -27,7 +27,7 @@
 const crypto = require('node:crypto');
 const { config } = require('./_lib/config');
 const { createStore } = require('./_lib/store');
-const { cleanSlot, scheduleNext, remindersEnabled } = require('./_lib/agenda');
+const { cleanSlot, nextStart, slotsOverlap, scheduleNext, remindersEnabled } = require('./_lib/agenda');
 const { validSubscription } = require('./_lib/webpush');
 const { bump } = require('./_lib/metrics');
 
@@ -43,6 +43,9 @@ const LESSONS_KEPT = 60; // aulas guardadas por aluno
 const PULLS_PER_HOUR = 240;
 const DONES_KEPT = 1500; // marcações guardadas por professor
 const ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
+const MAX_AVAIL = 100; // horários disponíveis por professor
+const MAX_PICKS = 12; // aulas de um aluno com o mesmo professor
+const PICK_LEAD = 60 * 60 * 1000; // antecedência mínima para pegar
 const MAX_SLOTS = 400; // aulas marcadas por professor
 const MAX_DEVICES = 4; // aparelhos com notificação por perfil
 const TASK_KINDS = ['scale', 'method', 'repertoire', 'free'];
@@ -136,6 +139,8 @@ const UL = (code) => `ul:${code}`; // aulas deste aluno: "professor:idAula" -> J
 const SL = (code) => `sl:${code}`; // aulas marcadas pelo professor: idAula -> JSON
 const SS = (code) => `ss:${code}`; // aulas marcadas para este aluno: "professor:idAula" -> JSON
 const PS = (code) => `ps:${code}`; // aparelhos com notificação: hash do endereço -> inscrição
+const AV = (code) => `av:${code}`; // horários disponíveis do professor: idHorário -> JSON
+const TK = (code) => `tk:${code}`; // horários já pegos (trava contra dois alunos): idHorário -> aluno
 const VD = (code) => `vd:${code}`; // decisões do professor sobre as tarefas deste aluno: "professor:idAula:idTarefa" -> JSON
 const DN = (code) => `dn:${code}`; // tarefas que os alunos deste professor marcaram: "aluno:idAula:idTarefa" -> JSON
 
@@ -217,13 +222,48 @@ function makeHandler(deps = {}) {
         // Mudou o apelido: avisa quem está vinculado (o nome fica dentro de cada vínculo).
         if (nameChanged) await propagateName(store, me, name);
         const [asTeacher, asStudent] = await Promise.all([store.hgetall(T(me)), store.hgetall(S(me))]);
-        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: parseLinks(asStudent), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0 });
+        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: parseLinks(asStudent), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0 });
       }
 
       // Consulta barata: o perfil já foi lido na autenticação, então não custa nenhum comando a mais.
       // lr = aulas novas, dr = tarefas marcadas pelos alunos, kr = vínculos mudaram.
       if (action === 'rev') {
-        return send(200, { ok: true, lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0 });
+        return send(200, { ok: true, lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0 });
+      }
+
+      // O ALUNO vê os horários disponíveis de um professor a que está vinculado (só os que ainda dá para pegar).
+      if (action === 'avail') {
+        const pulls = await store.incr(`lnkpull:${me}:${hour}`, 3600);
+        if (pulls.n > PULLS_PER_HOUR) return send(429, { error: 'Muitas consultas. Tente mais tarde.' });
+        const teacher = normCode(b.other);
+        if (!teacher || teacher === me) return send(400, { error: 'Falta o código do professor.' });
+        if ((await store.hget(S(me), teacher)) === undefined) return send(403, { error: 'Este professor não está vinculado a você.' });
+        const raw = await store.hgetall(AV(teacher));
+        const now = clock();
+        const slots = [];
+        for (const json of Object.values(raw)) {
+          try {
+            const j = JSON.parse(json);
+            if (nextStart(j, now + PICK_LEAD) !== null) slots.push(j);
+          } catch (_) { /* linha ruim */ }
+        }
+        slots.sort((x, y) => x.s - y.s);
+        return send(200, { ok: true, open: slots.slice(0, MAX_AVAIL) });
+      }
+
+      // O PROFESSOR vê as aulas que os alunos pegaram (para entrarem na agenda dele).
+      if (action === 'picks') {
+        const pulls = await store.incr(`lnkpull:${me}:${hour}`, 3600);
+        if (pulls.n > PULLS_PER_HOUR) return send(429, { error: 'Muitas consultas. Tente mais tarde.' });
+        const [mine, raw] = await Promise.all([store.hgetall(T(me)), store.hgetall(SL(me))]);
+        const slots = [];
+        for (const json of Object.values(raw)) {
+          try {
+            const j = JSON.parse(json);
+            if (j.pk === 1 && j.sc && mine[j.sc] !== undefined) slots.push(j);
+          } catch (_) { /* linha ruim */ }
+        }
+        return send(200, { ok: true, slots, ar: Number(prof.ar) || 0 });
       }
 
       // O ALUNO busca o que o professor decidiu (validou ou devolveu) sobre as suas tarefas.
@@ -313,6 +353,68 @@ function makeHandler(deps = {}) {
       if (action === 'push_unsub') {
         await store.hdel(PS(me), sha(String(b.endpoint || '')).slice(0, 24));
         return send(200, { ok: true });
+      }
+
+      // ---- Horários disponíveis: o PROFESSOR cria, muda ou apaga ----
+      if (action === 'avail_put') {
+        const slot = cleanSlot(b.slot, clock());
+        if (!slot) return send(400, { error: 'Horário inválido.' });
+        if (slot.c) {
+          await store.hdel(AV(me), slot.id);
+          return send(200, { ok: true });
+        }
+        const oldRaw = await store.hget(AV(me), slot.id);
+        if (oldRaw === undefined) {
+          if ((await store.hlen(AV(me))) >= MAX_AVAIL) return send(400, { error: 'Limite de horários disponíveis atingido.' });
+          if ((await store.hget(TK(me), slot.id)) !== undefined) return send(409, { error: 'slot_taken', message: 'Este horário já foi pego.' });
+        }
+        await store.hset(AV(me), slot.id, JSON.stringify(slot));
+        return send(200, { ok: true });
+      }
+
+      // ---- O ALUNO pega um horário disponível: o primeiro que pega leva ----
+      if (action === 'avail_take') {
+        const teacher = normCode(b.other);
+        const sid = String(b.slot || '');
+        if (!teacher || teacher === me) return send(400, { error: 'Falta o código do professor.' });
+        if (!/^[a-z0-9]{2,40}$/.test(sid)) return send(400, { error: 'Horário inválido.' });
+        if ((await store.hget(S(me), teacher)) === undefined) return send(403, { error: 'Este professor não está vinculado a você.' });
+        const rawOpen = await store.hget(AV(teacher), sid);
+        if (rawOpen === undefined) return send(409, { error: 'slot_gone', message: 'Este horário não está mais disponível.' });
+        let open;
+        try { open = JSON.parse(rawOpen); } catch (_) { return send(409, { error: 'slot_gone', message: 'Este horário não está mais disponível.' }); }
+        const now = clock();
+        if (nextStart(open, now) === null) return send(409, { error: 'slot_past', message: 'Este horário já passou.' });
+        if (nextStart(open, now + PICK_LEAD) === null) return send(409, { error: 'slot_soon', message: 'Falta pouco para este horário: peça direto ao professor.' });
+        // Limite de aulas deste aluno com este professor.
+        const mineSS = await store.hgetall(SS(me));
+        let upcoming = 0;
+        for (const [f, j] of Object.entries(mineSS)) {
+          if (!f.startsWith(`${teacher}:`)) continue;
+          try { if (nextStart(JSON.parse(j), now) !== null) upcoming++; } catch (_) { /* ruim */ }
+        }
+        if (upcoming >= MAX_PICKS) return send(400, { error: 'pick_limit', message: 'Você já tem muitas aulas marcadas com este professor.' });
+        // Não pode bater com outra aula do professor.
+        const classes = await store.hgetall(SL(teacher));
+        for (const j of Object.values(classes)) {
+          let c; try { c = JSON.parse(j); } catch (_) { continue; }
+          if (slotsOverlap(open, c, now)) return send(409, { error: 'slot_conflict', message: 'Este horário bate com outra aula do professor.' });
+        }
+        // Trava: só o primeiro leva.
+        if (!(await store.hsetnx(TK(teacher), sid, me))) return send(409, { error: 'slot_taken', message: 'Alguém acabou de pegar este horário.' });
+        await store.hdel(AV(teacher), sid);
+        const cid = 'p' + crypto.randomBytes(6).toString('hex');
+        const cls = { id: cid, s: open.s, d: open.d, u: now };
+        if (open.w) cls.w = 1;
+        if (open.n) cls.n = open.n;
+        await store.hset(SL(teacher), cid, JSON.stringify({ ...cls, sc: me, pk: 1 }));
+        const tp = await store.hgetall(U(teacher));
+        await store.hset(SS(me), `${teacher}:${cid}`, JSON.stringify({ ...cls, tn: tp.n || '' }));
+        await store.hset(U(me), 'sr', String(now));
+        await store.hset(U(teacher), 'ar', String(now)); // o professor vê que um aluno pegou um horário
+        const reminder = await scheduleNext(cfg, fetchImpl, teacher, me, cls, now);
+        await metric('slot');
+        return send(200, { ok: true, slot: cls, reminder });
       }
 
       // ---- Agenda: o PROFESSOR marca, muda ou cancela uma aula (e agenda o lembrete) ----

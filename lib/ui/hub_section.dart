@@ -14,6 +14,7 @@ import 'settings_page.dart' show SettingsPage, kAppName;
 import 'share_sheet.dart' show shareLink;
 import 'slot_form_page.dart';
 import 'teacher_page.dart';
+import 'open_slots_page.dart';
 import 'theme.dart';
 
 /// "Meu espaço": o topo da aba. Um destaque grande (o que importa agora), dois blocos do que pede
@@ -267,6 +268,8 @@ class HubSection extends StatelessWidget {
   Widget _tools(BuildContext context) {
     final items = <(IconData, String, VoidCallback)>[
       if (app.teacherMode) (Icons.calendar_month_outlined, 'Agenda', () => _push(context, AgendaPage(app: app))),
+      if (app.teacherMode) (Icons.event_available_outlined, 'Horários livres', () => _push(context, OpenSlotsPage(app: app))),
+      if (app.myTeachers.isNotEmpty) (Icons.event_available_outlined, 'Pegar horário', () => _push(context, PickSlotPage(app: app))),
       if (app.teacherMode) (Icons.assessment_outlined, 'Relatórios', () => _push(context, TeacherPage(app: app))),
       (Icons.timer_outlined, 'Metrônomo', () => app.goTab?.call(1)),
       (Icons.piano, 'Escalas', () => app.openGridSection(1)),

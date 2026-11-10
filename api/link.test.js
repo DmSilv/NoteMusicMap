@@ -535,7 +535,7 @@ test('rev: consulta barata devolve só os contadores e muda quando há novidade'
   const h = mk();
   await vincula(h);
   const a = (await call(h, { action: 'rev', code: ALU, secret: S_ALU })).json();
-  assert.deepEqual(Object.keys(a).sort(), ['dr', 'kr', 'lr', 'ok', 'sr', 'vr']);
+  assert.deepEqual(Object.keys(a).sort(), ['ar', 'dr', 'kr', 'lr', 'ok', 'sr', 'vr']);
   assert.ok(a.kr > 0, 'o vínculo mudou os contadores de vínculos');
   await publish(h, lessonOf('aula0001'));
   const b = (await call(h, { action: 'rev', code: ALU, secret: S_ALU })).json();

@@ -71,6 +71,14 @@ class LinkReply {
   final int vr;
   final List<VerdictEntry> verdicts;
 
+  /// Horários disponíveis: `ar` avisa o professor que um aluno pegou um; `open` são os horários
+  /// livres de um professor (resposta de `avail`); `picks` as aulas que alunos pegaram (resposta
+  /// de `picks`); `taken` a aula criada quando o aluno pega um horário.
+  final int ar;
+  final List<ClassSlot> open;
+  final List<ClassSlot> picks;
+  final ClassSlot? taken;
+
   /// Notificações: chave pública do servidor (vazia = lembretes desligados no servidor).
   final String pushKey;
 
@@ -93,6 +101,10 @@ class LinkReply {
     this.rejected = false,
     this.sr = 0,
     this.vr = 0,
+    this.ar = 0,
+    this.open = const [],
+    this.picks = const [],
+    this.taken,
     this.verdicts = const [],
     this.slots = const [],
     this.pushKey = '',
@@ -144,6 +156,10 @@ class LinkService {
         dr: ((j['dr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
         sr: ((j['sr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
         vr: ((j['vr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
+        ar: ((j['ar'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
+        open: [for (final x in ((j['open'] as List?) ?? const []).take(kMaxOpenSlots)) ?ClassSlot.tryFrom(x)],
+        picks: [for (final x in ((j['slots'] as List?) ?? const []).take(kMaxSlotsPerTeacher)) if (j.containsKey('ar')) ?ClassSlot.tryFrom(x)],
+        taken: j['slot'] == null ? null : ClassSlot.tryFrom(j['slot']),
         verdicts: [
           for (final x in ((j['verdicts'] as List?) ?? const []).take(1500)) ?VerdictEntry.tryFromWire(x)
         ],
@@ -233,6 +249,21 @@ class LinkService {
 
   /// ALUNO: busca as decisões do professor sobre as suas tarefas.
   Future<LinkReply> verdicts(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'verdicts'});
+
+  /// PROFESSOR: cria, muda ou apaga (slot cancelado) um horário disponível.
+  Future<LinkReply> availPut(String code, String secret, {required ClassSlot slot}) =>
+      _post({..._auth(code, secret, null), 'action': 'avail_put', 'slot': slot.toWire()});
+
+  /// ALUNO: horários livres do professor [teacher].
+  Future<LinkReply> avail(String code, String secret, {required String teacher}) =>
+      _post({..._auth(code, secret, null), 'action': 'avail', 'other': teacher});
+
+  /// ALUNO: pega o horário [slotId] do professor [teacher] (o primeiro que pega leva).
+  Future<LinkReply> availTake(String code, String secret, {required String teacher, required String slotId}) =>
+      _post({..._auth(code, secret, null), 'action': 'avail_take', 'other': teacher, 'slot': slotId});
+
+  /// PROFESSOR: aulas que alunos pegaram.
+  Future<LinkReply> picks(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'picks'});
 
   /// PROFESSOR: busca o que os alunos marcaram como feito.
   Future<LinkReply> dones(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'dones'});
