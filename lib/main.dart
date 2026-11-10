@@ -361,11 +361,11 @@ class _HomeShellState extends State<HomeShell> {
   /// a abertura do app e evita construir telas que talvez nunca sejam usadas.
   final Set<int> _visited = {0};
 
-  static const _titles = ['Afinador', 'Metrônomo', 'Grade', 'Meu espaço'];
+  static const _titles = ['Afinador', 'Metrônomo', 'Grade', 'Escalas', 'Meu espaço'];
 
-  static const _tabNames = ['tuner', 'metronome', 'grid', 'study'];
+  static const _tabNames = ['tuner', 'metronome', 'grid', 'scales', 'study'];
 
-  static const _icons = [Icons.tune, Icons.timer_outlined, Icons.grid_view_rounded, Icons.insights];
+  static const _icons = [Icons.tune, Icons.timer_outlined, Icons.grid_view_rounded, Icons.queue_music, Icons.insights];
 
   /// Em duas telas: qual lado recebe o próximo atalho (o último que a pessoa tocou).
   bool _focusRight = true;
@@ -428,6 +428,7 @@ class _HomeShellState extends State<HomeShell> {
         0 => TunerPage(app: app, active: true),
         1 => MetronomePage(app: app, active: true),
         2 => GridPage(app: app, active: true),
+        3 => GridPage(app: app, active: true, scalesOnly: true),
         _ => StudyPage(app: app, active: true),
       },
     );
@@ -443,11 +444,13 @@ class _HomeShellState extends State<HomeShell> {
           showSelectedIcon: false,
           style: SegmentedButton.styleFrom(visualDensity: VisualDensity.compact),
           segments: [
-            for (var i = 0; i < 4; i++)
+            for (var i = 0; i < 5; i++)
               ButtonSegment<int>(
                 value: i,
                 icon: Icon(_icons[i], size: 18),
-                label: Text(_titles[i], maxLines: 1, overflow: TextOverflow.ellipsis),
+                tooltip: _titles[i],
+                // Só o lado escolhido mostra o nome (com 5 telas os nomes não cabem em todos).
+                label: i == cur ? Text(_titles[i], maxLines: 1, overflow: TextOverflow.ellipsis) : null,
                 enabled: i == cur || i != other, // a mesma tela não aparece nos dois lados
               ),
           ],
@@ -499,6 +502,7 @@ class _HomeShellState extends State<HomeShell> {
       0 => TunerPage(app: app, active: active),
       1 => MetronomePage(app: app, active: active),
       2 => GridPage(app: app, active: active),
+      3 => GridPage(app: app, active: active, scalesOnly: true),
       _ => StudyPage(app: app, active: active),
     };
     // Aba escondida: sem animações rodando e sem repintar.
@@ -563,13 +567,13 @@ class _HomeShellState extends State<HomeShell> {
           child: Column(
             children: [
               // Microfone e Pomodoro ativos: faixa própria, longe do título.
-              StatusStrip(app: app, onPomodoro: () => _go(3)),
+              StatusStrip(app: app, onPomodoro: () => _go(4)),
               // Saudação com o apelido (ou convite para preencher), só nas telas principais.
               // Versão nova disponível (faixa fixa, com botão).
               UpdateBar(app: app),
               // Vínculo desligado com gente dependendo dele: avisa que está offline.
-              if (split || _index == 0 || _index == 3) LinkOffBar(app: app),
-              if (split || _index == 0 || _index == 3) HelloBar(app: app),
+              if (split || _index == 0 || _index == 4) LinkOffBar(app: app),
+              if (split || _index == 0 || _index == 4) HelloBar(app: app),
               // "Instale o Notemusic no celular": só no navegador, enquanto não instalou.
               InstallBanner(app: app),
               Expanded(
@@ -577,7 +581,7 @@ class _HomeShellState extends State<HomeShell> {
                     ? _splitBody()
                     : IndexedStack(
                         index: _index,
-                        children: [for (var i = 0; i < 4; i++) _page(i)],
+                        children: [for (var i = 0; i < 5; i++) _page(i)],
                       ),
               ),
             ],
@@ -597,6 +601,7 @@ class _HomeShellState extends State<HomeShell> {
               icon: Icon(Icons.grid_view_rounded),
               label: 'Grade',
             ),
+            NavigationDestination(icon: Icon(Icons.queue_music), label: 'Escalas'),
             NavigationDestination(icon: Icon(Icons.insights), label: 'Meu espaço'),
           ],
         ),

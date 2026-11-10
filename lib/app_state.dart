@@ -830,6 +830,7 @@ class AppState extends ChangeNotifier {
     'pedal': 'Pedal',
     'metronome': 'Metrônomo',
     'grid': 'Grade',
+    'scales': 'Escalas',
     'study': 'Meu espaço',
     'profile': 'Minha conta',
     'teacher': 'Alunos',
@@ -2776,16 +2777,16 @@ class AppState extends ChangeNotifier {
   bool installDone = false;
 
   // ---------------- Tablet deitado: duas telas lado a lado ----------------
-  /// Qual tela fica à esquerda e à direita (0 Afinador, 1 Metrônomo, 2 Grade, 3 Meu espaço).
+  /// Qual tela fica à esquerda e à direita (0 Afinador, 1 Metrônomo, 2 Grade, 3 Escalas, 4 Meu espaço).
   int splitLeft = 0;
   int splitRight = 1;
 
   void setSplit(int left, int right) {
-    splitLeft = left.clamp(0, 3);
-    splitRight = right.clamp(0, 3);
-    if (splitLeft == splitRight) splitRight = (splitLeft + 1) % 4;
-    _prefs?.setInt('split_l', splitLeft);
-    _prefs?.setInt('split_r', splitRight);
+    splitLeft = left.clamp(0, 4);
+    splitRight = right.clamp(0, 4);
+    if (splitLeft == splitRight) splitRight = (splitLeft + 1) % 5;
+    _prefs?.setInt('split_l2', splitLeft);
+    _prefs?.setInt('split_r2', splitRight);
   }
 
   // ---------------- Apelido (convite da tela inicial) ----------------
@@ -2913,7 +2914,7 @@ class AppState extends ChangeNotifier {
   /// Microfone captando agora (alimenta o aviso fixo na barra superior).
   final ValueNotifier<bool> micOn = ValueNotifier(false);
 
-  /// Troca a aba da barra de baixo (0 Afinador, 1 Metrônomo, 2 Grade, 3 Meu espaço). Definido pela tela principal.
+  /// Troca a aba da barra de baixo (0 Afinador, 1 Metrônomo, 2 Grade, 3 Escalas, 4 Meu espaço). Definido pela tela principal.
   void Function(int)? goTab;
 
   /// Seção pedida para a aba Grade (0 grade, 1 escala, 2 ajustes); a Grade lê e limpa ao aparecer.
@@ -2921,8 +2922,12 @@ class AppState extends ChangeNotifier {
 
   /// Leva à aba Grade já na seção [section] (ex.: "Escalas" do hub abre a seção Escala).
   void openGridSection(int section) {
-    requestGridSection = section;
-    goTab?.call(2);
+    if (section == 1) {
+      goTab?.call(3); // a seção Escala virou a aba Escalas
+    } else {
+      requestGridSection = section;
+      goTab?.call(2);
+    }
     notifyListeners();
   }
 
@@ -3413,9 +3418,10 @@ class AppState extends ChangeNotifier {
     cameraGranted = p.getBool('cam_granted');
     installHideUntil = p.getInt('install_hide') ?? 0;
     nickHideUntil = p.getInt('nick_hide') ?? 0;
-    splitLeft = (p.getInt('split_l') ?? 0).clamp(0, 3);
-    splitRight = (p.getInt('split_r') ?? 1).clamp(0, 3);
-    if (splitLeft == splitRight) splitRight = (splitLeft + 1) % 4;
+    // Chaves novas (split_l2/r2): as antigas tinham 4 telas e o índice 3 era Meu espaço.
+    splitLeft = (p.getInt('split_l2') ?? 0).clamp(0, 4);
+    splitRight = (p.getInt('split_r2') ?? 1).clamp(0, 4);
+    if (splitLeft == splitRight) splitRight = (splitLeft + 1) % 5;
     updateHideUntil = p.getInt('upd_hide') ?? 0;
     installDone = p.getBool('install_done') ?? false;
     _readIncomingCode();

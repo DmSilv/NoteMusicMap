@@ -19,7 +19,9 @@ import 'widgets.dart';
 class GridPage extends StatefulWidget {
   final AppState app;
   final bool active;
-  const GridPage({super.key, required this.app, this.active = true});
+  /// true = é a aba Escalas (só a seção de escalas, sem o seletor).
+  final bool scalesOnly;
+  const GridPage({super.key, required this.app, this.active = true, this.scalesOnly = false});
 
   @override
   State<GridPage> createState() => _GridPageState();
@@ -35,10 +37,15 @@ class _GridPageState extends State<GridPage> {
 
   @override
   Widget build(BuildContext context) {
-    final asked = app.requestGridSection;
-    if (asked != null) {
-      _section = asked.clamp(0, 2);
-      app.requestGridSection = null;
+    if (widget.scalesOnly) {
+      _section = 1;
+    } else {
+      final asked = app.requestGridSection;
+      if (asked != null) {
+        _section = asked.clamp(0, 2);
+        app.requestGridSection = null;
+      }
+      if (_section == 1) _section = 0; // a seção Escala agora é uma aba própria
     }
     return ListenableBuilder(
       listenable: widget.active ? app.live : kNeverNotifies,
@@ -46,17 +53,18 @@ class _GridPageState extends State<GridPage> {
         return ListView(
           padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
           children: [
-            SegmentedButton<int>(
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(value: 0, icon: Icon(Icons.grid_view_rounded), label: Text('Grade')),
-                ButtonSegment(value: 1, icon: Icon(Icons.queue_music), label: Text('Escala')),
-                ButtonSegment(value: 2, icon: Icon(Icons.tune), label: Text('Ajustes')),
-              ],
-              selected: {_section},
-              onSelectionChanged: (s) => setState(() => _section = s.first),
-            ),
-            const SizedBox(height: 12),
+            if (!widget.scalesOnly) ...[
+              SegmentedButton<int>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: 0, icon: Icon(Icons.grid_view_rounded), label: Text('Grade')),
+                  ButtonSegment(value: 2, icon: Icon(Icons.tune), label: Text('Ajustes')),
+                ],
+                selected: {_section},
+                onSelectionChanged: (s) => setState(() => _section = s.first),
+              ),
+              const SizedBox(height: 12),
+            ],
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 220),
               child: KeyedSubtree(

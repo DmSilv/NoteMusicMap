@@ -20,7 +20,7 @@ const K = {
   online: 'st:online', // conjunto ordenado: aparelho -> última batida (ms)
 };
 
-const TABS = ['tuner', 'pedal', 'metronome', 'grid', 'study', 'profile', 'teacher', 'agenda', 'settings'];
+const TABS = ['tuner', 'pedal', 'metronome', 'grid', 'study', 'profile', 'teacher', 'agenda', 'settings', 'scales'];
 const EVENTS = ['lesson', 'slot', 'remind', 'link', 'done', 'verdict', 'pick', 'rev10'];
 
 /** Soma 1 num contador do dia (e, se pedido, no total). Silencioso se der erro. */
