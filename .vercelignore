@@ -1,0 +1,3 @@
+# Testes rodam so no computador: nao enviar para a Vercel (cada arquivo em api/ conta como uma Funcao Serverless; o plano Hobby aceita no maximo 12)
+api/*.test.js
+api/_lib/*.test.js
