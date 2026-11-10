@@ -344,8 +344,12 @@ class _TeacherPageState extends State<TeacherPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Área do professor'),
+        title: const Text('Alunos'),
         actions: [
+          HelpButton(
+            title: 'Como funciona',
+            sections: [for (final (_, t, x) in _HowItWorks._steps) (t, x)],
+          ),
           IconButton(
             tooltip: 'Agenda do professor',
             icon: const Icon(Icons.calendar_month_outlined),
@@ -379,30 +383,6 @@ class _TeacherPageState extends State<TeacherPage> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(14, 8, 14, 24),
       children: [
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Row(children: [
-                Icon(Icons.school_outlined),
-                SizedBox(width: 8),
-                Expanded(
-                    child: Text('Acompanhe seus alunos',
-                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
-              ]),
-              const SizedBox(height: 6),
-              Text(
-                'Cadastre os alunos, comece a aula na ficha de cada um e, a cada exercício, o resultado vai para o '
-                'histórico dele. Passe tarefas, anote observações e gere relatórios. Tudo fica neste aparelho; '
-                'para levar os dados a outro aparelho, use copiar e importar.',
-                style: TextStyle(color: AppColors.textDim, fontSize: 13, height: 1.3),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        _HowItWorks(open: app.students.isEmpty),
-        const SizedBox(height: 10),
         _LessonBanner(app: app),
         const SizedBox(height: 10),
         if (app.students.length > 5)
@@ -463,7 +443,7 @@ class _TeacherPageState extends State<TeacherPage> {
         if (app.students.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 18),
-            child: Text('Nenhum aluno ainda. Toque em "Novo aluno" para começar.',
+            child: Text('Nenhum aluno ainda. Toque em "Novo aluno" ou no "?" para ver como funciona.',
                 textAlign: TextAlign.center, style: TextStyle(color: AppColors.textDim)),
           ),
         const SizedBox(height: 4),
@@ -713,7 +693,7 @@ class _PinGateState extends State<_PinGate> {
           children: [
             const Icon(Icons.lock_outline, size: 44),
             const SizedBox(height: 10),
-            const Text('Área do professor', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            const Text('Alunos protegidos', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
             Text('Digite a senha de 4 números.', style: TextStyle(color: AppColors.textDim)),
             const SizedBox(height: 14),
@@ -758,7 +738,10 @@ class StudentPage extends StatelessWidget {
         final tips = analyzePractice(s.sessions, flats: app.flatsForText).take(4).toList();
         return Scaffold(
           appBar: AppBar(
-            title: Text(s.name),
+            title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Alunos', style: TextStyle(fontSize: 12, color: AppColors.textDim, fontWeight: FontWeight.w600)),
+              Text(s.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ]),
             actions: [
               PopupMenuButton<String>(
                 onSelected: (v) async {

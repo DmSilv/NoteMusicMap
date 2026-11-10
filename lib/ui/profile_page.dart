@@ -115,7 +115,7 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  /// Aba "Professor": liga/desliga a capacidade e leva à área do professor.
+  /// Aba "Professor": liga/desliga a capacidade e leva à tela Alunos.
   Widget _teacherTab() {
     return ListenableBuilder(
       listenable: app,
@@ -159,7 +159,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                     icon: const Icon(Icons.school_outlined),
-                    label: const Text('Abrir a área do professor'),
+                    label: const Text('Abrir Alunos'),
                   ),
                 ],
               ],
