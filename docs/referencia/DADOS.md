@@ -115,6 +115,7 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `micRationale` | app_state.dart |
 | `my_teacher` | app_state.dart |
 | `my_teachers` | app_state.dart |
+| `nick_hide` | app_state.dart |
 | `noteSwitch` | app_state.dart |
 | `notices` | app_state.dart |
 | `onboarded` | app_state.dart |
@@ -156,4 +157,4 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `verdict_rev` | app_state.dart |
 | `verdicts` | app_state.dart |
 
-Total: **91** chaves locais.
+Total: **92** chaves locais.

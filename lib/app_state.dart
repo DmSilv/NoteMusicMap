@@ -2709,6 +2709,16 @@ class AppState extends ChangeNotifier {
   /// A pessoa já instalou (ou disse que instalou): não mostrar mais.
   bool installDone = false;
 
+  // ---------------- Apelido (convite da tela inicial) ----------------
+  /// Esconde o convite "Como posso te chamar?" até este instante (ms).
+  int nickHideUntil = 0;
+
+  void hideNickPrompt({int days = 7}) {
+    nickHideUntil = DateTime.now().add(Duration(days: days)).millisecondsSinceEpoch;
+    _prefs?.setInt('nick_hide', nickHideUntil);
+    notifyListeners();
+  }
+
   void hideInstall({int days = 3}) {
     installHideUntil = DateTime.now().add(Duration(days: days)).millisecondsSinceEpoch;
     _prefs?.setInt('install_hide', installHideUntil);
@@ -3323,6 +3333,7 @@ class AppState extends ChangeNotifier {
     _startStats();
     cameraGranted = p.getBool('cam_granted');
     installHideUntil = p.getInt('install_hide') ?? 0;
+    nickHideUntil = p.getInt('nick_hide') ?? 0;
     installDone = p.getBool('install_done') ?? false;
     _readIncomingCode();
     _scheduleUpdateChecks();

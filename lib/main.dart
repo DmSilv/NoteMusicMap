@@ -10,6 +10,7 @@ import 'app_state.dart';
 import 'stats/error_service.dart';
 import 'stats/stats_service.dart';
 import 'ui/app_logo.dart';
+import 'ui/hello_bar.dart';
 import 'ui/error_ui.dart';
 import 'ui/status_strip.dart';
 import 'ui/teacher_page.dart' show handleIncomingStudentCode;
@@ -296,8 +297,25 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
             themeMode: dark ? ThemeMode.dark : ThemeMode.light,
             // A chave recria a árvore ao trocar de tema: as cores do app são
             // lidas de AppColors e precisam ser reavaliadas.
-            builder: (context, child) =>
-                KeyedSubtree(key: ValueKey(dark), child: child!),
+            builder: (context, child) {
+              final tree = KeyedSubtree(key: ValueKey(dark), child: child!);
+              final mq = MediaQuery.of(context);
+              // No navegador/tela larga o app não estica: fica numa coluna de
+              // largura de celular, centralizada, e as laterais ficam escuras.
+              if (mq.size.width <= kMaxAppWidth) return tree;
+              return ColoredBox(
+                color: Color.lerp(AppColors.bg, Colors.black, dark ? 0.45 : 0.08)!,
+                child: Center(
+                  child: SizedBox(
+                    width: kMaxAppWidth,
+                    child: MediaQuery(
+                      data: mq.copyWith(size: Size(kMaxAppWidth, mq.size.height)),
+                      child: ClipRect(child: tree),
+                    ),
+                  ),
+                ),
+              );
+            },
             home: HomeShell(app: widget.app),
           ),
         );
@@ -305,6 +323,9 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
     );
   }
 }
+
+/// Largura máxima do app em tela larga (navegador no computador).
+const double kMaxAppWidth = 560;
 
 class HomeShell extends StatefulWidget {
   final AppState app;
@@ -447,6 +468,8 @@ class _HomeShellState extends State<HomeShell> {
             children: [
               // Microfone e Pomodoro ativos: faixa própria, longe do título.
               StatusStrip(app: app, onPomodoro: () => _go(3)),
+              // Saudação com o apelido (ou convite para preencher), só nas telas principais.
+              if (_index == 0 || _index == 3) HelloBar(app: app),
               // "Instale o Notemusic no celular": só no navegador, enquanto não instalou.
               InstallBanner(app: app),
               Expanded(

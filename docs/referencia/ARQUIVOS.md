@@ -41,6 +41,7 @@
 | `lib/ui/grid_page.dart` | Aba Grade, dividida em três seções simples: - Grade: ouvir e ver as notas; - Escala: exercício guiado e relatório; - Ajustes: cada ajuste abre num modal próprio. |
 | `lib/ui/grid_widgets.dart` | Peças da aba Grade: seletor de oitavas, teclado de uma oitava e legendas. |
 | `lib/ui/guidance_banner.dart` | Banner de orientação do exercício: GRANDE, colorido e que NÃO some depressa. Diz claramente o que fazer (SUBA / DESÇA / AFINADA) e quanto falta. - a orientação fica pelo menos [minShow] na tela antes de trocar (evita… |
+| `lib/ui/hello_bar.dart` | Pergunta "Como posso te chamar?" e grava o apelido no perfil. |
 | `lib/ui/hub_section.dart` | "Meu espaço": o topo da aba. Um destaque grande (o que importa agora), dois blocos do que pede ação e uma faixa de ferramentas. Muda conforme o papel (aluno, professor ou os dois). |
 | `lib/ui/install_banner.dart` | Faixa "Instale o Notemusic no celular" (só no navegador, enquanto não instalou). |
 | `lib/ui/markdown_lite.dart` | Mostra um texto em Markdown simples (o que a IA devolve): títulos com `##`, tópicos com `-`, listas numeradas, **negrito** e *itálico*. A leitura dos trechos mora no núcleo (`parseInline`), com testes; aqui só se… |
@@ -90,6 +91,7 @@
 | `packages/afina_core/lib/class_rules.dart` | Regra única das aulas: em que fase está cada aula, o que dá para mudar nela e quais aulas entram na agenda mostrada. Hub (Meu espaço), agenda e lembretes usam estas mesmas funções, para nunca mostrarem números ou… |
 | `packages/afina_core/lib/error_report.dart` | Montagem do relatório de erro que o app envia ao servidor: trilha de telas (breadcrumbs), ambiente (versão, aparelho), modo de envio e freio contra repetição. Dart puro e testável. Nada de conteúdo pessoal: só nomes… |
 | `packages/afina_core/lib/errors.dart` | Erros do app: um catálogo único de códigos e textos em português, a classificação de qualquer exceção num [AppError], a higienização dos detalhes técnicos (nunca saem nomes, códigos de perfil, e-mails nem segredos) e… |
+| `packages/afina_core/lib/greeting.dart` | Saudação conforme a hora do dia (relógio local do aparelho). 5h às 11h59: "Bom dia" · 12h às 17h59: "Boa tarde" · o resto: "Boa noite". |
 | `packages/afina_core/lib/hub.dart` | Regras do hub "Meu espaço": o que vai no bloco grande (destaque) e os textos dos blocos menores, sempre dizendo o que fazer quando não há nada. Dart puro e testável. |
 | `packages/afina_core/lib/hub_view.dart` | Visões do "Meu espaço": quem é professor também pode ser aluno de outra pessoa, então o hub tem duas visões separadas (Aluno e Professor) e cada destino aparece UMA vez por visão. Dart puro e testável: a tela só… |
 | `packages/afina_core/lib/identity.dart` | Identidade do perfil (Fase 1): quem é a pessoa, sem cadastro e sem servidor. - [Profile.id]: UUID do perfil. Todos os dados pertencem a ele, não ao aparelho. - [Profile.secret]: 256 bits aleatórios que provam que… |
@@ -128,6 +130,7 @@
 | `packages/afina_core/test/error_report_test.dart` | Testes do módulo `error_report`. |
 | `packages/afina_core/test/errors_test.dart` | Testes do módulo `errors`. |
 | `packages/afina_core/test/fast_notes_test.dart` | Sinal de violino sintético: escala de Sol maior (Sol3 a Sol4) com notas de [noteMs] cada, ligadas (sem pausa), com vibrato e um pouco de ruído. |
+| `packages/afina_core/test/greeting_test.dart` | Testes do módulo `greeting`. |
 | `packages/afina_core/test/hub_test.dart` | a aula das 13:00 (60 min) acaba às 14:00: no instante do fim já não é "em andamento" |
 | `packages/afina_core/test/hub_view_test.dart` | Testes do módulo `hub_view`. |
 | `packages/afina_core/test/identity_test.dart` | Troca de um caractere por outro diferente do alfabeto. |
@@ -211,6 +214,7 @@
 |---|---|
 | `web/admin.html` | Página HTML: Notemusic · Painel |
 | `web/flutter_bootstrap.js` | Sem o service worker do Flutter (nesta versão ele só se desregistra). O app usa o próprio `sw.js`, registrado no index.html, para funcionar sem internet e poder ser instalado. |
+| `web/google20427e013f6bcf29.html` | _(sem descrição no cabeçalho)_ |
 | `web/index.html` | Página HTML: Notemusic: afinador, metrônomo e estudo para instrumentos de corda |
 | `web/manifest.json` | Configuração (JSON). |
 | `web/sobre.html` | Página HTML: Notemusic: afinador, metrônomo e estudo para instrumentos de corda (grátis, sem cadastro) |
@@ -228,4 +232,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **185** arquivos mapeados.
+Total: **189** arquivos mapeados.
