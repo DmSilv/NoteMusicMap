@@ -131,6 +131,7 @@
 | `packages/afina_core/test/errors_test.dart` | Testes do módulo `errors`. |
 | `packages/afina_core/test/fast_notes_test.dart` | Sinal de violino sintético: escala de Sol maior (Sol3 a Sol4) com notas de [noteMs] cada, ligadas (sem pausa), com vibrato e um pouco de ruído. |
 | `packages/afina_core/test/greeting_test.dart` | Testes do módulo `greeting`. |
+| `packages/afina_core/test/grid_replay_test.dart` | Toca [cents] por [seconds] (quadros de 30 ms) a partir de [t0]; devolve o instante final. |
 | `packages/afina_core/test/hub_test.dart` | a aula das 13:00 (60 min) acaba às 14:00: no instante do fim já não é "em andamento" |
 | `packages/afina_core/test/hub_view_test.dart` | Testes do módulo `hub_view`. |
 | `packages/afina_core/test/identity_test.dart` | Troca de um caractere por outro diferente do alfabeto. |
@@ -233,4 +234,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **190** arquivos mapeados.
+Total: **191** arquivos mapeados.
