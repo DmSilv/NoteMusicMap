@@ -8,6 +8,7 @@ import 'needle.dart';
 import 'note_widgets.dart';
 import 'theme.dart';
 import 'transitions.dart';
+import 'tuning_pick.dart';
 import 'widgets.dart';
 
 /// Exercício de escala guiado: o app mostra a próxima nota, acompanha a
@@ -70,6 +71,14 @@ class ScaleExercisePage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(_title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          // Qual afinação está valendo (toque para trocar).
+          Builder(builder: (context) => ActionChip(
+                visualDensity: VisualDensity.compact,
+                avatar: Icon(Icons.straighten, size: 16, color: AppColors.accent),
+                label: Text('Afinação: ${tuningSummary(app)}', style: const TextStyle(fontSize: 12.5)),
+                onPressed: () => pickTuningSystem(context, app, tonicPc: app.scaleTonicMidi % 12),
+              )),
           const SizedBox(height: 6),
           Row(children: [
             Text(

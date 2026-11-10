@@ -9,6 +9,7 @@ import 'note_widgets.dart';
 import 'perf.dart';
 import 'scale_exercise_page.dart';
 import 'theme.dart';
+import 'tuning_pick.dart';
 import 'widgets.dart';
 
 /// Aba Grade, dividida em três seções simples:
@@ -377,6 +378,9 @@ class _GridPageState extends State<GridPage> {
                         hint:
                             'Mais oitavas = exercício mais longo. Comece por 1 e aumente aos poucos.',
                       )),
+              const Divider(height: 1),
+              _tile(Icons.straighten, 'Afinação', tuningSummary(app),
+                  () => pickTuningSystem(context, app, tonicPc: tonicPc)),
             ],
           ),
         ),
@@ -392,8 +396,7 @@ class _GridPageState extends State<GridPage> {
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
               Text(
-                '${app.scaleNotes.length * 2 - 1} notas no total, subindo e descendo. '
-                'Sistema: ${switch (app.system) { TuningSystem.equal => 'temperamento igual', TuningSystem.pythagorean => 'pitagórico', TuningSystem.just => 'entonação justa' }}.',
+                '${app.scaleNotes.length * 2 - 1} notas no total, subindo e descendo. ${tuningExplain(app)}',
                 style: TextStyle(color: AppColors.textDim, fontSize: 12),
               ),
             ],

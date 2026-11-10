@@ -79,6 +79,7 @@
 | `lib/ui/transitions.dart` | Troca "sai e depois entra" para usar no `AnimatedSwitcher`. O padrão (fade cruzado) deixa os dois textos um em cima do outro por um instante, o que parece bagunçado. Aqui quem sai some depressa (e encolhe um pouco) e… |
 | `lib/ui/tuner_page.dart` | Aba Afinador: cordas soltas, cromático e Pedal; ponteiro, desvio, frequência, Lá de referência e tônica. |
 | `lib/ui/tuning_guide.dart` | Explicação didática do sistema de afinação escolhido, com a tabela de alvos da tônica (em Hz, contra a afinação igual) e botões para OUVIR cada nota. Aparece no Afinador (modo Cromático) e nas Configurações. |
+| `lib/ui/tuning_pick.dart` | Nome curto do sistema de afinação em uso ("Pitagórico"). |
 | `lib/ui/validation_ui.dart` | Na ficha do aluno: as tarefas que ELE marcou como feitas e que esperam a validação do professor. Só viram "feitas" (finalizadas) quando o professor confirma; se não, voltam a pendente. |
 | `lib/ui/widgets.dart` | Peças comuns de interface: cartões, seleção de opções, folha de ajuda ("?") e textos de ajuda em um lugar só. |
 | `lib/voice/dictation.dart` | Escrita por voz: toca no microfone de um campo, fala, e o texto aparece. Usa o reconhecimento de fala do próprio aparelho (Android/iOS) ou do navegador (Chrome, Edge, Safari). O app não grava nem envia áudio: quem… |
@@ -239,4 +240,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **196** arquivos mapeados.
+Total: **197** arquivos mapeados.
