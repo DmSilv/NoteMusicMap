@@ -11,6 +11,8 @@ import 'qr_scan_page.dart';
 import 'settings_page.dart' show SettingsPage;
 import 'share_sheet.dart' show shareLink, showShareSheet;
 import 'teacher_page.dart';
+import 'hello_bar.dart';
+import 'link_bar.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -138,7 +140,10 @@ class _ProfilePageState extends State<ProfilePage> {
                     style: TextStyle(fontSize: 12.5),
                   ),
                   value: app.teacherMode,
-                  onChanged: app.setTeacherMode,
+                  onChanged: (v) async {
+                    if (v && !await requireNickname(context, app, reason: 'Para ser professor, seus alunos precisam ver o seu nome.')) return;
+                    app.setTeacherMode(v);
+                  },
                 ),
                 if (app.teacherMode) ...[
                   const SizedBox(height: 6),
@@ -296,25 +301,10 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _confirmOff() async {
-    final q = app.linkQueueSize;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Desativar o vínculo online?'),
-        content: Text(
-          'Nada será enviado nem recebido enquanto estiver desligado. Suas aulas, tarefas e agenda continuam neste aparelho'
-          '${q > 0 ? ', e os $q itens da fila ficam guardados até você ligar de novo' : ''}. '
-          'Você pode ligar de novo quando quiser, por exemplo se a conexão estiver instável.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Desativar')),
-        ],
-      ),
-    );
-    if (ok == true) {
+    final ok = await confirmDisableLink(context, app);
+    if (ok) {
       app.setLinkEnabled(false);
-      app.say('Vínculo online desligado.');
+      app.say('Vínculo online desligado. Você está offline.');
     }
   }
 
@@ -391,6 +381,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _registerTeacher(String code) async {
+    if (!await requireNickname(context, app, reason: 'Para vincular a um professor, ele precisa saber quem você é.')) return;
     final err = await app.addMyTeacher(code);
     if (err != null) app.say(err);
   }
@@ -532,8 +523,8 @@ class _ProfilePageState extends State<ProfilePage> {
                     textCapitalization: TextCapitalization.words,
                     maxLength: 40,
                     decoration: const InputDecoration(
-                      labelText: 'Seu nome (opcional)',
-                      helperText: 'Só para você se reconhecer. Não é enviado a ninguém.',
+                      labelText: 'Seu nome',
+                      helperText: 'Aparece para o seu professor ou aluno quando você se vincula.',
                     ),
                     onChanged: app.setProfileName,
                   ),
@@ -716,6 +707,7 @@ Future<void> handleIncomingTeacherCode(BuildContext context, AppState app) async
     ),
   );
   if (ok == true) {
+    if (!context.mounted || !await requireNickname(context, app, reason: 'Para vincular a um professor, ele precisa saber quem você é.')) return;
     final err = await app.addMyTeacher(code);
     if (err != null) app.say(err);
   }

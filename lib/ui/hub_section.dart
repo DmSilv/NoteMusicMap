@@ -16,6 +16,7 @@ import 'share_sheet.dart' show shareLink;
 import 'slot_form_page.dart';
 import 'teacher_page.dart';
 import 'open_slots_page.dart';
+import 'hello_bar.dart';
 import 'theme.dart';
 
 /// "Meu espaço": o topo da aba. Um destaque grande (o que importa agora), dois blocos do que pede
@@ -342,6 +343,8 @@ class HubSection extends StatelessWidget {
   }
 
   Future<void> _scanTeacher(BuildContext context) async {
+    if (!await requireNickname(context, app, reason: 'Para vincular a um professor, ele precisa saber quem você é.')) return;
+    if (!context.mounted) return;
     final s = await scanShareCode(context,
         title: 'Ler QR do professor', want: 'professor', check: app.checkTeacherCode, onCamera: app.setCameraStatus);
     if (s == null) return;

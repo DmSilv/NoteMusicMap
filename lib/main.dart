@@ -11,6 +11,7 @@ import 'stats/error_service.dart';
 import 'stats/stats_service.dart';
 import 'ui/app_logo.dart';
 import 'ui/hello_bar.dart';
+import 'ui/link_bar.dart';
 import 'ui/error_ui.dart';
 import 'ui/status_strip.dart';
 import 'ui/teacher_page.dart' show handleIncomingStudentCode;
@@ -469,6 +470,10 @@ class _HomeShellState extends State<HomeShell> {
               // Microfone e Pomodoro ativos: faixa própria, longe do título.
               StatusStrip(app: app, onPomodoro: () => _go(3)),
               // Saudação com o apelido (ou convite para preencher), só nas telas principais.
+              // Versão nova disponível (faixa fixa, com botão).
+              UpdateBar(app: app),
+              // Vínculo desligado com gente dependendo dele: avisa que está offline.
+              if (_index == 0 || _index == 3) LinkOffBar(app: app),
               if (_index == 0 || _index == 3) HelloBar(app: app),
               // "Instale o Notemusic no celular": só no navegador, enquanto não instalou.
               InstallBanner(app: app),

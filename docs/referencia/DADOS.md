@@ -112,6 +112,7 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `lessons_in` | app_state.dart |
 | `lessons_rev` | app_state.dart |
 | `link_on` | app_state.dart |
+| `link_pref` | app_state.dart |
 | `micRationale` | app_state.dart |
 | `my_teacher` | app_state.dart |
 | `my_teachers` | app_state.dart |
@@ -153,8 +154,9 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `tunerMode` | app_state.dart |
 | `unlink_students` | app_state.dart |
 | `unlink_teachers` | app_state.dart |
+| `upd_hide` | app_state.dart |
 | `verdict_outbox` | app_state.dart |
 | `verdict_rev` | app_state.dart |
 | `verdicts` | app_state.dart |
 
-Total: **92** chaves locais.
+Total: **94** chaves locais.

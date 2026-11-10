@@ -25,6 +25,7 @@ import 'stats/error_service.dart';
 import 'stats/stats_service.dart';
 import 'voice/dictation.dart';
 import 'package:afina_core/afina_core.dart';
+import 'package:afina_core/afina_core.dart' as core show linkNeedsAttention, linkShouldBeOn;
 
 /// Ativa a simulação de execução (sem som), só para testes: --dart-define=DEV_DEMO=true.
 const bool kDevDemo = bool.fromEnvironment('DEV_DEMO');
@@ -255,6 +256,14 @@ class AppState extends ChangeNotifier {
 
   void setTeacherMode(bool v) {
     teacherMode = v;
+    if (v && !linkEnabled) {
+      // Professor precisa receber os avisos dos alunos: liga o vínculo junto.
+      linkEnabled = true;
+      _linkPrefOn();
+      _saveLinks();
+      linkUnavailable = false;
+      unawaited(syncLinks());
+    }
     if (!v) {
       activeStudentId = null; // sem modo professor, tudo volta a ser do próprio usuário
       teacherUnlocked = false;
@@ -537,6 +546,26 @@ class AppState extends ChangeNotifier {
   /// alguém (ler QR ou digitar código), e pode ser desligado no perfil.
   bool linkEnabled = false;
 
+  /// Escolha explícita da pessoa ("on"/"off"); null = nunca mexeu (vale a regra automática).
+  String? linkPref;
+
+  bool get _hasStudentsWithCode => students.any((s) => s.code != null);
+
+  /// Desligado, mas há quem dependa dele (modo professor, professor ou aluno vinculado).
+  bool get linkNeedsAttention => core.linkNeedsAttention(
+      enabled: linkEnabled,
+      teacherMode: teacherMode,
+      hasTeachers: myTeachers.isNotEmpty,
+      hasStudentsWithCode: _hasStudentsWithCode);
+
+  /// Sem nome o professor não sabe quem é o aluno (e o aluno, quem é o professor).
+  bool get needsNickname => (profile.name ?? '').trim().isEmpty;
+
+  void _linkPrefOn() {
+    linkPref = 'on';
+    _prefs?.setString('link_pref', 'on');
+  }
+
   /// null = ainda não tentou; true = o servidor respondeu; false = sem conexão.
   bool? _linkOnline;
 
@@ -603,6 +632,7 @@ class AppState extends ChangeNotifier {
 
   void _loadLinks(SharedPreferences p) {
     linkEnabled = p.getBool('link_on') ?? false;
+    linkPref = p.getString('link_pref');
     try {
       final raw = p.getString('my_teachers');
       myTeachers = raw == null ? [] : [for (final x in (jsonDecode(raw) as List)) ?LinkedPerson.tryFrom(x)];
@@ -615,6 +645,18 @@ class AppState extends ChangeNotifier {
       if (!myTeachers.any((t) => t.code == old)) myTeachers.add(LinkedPerson(old, '', 0));
       p.remove('my_teacher');
       _saveLinks();
+    }
+    // Ligado por padrão para quem tem professor, aluno ou modo professor; só fica desligado
+    // se a pessoa escolheu desligar (e confirmou o aviso).
+    final shouldOn = core.linkShouldBeOn(
+        pref: linkPref,
+        legacyOn: linkEnabled,
+        teacherMode: teacherMode,
+        hasTeachers: myTeachers.isNotEmpty,
+        hasStudentsWithCode: _hasStudentsWithCode);
+    if (shouldOn != linkEnabled) {
+      linkEnabled = shouldOn;
+      p.setBool('link_on', linkEnabled);
     }
     _unlinkStudents
       ..clear()
@@ -1306,6 +1348,9 @@ class AppState extends ChangeNotifier {
       onResume();
       final t = stats.lastOpen;
       if (t == null || DateTime.now().difference(t).inMinutes >= 30) unawaited(stats.open(_prefs)); // nova sessão
+      // Ao voltar ao app, confere se há versão nova (no máximo a cada 2 minutos).
+      final lc = _lastUpdateCheck;
+      if (lc == null || DateTime.now().difference(lc).inMinutes >= 2) unawaited(checkForUpdate());
     }
   }
 
@@ -1936,6 +1981,8 @@ class AppState extends ChangeNotifier {
   void setLinkEnabled(bool v) {
     crumb(v ? 'Ligar vínculo' : 'Desligar vínculo');
     linkEnabled = v;
+    linkPref = v ? 'on' : 'off';
+    _prefs?.setString('link_pref', linkPref!);
     if (!v) {
       _linkTimer?.cancel();
       _linkTimer = null;
@@ -1995,12 +2042,14 @@ class AppState extends ChangeNotifier {
   /// Registra o professor (li o QR dele ou digitei o código) e vincula online.
   /// Devolve o motivo se não foi possível; null se registrou.
   Future<String?> addMyTeacher(String code) async {
+    if (needsNickname) return 'Antes de vincular, informe o seu nome em Minha conta: o professor precisa saber quem você é.';
     final problem = checkTeacherCode(code);
     if (problem != null) return problem;
     final c = formatShareCode(code)!;
     if (myTeachers.any((t) => t.code == c)) return 'Este professor já está na sua lista.';
     myTeachers.add(LinkedPerson(c, '', 0));
     linkEnabled = true;
+    _linkPrefOn();
     _saveLinks();
     notifyListeners();
     final r = await links.link(profile.shareCode, profile.secret, role: 'student', other: c, name: profile.name);
@@ -3351,6 +3400,7 @@ class AppState extends ChangeNotifier {
     cameraGranted = p.getBool('cam_granted');
     installHideUntil = p.getInt('install_hide') ?? 0;
     nickHideUntil = p.getInt('nick_hide') ?? 0;
+    updateHideUntil = p.getInt('upd_hide') ?? 0;
     installDone = p.getBool('install_done') ?? false;
     _readIncomingCode();
     _scheduleUpdateChecks();
@@ -3795,11 +3845,23 @@ class AppState extends ChangeNotifier {
   /// true quando o servidor já tem uma versão mais nova que a deste aparelho.
   bool updateAvailable = false;
   Timer? _updateTimer;
+  DateTime? _lastUpdateCheck;
+  int updateHideUntil = 0;
+
+  /// Mostra a faixa "Versão nova disponível" (a pessoa pode adiar por algumas horas).
+  bool get showUpdatePrompt => updateAvailable && DateTime.now().millisecondsSinceEpoch >= updateHideUntil;
+
+  void hideUpdatePrompt({int hours = 6}) {
+    updateHideUntil = DateTime.now().add(Duration(hours: hours)).millisecondsSinceEpoch;
+    _prefs?.setInt('upd_hide', updateHideUntil);
+    notifyListeners();
+  }
 
   /// Pergunta ao servidor qual é a versão publicada (web instalada no celular
   /// costuma ficar presa na antiga). Falhas de rede são ignoradas.
   Future<void> checkForUpdate() async {
     if (!kIsWeb || kBuildId.isEmpty || kBuildId == 'local') return;
+    _lastUpdateCheck = DateTime.now();
     try {
       final r = await http
           .get(Uri.base.resolve('/build-id.txt?t=${DateTime.now().millisecondsSinceEpoch}'))
@@ -3808,7 +3870,7 @@ class AppState extends ChangeNotifier {
       final newer = id.isNotEmpty && id.length < 80 && !id.contains('<') && id != kBuildId;
       if (newer && !updateAvailable) {
         updateAvailable = true;
-        say('Há uma versão nova do app. Toque em Configurações › Atualizar o app.');
+        say('Há uma versão nova do app. Toque em Atualizar no alto da tela.');
         notifyListeners();
       }
     } catch (_) {}

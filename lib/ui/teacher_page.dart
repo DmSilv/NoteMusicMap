@@ -16,6 +16,7 @@ import 'scale_exercise_page.dart';
 import 'student_identity.dart';
 import 'task_form_page.dart';
 import 'validation_ui.dart';
+import 'hello_bar.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -170,6 +171,8 @@ Future<void> handleIncomingStudentCode(BuildContext context, AppState app) async
       ),
     );
     if (on != true || !context.mounted) return;
+    if (!await requireNickname(context, app, reason: 'Para ser professor, seus alunos precisam ver o seu nome.')) return;
+    if (!context.mounted) return;
     app.setTeacherMode(true);
   }
   final r = await _newStudentDialog(context, app, code0: code);

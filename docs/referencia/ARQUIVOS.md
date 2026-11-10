@@ -41,9 +41,10 @@
 | `lib/ui/grid_page.dart` | Aba Grade, dividida em três seções simples: - Grade: ouvir e ver as notas; - Escala: exercício guiado e relatório; - Ajustes: cada ajuste abre num modal próprio. |
 | `lib/ui/grid_widgets.dart` | Peças da aba Grade: seletor de oitavas, teclado de uma oitava e legendas. |
 | `lib/ui/guidance_banner.dart` | Banner de orientação do exercício: GRANDE, colorido e que NÃO some depressa. Diz claramente o que fazer (SUBA / DESÇA / AFINADA) e quanto falta. - a orientação fica pelo menos [minShow] na tela antes de trocar (evita… |
-| `lib/ui/hello_bar.dart` | Pergunta "Como posso te chamar?" e grava o apelido no perfil. |
+| `lib/ui/hello_bar.dart` | Pergunta "Como posso te chamar?" e grava o apelido no perfil. Antes de vincular: o nome é obrigatório (sem ele o professor não sabe quem é o aluno). Devolve true se já havia nome ou se a pessoa acabou de informar. |
 | `lib/ui/hub_section.dart` | "Meu espaço": o topo da aba. Um destaque grande (o que importa agora), dois blocos do que pede ação e uma faixa de ferramentas. Muda conforme o papel (aluno, professor ou os dois). |
 | `lib/ui/install_banner.dart` | Faixa "Instale o Notemusic no celular" (só no navegador, enquanto não instalou). |
+| `lib/ui/link_bar.dart` | Aviso do alto da tela quando o vínculo online está DESLIGADO mas há quem dependa dele (modo professor, professor ou aluno vinculado): sem ele, nada chega ao aparelho. |
 | `lib/ui/markdown_lite.dart` | Mostra um texto em Markdown simples (o que a IA devolve): títulos com `##`, tópicos com `-`, listas numeradas, **negrito** e *itálico*. A leitura dos trechos mora no núcleo (`parseInline`), com testes; aqui só se… |
 | `lib/ui/methods_page.dart` | "Meus métodos e lições": a biblioteca do professor. Cadastrar, editar, importar de um texto colado e exportar. Ela também cresce sozinha com o que é digitado nas tarefas. |
 | `lib/ui/metronome_page.dart` | Aba Metrônomo: andamento, compasso, subdivisão, som, tap tempo e modo desafio. |
@@ -99,6 +100,7 @@
 | `packages/afina_core/lib/input_guard.dart` | Limpeza e limites de tudo que a pessoa digita, cola ou lê de um QR. Dart puro. O app não monta HTML nem consulta banco com esses textos, mas eles aparecem na tela, vão para backups colados e (em resumo) para a IA.… |
 | `packages/afina_core/lib/lesson.dart` | Aulas: o professor começa a aula com um aluno, pode pausar, e ao encerrar o que ele passou nela (tarefas e observações) é empacotado para o aluno receber. Dart puro e testável (o relógio é sempre passado de fora). |
 | `packages/afina_core/lib/lesson_week.dart` | "Esta semana" do aluno: junta as tarefas das aulas recebidas dos últimos 7 dias e as que ficaram em aberto de aulas mais antigas. Dart puro e testável. |
+| `packages/afina_core/lib/link_pref.dart` | Regra do "Vínculo online": ligado por padrão para quem tem professor, aluno ou modo professor, e só desligado se a pessoa escolheu desligar (e confirmou o aviso). |
 | `packages/afina_core/lib/link_status.dart` | Estado do vínculo online em linguagem simples: o que está acontecendo com a conexão, o que isso significa para a pessoa e o que ela pode fazer. Dart puro e testável. |
 | `packages/afina_core/lib/markdown_lite.dart` | Markdown simples da IA (títulos `##`, tópicos, listas numeradas, **negrito** e *itálico*): leitura dos trechos em linha e conversão para texto puro com quebras de linha (para copiar). Dart puro e testável; a tela só… |
 | `packages/afina_core/lib/methods.dart` | Biblioteca de métodos do professor (ex.: Suzuki, Ševčík) com as lições de cada um. O professor cadastra, importa de um texto colado e exporta. Dart puro e testável. |
@@ -141,6 +143,7 @@
 | `packages/afina_core/test/lesson_delivery_test.dart` | dados antigos (sem a chave) continuam lendo, como "não se aplica" |
 | `packages/afina_core/test/lesson_test.dart` | Testes do módulo `lesson`. |
 | `packages/afina_core/test/lesson_week_test.dart` | Testes do módulo `lesson_week`. |
+| `packages/afina_core/test/link_pref_test.dart` | Testes do módulo `link_pref`. |
 | `packages/afina_core/test/link_status_test.dart` | Testes do módulo `link_status`. |
 | `packages/afina_core/test/markdown_lite_test.dart` | Testes do módulo `markdown_lite`. |
 | `packages/afina_core/test/methods_test.dart` | Testes do módulo `methods`. |
@@ -236,4 +239,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **193** arquivos mapeados.
+Total: **196** arquivos mapeados.

@@ -6,25 +6,46 @@ import 'safe_input.dart';
 import 'theme.dart';
 
 /// Pergunta "Como posso te chamar?" e grava o apelido no perfil.
-Future<void> askNickname(BuildContext context, AppState app) async {
+/// Antes de vincular: o nome é obrigatório (sem ele o professor não sabe quem é o aluno).
+/// Devolve true se já havia nome ou se a pessoa acabou de informar.
+Future<bool> requireNickname(BuildContext context, AppState app,
+    {String reason = 'Para se vincular, a outra pessoa precisa saber quem você é.'}) async {
+  if (!app.needsNickname) return true;
+  await askNickname(context, app, mandatory: true, reason: reason);
+  return !app.needsNickname;
+}
+
+Future<void> askNickname(BuildContext context, AppState app, {bool mandatory = false, String? reason}) async {
   final ctrl = TextEditingController(text: app.profile.name ?? '');
+  String? error;
   final saved = await showDialog<String>(
     context: context,
-    builder: (c) => AlertDialog(
+    builder: (c) => StatefulBuilder(builder: (c, setS) => AlertDialog(
       icon: const Icon(Icons.waving_hand_outlined),
       title: const Text('Como posso te chamar?'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (reason != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Text(reason, style: const TextStyle(fontWeight: FontWeight.w700)),
+            ),
           TextField(
             controller: ctrl,
             autofocus: true,
             inputFormatters: const [SafeText.name()],
             textCapitalization: TextCapitalization.words,
             maxLength: 40,
-            decoration: const InputDecoration(labelText: 'Seu apelido'),
-            onSubmitted: (v) => Navigator.pop(c, v),
+            decoration: InputDecoration(labelText: mandatory ? 'Seu nome' : 'Seu apelido', errorText: error),
+            onSubmitted: (v) {
+              if (mandatory && v.trim().isEmpty) {
+                setS(() => error = 'Informe o seu nome para continuar.');
+              } else {
+                Navigator.pop(c, v);
+              }
+            },
           ),
           Text(
             'Aparece nas saudações do app e, se você se vincular a um professor ou aluno, para essa pessoa. Dá para trocar depois em Minha conta.',
@@ -33,10 +54,19 @@ Future<void> askNickname(BuildContext context, AppState app) async {
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(c), child: const Text('Agora não')),
-        FilledButton(onPressed: () => Navigator.pop(c, ctrl.text), child: const Text('Salvar')),
+        TextButton(onPressed: () => Navigator.pop(c), child: Text(mandatory ? 'Cancelar' : 'Agora não')),
+        FilledButton(
+          onPressed: () {
+            if (mandatory && ctrl.text.trim().isEmpty) {
+              setS(() => error = 'Informe o seu nome para continuar.');
+            } else {
+              Navigator.pop(c, ctrl.text);
+            }
+          },
+          child: const Text('Salvar'),
+        ),
       ],
-    ),
+    )),
   );
   ctrl.dispose();
   if (saved != null && saved.trim().isNotEmpty) {
@@ -117,10 +147,17 @@ class HelloBar extends StatelessWidget {
               Icon(icon, size: 20, color: AppColors.accent),
               const SizedBox(width: 8),
               Expanded(
-                child: Text(greetingLine(hour, name),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                  Text(greetingLine(hour, name),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                  if (_who(app) != null)
+                    Text(_who(app)!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+                ]),
               ),
               Tooltip(message: 'Trocar apelido', child: Icon(Icons.edit_outlined, size: 16, color: AppColors.textDim)),
               const SizedBox(width: 8),
@@ -130,4 +167,21 @@ class HelloBar extends StatelessWidget {
       },
     );
   }
+}
+
+/// "Professor(a): Ana" para quem tem professor; "3 alunos" para quem ensina. Mostra o
+/// nome na tela inicial para a pessoa saber com quem está ligada.
+String? _who(AppState app) {
+  final parts = <String>[];
+  final t = app.myTeachers;
+  if (t.isNotEmpty) {
+    final last = t.last;
+    final nm = last.name.trim().isEmpty ? last.code : last.name.trim();
+    parts.add(t.length == 1 ? 'Professor(a): $nm' : '${t.length} professores');
+  }
+  if (app.teacherMode) {
+    final n = app.students.length;
+    parts.add(n == 0 ? 'Modo professor' : (n == 1 ? '1 aluno' : '$n alunos'));
+  }
+  return parts.isEmpty ? null : parts.join(' · ');
 }
