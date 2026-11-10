@@ -41,14 +41,14 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ pronto (local) · 🚀 publicad
 - **Testes:** resumo (núcleo), ações do servidor (API), compatibilidade com o app antigo.
 - **Feito:** `task_status.dart` (resumo, estado oficial, `VerdictEntry`); API `verdict` (professor decide; "devolver" também derruba o "fiz") e `verdicts` (aluno busca) + contador `vr` em `rev`/`sync` (aditivo); fila de envio no professor; aluno vê "validada / aguardando o professor / refazer"; diálogo de início de aula com resumo e pendentes. Custo: decisão = 3 comandos no servidor; aluno só busca quando `vr` muda.
 
-### Etapa 4 · Horários disponíveis e pedidos de horário — 🟨 pronta, aguardando publicação
+### Etapa 4 · Horários disponíveis e pedidos de horário — 🚀 publicada
 - Professor cadastra, altera e gerencia **horários disponíveis** (semanais ou avulsos, com duração) e **move/cancela** a aula de qualquer aluno.
 - Aluno vê os horários livres do **seu professor** (só de quem já está vinculado) e **pega** um: confirma na hora (primeiro a pegar leva) e vira aula na agenda, com lembrete.
 - Regras: sem choque com aulas marcadas, sem horário passado, um horário só pode ser pego uma vez, limites por aluno e por professor.
 - **Testes:** modelo e regras (núcleo), ações e segurança do servidor (API: só vinculados, versão, limites), custo por ação documentado.
 - **Feito:** `open_slots.dart` (regras: passado, antecedência de 60 min, choque, limites 100 horários / 12 aulas por aluno); API `avail_put`, `avail`, `avail_take` (trava `HSETNX`: o primeiro leva), `picks` + contador `ar`; telas "Horários livres" (professor) e "Pegar horário" (aluno) no hub. Mover/cancelar a aula de qualquer aluno já existia na agenda. Custo: o aluno só consulta ao abrir a tela (nada de polling); pegar = ~10 comandos; professor sabe pelo contador `ar` (já dentro do `rev`). Pendência conhecida: a trava `tk:` guarda 1 linha por horário pego (crescimento lento; limpeza fica para a Etapa 6).
 
-### Etapa 5 · Painel do administrador: indicadores e usuários — ⬜
+### Etapa 5 · Painel do administrador: indicadores e usuários — 🟨 em andamento
 - **Indicadores:** perfis totais, **ativos × inativos** (última atividade), professores ativos, alunos, crescimento (novos por semana, WAU/MAU, retenção D1/D7/D30), uso por recurso.
 - **Gestão de usuários (CRUD):** listar/buscar, ver detalhe (papel, vínculos, atividade), editar apelido, bloquear/desbloquear e excluir (com confirmação e registro). Observação: o app **não tem login**; "usuário" = perfil anônimo (código + apelido).
 - **Testes:** índice de perfis, atividade, retenção, CRUD e segurança (API), proteção da chave de admin.
