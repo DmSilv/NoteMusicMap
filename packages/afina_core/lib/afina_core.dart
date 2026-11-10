@@ -9,6 +9,7 @@ export 'link_status.dart';
 export 'lesson_week.dart';
 export 'task_status.dart';
 export 'open_slots.dart';
+export 'class_rules.dart';
 export 'methods.dart';
 export 'metronome_engine.dart';
 export 'rhythm_challenge.dart';

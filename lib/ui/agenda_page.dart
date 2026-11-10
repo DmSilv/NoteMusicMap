@@ -121,7 +121,7 @@ class _AgendaPageState extends State<AgendaPage> {
     final out = <Widget>[];
     for (var i = 0; i < 7; i++) {
       final d = start.add(Duration(days: i));
-      final list = agendaDay(app.agenda, d);
+      final list = agendaDay(app.visibleAgenda, d);
       final isToday = d == today;
       out.add(Padding(
         padding: const EdgeInsets.only(top: 12, bottom: 4),
@@ -154,7 +154,7 @@ class _AgendaPageState extends State<AgendaPage> {
     final first = DateTime(_anchor.year, _anchor.month, 1);
     final days = DateTime(_anchor.year, _anchor.month + 1, 0).day;
     final lead = first.weekday - 1; // células vazias antes do dia 1 (semana começa na segunda)
-    final counts = agendaMonthCounts(app.agenda, first);
+    final counts = agendaMonthCounts(app.visibleAgenda, first);
     final today = _day0(DateTime.now());
     final cells = <Widget>[
       for (final w in _dowShort)
@@ -162,7 +162,7 @@ class _AgendaPageState extends State<AgendaPage> {
       for (var i = 0; i < lead; i++) const SizedBox.shrink(),
       for (var d = 1; d <= days; d++) _dayCell(DateTime(first.year, first.month, d), counts[d] ?? 0, today),
     ];
-    final list = agendaDay(app.agenda, _picked);
+    final list = agendaDay(app.visibleAgenda, _picked);
     return [
       GridView.count(
         shrinkWrap: true,
@@ -217,7 +217,10 @@ class _AgendaPageState extends State<AgendaPage> {
   Widget _tile(SlotOccurrence o) {
     final s = o.slot;
     final st = app.studentByCode(s.studentCode);
-    final past = o.end.isBefore(DateTime.now());
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final phase = classPhase(o.startMs, o.startMs + s.endOffsetMs, nowMs);
+    final perm = classPermissions(ClassViewer.teacher, phase);
+    final past = phase == ClassPhase.finished;
     final queued = s.pending == true;
     final issue = app.deliveryIssue[s.studentCode] == 'not_ready';
     return Container(
@@ -253,19 +256,23 @@ class _AgendaPageState extends State<AgendaPage> {
               ]),
               if (s.note.isNotEmpty)
                 Text(s.note, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+              if (phase == ClassPhase.ongoing || phase == ClassPhase.soon)
+                Text(classPhaseLabel(phase),
+                    style: TextStyle(color: AppColors.accent, fontSize: 11.5, fontWeight: FontWeight.w700)),
               if (queued)
                 Text(issue ? 'Aluno ainda não recebeu' : 'A enviar ao aluno',
                     style: TextStyle(color: AppColors.flat, fontSize: 11.5, fontWeight: FontWeight.w700)),
             ]),
           ),
+          if (!past)
           PopupMenuButton<String>(
             tooltip: 'Opções da aula',
             onSelected: (v) => _menu(v, o),
             itemBuilder: (c) => [
-              const PopupMenuItem(value: 'edit', child: Text('Editar')),
+              if (perm.edit) const PopupMenuItem(value: 'edit', child: Text('Editar')),
               if (st != null) const PopupMenuItem(value: 'open', child: Text('Abrir ficha do aluno')),
-              if (s.weekly) const PopupMenuItem(value: 'skip', child: Text('Cancelar só esta aula')),
-              PopupMenuItem(value: 'cancel', child: Text(s.weekly ? 'Cancelar todas as aulas' : 'Cancelar aula')),
+              if (perm.cancel && s.weekly) const PopupMenuItem(value: 'skip', child: Text('Cancelar só esta aula')),
+              if (perm.cancel) PopupMenuItem(value: 'cancel', child: Text(s.weekly ? 'Cancelar todas as aulas' : 'Cancelar aula')),
             ],
           ),
         ]),

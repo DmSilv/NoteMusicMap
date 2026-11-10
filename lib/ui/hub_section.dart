@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../app_state.dart';
 import 'agenda_page.dart';
 import 'my_lessons_page.dart' show openMyLessons;
+import 'notifications_sheet.dart' show openNoticeTarget;
 import 'profile_page.dart';
 import 'qr_scan_page.dart';
 import 'settings_page.dart' show SettingsPage, kAppName;
@@ -38,7 +39,7 @@ class HubSection extends StatelessWidget {
     }
 
     final cls = nc == null ? null : HubClass(nc.startMs, nc.startMs + nc.slot.endOffsetMs, whoOf(nc));
-    final today = isT ? agendaDay(app.agenda.where((s) => app.studentByCode(s.studentCode) != null), now).length : 0;
+    final today = isT ? classesToday(app.visibleAgenda, now).count : 0;
     final hero = buildHero(
         nowMs: now.millisecondsSinceEpoch,
         isTeacher: isT,
@@ -132,7 +133,7 @@ class HubSection extends StatelessWidget {
             TextButton(
               onPressed: () {
                 app.dismissNotice(n);
-                if (n.kind == 'lesson' || n.kind == 'task') openMyLessons(context, app);
+                openNoticeTarget(context, app, n);
               },
               child: const Text('Ver'),
             ),

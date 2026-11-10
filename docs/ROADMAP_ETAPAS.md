@@ -70,7 +70,8 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ pronto (local) · 🚀 publicad
 - Responder as decisões de design das etapas 3, 4 e 5 (ver conversa).
 - Testar o som do Pedal e o lembrete push em aparelhos reais.
 
-## Backlog (pedido do Daniel, 09/11 — implementar depois)
-- Sincronizar melhor **Meu espaço** com a **Agenda** (uma só fonte de verdade).
-- Estruturar melhor a **regra de negócio das aulas** (estados, quem muda o quê, remarcar/cancelar).
-- **Modal só de notificações** (central de avisos) para acompanhar mais fácil.
+## Backlog (pedido do Daniel, 09/11)
+- ✅ **Meu espaço × Agenda sincronizados** (pronto, aguardando publicação): `class_rules.dart` é a regra única — fase da aula (em breve / em andamento / encerrada), permissões por papel (aluno só vê; professor edita/cancela até começar, aula encerrada é histórico) e a agenda visível (sem canceladas e sem aulas de aluno excluído). Hub, agenda e "próxima aula" usam a mesma lista (`visibleAgenda`).
+- ✅ **Regra de negócio das aulas estruturada** (mesmo item): permissões aplicadas no menu da agenda; aviso "em andamento / começa em breve" nas aulas.
+- ✅ **Central de avisos** (sino na barra, painel só de avisos): tipos teacher / lesson / task / done / pick, com ícone, tempo, lido/não lido, "Marcar como lidos", "Limpar" e toque que leva ao lugar certo. O professor agora também recebe avisos (aluno marcou tarefa, aluno pegou horário). Corrigido: aviso do tipo `task` virava `teacher` ao reabrir o app.
+- Ainda no backlog: acessibilidade com leitor de tela real; testes em aparelhos reais (push, pedal, dois aparelhos).

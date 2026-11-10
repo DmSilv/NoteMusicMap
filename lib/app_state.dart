@@ -66,9 +66,13 @@ enum MicSensitivity {
   const MicSensitivity(this.label, this.minClarity, this.minRms, this.onsetFrames);
 }
 
-/// Aviso para o aluno (um professor o adicionou, chegou uma aula…).
+/// Tipos de aviso: teacher (um professor te adicionou), lesson (aula/agenda nova), task (decisão do
+/// professor), done (aluno marcou tarefa), pick (aluno pegou horário).
+const kNoticeKinds = ['teacher', 'lesson', 'task', 'done', 'pick'];
+
+/// Aviso para o usuário (aluno ou professor).
 class AppNotice {
-  final String kind; // 'teacher' ou 'lesson'
+  final String kind; // um de [kNoticeKinds]
   final String text;
   final int atMs;
   bool seen;
@@ -78,7 +82,7 @@ class AppNotice {
   static AppNotice? tryFrom(Object? j) {
     try {
       final m = (j as Map).cast<String, dynamic>();
-      final k = m['k'] == 'lesson' ? 'lesson' : 'teacher';
+      final k = kNoticeKinds.contains(m['k']) ? m['k'] as String : 'teacher';
       final t = cleanText(m['t'] as String?, max: kMaxNote);
       if (t.isEmpty) return null;
       return AppNotice(k, t, ((m['a'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000), seen: m['s'] == true);
@@ -639,6 +643,14 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Apaga todos os avisos (central de avisos).
+  void clearNotices() {
+    if (notices.isEmpty) return;
+    notices.clear();
+    _saveNotices();
+    notifyListeners();
+  }
+
   void markNoticesSeen() {
     if (unseenNotices == 0) return;
     for (final n in notices) {
@@ -1018,7 +1030,7 @@ class AppState extends ChangeNotifier {
       notifyListeners();
       if (notes.isNotEmpty) {
         final msg = notes.length == 1 ? notes.first : '${notes.length} alunos pegaram horários.';
-        addNotice('lesson', msg);
+        addNotice('pick', msg);
         say(msg);
       }
     } finally {
@@ -1105,11 +1117,15 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// PROFESSOR: as aulas que valem para mostrar (sem canceladas e sem as de alunos que já não existem).
+  /// Hub, agenda e próxima aula usam SEMPRE esta lista, para os números nunca divergirem.
+  List<ClassSlot> get visibleAgenda => visibleTeacherSlots(agenda, {for (final s in students) ?s.code});
+
   /// A próxima aula (ou a que está em andamento) para mostrar ao usuário agora: do professor
   /// (as que ele marcou) ou do aluno (as que recebeu); vale a que vier primeiro.
   SlotOccurrence? get nextClass {
     final now = DateTime.now().millisecondsSinceEpoch;
-    final mine = nextOccurrence([...agenda.where((s) => studentByCode(s.studentCode) != null)], now);
+    final mine = nextOccurrence(visibleAgenda, now);
     final theirs = nextOccurrence(myAgenda, now);
     if (mine == null) return theirs;
     if (theirs == null) return mine;
@@ -1349,9 +1365,11 @@ class AppState extends ChangeNotifier {
       _saveTeacher();
       notifyListeners();
       if (fresh > 0) {
-        say(fresh == 1 && who != null
+        final msg = fresh == 1 && who != null
             ? '$who marcou 1 tarefa como feita. Valide na ficha ou ao começar a próxima aula.'
-            : '$fresh tarefas marcadas como feitas pelos alunos. Valide na ficha de cada um.');
+            : '$fresh tarefas marcadas como feitas pelos alunos. Valide na ficha de cada um.';
+        addNotice('done', msg);
+        say(msg);
       }
     } finally {
       _donesPulling = false;

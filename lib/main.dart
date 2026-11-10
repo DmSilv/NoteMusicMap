@@ -8,6 +8,7 @@ import 'ui/status_strip.dart';
 import 'ui/teacher_page.dart' show handleIncomingStudentCode;
 import 'ui/grid_page.dart';
 import 'ui/install_banner.dart';
+import 'ui/notifications_sheet.dart';
 import 'ui/profile_page.dart' show ProfilePage, handleIncomingTeacherCode;
 import 'ui/settings_page.dart';
 import 'ui/share_sheet.dart';
@@ -373,6 +374,20 @@ class _HomeShellState extends State<HomeShell> {
               icon: const Icon(Icons.ios_share),
               onPressed: () => showShareSheet(context),
             ),
+            // Central de avisos: tudo o que chegou (aulas, tarefas, horários) num só lugar.
+            ListenableBuilder(
+              listenable: app,
+              builder: (context, _) => IconButton(
+                tooltip: 'Avisos',
+                icon: Badge(
+                  label: app.unseenNotices > 0 ? Text('${app.unseenNotices}') : null,
+                  isLabelVisible: app.unseenNotices > 0,
+                  backgroundColor: AppColors.sharp,
+                  child: const Icon(Icons.notifications_outlined),
+                ),
+                onPressed: () => showNotificationsSheet(context, app),
+              ),
+            ),
             // Atalho direto para o perfil (código, chave de recuperação e professor).
             ListenableBuilder(
               listenable: app,
@@ -380,8 +395,7 @@ class _HomeShellState extends State<HomeShell> {
                 tooltip: 'Meu perfil',
                 icon: Badge(
                   smallSize: 8,
-                  label: app.unseenNotices > 0 ? Text('${app.unseenNotices}') : null,
-                  isLabelVisible: app.unseenNotices > 0 || app.profile.recoveryShownAt == null,
+                  isLabelVisible: app.profile.recoveryShownAt == null,
                   backgroundColor: AppColors.sharp,
                   child: Icon(app.teacherMode ? Icons.school_outlined : Icons.account_circle_outlined),
                 ),
