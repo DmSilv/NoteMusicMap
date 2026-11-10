@@ -347,7 +347,7 @@ class _TeacherPageState extends State<TeacherPage> {
         title: const Text('Área do professor'),
         actions: [
           IconButton(
-            tooltip: 'Agenda de aulas',
+            tooltip: 'Agenda do professor',
             icon: const Icon(Icons.calendar_month_outlined),
             onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AgendaPage(app: app))),
           ),

@@ -69,7 +69,7 @@ class _AgendaPageState extends State<AgendaPage> {
       builder: (context, _) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Agenda'),
+            title: const Text('Agenda do professor'),
             actions: [
               TextButton(
                 onPressed: () => setState(() {
@@ -89,6 +89,8 @@ class _AgendaPageState extends State<AgendaPage> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(14, 6, 14, 96),
               children: [
+                const AgendaBanner(teacher: true),
+                const SizedBox(height: 10),
                 ReminderCard(app: app),
                 const SizedBox(height: 12),
                 ChipGrid(
@@ -361,11 +363,13 @@ class _MyAgendaPageState extends State<MyAgendaPage> {
             .where((o) => o.end.isAfter(now))
             .toList();
         return Scaffold(
-          appBar: AppBar(title: const Text('Minha agenda')),
+          appBar: AppBar(title: const Text('Agenda do aluno')),
           body: SafeArea(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(14, 8, 14, 24),
               children: [
+                const AgendaBanner(teacher: false),
+                const SizedBox(height: 10),
                 ReminderCard(app: app),
                 const SizedBox(height: 14),
                 Text('Próximas aulas (30 dias)',
@@ -417,6 +421,41 @@ class _MyAgendaPageState extends State<MyAgendaPage> {
             decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
             child: Text('agora', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: AppColors.accent)),
           ),
+      ]),
+    );
+  }
+}
+
+/// Faixa no topo das duas agendas: deixa claro de quem é a agenda que está aberta.
+class AgendaBanner extends StatelessWidget {
+  final bool teacher;
+  const AgendaBanner({super.key, required this.teacher});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = teacher ? AppColors.accent : AppColors.flat;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.55)),
+      ),
+      child: Row(children: [
+        Icon(teacher ? Icons.school_outlined : Icons.person_outline, size: 20, color: color),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(teacher ? 'AGENDA DO PROFESSOR' : 'AGENDA DO ALUNO',
+                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, letterSpacing: 0.6, color: color)),
+            Text(
+              teacher
+                  ? 'Aulas que você marca com os seus alunos.'
+                  : 'Aulas que o seu professor marcou para você.',
+              style: const TextStyle(fontSize: 13, height: 1.25),
+            ),
+          ]),
+        ),
       ]),
     );
   }

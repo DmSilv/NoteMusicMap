@@ -136,5 +136,5 @@ HubTile studentsTile(int n) => n <= 0
 
 /// Bloco da agenda do aluno.
 HubTile agendaTile({required String? nextText}) => nextText == null
-    ? const HubTile('Minha agenda', 'Sem aulas marcadas', 'Veja aqui quando seu professor marcar.')
-    : HubTile('Minha agenda', nextText, 'próxima aula');
+    ? const HubTile('Agenda do aluno', 'Sem aulas marcadas', 'Veja aqui quando seu professor marcar.')
+    : HubTile('Agenda do aluno', nextText, 'próxima aula');

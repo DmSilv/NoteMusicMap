@@ -40,9 +40,11 @@ class HubSection extends StatelessWidget {
 
     final cls = nc == null ? null : HubClass(nc.startMs, nc.startMs + nc.slot.endOffsetMs, whoOf(nc));
     final today = isT ? classesToday(app.visibleAgenda, now).count : 0;
+    // O papel vale para ESTA aula: quem é professor e aluno ao mesmo tempo vê a aula certa.
+    final classIsTeacher = nc == null ? isT : nc.slot.studentCode.isNotEmpty;
     final hero = buildHero(
         nowMs: now.millisecondsSinceEpoch,
-        isTeacher: isT,
+        isTeacher: classIsTeacher,
         hasTeacher: _hasTeacher,
         next: cls,
         todayCount: today,
@@ -163,11 +165,12 @@ class HubSection extends StatelessWidget {
         if (student != null) {
           buttons.add(primary('Abrir ficha', Icons.person_outline, () => _push(context, StudentPage(app: app, studentId: student.id))));
         } else {
-          buttons.add(primary('Ver agenda', Icons.event_outlined, () => _push(context, MyAgendaPage(app: app))));
+          buttons.add(primary('Agenda do aluno', Icons.event_outlined, () => _push(context, MyAgendaPage(app: app))));
         }
       case HeroKind.next:
-        buttons.add(primary(app.teacherMode ? 'Abrir agenda' : 'Ver agenda', Icons.event_outlined,
-            () => _push(context, app.teacherMode ? AgendaPage(app: app) : MyAgendaPage(app: app))));
+        final asTeacher = nc != null && nc.slot.studentCode.isNotEmpty;
+        buttons.add(primary(asTeacher ? 'Agenda do professor' : 'Agenda do aluno', Icons.event_outlined,
+            () => _push(context, asTeacher ? AgendaPage(app: app) : MyAgendaPage(app: app))));
         if (student != null) {
           buttons.add(soft('Ficha de ${student.name.split(' ').first}', () => _push(context, StudentPage(app: app, studentId: student.id))));
         }
@@ -176,9 +179,9 @@ class HubSection extends StatelessWidget {
           buttons.add(app.students.isEmpty
               ? primary('Convidar aluno', Icons.person_add_alt_1, () => shareTeacherInvite(app))
               : primary('Marcar aula', Icons.add, () => openSlotForm(context, app)));
-          buttons.add(soft('Abrir agenda', () => _push(context, AgendaPage(app: app))));
+          buttons.add(soft('Agenda do professor', () => _push(context, AgendaPage(app: app))));
         } else {
-          buttons.add(primary('Ver agenda', Icons.event_outlined, () => _push(context, MyAgendaPage(app: app))));
+          buttons.add(primary('Agenda do aluno', Icons.event_outlined, () => _push(context, MyAgendaPage(app: app))));
         }
       case HeroKind.noTeacher:
         buttons.add(primary('Ler QR do professor', Icons.qr_code_scanner, () => _scanTeacher(context)));
@@ -268,7 +271,7 @@ class HubSection extends StatelessWidget {
   // ---------------- Ferramentas ----------------
   Widget _tools(BuildContext context) {
     final items = <(IconData, String, VoidCallback)>[
-      if (app.teacherMode) (Icons.calendar_month_outlined, 'Agenda', () => _push(context, AgendaPage(app: app))),
+      if (app.teacherMode) (Icons.calendar_month_outlined, 'Agenda do professor', () => _push(context, AgendaPage(app: app))),
       if (app.teacherMode) (Icons.event_available_outlined, 'Horários livres', () => _push(context, OpenSlotsPage(app: app))),
       if (app.myTeachers.isNotEmpty) (Icons.event_available_outlined, 'Pegar horário', () => _push(context, PickSlotPage(app: app))),
       if (app.teacherMode) (Icons.assessment_outlined, 'Relatórios', () => _push(context, TeacherPage(app: app))),
@@ -309,7 +312,7 @@ class HubSection extends StatelessWidget {
                       child: Icon(it.$1, color: AppColors.accent),
                     ),
                     const SizedBox(height: 4),
-                    Text(it.$2, style: TextStyle(fontSize: 12, color: AppColors.textDim), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    Text(it.$2, textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.textDim), maxLines: 2, overflow: TextOverflow.ellipsis),
                   ]),
                 ),
               ),
