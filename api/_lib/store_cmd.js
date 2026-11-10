@@ -7,6 +7,7 @@ const { hashes } = require('./store');
 
 const sets = new Map(); // PFADD/PFCOUNT (só testes): chave -> Set
 const zsets = new Map(); // ZADD...: chave -> Map(membro -> pontos)
+const lists = new Map(); // LPUSH...: chave -> array
 
 function bound(v, dflt) {
   const s = String(v);
@@ -57,6 +58,76 @@ function memCmd(a) {
       for (const [m, v] of [...z]) if (v >= lo && v <= hi) { z.delete(m); n++; }
       return n;
     }
+    case 'ZCARD':
+      return (zsets.get(key) || new Map()).size;
+    case 'ZREM': {
+      const z = zsets.get(key);
+      let n = 0;
+      for (const m of a.slice(2)) if (z && z.delete(String(m))) n++;
+      return n;
+    }
+    case 'ZSCORE': {
+      const v = (zsets.get(key) || new Map()).get(String(a[2]));
+      return v === undefined ? null : String(v);
+    }
+    case 'ZMSCORE': {
+      const z = zsets.get(key) || new Map();
+      return a.slice(2).map((m) => (z.has(String(m)) ? String(z.get(String(m))) : null));
+    }
+    case 'ZREVRANGE': {
+      const arr = [...(zsets.get(key) || new Map())].sort((x, y) => y[1] - x[1]);
+      const n = arr.length;
+      const lo = Number(a[2]) < 0 ? Math.max(0, n + Number(a[2])) : Number(a[2]);
+      const hi = Number(a[3]) < 0 ? n + Number(a[3]) : Number(a[3]);
+      const out = [];
+      for (const [m, v] of arr.slice(lo, hi + 1)) {
+        out.push(m);
+        if (String(a[4] || '').toUpperCase() === 'WITHSCORES') out.push(String(v));
+      }
+      return out;
+    }
+    case 'ZRANGEBYSCORE': {
+      const lo = bound(a[2], -Infinity), hi = bound(a[3], Infinity);
+      let i = 4;
+      let withScores = false;
+      if (String(a[i] || '').toUpperCase() === 'WITHSCORES') { withScores = true; i++; }
+      let off = 0, cnt = Infinity;
+      if (String(a[i] || '').toUpperCase() === 'LIMIT') { off = Number(a[i + 1]); cnt = Number(a[i + 2]); }
+      const arr = [...(zsets.get(key) || new Map())].filter(([, v]) => v >= lo && v <= hi).sort((x, y) => x[1] - y[1]);
+      const out = [];
+      for (const [m, v] of arr.slice(off, off + cnt)) {
+        out.push(m);
+        if (withScores) out.push(String(v));
+      }
+      return out;
+    }
+    case 'HLEN':
+      return (hashes.get(key) || new Map()).size;
+    case 'HGET':
+      return (hashes.get(key) || new Map()).get(String(a[2])) ?? null;
+    case 'HSET': {
+      const h = hashes.get(key) || hashes.set(key, new Map()).get(key);
+      h.set(String(a[2]), String(a[3]));
+      return 1;
+    }
+    case 'HMGET': {
+      const h = hashes.get(key) || new Map();
+      return a.slice(2).map((f) => h.get(String(f)) ?? null);
+    }
+    case 'LPUSH': {
+      const l = lists.get(key) || lists.set(key, []).get(key);
+      for (const v of a.slice(2)) l.unshift(String(v));
+      return l.length;
+    }
+    case 'LTRIM': {
+      const l = lists.get(key) || [];
+      lists.set(key, l.slice(Number(a[2]), Number(a[3]) + 1));
+      return 'OK';
+    }
+    case 'LRANGE': {
+      const l = lists.get(key) || [];
+      return l.slice(Number(a[2]), Number(a[3]) < 0 ? undefined : Number(a[3]) + 1);
+    }
     case 'HINCRBY': {
       const h = hashes.get(key) || hashes.set(key, new Map()).get(key);
       const v = (Number(h.get(String(a[2]))) || 0) + Number(a[3]);
@@ -82,7 +153,7 @@ function memCmd(a) {
   }
 }
 
-function resetMem() { sets.clear(); zsets.clear(); }
+function resetMem() { sets.clear(); zsets.clear(); lists.clear(); }
 
 /** Devolve { cmd, pipeline } ligados ao Redis (ou à memória, se permitido). */
 function createCmd(cfg, fetchImpl, opts = {}) {

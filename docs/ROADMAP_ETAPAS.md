@@ -48,10 +48,11 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ pronto (local) · 🚀 publicad
 - **Testes:** modelo e regras (núcleo), ações e segurança do servidor (API: só vinculados, versão, limites), custo por ação documentado.
 - **Feito:** `open_slots.dart` (regras: passado, antecedência de 60 min, choque, limites 100 horários / 12 aulas por aluno); API `avail_put`, `avail`, `avail_take` (trava `HSETNX`: o primeiro leva), `picks` + contador `ar`; telas "Horários livres" (professor) e "Pegar horário" (aluno) no hub. Mover/cancelar a aula de qualquer aluno já existia na agenda. Custo: o aluno só consulta ao abrir a tela (nada de polling); pegar = ~10 comandos; professor sabe pelo contador `ar` (já dentro do `rev`). Pendência conhecida: a trava `tk:` guarda 1 linha por horário pego (crescimento lento; limpeza fica para a Etapa 6).
 
-### Etapa 5 · Painel do administrador: indicadores e usuários — 🟨 em andamento
+### Etapa 5 · Painel do administrador: indicadores e usuários — 🟨 pronta, aguardando publicação
 - **Indicadores:** perfis totais, **ativos × inativos** (última atividade), professores ativos, alunos, crescimento (novos por semana, WAU/MAU, retenção D1/D7/D30), uso por recurso.
 - **Gestão de usuários (CRUD):** listar/buscar, ver detalhe (papel, vínculos, atividade), editar apelido, bloquear/desbloquear e excluir (com confirmação e registro). Observação: o app **não tem login**; "usuário" = perfil anônimo (código + apelido).
 - **Testes:** índice de perfis, atividade, retenção, CRUD e segurança (API), proteção da chave de admin.
+- **Feito:** `api/_lib/profiles.js` (índice: entrou em, última atividade com gravação no máximo a cada 6 h, papéis); `api/admin.js` (`kpis`, `list`, `detail`, `block`/`unblock`, `delete` com confirmação digitando o código, `log`); bloqueio devolve 403 `blocked` em todo o vínculo online; painel `web/admin.html` com indicadores, lista com busca por trecho do código, detalhe e registro. O apelido não é editável pelo painel (pertence ao usuário e voltaria no próximo sync). Perfis antigos entram no índice na primeira atividade depois da publicação ("entrou em" = primeira vez visto). Custo: só quando o admin abre o painel (kpis ~35 comandos, lista ~27, detalhe ~12); para os usuários, +3 comandos por perfil novo e ≤1 gravação (2–4 comandos) a cada 6 h por perfil ativo.
 
 ### Etapa 6 · Endurecimento final — ⬜
 - Revisão de custo de Redis por ação e de polling; limites; textos; acessibilidade; regressão completa (núcleo + API + roteiro manual); atualizar este documento.

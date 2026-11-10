@@ -43,6 +43,22 @@
     #login input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; margin: 10px 0; }
     #msg { color: var(--bad); min-height: 1.4em; }
     .note { color: var(--dim); font-size: 12.5px; margin-top: 18px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    th { text-align: left; color: var(--dim); font-weight: 600; font-size: 12px; padding: 6px 8px; }
+    td { padding: 8px; border-top: 1px solid var(--line); }
+    tr.pick { cursor: pointer; }
+    tr.pick:hover td { background: var(--card2); }
+    .tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 8px; background: var(--card2); color: var(--dim); margin-right: 4px; }
+    .tag.t { color: var(--blue); } .tag.s { color: var(--accent); } .tag.x { color: var(--bad); } .tag.i { color: var(--warn); }
+    .bar2 { background: var(--blue); }
+    .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+    .toolbar input { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; }
+    #detail { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 20; }
+    #detail .box { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; max-width: 460px; width: 100%; max-height: 90vh; overflow: auto; }
+    #detail h3 { margin: 0 0 8px; font-size: 17px; }
+    .danger { background: var(--bad); color: #2a0707; border-color: transparent; font-weight: 700; }
+    .kv { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+    .kv span:first-child { color: var(--dim); }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -54,6 +70,8 @@
     <button class="primary" id="enter">Entrar</button>
     <p id="msg"></p>
   </section>
+
+  <div id="detail" hidden><div class="box" id="detailBox"></div></div>
 
   <div id="app" hidden>
     <header>
@@ -93,6 +111,30 @@
         <div class="card"><div class="k">Aulas marcadas (30 dias)</div><div class="v" id="sSlots">–</div></div>
         <div class="card"><div class="k">Lembretes enviados (30 dias)</div><div class="v" id="sRem">–</div></div>
       </div>
+      <h2>Perfis (professores e alunos)</h2>
+      <div class="grid">
+        <div class="card big"><div class="k">Perfis no total</div><div class="v" id="pTotal">–</div><div class="s"><span id="pNew7">–</span> novos em 7 dias · <span id="pNew30">–</span> em 30</div></div>
+        <div class="card"><div class="k">Ativos (30 dias)</div><div class="v" id="pAct30">–</div><div class="s"><span id="pAct7">–</span> em 7 dias · <span id="pAct1">–</span> hoje</div></div>
+        <div class="card"><div class="k">Inativos (&gt; 30 dias)</div><div class="v" id="pInact">–</div></div>
+        <div class="card"><div class="k">Professores</div><div class="v" id="pTeach">–</div><div class="s"><span id="pTeachA">–</span> ativos em 30 dias</div></div>
+        <div class="card"><div class="k">Alunos</div><div class="v" id="pStud">–</div><div class="s"><span id="pStudA">–</span> ativos em 30 dias</div></div>
+        <div class="card"><div class="k">Retorno (D1 · D7 · D30)</div><div class="v" id="pRet" style="font-size:22px">–</div><div class="s" id="pRetS"></div></div>
+      </div>
+      <div class="two" style="margin-top:12px">
+        <div class="card"><div class="k">Perfis novos por dia (14 dias)</div><div class="bars" id="chProf"></div></div>
+        <div class="card"><div class="k">Sobre estes números</div><div class="s" style="font-size:13px;line-height:1.5">São perfis que ligaram o vínculo online (código + apelido), não todos os aparelhos. Não há cadastro nem login. "Retorno" = entre quem entrou há pelo menos N dias, quantos voltaram a partir do dia N (amostra dos últimos 90 dias).</div></div>
+      </div>
+      <div class="card" style="margin-top:12px">
+        <div class="toolbar">
+          <input id="q" placeholder="Buscar por trecho do código" maxlength="9">
+          <button id="qGo">Buscar</button>
+          <span class="empty" id="pCount"></span>
+        </div>
+        <div style="overflow:auto"><table><thead><tr><th>Código</th><th>Apelido</th><th>Papel</th><th>Entrou</th><th>Última atividade</th></tr></thead><tbody id="pRows"></tbody></table></div>
+        <div class="toolbar" style="margin-top:10px"><button id="pPrev">‹ Anterior</button><button id="pNext">Próxima ›</button><span class="empty" id="pNote"></span></div>
+      </div>
+      <h2>Ações do administrador</h2>
+      <div class="card"><div id="logRows" class="empty">Nada ainda.</div></div>
       <p class="note">Contagens anônimas: cada aparelho tem um código aleatório, sem nome, IP ou áudio. Quem limpa os dados do navegador ou reinstala conta como aparelho novo, então o total é aproximado. O dia vale no horário de Brasília.</p>
     </main>
   </div>
@@ -207,7 +249,145 @@
     }).catch(function () { /* sem rede: tenta na próxima */ });
   }
 
+  // ---------------- Perfis ----------------
+  var offset = 0, query = '', lastTotal = 0;
+  function post(body) {
+    return fetch('/api/admin', { method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { status: r.status, j: j }; }); });
+  }
+  function dt(ms) {
+    if (!ms) return '—';
+    var d = new Date(ms);
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+  function ago(ms) {
+    if (!ms) return '—';
+    var m = Math.max(0, Math.round((Date.now() - ms) / 60000));
+    if (m < 60) return 'há ' + m + ' min';
+    if (m < 1440) return 'há ' + Math.round(m / 60) + ' h';
+    return 'há ' + Math.round(m / 1440) + ' d';
+  }
+  function tag(text, cls) { var s = document.createElement('span'); s.className = 'tag ' + (cls || ''); s.textContent = text; return s; }
+  function ret(x) { return x ? x.pct + '%' : '–'; }
+
+  function renderKpis(j) {
+    $('pTotal').textContent = fmt(j.profiles.total);
+    $('pNew7').textContent = fmt(j.profiles.new7); $('pNew30').textContent = fmt(j.profiles.new30);
+    $('pAct30').textContent = fmt(j.profiles.active30); $('pAct7').textContent = fmt(j.profiles.active7); $('pAct1').textContent = fmt(j.profiles.active1);
+    $('pInact').textContent = fmt(j.profiles.inactive);
+    $('pTeach').textContent = fmt(j.teachers.total); $('pTeachA').textContent = fmt(j.teachers.active30);
+    $('pStud').textContent = fmt(j.students.total); $('pStudA').textContent = fmt(j.students.active30);
+    $('pRet').textContent = ret(j.retention.d1) + ' · ' + ret(j.retention.d7) + ' · ' + ret(j.retention.d30);
+    $('pRetS').textContent = 'amostra de ' + fmt(j.retention.sample) + ' perfis';
+    var el = $('chProf'), max = 1;
+    j.growth.forEach(function (g) { max = Math.max(max, g.news); });
+    el.innerHTML = '';
+    j.growth.forEach(function (g, i) {
+      var b = document.createElement('div');
+      b.className = 'bar' + (i === j.growth.length - 1 ? ' today' : '');
+      b.style.height = Math.max(2, Math.round((g.news / max) * 100)) + '%';
+      b.setAttribute('data-t', g.day.slice(5).split('-').reverse().join('/') + ': ' + fmt(g.news));
+      el.appendChild(b);
+    });
+  }
+
+  function renderRows(j) {
+    lastTotal = j.total || 0;
+    var body = $('pRows');
+    body.innerHTML = '';
+    if (!j.items.length) {
+      var tr0 = document.createElement('tr'), td0 = document.createElement('td');
+      td0.colSpan = 5; td0.className = 'empty'; td0.textContent = 'Nenhum perfil.'; tr0.appendChild(td0); body.appendChild(tr0);
+    }
+    j.items.forEach(function (p) {
+      var tr = document.createElement('tr'); tr.className = 'pick';
+      var c1 = document.createElement('td'); c1.textContent = p.code;
+      var c2 = document.createElement('td'); c2.textContent = p.name || '—';
+      var c3 = document.createElement('td');
+      if (p.teacher) c3.appendChild(tag('professor', 't'));
+      if (p.student) c3.appendChild(tag('aluno', 's'));
+      if (!p.teacher && !p.student) c3.appendChild(tag('sem vínculo'));
+      if (p.blocked) c3.appendChild(tag('bloqueado', 'x'));
+      if (p.inactive) c3.appendChild(tag('inativo', 'i'));
+      var c4 = document.createElement('td'); c4.textContent = dt(p.ca);
+      var c5 = document.createElement('td'); c5.textContent = ago(p.la);
+      [c1, c2, c3, c4, c5].forEach(function (c) { tr.appendChild(c); });
+      tr.onclick = function () { openDetail(p.code); };
+      body.appendChild(tr);
+    });
+    var from = j.items.length ? j.offset + 1 : 0;
+    $('pCount').textContent = from + '–' + (j.offset + j.items.length) + ' de ' + fmt(j.total);
+    $('pNote').textContent = j.scanned ? 'A busca olha os ' + j.scanned + ' perfis mais recentes.' : '';
+    $('pPrev').disabled = j.offset <= 0;
+    $('pNext').disabled = j.offset + j.page >= j.total;
+  }
+
+  function loadProfiles() {
+    post({ action: 'kpis' }).then(function (r) { if (r.status === 200) renderKpis(r.j); else fail(r.status, r.j); }).catch(function () {});
+    loadList(); loadLog();
+  }
+  function loadList() {
+    post({ action: 'list', offset: offset, q: query }).then(function (r) { if (r.status === 200) renderRows(r.j); else fail(r.status, r.j); }).catch(function () {});
+  }
+  function loadLog() {
+    post({ action: 'log' }).then(function (r) {
+      if (r.status !== 200) return;
+      var el = $('logRows'); el.innerHTML = '';
+      if (!r.j.items.length) { el.textContent = 'Nada ainda.'; return; }
+      var names = { block: 'Bloqueou', unblock: 'Liberou', 'delete': 'Excluiu' };
+      r.j.items.forEach(function (x) {
+        var d = document.createElement('div'); d.className = 'kv';
+        var a = document.createElement('span'); a.textContent = dt(x.t);
+        var b = document.createElement('span'); b.style.color = 'var(--text)'; b.textContent = (names[x.a] || x.a) + ' ' + x.c;
+        d.appendChild(a); d.appendChild(b); el.appendChild(d);
+      });
+    }).catch(function () {});
+  }
+
+  function closeDetail() { $('detail').hidden = true; }
+  function openDetail(code) {
+    post({ action: 'detail', code: code }).then(function (r) {
+      if (r.status !== 200) { if (!fail(r.status, r.j)) alert(r.j.error || 'Não foi possível abrir.'); return; }
+      var d = r.j, box = $('detailBox');
+      box.innerHTML = '';
+      var h = document.createElement('h3'); h.textContent = d.profile.name || 'Sem apelido'; box.appendChild(h);
+      function kv(k, v) {
+        var row = document.createElement('div'); row.className = 'kv';
+        var a = document.createElement('span'); a.textContent = k;
+        var b = document.createElement('span'); b.textContent = v; row.appendChild(a); row.appendChild(b); box.appendChild(row);
+      }
+      kv('Código', d.profile.code);
+      kv('Entrou em', dt(d.profile.created));
+      kv('Última atividade', dt(d.profile.last) + ' (' + ago(d.profile.last) + ')');
+      kv('Situação', d.profile.blocked ? 'Bloqueado' : 'Normal');
+      kv('Alunos vinculados', d.students.length ? d.students.map(function (x) { return (x.name || '?') + ' (' + x.code + ')'; }).join(', ') : 'nenhum');
+      kv('Professores', d.teachers.length ? d.teachers.map(function (x) { return (x.name || '?') + ' (' + x.code + ')'; }).join(', ') : 'nenhum');
+      kv('Aulas que marcou', fmt(d.data.classesMade)); kv('Aulas marcadas para ele', fmt(d.data.classesIn));
+      kv('Aulas recebidas', fmt(d.data.lessonsIn)); kv('Tarefas marcadas como feitas', fmt(d.data.doneMarks));
+      kv('Horários livres publicados', fmt(d.data.openSlots)); kv('Aparelhos com lembrete', fmt(d.data.pushDevices));
+      var bar = document.createElement('div'); bar.className = 'toolbar'; bar.style.marginTop = '14px';
+      var bb = document.createElement('button'); bb.textContent = d.profile.blocked ? 'Liberar' : 'Bloquear';
+      bb.onclick = function () {
+        if (!d.profile.blocked && !confirm('Bloquear ' + code + '? O vínculo online dele para de funcionar.')) return;
+        post({ action: d.profile.blocked ? 'unblock' : 'block', code: code }).then(function () { closeDetail(); loadProfiles(); });
+      };
+      var del = document.createElement('button'); del.className = 'danger'; del.textContent = 'Excluir dados';
+      del.onclick = function () {
+        var t = prompt('Isto apaga o perfil, os vínculos e as aulas/tarefas dele no servidor. Não dá para desfazer.\nPara confirmar, digite o código: ' + code);
+        if (t === null) return;
+        post({ action: 'delete', code: code, confirm: t.trim() }).then(function (r2) {
+          if (r2.status === 200) { closeDetail(); loadProfiles(); } else alert(r2.j.message || r2.j.error || 'Não foi possível excluir.');
+        });
+      };
+      var cl = document.createElement('button'); cl.textContent = 'Fechar'; cl.onclick = closeDetail;
+      bar.appendChild(bb); bar.appendChild(del); bar.appendChild(cl); box.appendChild(bar);
+      $('detail').hidden = false;
+    }).catch(function () {});
+  }
+
   function start() {
+    loadProfiles();
     show(true);
     loadFull();
     clearInterval(liveTimer); clearInterval(fullTimer);
@@ -231,7 +411,12 @@
     }).catch(function () { $('msg').textContent = 'Sem conexão com o servidor.'; });
   };
   $('key').onkeydown = function (e) { if (e.key === 'Enter') $('enter').onclick(); };
-  $('refresh').onclick = function () { loadFull(); };
+  $('refresh').onclick = function () { loadFull(); loadProfiles(); };
+  $('qGo').onclick = function () { query = $('q').value.trim(); offset = 0; loadList(); };
+  $('q').onkeydown = function (e) { if (e.key === 'Enter') $('qGo').onclick(); };
+  $('pPrev').onclick = function () { offset = Math.max(0, offset - 25); loadList(); };
+  $('pNext').onclick = function () { offset += 25; loadList(); };
+  $('detail').onclick = function (e) { if (e.target === $('detail')) closeDetail(); };
   $('out').onclick = function () { logout(''); };
 
   if (key) start(); else show(false);

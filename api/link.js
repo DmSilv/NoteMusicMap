@@ -30,6 +30,8 @@ const { createStore } = require('./_lib/store');
 const { cleanSlot, nextStart, slotsOverlap, scheduleNext, remindersEnabled } = require('./_lib/agenda');
 const { validSubscription } = require('./_lib/webpush');
 const { bump } = require('./_lib/metrics');
+const { createCmd } = require('./_lib/store_cmd');
+const profiles = require('./_lib/profiles');
 
 const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const MAX_LINKS = 300;
@@ -173,6 +175,7 @@ function makeHandler(deps = {}) {
     const store = createStore(cfg, fetchImpl, clock, { allowMemory: !!deps.allowMemory });
     // Contadores de uso (métricas anônimas): nunca derrubam o pedido.
     const metric = (event, total) => bump(cfg, fetchImpl, clock, { allowMemory: !!deps.allowMemory }, event, { total });
+    const cmd = createCmd(cfg, fetchImpl, { allowMemory: !!deps.allowMemory });
     if (!store.durable) {
       return send(503, { error: 'sync_unavailable', message: 'O vínculo online ainda não está configurado.' });
     }
@@ -197,7 +200,10 @@ function makeHandler(deps = {}) {
         const day = Math.floor(clock() / 86400000);
         const nw = await store.incr(`lnknew:${ipKey}:${day}`, 86400);
         if (nw.n > NEW_PROFILES_PER_DAY) return send(429, { error: 'Muitos perfis novos desta origem hoje. Tente amanhã.' });
-        if (await store.hsetnx(U(me), 'h', secretHash)) await metric(null, { field: 'profiles', by: 1 }); // primeira vez: este segredo passa a ser o dono
+        if (await store.hsetnx(U(me), 'h', secretHash)) {
+          await metric(null, { field: 'profiles', by: 1 }); // primeira vez: este segredo passa a ser o dono
+          await profiles.created(cmd, me, clock());
+        }
         prof = await store.hgetall(U(me));
       }
       const okOwner = prof.h && crypto.timingSafeEqual(Buffer.from(prof.h), Buffer.from(secretHash));
@@ -206,6 +212,10 @@ function makeHandler(deps = {}) {
         if (f.n > BAD_AUTH_PER_HOUR) return send(429, { error: 'Muitas tentativas. Tente mais tarde.' });
         return send(403, { error: 'Este código pertence a outro aparelho.' });
       }
+      // Perfil bloqueado pelo administrador: nada do vínculo online funciona.
+      if (prof.bl === '1') return send(403, { error: 'blocked', message: 'Este perfil foi bloqueado. Fale com o administrador.' });
+      // Atividade para o painel (no máximo uma gravação a cada 6 h por perfil).
+      if (await profiles.touch(cmd, prof, me, clock())) prof.la = String(clock());
 
       // Apelido opcional (aparece para quem está vinculado a você).
       const name = b.name === undefined ? null : clean(b.name, 40);
@@ -557,6 +567,8 @@ function makeHandler(deps = {}) {
           await store.hset(S(student), teacher, JSON.stringify({ n: nameOfTeacher, t: now, by: role }));
           await store.hset(U(teacher), 'kr', String(now)); // os dois lados veem que os vínculos mudaram
           await store.hset(U(student), 'kr', String(now));
+          await profiles.setRole(cmd, teacher, 't', true, now);
+          await profiles.setRole(cmd, student, 's', true, now);
           await metric('link', { field: 'links', by: 1 });
         }
         return send(200, { ok: true, created: !existed, other: { code: other, name: theirName } });
@@ -574,6 +586,8 @@ function makeHandler(deps = {}) {
         }
         await store.hset(U(teacher), 'kr', String(clock()));
         await store.hset(U(student), 'kr', String(clock()));
+        if ((await store.hlen(T(teacher))) === 0) await profiles.setRole(cmd, teacher, 't', false, clock());
+        if ((await store.hlen(S(student))) === 0) await profiles.setRole(cmd, student, 's', false, clock());
         // As aulas marcadas desse professor para esse aluno.
         const sk = SS(student);
         for (const fld of Object.keys(await store.hgetall(sk))) {
