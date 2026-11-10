@@ -238,8 +238,17 @@ class PitchGrid {
     // Nova "tocada": primeira vez, ou voltou à nota depois de uma pausa.
     // (Se o aparelho engasgou e os quadros vieram espaçados, o intervalo cresce
     // junto com [dt] e não conta como nota nova.)
-    if (!c.lastSeen.isFinite || now - c.lastSeen > math.max(replayGap, dt * 2.5)) c.plays++;
+    final newPlay = !c.lastSeen.isFinite || now - c.lastSeen > math.max(replayGap, dt * 2.5);
+    if (newPlay) c.plays++;
     final tau = history.seconds;
+    // Memória curta/média: tocar a nota de novo depois de uma pausa recomeça a média.
+    // Sem isso, os segundos de afinação (cravelha ainda baixa) pesavam mais que a
+    // tocada nova e o Sol já afinado seguia aparecendo "baixo". Nas memórias longa e
+    // sem limite o histórico continua valendo de propósito.
+    if (newPlay && c.lastSeen.isFinite && tau <= 3) {
+      c.sum *= 0.05;
+      c.w *= 0.05;
+    }
     if (c.lastSeen.isFinite && tau.isFinite) {
       final f = math.exp(-(now - c.lastSeen) / tau);
       c.sum *= f;
