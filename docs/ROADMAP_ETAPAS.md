@@ -65,3 +65,8 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ pronto (local) · 🚀 publicad
 ## Pendências do Daniel
 - Responder as decisões de design das etapas 3, 4 e 5 (ver conversa).
 - Testar o som do Pedal e o lembrete push em aparelhos reais.
+
+## Backlog (pedido do Daniel, 09/11 — implementar depois)
+- Sincronizar melhor **Meu espaço** com a **Agenda** (uma só fonte de verdade).
+- Estruturar melhor a **regra de negócio das aulas** (estados, quem muda o quê, remarcar/cancelar).
+- **Modal só de notificações** (central de avisos) para acompanhar mais fácil.
