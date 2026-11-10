@@ -167,7 +167,7 @@ Mensagem velha (aula mudada, cancelada, dia pulado, vínculo desfeito) é ignora
 ```text
 /api/stats: métricas ANÔNIMAS de uso do app.
 
- POST (o app, sem chave): { t: 'open'|'beat', id, d?: { pl, in, v }, tabs?: [...] }
+ POST (o app, sem chave): { t: 'open'|'beat', id, d?: { pl, in, v, o?, x?: { os, sc, lg, th, tc, mic, nt } }, tabs?: [...] }
        id = código aleatório do aparelho (NÃO é o código de professor/aluno). Nada de IP,
        nome, áudio ou o que a pessoa toca é guardado.
  GET  (só o admin, com "Authorization: Bearer <chave>"): ?part=live (online agora) ou ?part=full.

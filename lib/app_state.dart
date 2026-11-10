@@ -765,6 +765,7 @@ class AppState extends ChangeNotifier {
 
   /// A cada ~5 min, com o app à frente, "estou online". Não faz nada em segundo plano.
   void _startStats() {
+    stats.micProbe = () => yesNoTag(micGranted);
     unawaited(stats.open(_prefs));
     _statsTimer?.cancel();
     _statsTimer = Timer.periodic(const Duration(minutes: 5), (_) {

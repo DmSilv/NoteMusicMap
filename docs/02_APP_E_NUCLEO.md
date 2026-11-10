@@ -47,6 +47,7 @@ Nada de Flutter nem `dart:io` (assim roda no navegador e nos testes de linha de 
 | Vínculo | `link_status` | Estado do vínculo em linguagem simples |
 | Erros e texto | `errors`, `error_report`, `markdown_lite` | Catálogo, classificação, higienização, relatório, trilha, markdown da IA |
 | Saudação | `greeting` | "Bom dia / Boa tarde / Boa noite, Nome" pela hora local (faixa no Afinador e no Meu espaço, com convite para o apelido) |
+| Aparelho | `device_tags` | Rótulos anônimos do aparelho para o painel (faixa de tela, idioma, versão do sistema, permissões) |
 
 Convenções do núcleo:
 - Funções **puras**: o relógio entra por parâmetro (`nowMs`), nunca `DateTime.now()` escondido.

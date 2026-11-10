@@ -1,6 +1,6 @@
 // /api/stats: métricas ANÔNIMAS de uso do app.
 //
-//  POST (o app, sem chave): { t: 'open'|'beat', id, d?: { pl, in, v }, tabs?: [...] }
+//  POST (o app, sem chave): { t: 'open'|'beat', id, d?: { pl, in, v, o?, x?: { os, sc, lg, th, tc, mic, nt } }, tabs?: [...] }
 //        id = código aleatório do aparelho (NÃO é o código de professor/aluno). Nada de IP,
 //        nome, áudio ou o que a pessoa toca é guardado.
 //  GET  (só o admin, com "Authorization: Bearer <chave>"): ?part=live (online agora) ou ?part=full.
@@ -19,6 +19,8 @@ const sha = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
 const ONLINE_WINDOW = 5 * 60 * 1000;
 const STALE = 15 * 60 * 1000; // quem não bate há 15 min sai do conjunto "online"
 const ID_RE = /^[a-z0-9]{16,40}$/;
+const DEV_RE = /^[a-z0-9]{1,10}$/;
+const DEV_FIELDS = ['pl', 'in', 'os', 'sc', 'lg', 'th', 'tc', 'mic', 'nt', 'v']; // ordem da combinação
 const OPENS_PER_HOUR = 200; // por origem (muita gente atrás do mesmo IP é comum)
 
 const hourBr = (ms) => new Date(ms - 3 * 3600 * 1000).toISOString().slice(11, 13);
@@ -68,6 +70,26 @@ function makeHandler(deps = {}) {
           ['ZCOUNT', K.online, String(now - 60 * 1000), '+inf'],
         ]);
         if (part === 'live') return send(200, { ok: true, now, online5: Number(on5) || 0, online1: Number(on1) || 0 });
+        if (part === 'devices') {
+          // Fichas de aparelho dos últimos 1, 7 ou 30 dias (um aparelho conta uma vez por dia).
+          const q = Number((req.query && req.query.days) || new URL(req.url || '/', 'http://x').searchParams.get('days'));
+          const span = [1, 7, 30].includes(q) ? q : 7;
+          const dl = [];
+          for (let i = span - 1; i >= 0; i--) dl.push(dayKey(now - i * 86400000));
+          const rr = await m.pipeline(dl.map((d) => ['HGETALL', K.dim(d)]));
+          const combos = {};
+          let total = 0;
+          for (const flat of rr) {
+            for (let i = 0; i + 1 < (flat || []).length; i += 2) {
+              const f = String(flat[i]);
+              if (!f.startsWith('x:')) continue;
+              const n = Number(flat[i + 1]) || 0;
+              combos[f.slice(2)] = (combos[f.slice(2)] || 0) + n;
+              total += n;
+            }
+          }
+          return send(200, { ok: true, days: span, fields: DEV_FIELDS, combos, total, generatedAt: now });
+        }
 
         const days = [];
         for (let i = 29; i >= 0; i--) days.push(dayKey(now - i * 86400000));
@@ -160,6 +182,14 @@ function makeHandler(deps = {}) {
         if (inst) list.push(['HINCRBY', K.dim(today), `in:${inst}`, '1']);
         if (v) list.push(['HINCRBY', K.dim(today), `v:${v}`, '1']);
         if (o) list.push(['HINCRBY', K.dim(today), `o:${o}`, '1']);
+        // Ficha do aparelho: UMA combinação por aparelho por dia (1 comando), para filtrar no painel
+        // por sistema, tela, idioma, tema, permissões… ao mesmo tempo. Só categorias curtas.
+        if (pl || inst || v) {
+          const xs = d.x && typeof d.x === 'object' ? d.x : {};
+          const f = (k) => clip(xs[k], DEV_RE) || '-';
+          const combo = [pl || '-', inst || '-', f('os'), f('sc'), f('lg'), f('th'), f('tc'), f('mic'), f('nt'), v || '-'].join('|');
+          list.push(['HINCRBY', K.dim(today), `x:${combo}`, '1']);
+        }
       }
       for (const t of (Array.isArray(b.tabs) ? b.tabs : []).slice(0, TABS.length)) {
         if (TABS.includes(t)) list.push(['PFADD', K.tab(today, t), id]);

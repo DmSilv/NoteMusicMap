@@ -182,3 +182,62 @@ test('sem Redis (e sem modo de teste) responde 503 e não grava nada', async () 
 test('as chaves ficam sob o prefixo st: (não misturam com vínculos)', () => {
   for (const v of [K.all, K.total, K.online, K.day('x'), K.ct('x'), K.dim('x'), K.tab('x', 'y')]) assert.ok(v.startsWith('st:'));
 });
+
+// ---------------- Ficha de aparelho (filtros combináveis do painel) ----------------
+const FICHA = { os: 'a13', sc: 'celular', lg: 'pt', th: 'escuro', tc: 'sim', mic: 'sim', nt: 'nd' };
+
+test('ficha de aparelho: uma combinação por aparelho por dia, lida por part=devices', async () => {
+  const H = mk();
+  await ping(H, { t: 'open', id: rid(), d: { pl: 'android-chrome', in: 'pwa', v: 'abc123', x: FICHA } });
+  await ping(H, { t: 'open', id: rid(), d: { pl: 'android-chrome', in: 'pwa', v: 'abc123', x: FICHA } });
+  await ping(H, { t: 'open', id: rid(), d: { pl: 'ios-safari', in: 'browser', v: 'abc123', x: { ...FICHA, os: 'i17', mic: 'nao' } } });
+  const j = (await admin(H, 'devices')).json();
+  assert.equal(j.ok, true);
+  assert.equal(j.days, 7);
+  assert.equal(j.total, 3);
+  assert.deepEqual(j.fields, ['pl', 'in', 'os', 'sc', 'lg', 'th', 'tc', 'mic', 'nt', 'v']);
+  assert.equal(j.combos['android-chrome|pwa|a13|celular|pt|escuro|sim|sim|nd|abc123'], 2);
+  assert.equal(j.combos['ios-safari|browser|i17|celular|pt|escuro|sim|nao|nd|abc123'], 1);
+});
+
+test('ficha de aparelho: cliente antigo (sem x) entra com "-" e valores estranhos são descartados', async () => {
+  const H = mk();
+  await ping(H, { t: 'open', id: rid(), d: { pl: 'android-chrome', in: 'pwa', v: 'abc123' } });
+  await ping(H, { t: 'open', id: rid(), d: { pl: 'ios-safari', in: 'app', v: 'abc123', x: { os: '<script>', sc: 'celular', lg: 'PT-BR', th: 'x'.repeat(50) } } });
+  const j = (await admin(H, 'devices')).json();
+  assert.equal(j.combos['android-chrome|pwa|-|-|-|-|-|-|-|abc123'], 1);
+  assert.equal(j.combos['ios-safari|app|-|celular|-|-|-|-|-|abc123'], 1);
+  assert.equal(/script|PT-BR/.test(JSON.stringify(j)), false);
+});
+
+test('ficha de aparelho: período de 1, 7 ou 30 dias; outro valor vira 7', async () => {
+  const H = mk();
+  await ping(H, { t: 'open', id: rid(), d: { pl: 'android-chrome', in: 'pwa', v: 'abc123', x: FICHA } });
+  NOW += 3 * 86400000; // três dias depois
+  await ping(H, { t: 'open', id: rid(), d: { pl: 'ios-safari', in: 'pwa', v: 'abc123', x: FICHA } });
+  const hoje = (await call(H.s, { method: 'GET', url: '/api/stats?part=devices&days=1', query: { part: 'devices', days: '1' }, headers: { authorization: 'Bearer ' + ADMIN } })).json();
+  assert.equal(hoje.days, 1);
+  assert.equal(hoje.total, 1);
+  const sete = (await call(H.s, { method: 'GET', url: '/api/stats?part=devices&days=7', query: { part: 'devices', days: '7' }, headers: { authorization: 'Bearer ' + ADMIN } })).json();
+  assert.equal(sete.total, 2);
+  const estranho = (await call(H.s, { method: 'GET', url: '/api/stats?part=devices&days=999', query: { part: 'devices', days: '999' }, headers: { authorization: 'Bearer ' + ADMIN } })).json();
+  assert.equal(estranho.days, 7);
+  NOW -= 3 * 86400000;
+});
+
+test('ficha de aparelho: só o admin lê, e não vaza id de aparelho', async () => {
+  const H = mk();
+  const id = rid();
+  await ping(H, { t: 'open', id, d: { pl: 'android-chrome', in: 'pwa', v: 'abc123', x: FICHA } });
+  assert.equal((await admin(H, 'devices', 'errada')).statusCode, 401);
+  const body = (await admin(H, 'devices')).body;
+  assert.equal(body.includes(id), false);
+});
+
+test('ficha de aparelho: o resumo antigo (dims) continua igual', async () => {
+  const H = mk();
+  await ping(H, { t: 'open', id: rid(), d: { pl: 'android-chrome', in: 'pwa', v: 'abc123', x: FICHA } });
+  const j = (await admin(H)).json();
+  assert.deepEqual(Object.keys(j.dims).sort(), ['in', 'o', 'pl', 'v']);
+  assert.equal(j.dims.pl['android-chrome'], 1);
+});

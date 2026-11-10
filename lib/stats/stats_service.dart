@@ -7,11 +7,14 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../ai/coach_ai.dart' show kApiBase;
-import '../platform/web_push.dart' show webPushStandalone, webUserAgent;
+import 'package:afina_core/afina_core.dart' show langTag, notifTag, osVersionTag, screenTag, yesNoTag;
+
+import '../platform/web_push.dart' show webDeviceProbe, webPushPermission, webPushStandalone, webPushSupported, webUserAgent;
 
 /// Estatísticas ANÔNIMAS de uso (para o painel do administrador). Manda um aviso ao abrir o app
 /// e uma batida a cada ~5 minutos enquanto ele está à frente. Vai só: um código aleatório do
-/// aparelho (que NÃO é o código de professor/aluno), o tipo de aparelho/navegador, a versão do app
+/// aparelho (que NÃO é o código de professor/aluno), o tipo de aparelho/navegador e sistema, a faixa de tela, idioma, tema, toque, estado do microfone e das
+/// notificações (só categorias), a versão do app
 /// e quais abas foram abertas. Nunca áudio, nome, localização ou o que a pessoa toca.
 /// Pode ser desligado em Configurações. Falhas são silenciosas: nunca atrapalham o app.
 class StatsService {
@@ -26,6 +29,25 @@ class StatsService {
   final Set<String> _tabsSent = {};
   final Set<String> _tabsPending = {};
   DateTime? lastOpen;
+
+  /// Estado do microfone ("sim", "nao" ou "nd"); o AppState informa.
+  String Function()? micProbe;
+
+  /// Características do aparelho em categorias curtas (nada identifica a pessoa):
+  /// sistema e versão, faixa de tela, idioma, tema, toque, microfone e notificações.
+  Map<String, String> deviceExtras() {
+    if (!kIsWeb) return {'mic': micProbe?.call() ?? 'nd'};
+    final p = webDeviceProbe();
+    return {
+      'os': osVersionTag(webUserAgent()),
+      'sc': screenTag(p.width),
+      'lg': langTag(p.lang),
+      'th': p.dark ? 'escuro' : 'claro',
+      'tc': yesNoTag(p.touch),
+      'mic': micProbe?.call() ?? 'nd',
+      'nt': notifTag(webPushSupported(), webPushPermission()),
+    };
+  }
 
   Uri? _endpoint() {
     if (kApiBase.isNotEmpty) return Uri.parse('$kApiBase/api/stats');
@@ -164,7 +186,7 @@ class StatsService {
     final day = _today();
     final body = <String, dynamic>{'t': 'open', 'id': _id};
     if (_dimsDay != day) {
-      body['d'] = {'pl': platformTag(), 'in': installTag(), 'v': versionTag(), if (_origin.isNotEmpty) 'o': _origin};
+      body['d'] = {'pl': platformTag(), 'in': installTag(), 'v': versionTag(), if (_origin.isNotEmpty) 'o': _origin, 'x': deviceExtras()};
       _dimsDay = day;
       p?.setString('stats_dims_day', day);
     }

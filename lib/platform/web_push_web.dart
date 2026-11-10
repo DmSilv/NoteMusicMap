@@ -79,6 +79,24 @@ Future<String?> webPushUnsubscribe() async {
   }
 }
 
+/// Largura da tela (px CSS), idioma, modo escuro e toque: só categorias para as estatísticas.
+({int width, String lang, bool dark, bool touch}) webDeviceProbe() {
+  var width = 0, lang = '', dark = false, touch = false;
+  try {
+    width = globalContext.getProperty<JSNumber?>('innerWidth'.toJS)?.toDartInt ?? 0;
+  } catch (_) {/* sem largura */}
+  try {
+    final nav = globalContext.getProperty<JSObject?>('navigator'.toJS);
+    lang = nav?.getProperty<JSString?>('language'.toJS)?.toDart ?? '';
+    touch = (nav?.getProperty<JSNumber?>('maxTouchPoints'.toJS)?.toDartInt ?? 0) > 0;
+  } catch (_) {/* sem idioma */}
+  try {
+    final mq = globalContext.callMethod<JSObject?>('matchMedia'.toJS, '(prefers-color-scheme: dark)'.toJS);
+    dark = mq?.getProperty<JSBoolean?>('matches'.toJS)?.toDart ?? false;
+  } catch (_) {/* sem tema */}
+  return (width: width, lang: lang, dark: dark, touch: touch);
+}
+
 /// O texto que o navegador diz ser (para separar Android/iPhone/computador e o navegador).
 String webUserAgent() {
   try {

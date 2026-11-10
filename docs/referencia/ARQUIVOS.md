@@ -89,6 +89,7 @@
 | `packages/afina_core/lib/afina_core.dart` | Ponto de entrada do núcleo: reexporta todos os módulos de `packages/afina_core/lib`. |
 | `packages/afina_core/lib/agenda.dart` | Agenda de aulas: o professor marca aulas com os alunos (uma vez ou toda semana) e o aluno vê as suas. Dart puro e testável: o relógio é sempre passado de fora. A aula que se repete toda semana é UMA regra só (não uma… |
 | `packages/afina_core/lib/class_rules.dart` | Regra única das aulas: em que fase está cada aula, o que dá para mudar nela e quais aulas entram na agenda mostrada. Hub (Meu espaço), agenda e lembretes usam estas mesmas funções, para nunca mostrarem números ou… |
+| `packages/afina_core/lib/device_tags.dart` | Rótulos curtos e ANÔNIMOS de aparelho para as estatísticas do painel. Só categorias (nunca o texto cru do navegador): cada rótulo tem até 10 letras ou números minúsculos, o que permite combinar filtros sem… |
 | `packages/afina_core/lib/error_report.dart` | Montagem do relatório de erro que o app envia ao servidor: trilha de telas (breadcrumbs), ambiente (versão, aparelho), modo de envio e freio contra repetição. Dart puro e testável. Nada de conteúdo pessoal: só nomes… |
 | `packages/afina_core/lib/errors.dart` | Erros do app: um catálogo único de códigos e textos em português, a classificação de qualquer exceção num [AppError], a higienização dos detalhes técnicos (nunca saem nomes, códigos de perfil, e-mails nem segredos) e… |
 | `packages/afina_core/lib/greeting.dart` | Saudação conforme a hora do dia (relógio local do aparelho). 5h às 11h59: "Bom dia" · 12h às 17h59: "Boa tarde" · o resto: "Boa noite". |
@@ -127,6 +128,7 @@
 | `packages/afina_core/test/agenda_test.dart` | Testes do módulo `agenda`. |
 | `packages/afina_core/test/arpeggio_test.dart` | Testes do módulo `arpeggio`. |
 | `packages/afina_core/test/class_rules_test.dart` | Testes do módulo `class_rules`. |
+| `packages/afina_core/test/device_tags_test.dart` | Testes do módulo `device_tags`. |
 | `packages/afina_core/test/error_report_test.dart` | Testes do módulo `error_report`. |
 | `packages/afina_core/test/errors_test.dart` | Testes do módulo `errors`. |
 | `packages/afina_core/test/fast_notes_test.dart` | Sinal de violino sintético: escala de Sol maior (Sol3 a Sol4) com notas de [noteMs] cada, ligadas (sem pausa), com vibrato e um pouco de ruído. |
@@ -174,7 +176,7 @@
 | `api/feedback.js` | POST /api/feedback: nota do app e respostas das pesquisas rápidas (anônimas). GET /api/feedback: resumo para o dono do app (exige FEEDBACK_ADMIN_KEY). Privacidade: guarda só a resposta, a versão e um código do… |
 | `api/link.js` | POST /api/link: vínculo entre professor e aluno, registrado dos dois lados. Quem lê o QR (ou digita o código) do outro cria o vínculo; ele passa a valer para os dois, e cada um vê o outro na sua lista na próxima… |
 | `api/remind.js` | POST /api/remind: chamado pelo QStash 15 minutos antes de uma aula. Envia a notificação ao professor e ao aluno (Web Push) e agenda o lembrete da próxima aula (se a aula é semanal). Só aceita mensagens que o próprio… |
-| `api/stats.js` | /api/stats: métricas ANÔNIMAS de uso do app. POST (o app, sem chave): { t: 'open'\|'beat', id, d?: { pl, in, v }, tabs?: [...] } id = código aleatório do aparelho (NÃO é o código de professor/aluno). Nada de IP,… |
+| `api/stats.js` | /api/stats: métricas ANÔNIMAS de uso do app. POST (o app, sem chave): { t: 'open'\|'beat', id, d?: { pl, in, v, o?, x?: { os, sc, lg, th, tc, mic, nt } }, tabs?: [...] } id = código aleatório do aparelho (NÃO é o… |
 
 ## Apoio da API (`api/_lib/`, não conta como função)
 
@@ -234,4 +236,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **191** arquivos mapeados.
+Total: **193** arquivos mapeados.

@@ -32,3 +32,4 @@ export 'pomodoro.dart';
 export 'tone_synth.dart';
 export 'tuning.dart';
 export 'greeting.dart';
+export 'device_tags.dart';
