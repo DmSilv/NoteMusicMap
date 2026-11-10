@@ -160,7 +160,7 @@ class StudyPage extends StatelessWidget {
                     content: const Text('Isso remove o tempo de estudo e as escalas salvas deste aparelho. Não dá para desfazer.'),
                     actions: [
                       TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-                      FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Apagar')),
+                      FilledButton.icon(onPressed: () => Navigator.pop(ctx, true), icon: const Icon(Icons.delete_outline, size: 18), label: const Text('Apagar')),
                     ],
                   ),
                 );

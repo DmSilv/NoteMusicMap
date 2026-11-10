@@ -138,12 +138,12 @@ class HubSection extends StatelessWidget {
             Icon(Icons.notifications_active_outlined, size: 20, color: AppColors.accent),
             const SizedBox(width: 10),
             Expanded(child: Text(n.text, style: const TextStyle(fontWeight: FontWeight.w700, height: 1.25))),
-            TextButton(
+            TextButton.icon(
               onPressed: () {
                 app.dismissNotice(n);
                 openNoticeTarget(context, app, n);
               },
-              child: const Text('Ver'),
+              icon: const Icon(Icons.arrow_forward, size: 18), label: const Text('Ver'),
             ),
             IconButton(
               tooltip: 'Dispensar',
@@ -163,7 +163,7 @@ class HubSection extends StatelessWidget {
     final buttons = <Widget>[];
     Widget primary(String t, IconData i, VoidCallback f) =>
         FilledButton.icon(onPressed: f, icon: Icon(i, size: 18), label: Text(t));
-    Widget soft(String t, VoidCallback f) => OutlinedButton(onPressed: f, child: Text(t));
+    Widget soft(String t, IconData i, VoidCallback f) => OutlinedButton.icon(onPressed: f, icon: Icon(i, size: 18), label: Text(t));
 
     switch (h.kind) {
       case HeroKind.ongoing:
@@ -178,20 +178,20 @@ class HubSection extends StatelessWidget {
         buttons.add(primary(asTeacher ? 'Agenda do professor' : 'Agenda do aluno', Icons.event_outlined,
             () => _push(context, asTeacher ? AgendaPage(app: app) : MyAgendaPage(app: app))));
         if (student != null) {
-          buttons.add(soft('Ficha de ${student.name.split(' ').first}', () => _push(context, StudentPage(app: app, studentId: student.id))));
+          buttons.add(soft('Ficha de ${student.name.split(' ').first}', Icons.person_outline, () => _push(context, StudentPage(app: app, studentId: student.id))));
         }
       case HeroKind.none:
         if (app.teacherMode) {
           buttons.add(app.students.isEmpty
               ? primary('Convidar aluno', Icons.person_add_alt_1, () => shareTeacherInvite(app))
               : primary('Marcar aula', Icons.add, () => openSlotForm(context, app)));
-          buttons.add(soft('Agenda do professor', () => _push(context, AgendaPage(app: app))));
+          buttons.add(soft('Agenda do professor', Icons.event_outlined, () => _push(context, AgendaPage(app: app))));
         } else {
           buttons.add(primary('Agenda do aluno', Icons.event_outlined, () => _push(context, MyAgendaPage(app: app))));
         }
       case HeroKind.noTeacher:
         buttons.add(primary('Ler QR do professor', Icons.qr_code_scanner, () => _scanTeacher(context)));
-        buttons.add(soft('Sou professor', () => _push(context, ProfilePage(app: app, initialTab: 1))));
+        buttons.add(soft('Sou professor', Icons.school_outlined, () => _push(context, ProfilePage(app: app, initialTab: 1))));
     }
 
     final bg = urgent ? AppColors.accent.withValues(alpha: 0.24) : AppColors.accent.withValues(alpha: 0.14);

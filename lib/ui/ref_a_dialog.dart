@@ -61,9 +61,9 @@ Future<void> showRefADialog(BuildContext context, AppState app) async {
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancelar')),
-            FilledButton(
+            FilledButton.icon(
               onPressed: ok ? () => Navigator.pop(c, typed) : null,
-              child: const Text('Aplicar'),
+              icon: const Icon(Icons.check, size: 18), label: const Text('Aplicar'),
             ),
           ],
         );

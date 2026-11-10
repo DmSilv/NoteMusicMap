@@ -38,7 +38,7 @@ class _OpenSlotsPageState extends State<OpenSlotsPage> {
         content: Text('${describeOpenSlot(s)}\n\nOs alunos deixam de vê-lo. Aulas já marcadas não mudam.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Voltar')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Apagar')),
+          FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.delete_outline, size: 18), label: const Text('Apagar')),
         ],
       ),
     );
@@ -170,7 +170,7 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
-        FilledButton(
+        FilledButton.icon(
           onPressed: () {
             final now = DateTime.now();
             Navigator.pop(
@@ -184,7 +184,7 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
               ),
             );
           },
-          child: const Text('Publicar'),
+          icon: const Icon(Icons.event_available_outlined, size: 18), label: const Text('Publicar'),
         ),
       ],
     );
@@ -241,7 +241,7 @@ class _PickSlotPageState extends State<PickSlotPage> {
         content: Text('${describeOpenSlot(s)}\n\nA aula entra na sua agenda e seu professor é avisado.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Pegar')),
+          FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.event_available_outlined, size: 18), label: const Text('Pegar')),
         ],
       ),
     );
@@ -288,7 +288,7 @@ class _PickSlotPageState extends State<PickSlotPage> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const Text('Não foi possível ver os horários agora.'),
                   const SizedBox(height: 8),
-                  OutlinedButton(onPressed: _load, child: const Text('Tentar de novo')),
+                  OutlinedButton.icon(onPressed: _load, icon: const Icon(Icons.refresh, size: 18), label: const Text('Tentar de novo')),
                 ]),
               )
             else if ((slots ?? const []).isEmpty)
@@ -302,7 +302,7 @@ class _PickSlotPageState extends State<PickSlotPage> {
                       Icon(s.weekly ? Icons.repeat : Icons.event_available_outlined, color: AppColors.accent),
                       const SizedBox(width: 12),
                       Expanded(child: Text(describeOpenSlot(s), style: const TextStyle(fontWeight: FontWeight.w700))),
-                      FilledButton(onPressed: taking ? null : () => _take(s), child: Text(taking ? 'Enviando…' : 'Pegar')),
+                      FilledButton.icon(onPressed: taking ? null : () => _take(s), icon: const Icon(Icons.event_available_outlined, size: 18), label: Text(taking ? 'Enviando…' : 'Pegar')),
                     ]),
                   ),
                 ),

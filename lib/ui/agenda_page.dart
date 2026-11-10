@@ -315,10 +315,10 @@ class _AgendaPageState extends State<AgendaPage> {
         content: Text(text),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Voltar')),
-          FilledButton(
+          FilledButton.icon(
             style: FilledButton.styleFrom(backgroundColor: AppColors.sharp, foregroundColor: readableOn(AppColors.sharp)),
             onPressed: () => Navigator.pop(c, true),
-            child: const Text('Cancelar aula'),
+            icon: const Icon(Icons.event_busy, size: 18), label: const Text('Cancelar aula'),
           ),
         ],
       ),

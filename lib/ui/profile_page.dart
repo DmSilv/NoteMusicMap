@@ -711,7 +711,7 @@ Future<void> handleIncomingTeacherCode(BuildContext context, AppState app) async
           'o apelido e a data do vínculo, e as tarefas das aulas que ele encerrar para você; nada dos seus exercícios.'),
       actions: [
         TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Agora não')),
-        FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Vincular')),
+        FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.link, size: 18), label: const Text('Vincular')),
       ],
     ),
   );

@@ -173,8 +173,8 @@ class _CustomCard extends StatelessWidget {
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancelar')),
-          FilledButton(
-              onPressed: () => Navigator.pop(c, int.tryParse(ctl.text)), child: const Text('Aplicar')),
+          FilledButton.icon(
+              onPressed: () => Navigator.pop(c, int.tryParse(ctl.text)), icon: const Icon(Icons.check, size: 18), label: const Text('Aplicar')),
         ],
       ),
     );

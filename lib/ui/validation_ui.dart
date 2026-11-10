@@ -60,13 +60,13 @@ class ValidationCard extends StatelessWidget {
                     Text('Marcada ${_when(t.claimedAt!)}', style: TextStyle(color: AppColors.textDim, fontSize: 12)),
                   ]),
                 ),
-                TextButton(
+                TextButton.icon(
                   onPressed: () => app.validateAssignment(student, t.id, ok: false),
-                  child: const Text('Devolver'),
+                  icon: const Icon(Icons.undo, size: 18), label: const Text('Devolver'),
                 ),
-                FilledButton.tonal(
+                FilledButton.tonalIcon(
                   onPressed: () => app.validateAssignment(student, t.id, ok: true),
-                  child: const Text('Confirmar'),
+                  icon: const Icon(Icons.check, size: 18), label: const Text('Confirmar'),
                 ),
               ]),
             ),
@@ -106,7 +106,7 @@ Future<void> showValidationDialog(BuildContext context, AppState app, Student s)
       builder: (c) => AlertDialog(
         title: Text('Resumo de ${s.name}'),
         content: SingleChildScrollView(child: _summaryBody(sum, showValidateHint: false)),
-        actions: [FilledButton(onPressed: () => Navigator.pop(c), child: const Text('Começar a aula'))],
+        actions: [FilledButton.icon(onPressed: () => Navigator.pop(c), icon: const Icon(Icons.play_arrow, size: 18), label: const Text('Começar a aula'))],
       ),
     );
     return;
@@ -145,7 +145,7 @@ Future<void> showValidationDialog(BuildContext context, AppState app, Student s)
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Decidir depois')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Aplicar')),
+          FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.check, size: 18), label: const Text('Aplicar')),
         ],
       ),
     ),

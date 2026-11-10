@@ -332,7 +332,7 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
           if (t.note.isNotEmpty) Text(t.note, style: const TextStyle(fontSize: 12.5, height: 1.3)),
         ],
       ),
-      trailing: t.isScale ? TextButton(onPressed: () => _train(t), child: const Text('Treinar')) : null,
+      trailing: t.isScale ? TextButton.icon(onPressed: () => _train(t), icon: const Icon(Icons.play_arrow, size: 18), label: const Text('Treinar')) : null,
     );
   }
 

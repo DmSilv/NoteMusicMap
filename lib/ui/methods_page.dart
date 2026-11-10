@@ -137,11 +137,11 @@ class MethodsPage extends StatelessWidget {
         content: const Text('Remove o método e as lições da sua lista. As tarefas já passadas não mudam.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
-          FilledButton(
+          FilledButton.icon(
             style: FilledButton.styleFrom(
                 backgroundColor: AppColors.sharp, foregroundColor: readableOn(AppColors.sharp)),
             onPressed: () => Navigator.pop(c, true),
-            child: const Text('Excluir'),
+            icon: const Icon(Icons.delete_outline, size: 18), label: const Text('Excluir'),
           ),
         ],
       ),
@@ -194,7 +194,7 @@ class MethodsPage extends StatelessWidget {
           ),
           actions: [
             TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
-            FilledButton(
+            FilledButton.icon(
               onPressed: () {
                 if (name.text.trim().isEmpty) {
                   setS(() => err = 'Escreva o nome do método');
@@ -202,7 +202,7 @@ class MethodsPage extends StatelessWidget {
                 }
                 Navigator.pop(c, true);
               },
-              child: const Text('Salvar'),
+              icon: const Icon(Icons.check, size: 18), label: const Text('Salvar'),
             ),
           ],
         ),
@@ -268,7 +268,7 @@ class MethodsPage extends StatelessWidget {
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Importar')),
+          FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.download, size: 18), label: const Text('Importar')),
         ],
       ),
     );

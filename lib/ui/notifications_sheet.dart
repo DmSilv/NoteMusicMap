@@ -63,8 +63,8 @@ Future<void> showNotificationsSheet(BuildContext context, AppState app) {
               child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 Row(children: [
                   const Expanded(child: Text('Avisos', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18))),
-                  if (app.unseenNotices > 0) TextButton(onPressed: app.markNoticesSeen, child: const Text('Marcar como lidos')),
-                  if (list.isNotEmpty) TextButton(onPressed: app.clearNotices, child: const Text('Limpar')),
+                  if (app.unseenNotices > 0) TextButton.icon(onPressed: app.markNoticesSeen, icon: const Icon(Icons.done_all, size: 18), label: const Text('Marcar como lidos')),
+                  if (list.isNotEmpty) TextButton.icon(onPressed: app.clearNotices, icon: const Icon(Icons.delete_sweep, size: 18), label: const Text('Limpar')),
                 ]),
                 if (list.isEmpty)
                   Padding(

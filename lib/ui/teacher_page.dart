@@ -115,7 +115,7 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancelar')),
-          FilledButton(
+          FilledButton.icon(
             onPressed: () {
               final n = name.text.trim();
               // Regras: nada de aluno com o seu próprio código/nome, nem repetido.
@@ -129,7 +129,7 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
               }
               Navigator.pop(c, (n, code.text.trim().isEmpty ? null : code.text));
             },
-            child: const Text('Adicionar'),
+            icon: const Icon(Icons.add, size: 18), label: const Text('Adicionar'),
           ),
         ],
       ),
@@ -673,11 +673,11 @@ Future<bool> _confirmDelete(BuildContext context, String title, String text) asy
       content: Text(text),
       actions: [
         TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
-        FilledButton(
+        FilledButton.icon(
           style: FilledButton.styleFrom(
               backgroundColor: AppColors.sharp, foregroundColor: readableOn(AppColors.sharp)),
           onPressed: () => Navigator.pop(c, true),
-          child: const Text('Excluir'),
+          icon: const Icon(Icons.delete_outline, size: 18), label: const Text('Excluir'),
         ),
       ],
     ),
@@ -1114,9 +1114,9 @@ class StudentPage extends StatelessWidget {
               ),
               trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                 if (t.isScale && !t.done)
-                  FilledButton.tonal(
+                  FilledButton.tonalIcon(
                     onPressed: () => _startTask(context, s, t),
-                    child: const Text('Iniciar'),
+                    icon: const Icon(Icons.play_arrow, size: 18), label: const Text('Iniciar'),
                   ),
                 PopupMenuButton<String>(
                   tooltip: 'Opções da tarefa',
@@ -1213,7 +1213,7 @@ class StudentPage extends StatelessWidget {
               'Sem aula, o exercício fica só no seu próprio histórico.'),
           actions: [
             TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Só treinar')),
-            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Começar a aula')),
+            FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.play_arrow, size: 18), label: const Text('Começar a aula')),
           ],
         ),
       );
