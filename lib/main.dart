@@ -1,9 +1,14 @@
+import 'dart:async';
+
+import 'package:afina_core/afina_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:toastification/toastification.dart';
 
 import 'app_state.dart';
 import 'ui/app_logo.dart';
+import 'ui/error_ui.dart';
 import 'ui/status_strip.dart';
 import 'ui/teacher_page.dart' show handleIncomingStudentCode;
 import 'ui/grid_page.dart';
@@ -16,11 +21,48 @@ import 'ui/theme.dart';
 import 'ui/toast.dart';
 import 'ui/tuner_page.dart';
 
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final app = AppState();
-  await app.load();
+AppState? _app;
+
+/// Abre o app. Se algo falhar ao iniciar, mostra a tela de erro (com "Tentar de novo") em vez de
+/// ficar em branco. Erros inesperados depois disso são classificados, guardados e avisados.
+Future<void> _start() async {
+  final app = _app ??= AppState();
+  try {
+    await app.load();
+  } catch (e, st) {
+    final err = classifyError(e, stack: st, where: 'Início do app');
+    final critical = AppError(
+        code: 'APP-99', severity: ErrorSeverity.critical, where: err.where, detail: err.detail, atMs: err.atMs);
+    runApp(MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: buildTheme(dark: true),
+      home: CriticalErrorPage(error: critical, onRetry: _start),
+    ));
+    return;
+  }
   runApp(AfinaApp(app: app));
+}
+
+void main() {
+  runZonedGuarded(() {
+    WidgetsFlutterBinding.ensureInitialized();
+    FlutterError.onError = (details) {
+      if (kDebugMode) FlutterError.presentError(details);
+      _app?.reportError(details.exception, details.stack, where: 'Interface');
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      _app?.reportError(error, stack);
+      return true;
+    };
+    // Bloco que quebra ao desenhar: cartão amigável com código, no lugar da tela cinza/vermelha.
+    if (!kDebugMode) {
+      ErrorWidget.builder = (details) {
+        final id = classifyError(details.exception, stack: details.stack, where: 'Interface').shortId;
+        return FriendlyErrorWidget(id: id);
+      };
+    }
+    _start();
+  }, (error, stack) => _app?.reportError(error, stack));
 }
 
 class AfinaApp extends StatefulWidget {
@@ -163,6 +205,17 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
         handleIncomingTeacherCode(ctx, widget.app);
       });
     }
+    // Aviso de erro: mesmo formato sempre (ícone de alerta, frase e código para citar).
+    widget.app.onError = (e) {
+      if (!mounted) return;
+      WidgetsBinding.instance
+        ..addPostFrameCallback((_) {
+          if (!mounted) return;
+          showToast(context, '${e.title}. Código ${e.shortId}.',
+              icon: errorIcon(e.severity), color: errorTint(e.severity), duration: const Duration(seconds: 4));
+        })
+        ..scheduleFrame();
+    };
     // Avisos curtos ao ligar/desligar funções.
     widget.app.onMessage = (msg) {
       if (!mounted) return;

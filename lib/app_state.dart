@@ -786,6 +786,7 @@ class AppState extends ChangeNotifier {
     myAgenda = read('agenda_in', dropCanceled: true);
     _agendaRev = p.getInt('agenda_rev') ?? 0;
     openSlots = read('open_slots');
+    errorLog = ErrorLog.fromJsonString(p.getString('error_log'));
     hubViewPref = switch (p.getString('hub_view')) {
       'student' => HubView.student,
       'teacher' => HubView.teacher,
@@ -908,7 +909,7 @@ class AppState extends ChangeNotifier {
           agenda[i] = agenda[i].copyWith(pending: false);
           deliveryIssue.remove(s.studentCode);
           changed = true;
-          if (!r.ok) say('Não foi possível avisar ${st.name} da aula: ${r.error ?? 'recusada'}.');
+          if (!r.ok) fail('Não foi possível avisar ${st.name} da aula.', where: 'Agenda do professor', detail: r.error);
         }
       }
     } finally {
@@ -983,7 +984,7 @@ class AppState extends ChangeNotifier {
         if (r.ok || r.rejected) {
           openSlots[i] = s.copyWith(pending: false);
           changed = true;
-          if (!r.ok) say('Não foi possível publicar o horário: ${_slotError(r.error)}');
+          if (!r.ok) fail('Não foi possível publicar o horário: ${_slotError(r.error)}', where: 'Horários livres', detail: r.error);
         }
       }
     } finally {
@@ -1809,7 +1810,7 @@ class AppState extends ChangeNotifier {
             r.sent = null;
             r.wire = null;
             changed = true;
-            say('Não foi possível enviar a aula de ${s.name}: ${rep.error ?? 'recusada'}.');
+            fail('Não foi possível enviar a aula de ${s.name}.', where: 'Aulas', detail: rep.error);
           }
         }
       }
@@ -2548,6 +2549,61 @@ class AppState extends ChangeNotifier {
 
   /// Mostra um aviso curto ao usuário quando uma função é ligada/desligada.
   void say(String message) => onMessage?.call(message);
+
+  // ---------------- Problemas e avisos de erro ----------------
+  /// Histórico dos últimos problemas (guardado no aparelho, sem dados pessoais).
+  ErrorLog errorLog = ErrorLog();
+
+  /// Quem mostra o aviso de erro na tela (a tela principal liga isto).
+  void Function(AppError e)? onError;
+  DateTime? _lastErrorToast;
+  String _where = '';
+
+  /// A tela/aba em que a pessoa está (vai no registro do erro).
+  void markWhere(String where) => _where = where;
+
+  /// Registra um erro inesperado: classifica, guarda e (se for novo e importante) avisa.
+  void reportError(Object error, StackTrace? stack, {String where = ''}) {
+    try {
+      _record(classifyError(error, stack: stack, where: where.isEmpty ? _where : where));
+    } catch (_) {
+      // registrar erro nunca pode causar outro erro
+    }
+  }
+
+  /// Uma ação falhou com uma frase própria: guarda no histórico e mostra a frase com o código.
+  void fail(String message, {String code = 'API-04', String where = '', String? detail}) {
+    final spec = kErrorCatalog[code] ?? kErrorCatalog['APP-00']!;
+    final e = AppError(
+      code: spec.code,
+      severity: spec.severity,
+      where: sanitizeDetail(where.isEmpty ? _where : where, max: 120),
+      detail: sanitizeDetail('$message\n${detail ?? ''}'),
+      atMs: DateTime.now().millisecondsSinceEpoch,
+    );
+    errorLog.add(e);
+    _prefs?.setString('error_log', errorLog.toJsonString());
+    Future.microtask(notifyListeners);
+    say('$message (${e.shortId})');
+  }
+
+  void _record(AppError e) {
+    final isNew = errorLog.add(e);
+    _prefs?.setString('error_log', errorLog.toJsonString());
+    Future.microtask(notifyListeners); // a lista de problemas e o contador em Ajustes se atualizam
+    if (!isNew || e.severity == ErrorSeverity.info) return;
+    final now = DateTime.now();
+    final last = _lastErrorToast;
+    if (last != null && now.difference(last) < const Duration(seconds: 8)) return;
+    _lastErrorToast = now;
+    onError?.call(e);
+  }
+
+  void clearErrors() {
+    errorLog.clear();
+    _prefs?.remove('error_log');
+    Future.microtask(notifyListeners);
+  }
 
   // ---------------- Permissões ----------------
   /// Resultado da última verificação do microfone: null = ainda não verificado.

@@ -99,3 +99,9 @@ Cada pacote: testes (núcleo, API, `flutter analyze`), conferência no Chrome em
 1. **Envio de erros:** automático e anônimo (com chave de desligar em Ajustes) **ou** só quando o usuário toca em "Enviar relatório"? *Recomendo:* automático só para erros **críticos** e manual para os demais, com explicação clara em Ajustes.
 2. **Alertas:** só no painel (selo de "novo bug crítico") **ou** também um aviso para você (push no seu aparelho, que o app já sabe enviar)? *Recomendo:* painel agora e push depois.
 3. **Documentação:** em pt-BR, em Markdown dentro de `docs/` (versionada no Git), como descrito? *Recomendo* sim.
+
+---
+## Andamento
+- **Pacote 1 (publicado em 10/11/2026):** `afina_core/errors.dart` (catálogo `kErrorCatalog`, `classifyError`, `sanitizeDetail`, `errorShortId`, `ErrorLog`) com 17 testes; captura global (`FlutterError.onError`, `PlatformDispatcher.onError`, `runZonedGuarded`, `ErrorWidget.builder` amigável em release); falha ao abrir mostra `CriticalErrorPage` (APP-99) com "Tentar de novo" e "Copiar detalhes"; avisos de erro no formato único (ícone + título + código `E-XXXX`, no máximo 1 a cada 8 s, repetição não avisa de novo); Ajustes › Diagnóstico › **Problemas recentes** (lista, detalhe, copiar relatório, limpar); três `say('Não foi possível…')` passaram a `fail(...)` (registrados). Em demo (`DEV_DEMO`) há botões de teste ("Simular erro", "Ver tela de erro crítico").
+- **Escolha de projeto:** só a falha ao iniciar derruba para tela cheia; erros inesperados depois disso viram aviso + registro, para um erro pequeno nunca esconder o app inteiro.
+- Próximo: **Pacote 2** (coleta e aba Bugs no admin; novo endpoint `api/errors.js`).

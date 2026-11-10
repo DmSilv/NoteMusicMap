@@ -6,6 +6,7 @@ import 'app_logo.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../platform/web_install.dart' show webIsStandalone;
+import 'error_ui.dart' show CriticalErrorPage, ProblemsPage;
 import 'feedback_sheet.dart';
 import 'install_banner.dart';
 import 'profile_page.dart';
@@ -52,6 +53,7 @@ class SettingsPage extends StatelessWidget {
               _section('Permissões e privacidade', [_permissions(context)]),
               _section('Minha conta', [_profileHub(context)]),
               _section('Sobre', [_about(context)]),
+              _section('Diagnóstico', [_diagnostics(context)]),
               _section('Problemas?', [_resetAll(context)]),
             ],
           ),
@@ -83,6 +85,36 @@ class SettingsPage extends StatelessWidget {
           ],
         ),
       );
+
+  Widget _diagnostics(BuildContext context) => Column(children: [
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.bug_report_outlined),
+          title: const Text('Problemas recentes'),
+          subtitle: Text(app.errorLog.items.isEmpty ? 'Nenhum problema registrado' : '${app.errorLog.items.length} registrado(s)'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ProblemsPage(app: app))),
+        ),
+        if (kDevDemo)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.science_outlined),
+            title: const Text('Simular erro (teste)'),
+            onTap: () => Future<void>.error(StateError('erro de teste com K7QM-4TXK e ana@exemplo.com')),
+          ),
+        if (kDevDemo)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.science_outlined),
+            title: const Text('Ver tela de erro crítico (teste)'),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (c) => CriticalErrorPage(
+                error: AppError(code: 'APP-99', severity: ErrorSeverity.critical, where: 'Início do app', detail: 'StateError: teste', atMs: DateTime.now().millisecondsSinceEpoch),
+                onRetry: () => Navigator.pop(c),
+              ),
+            )),
+          ),
+      ]);
 
   Widget _section(String title, List<Widget> children) => Padding(
         padding: const EdgeInsets.only(bottom: 12),

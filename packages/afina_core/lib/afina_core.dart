@@ -12,6 +12,7 @@ export 'open_slots.dart';
 export 'class_rules.dart';
 export 'markdown_lite.dart';
 export 'hub_view.dart';
+export 'errors.dart';
 export 'methods.dart';
 export 'metronome_engine.dart';
 export 'rhythm_challenge.dart';
