@@ -5,7 +5,7 @@
 |---|---|---|
 | Código de perfil, apelido opcional, datas do vínculo | Redis | Vínculo professor ↔ aluno |
 | Aulas, tarefas e observações **que o professor decide enviar** ao aluno | Redis | Entrega ao aluno |
-| Estatísticas: um código aleatório do aparelho, tipo de aparelho/navegador, sistema, faixa de tela, idioma, tema, toque, microfone e notificações (categorias), versão, abas abertas | Redis (agregado) | Painel de uso |
+| Estatísticas: um código aleatório do aparelho, tipo de aparelho/navegador, sistema, faixa de tela, idioma, tema, toque, microfone, notificações, fuso, memória, núcleos, conexão, densidade e região aproximada país/estado (categorias; o IP não é guardado), versão, abas abertas | Redis (agregado) | Painel de uso |
 | Relatórios de erro: código do erro, tela, detalhe **higienizado**, versão, aparelho, trilha de telas | Redis (agrupado) | Painel de bugs |
 | Resumo de números de afinação (só se a pessoa pedir análise por IA) | Serviço de IA | Análise |
 

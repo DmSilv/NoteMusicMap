@@ -35,6 +35,44 @@ String osVersionTag(String ua) {
   return '-';
 }
 
+/// Fuso horário pelo deslocamento em minutos: "m3" (UTC-3), "p5h" (UTC+5:30), "z" (UTC).
+String tzTag(int offsetMinutes) {
+  if (offsetMinutes == 0) return 'z';
+  final sign = offsetMinutes < 0 ? 'm' : 'p';
+  final a = offsetMinutes.abs();
+  final h = a ~/ 60, min = a % 60;
+  return '$sign$h${min == 0 ? '' : 'h'}';
+}
+
+/// Memória aproximada do aparelho em GB (navigator.deviceMemory): "2", "4", "8"… ou "-".
+String memTag(num? gb) {
+  if (gb == null || gb <= 0) return '-';
+  if (gb >= 8) return '8';
+  if (gb >= 4) return '4';
+  if (gb >= 2) return '2';
+  return '1';
+}
+
+/// Núcleos do processador em faixas: "c2" (até 2), "c4", "c8", "c12" (mais de 8).
+String cpuTag(int? cores) {
+  if (cores == null || cores <= 0) return '-';
+  if (cores <= 2) return 'c2';
+  if (cores <= 4) return 'c4';
+  if (cores <= 8) return 'c8';
+  return 'c12';
+}
+
+/// Qualidade da conexão (navigator.connection.effectiveType): "4g", "3g", "2g", "slow2g" ou "-".
+String netTag(String t) => const {'4g', '3g', '2g', 'slow-2g'}.contains(t) ? t.replaceAll('-', '') : '-';
+
+/// Densidade de pixels da tela em faixas: "d1", "d2", "d3" (3 ou mais) ou "-".
+String dprTag(double? dpr) {
+  if (dpr == null || dpr <= 0) return '-';
+  if (dpr < 1.5) return 'd1';
+  if (dpr < 2.5) return 'd2';
+  return 'd3';
+}
+
 /// "sim", "nao" ou "nd" (não definido) para estados de permissão e opções.
 String yesNoTag(bool? v) => v == null ? 'nd' : (v ? 'sim' : 'nao');
 

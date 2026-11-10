@@ -7,7 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../ai/coach_ai.dart' show kApiBase;
-import 'package:afina_core/afina_core.dart' show langTag, notifTag, osVersionTag, screenTag, yesNoTag;
+import 'package:afina_core/afina_core.dart' show cpuTag, dprTag, langTag, memTag, netTag, notifTag, osVersionTag, screenTag, tzTag, yesNoTag;
 
 import '../platform/web_push.dart' show webDeviceProbe, webPushPermission, webPushStandalone, webPushSupported, webUserAgent;
 
@@ -46,6 +46,11 @@ class StatsService {
       'tc': yesNoTag(p.touch),
       'mic': micProbe?.call() ?? 'nd',
       'nt': notifTag(webPushSupported(), webPushPermission()),
+      'tz': tzTag(DateTime.now().timeZoneOffset.inMinutes),
+      'mem': memTag(p.mem),
+      'cpu': cpuTag(p.cpu),
+      'net': netTag(p.net),
+      'dpr': dprTag(p.dpr),
     };
   }
 

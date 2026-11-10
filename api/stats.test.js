@@ -195,9 +195,9 @@ test('ficha de aparelho: uma combinação por aparelho por dia, lida por part=de
   assert.equal(j.ok, true);
   assert.equal(j.days, 7);
   assert.equal(j.total, 3);
-  assert.deepEqual(j.fields, ['pl', 'in', 'os', 'sc', 'lg', 'th', 'tc', 'mic', 'nt', 'v']);
-  assert.equal(j.combos['android-chrome|pwa|a13|celular|pt|escuro|sim|sim|nd|abc123'], 2);
-  assert.equal(j.combos['ios-safari|browser|i17|celular|pt|escuro|sim|nao|nd|abc123'], 1);
+  assert.deepEqual(j.fields, ['pl', 'in', 'os', 'sc', 'lg', 'th', 'tc', 'mic', 'nt', 'v', 'geo', 'tz', 'mem', 'cpu', 'net', 'dpr']);
+  assert.equal(j.combos['android-chrome|pwa|a13|celular|pt|escuro|sim|sim|nd|abc123|-|-|-|-|-|-'], 2);
+  assert.equal(j.combos['ios-safari|browser|i17|celular|pt|escuro|sim|nao|nd|abc123|-|-|-|-|-|-'], 1);
 });
 
 test('ficha de aparelho: cliente antigo (sem x) entra com "-" e valores estranhos são descartados', async () => {
@@ -205,8 +205,8 @@ test('ficha de aparelho: cliente antigo (sem x) entra com "-" e valores estranho
   await ping(H, { t: 'open', id: rid(), d: { pl: 'android-chrome', in: 'pwa', v: 'abc123' } });
   await ping(H, { t: 'open', id: rid(), d: { pl: 'ios-safari', in: 'app', v: 'abc123', x: { os: '<script>', sc: 'celular', lg: 'PT-BR', th: 'x'.repeat(50) } } });
   const j = (await admin(H, 'devices')).json();
-  assert.equal(j.combos['android-chrome|pwa|-|-|-|-|-|-|-|abc123'], 1);
-  assert.equal(j.combos['ios-safari|app|-|celular|-|-|-|-|-|abc123'], 1);
+  assert.equal(j.combos['android-chrome|pwa|-|-|-|-|-|-|-|abc123|-|-|-|-|-|-'], 1);
+  assert.equal(j.combos['ios-safari|app|-|celular|-|-|-|-|-|abc123|-|-|-|-|-|-'], 1);
   assert.equal(/script|PT-BR/.test(JSON.stringify(j)), false);
 });
 
@@ -240,4 +240,21 @@ test('ficha de aparelho: o resumo antigo (dims) continua igual', async () => {
   const j = (await admin(H)).json();
   assert.deepEqual(Object.keys(j.dims).sort(), ['in', 'o', 'pl', 'v']);
   assert.equal(j.dims.pl['android-chrome'], 1);
+});
+
+test('região aproximada vem dos cabeçalhos da Vercel (país e estado) e o IP não é guardado', async () => {
+  const H = mk();
+  await call(H.s, { method: 'POST', headers: { 'x-vercel-ip-country': 'BR', 'x-vercel-ip-country-region': 'SP', 'x-forwarded-for': '203.0.113.9' }, body: { t: 'open', id: rid(), d: { pl: 'android-chrome', in: 'pwa', v: 'abc123', x: { ...FICHA, tz: 'm3', mem: '4', cpu: 'c8', net: '4g', dpr: 'd3' } } } });
+  await call(H.s, { method: 'POST', headers: { 'x-vercel-ip-country': 'ZZZ', 'x-vercel-ip-country-region': '<x>' }, body: { t: 'open', id: rid(), d: { pl: 'ios-safari', in: 'pwa', v: 'abc123' } } });
+  const j = (await admin(H, 'devices')).json();
+  assert.equal(j.combos['android-chrome|pwa|a13|celular|pt|escuro|sim|sim|nd|abc123|br-sp|m3|4|c8|4g|d3'], 1);
+  assert.equal(j.combos['ios-safari|pwa|-|-|-|-|-|-|-|abc123|-|-|-|-|-|-'], 1, 'cabeçalho estranho vira "-"');
+  assert.equal(JSON.stringify(j).includes('203.0.113.9'), false);
+});
+
+test('país sem estado vira só o país', async () => {
+  const H = mk();
+  await call(H.s, { method: 'POST', headers: { 'x-vercel-ip-country': 'PT' }, body: { t: 'open', id: rid(), d: { pl: 'windows-edge', in: 'browser', v: 'abc123' } } });
+  const j = (await admin(H, 'devices')).json();
+  assert.equal(Object.keys(j.combos)[0].split('|')[10], 'pt');
 });

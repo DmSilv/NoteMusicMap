@@ -20,7 +20,7 @@ const ONLINE_WINDOW = 5 * 60 * 1000;
 const STALE = 15 * 60 * 1000; // quem não bate há 15 min sai do conjunto "online"
 const ID_RE = /^[a-z0-9]{16,40}$/;
 const DEV_RE = /^[a-z0-9]{1,10}$/;
-const DEV_FIELDS = ['pl', 'in', 'os', 'sc', 'lg', 'th', 'tc', 'mic', 'nt', 'v']; // ordem da combinação
+const DEV_FIELDS = ['pl', 'in', 'os', 'sc', 'lg', 'th', 'tc', 'mic', 'nt', 'v', 'geo', 'tz', 'mem', 'cpu', 'net', 'dpr']; // ordem da combinação
 const OPENS_PER_HOUR = 200; // por origem (muita gente atrás do mesmo IP é comum)
 
 const hourBr = (ms) => new Date(ms - 3 * 3600 * 1000).toISOString().slice(11, 13);
@@ -187,7 +187,12 @@ function makeHandler(deps = {}) {
         if (pl || inst || v) {
           const xs = d.x && typeof d.x === 'object' ? d.x : {};
           const f = (k) => clip(xs[k], DEV_RE) || '-';
-          const combo = [pl || '-', inst || '-', f('os'), f('sc'), f('lg'), f('th'), f('tc'), f('mic'), f('nt'), v || '-'].join('|');
+          // Região APROXIMADA (país e estado) dos cabeçalhos que a Vercel já envia; o IP em si não é guardado.
+          const hd = req.headers || {};
+          const country = String(hd['x-vercel-ip-country'] || '').toUpperCase();
+          const region = String(hd['x-vercel-ip-country-region'] || '').toUpperCase();
+          const geo = /^[A-Z]{2}$/.test(country) ? (country + (/^[A-Z0-9]{1,3}$/.test(region) ? '-' + region : '')).toLowerCase() : '-';
+          const combo = [pl || '-', inst || '-', f('os'), f('sc'), f('lg'), f('th'), f('tc'), f('mic'), f('nt'), v || '-', geo, f('tz'), f('mem'), f('cpu'), f('net'), f('dpr')].join('|');
           list.push(['HINCRBY', K.dim(today), `x:${combo}`, '1']);
         }
       }

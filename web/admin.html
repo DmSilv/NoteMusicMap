@@ -88,6 +88,8 @@
     .journey .t { font-weight: 700; } .journey .u { color: var(--dim); font-size: 12px; }
     .journey .n { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
     .journey .b { height: 8px; background: var(--card2); border-radius: 6px; margin-top: 5px; overflow: hidden; } .journey .b i { display: block; height: 100%; background: var(--accent); transition: width .6s; }
+    .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--card2); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 14px; padding: 12px 18px; font-weight: 700; z-index: 99; max-width: 90vw; box-shadow: 0 8px 30px rgba(0,0,0,.4); }
+    .toast.bad { border-left-color: var(--bad); }
     .flt { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
     .flt label { font-size: 12px; color: var(--dim); display: flex; flex-direction: column; gap: 3px; }
     .flt select, #devDays { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 8px; font-size: 13px; }
@@ -248,7 +250,7 @@
       <div class="two" id="devBreak"></div>
       <h2>Combinações mais comuns</h2>
       <div class="card" style="overflow:auto"><table><thead><tr><th>Aparelho</th><th>Ficha</th><th>Vezes</th></tr></thead><tbody id="devTop"></tbody></table></div>
-      <p class="note">Cada aparelho entra uma vez por dia, com uma "ficha" só de categorias (nada de nome, código ou som). Aparelhos antigos, que ainda não atualizaram o app, aparecem como "Não informado" nos campos novos.</p>
+      <p class="note">Cada aparelho entra uma vez por dia, com uma "ficha" só de categorias (nada de nome, código, som ou IP). A região é aproximada (país e estado, pelo servidor) e não é GPS. Aparelhos antigos, que ainda não atualizaram o app, aparecem como "Não informado" nos campos novos.</p>
     </main>
 
     <!-- ===== Custos ===== -->
@@ -359,6 +361,13 @@
     return fetch('/api/admin', { method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' })
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { status: r.status, j: j }; }); });
   }
+  var toastT = null;
+  function toast(msg, kind) {
+    var t = $('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+    t.className = 'toast ' + (kind || 'ok'); t.textContent = (kind === 'bad' ? '⚠ ' : '✓ ') + msg; t.hidden = false;
+    clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, kind === 'bad' ? 6000 : 3500);
+  }
+  function why(r) { return (r && r.j && (r.j.message || r.j.error)) || ('erro ' + (r && r.status)); }
   function fail(status) {
     if (status === 401 || status === 429 || status === 404 || status === 503) {
       logout(status === 401 ? 'Chave inválida.' : status === 429 ? 'Muitas tentativas. Tente mais tarde.' : status === 404 ? 'Painel não configurado: falta a variável ADMIN_KEY (ou FEEDBACK_ADMIN_KEY) na Vercel.' : 'Armazenamento indisponível no servidor.');
@@ -593,13 +602,14 @@
       var bb = document.createElement('button'); bb.textContent = d.profile.blocked ? 'Liberar' : 'Bloquear';
       bb.onclick = function () {
         if (!d.profile.blocked && !confirm('Bloquear ' + code + '? O vínculo online dele para de funcionar.')) return;
-        post({ action: d.profile.blocked ? 'unblock' : 'block', code: code }).then(function () { closeDetail(); loadList(); loadLog(); });
+        var was = d.profile.blocked;
+        post({ action: was ? 'unblock' : 'block', code: code }).then(function (r) { if (r.status === 200) { toast(code + (was ? ' liberado.' : ' bloqueado: o vínculo online dele parou.'), 'ok'); closeDetail(); loadList(); loadLog(); } else toast('Não foi possível ' + (was ? 'liberar' : 'bloquear') + ': ' + why(r), 'bad'); }).catch(function () { toast('Sem conexão com o servidor. Nada foi alterado.', 'bad'); });
       };
       var del = document.createElement('button'); del.className = 'danger'; del.textContent = 'Excluir dados';
       del.onclick = function () {
         var t = prompt('Isto apaga o perfil, os vínculos e as aulas/tarefas dele no servidor. Não dá para desfazer.\nPara confirmar, digite o código: ' + code);
         if (t === null) return;
-        post({ action: 'delete', code: code, confirm: t.trim() }).then(function (r2) { if (r2.status === 200) { closeDetail(); loadKpis(); loadList(); loadLog(); } else alert(r2.j.message || r2.j.error || 'Não foi possível excluir.'); });
+        post({ action: 'delete', code: code, confirm: t.trim() }).then(function (r2) { if (r2.status === 200) { toast('Dados de ' + code + ' apagados.', 'ok'); closeDetail(); loadKpis(); loadList(); loadLog(); } else toast('Não foi possível excluir: ' + why(r2), 'bad'); }).catch(function () { toast('Sem conexão com o servidor. Nada foi apagado.', 'bad'); });
       };
       var cl = document.createElement('button'); cl.textContent = 'Fechar'; cl.onclick = closeDetail;
       bar.appendChild(bb); bar.appendChild(del); bar.appendChild(cl); box.appendChild(bar); $('detail').hidden = false;
@@ -682,7 +692,7 @@
       var bar = document.createElement('div'); bar.className = 'toolbar'; bar.style.marginTop = '12px';
       function act(label, status, cls) {
         var bt = document.createElement('button'); if (cls) bt.className = cls; bt.textContent = label;
-        bt.onclick = function () { post({ action: 'bug_status', fp: fp, status: status, note: ta.value }).then(function (r2) { if (r2.status === 200) { closeBug(); loadBugs(); loadHealth(); } else alert(r2.j.error || 'Não foi possível salvar.'); }); };
+        bt.onclick = function () { post({ action: 'bug_status', fp: fp, status: status, note: ta.value }).then(function (r2) { if (r2.status === 200) { toast('Bug marcado como ' + status + '.', 'ok'); closeBug(); loadBugs(); loadHealth(); } else toast('Não foi possível salvar: ' + why(r2), 'bad'); }).catch(function () { toast('Sem conexão com o servidor. Nada foi salvo.', 'bad'); }); };
         bar.appendChild(bt);
       }
       act('Visto', 'seen'); act('Resolvido', 'resolved', 'primary'); act('Ignorar', 'ignored'); act('Reabrir', 'new');
@@ -701,7 +711,9 @@
   function loadCosts() { post({ action: 'costs' }).then(function (r) { if (r.status === 200) renderCosts(r.j); else fail(r.status); }).catch(function () {}); }
 
   // ---------------- Aparelhos (filtros combináveis) ----------------
-  var DEV_LABEL = { pl: 'Aparelho e navegador', 'in': 'Instalação', os: 'Sistema', sc: 'Tela', lg: 'Idioma', th: 'Tema', tc: 'Toque', mic: 'Microfone', nt: 'Notificações', v: 'Versão do app' };
+  var DEV_LABEL = { pl: 'Aparelho e navegador', 'in': 'Instalação', os: 'Sistema', sc: 'Tela', lg: 'Idioma', th: 'Tema', tc: 'Toque', mic: 'Microfone', nt: 'Notificações', v: 'Versão do app', geo: 'Região (aproximada)', tz: 'Fuso horário', mem: 'Memória do aparelho', cpu: 'Processador', net: 'Conexão', dpr: 'Densidade da tela' };
+  var BR_UF = { ac: 'Acre', al: 'Alagoas', ap: 'Amapá', am: 'Amazonas', ba: 'Bahia', ce: 'Ceará', df: 'Distrito Federal', es: 'Espírito Santo', go: 'Goiás', ma: 'Maranhão', mt: 'Mato Grosso', ms: 'Mato Grosso do Sul', mg: 'Minas Gerais', pa: 'Pará', pb: 'Paraíba', pr: 'Paraná', pe: 'Pernambuco', pi: 'Piauí', rj: 'Rio de Janeiro', rn: 'Rio Grande do Norte', rs: 'Rio Grande do Sul', ro: 'Rondônia', rr: 'Roraima', sc: 'Santa Catarina', sp: 'São Paulo', se: 'Sergipe', to: 'Tocantins' };
+  var PAISES = { br: 'Brasil', pt: 'Portugal', us: 'Estados Unidos', ar: 'Argentina', es: 'Espanha', fr: 'França', de: 'Alemanha', it: 'Itália', gb: 'Reino Unido', ca: 'Canadá', mx: 'México', cl: 'Chile', co: 'Colômbia', py: 'Paraguai', uy: 'Uruguai', ao: 'Angola', mz: 'Moçambique', jp: 'Japão' };
   var DEV_VAL = {
     'in': { app: 'App nativo', pwa: 'Instalado (PWA)', browser: 'Navegador' },
     sc: { celular: 'Celular', tablet: 'Tablet', pc: 'Computador' },
@@ -714,6 +726,12 @@
   function devName(f, v) {
     if (v === '-') return 'Não informado';
     if (f === 'os') { if (v === 'wold') return 'Windows antigo'; if (v === 'w10') return 'Windows 10/11'; if (v.charAt(0) === 'a') return 'Android ' + v.slice(1); if (v.charAt(0) === 'i') return 'iOS ' + v.slice(1); }
+    if (f === 'geo') { var g = v.split('-'); var pais = PAISES[g[0]] || g[0].toUpperCase(); if (g[0] === 'br' && g[1]) return 'Brasil · ' + (BR_UF[g[1]] || g[1].toUpperCase()); return g[1] ? pais + ' · ' + g[1].toUpperCase() : pais; }
+    if (f === 'tz') { if (v === 'z') return 'UTC±0'; var h = v.slice(1).replace('h', ':30'); return 'UTC' + (v.charAt(0) === 'm' ? '−' : '+') + h; }
+    if (f === 'mem') return v + ' GB ou mais';
+    if (f === 'cpu') return v.slice(1) + (v === 'c12' ? '+ núcleos' : ' núcleos');
+    if (f === 'net') return v === 'slow2g' ? '2G lenta' : v.toUpperCase();
+    if (f === 'dpr') return v === 'd1' ? 'Normal (1x)' : v === 'd2' ? 'Alta (2x)' : 'Muito alta (3x+)';
     var m = DEV_VAL[f]; return (m && m[v]) || v;
   }
   var devData = null, devFilter = {};
@@ -765,7 +783,7 @@
       var tr = document.createElement('tr');
       var a = document.createElement('td'); a.textContent = o.f.pl; tr.appendChild(a);
       var b = document.createElement('td');
-      ['in', 'os', 'sc', 'lg', 'th', 'mic', 'nt', 'v'].forEach(function (f) { if (o.f[f] !== '-') b.appendChild(tag(f === 'v' ? 'v ' + o.f[f] : (f === 'mic' ? 'mic: ' : f === 'nt' ? 'avisos: ' : '') + devName(f, o.f[f]))); });
+      ['geo', 'in', 'os', 'sc', 'lg', 'th', 'mic', 'nt', 'net', 'v'].forEach(function (f) { if (o.f[f] && o.f[f] !== '-') b.appendChild(tag(f === 'v' ? 'v ' + o.f[f] : (f === 'mic' ? 'mic: ' : f === 'nt' ? 'avisos: ' : '') + devName(f, o.f[f]))); });
       tr.appendChild(b);
       var c = document.createElement('td'); c.textContent = fmt(o.n); tr.appendChild(c);
       tb.appendChild(tr);
@@ -773,7 +791,7 @@
     if (!sel.length) { var tr0 = document.createElement('tr'), td0 = document.createElement('td'); td0.colSpan = 3; td0.className = 'empty'; td0.textContent = 'Nenhum aparelho com esses filtros.'; tr0.appendChild(td0); tb.appendChild(tr0); }
   }
   $('devDays').onchange = function () { loadDevices(); };
-  $('devClear').onclick = function () { devFilter = {}; renderDevices(); };
+  $('devClear').onclick = function () { devFilter = {}; renderDevices(); toast('Filtros limpos.', 'ok'); };
 
   // ---------------- Abas ----------------
   var current = 'overview', loaded = {};

@@ -80,8 +80,10 @@ Future<String?> webPushUnsubscribe() async {
 }
 
 /// Largura da tela (px CSS), idioma, modo escuro e toque: só categorias para as estatísticas.
-({int width, String lang, bool dark, bool touch}) webDeviceProbe() {
-  var width = 0, lang = '', dark = false, touch = false;
+({int width, String lang, bool dark, bool touch, double mem, int cpu, String net, double dpr}) webDeviceProbe() {
+  var width = 0, lang = '', dark = false, touch = false, cpu = 0;
+  var mem = 0.0, dpr = 0.0;
+  var net = '';
   try {
     width = globalContext.getProperty<JSNumber?>('innerWidth'.toJS)?.toDartInt ?? 0;
   } catch (_) {/* sem largura */}
@@ -89,12 +91,19 @@ Future<String?> webPushUnsubscribe() async {
     final nav = globalContext.getProperty<JSObject?>('navigator'.toJS);
     lang = nav?.getProperty<JSString?>('language'.toJS)?.toDart ?? '';
     touch = (nav?.getProperty<JSNumber?>('maxTouchPoints'.toJS)?.toDartInt ?? 0) > 0;
+    mem = nav?.getProperty<JSNumber?>('deviceMemory'.toJS)?.toDartDouble ?? 0; // só Chrome
+    cpu = nav?.getProperty<JSNumber?>('hardwareConcurrency'.toJS)?.toDartInt ?? 0;
+    final conn = nav?.getProperty<JSObject?>('connection'.toJS); // só Chrome
+    net = conn?.getProperty<JSString?>('effectiveType'.toJS)?.toDart ?? '';
   } catch (_) {/* sem idioma */}
+  try {
+    dpr = globalContext.getProperty<JSNumber?>('devicePixelRatio'.toJS)?.toDartDouble ?? 0;
+  } catch (_) {/* sem densidade */}
   try {
     final mq = globalContext.callMethod<JSObject?>('matchMedia'.toJS, '(prefers-color-scheme: dark)'.toJS);
     dark = mq?.getProperty<JSBoolean?>('matches'.toJS)?.toDart ?? false;
   } catch (_) {/* sem tema */}
-  return (width: width, lang: lang, dark: dark, touch: touch);
+  return (width: width, lang: lang, dark: dark, touch: touch, mem: mem, cpu: cpu, net: net, dpr: dpr);
 }
 
 /// O texto que o navegador diz ser (para separar Android/iPhone/computador e o navegador).

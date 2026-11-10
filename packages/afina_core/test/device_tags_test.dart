@@ -41,6 +41,33 @@ void main() {
     }
   });
 
+  test('fuso, memória, núcleos, conexão e densidade', () {
+    expect(tzTag(-180), 'm3');
+    expect(tzTag(0), 'z');
+    expect(tzTag(330), 'p5h');
+    expect(tzTag(60), 'p1');
+    expect(memTag(null), '-');
+    expect(memTag(0.5), '1');
+    expect(memTag(3), '2');
+    expect(memTag(4), '4');
+    expect(memTag(16), '8');
+    expect(cpuTag(null), '-');
+    expect(cpuTag(2), 'c2');
+    expect(cpuTag(6), 'c8');
+    expect(cpuTag(16), 'c12');
+    expect(netTag('4g'), '4g');
+    expect(netTag('slow-2g'), 'slow2g');
+    expect(netTag('wifi'), '-');
+    expect(dprTag(1.0), 'd1');
+    expect(dprTag(2.0), 'd2');
+    expect(dprTag(3.5), 'd3');
+    expect(dprTag(null), '-');
+    final re = RegExp(r'^[a-z0-9-]{1,10}$');
+    for (final t in [tzTag(-210), tzTag(765), memTag(8), cpuTag(12), netTag('slow-2g'), dprTag(2)]) {
+      expect(re.hasMatch(t), isTrue, reason: t);
+    }
+  });
+
   test('permissão de notificação', () {
     expect(notifTag(false, 'granted'), 'na');
     expect(notifTag(true, 'granted'), 'sim');

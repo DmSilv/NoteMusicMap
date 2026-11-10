@@ -9,4 +9,5 @@ Future<String?> webPushUnsubscribe() async => null;
 String webUserAgent() => '';
 
 /// Largura da tela (px CSS), idioma, modo escuro e toque; fora da web não há o que medir.
-({int width, String lang, bool dark, bool touch}) webDeviceProbe() => (width: 0, lang: '', dark: false, touch: false);
+({int width, String lang, bool dark, bool touch, double mem, int cpu, String net, double dpr}) webDeviceProbe() =>
+    (width: 0, lang: '', dark: false, touch: false, mem: 0, cpu: 0, net: '', dpr: 0);
