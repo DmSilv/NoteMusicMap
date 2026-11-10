@@ -126,6 +126,12 @@ function memCmd(a) {
       }
       return n;
     }
+    case 'PING':
+      return 'PONG';
+    case 'DBSIZE':
+      return hashes.size + sets.size + zsets.size + lists.size;
+    case 'INFO':
+      return '# Memory\r\nused_memory:1048576\r\nmaxmemory:268435456\r\n# Stats\r\ntotal_commands_processed:1234\r\n';
     case 'HLEN':
       return (hashes.get(key) || new Map()).size;
     case 'HGET':

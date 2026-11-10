@@ -32,6 +32,7 @@
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Para lembretes | Web Push (gerar com `node scripts/gen_vapid.js`; a privada nunca vai ao chat) |
 | `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY`, `QSTASH_URL` | Para lembretes | Agendamento e verificação de assinatura |
 | `APP_BASE_URL` | Opcional | Endereço público (padrão `https://notemusicmap.vercel.app`) |
+| `VERCEL_GIT_COMMIT_SHA`, `VERCEL_ENV`, `VERCEL_REGION` | Automáticas (a Vercel preenche) | A aba Sistema do painel mostra a versão publicada, o ambiente e a região |
 | `geminiAPI`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GROQ_API_KEY`, `MISTRAL_API_KEY`, `OPENROUTER_API_KEY` | Pelo menos uma para a IA | Chaves dos serviços de IA (as que existirem ficam ativas) |
 | `AI_PROVIDERS`, `AI_RPM`, `AI_RPM_<ID>`, `AI_RPD`, `AI_USER_DAILY`, `AI_COOLDOWN_S`, `AI_MAX_WAIT_MS`, `AI_TICKET_SECRET`, `GEMINI_MODEL` | Opcionais | Afinar a IA (quais, limites, fila, modelo) |
 | `ERRORS_DISABLED`, `ERRORS_DAILY_CAP` | Opcionais | Desligar/limitar relatórios de erro |

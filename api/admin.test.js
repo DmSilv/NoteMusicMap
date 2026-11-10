@@ -218,3 +218,39 @@ test('ação desconhecida e corpo inválido', async () => {
   await H.a({ method: 'POST', headers: { authorization: 'Bearer ' + KEY }, body: 'não é json', socket: {} }, res);
   assert.equal(res.statusCode, 400);
 });
+
+// ---------------- Sistema: banco, servidor, variáveis e limites ----------------
+test('sistema: teste do banco, versão, variáveis e limites, sem vazar segredos', async () => {
+  const H = mk();
+  const r = await adm(H, { action: 'system' });
+  assert.equal(r.statusCode, 200);
+  const j = r.json();
+  assert.equal(j.ok, true);
+  assert.equal(j.db.ok, true);
+  assert.equal(typeof j.db.ms, 'number');
+  assert.equal(j.db.memoryMode, true, 'sem Redis real: modo de teste');
+  assert.equal(j.server.functions.max, 12);
+  assert.equal(j.server.serverErrors.length, 14);
+  assert.equal(j.limits.redisMonth, 500000);
+  const byId = Object.fromEntries(j.checks.map((c) => [c.id, c]));
+  assert.equal(byId.admin.ok, true);
+  assert.equal(byId.redis.ok, false, 'sem URL/token do Redis');
+  assert.equal(byId.redis.required, true);
+  assert.equal(byId.qstash.ok, false);
+  assert.equal(byId.qstash.required, false);
+  assert.equal(JSON.stringify(j).includes(KEY), false, 'a chave do painel nunca aparece');
+});
+
+test('sistema: só com a chave certa', async () => {
+  const H = mk();
+  assert.equal((await adm(H, { action: 'system' }, 'errada')).statusCode, 401);
+});
+
+test('sistema: erros do servidor aparecem por dia', async () => {
+  const H = mk();
+  const { serverError } = require('./_lib/error_store');
+  const cfg = config({ ADMIN_KEY: KEY });
+  await serverError({ cfg, fetchImpl: async () => ({ status: 200 }), clock: () => NOW, allowMemory: true }, 'link', new Error('falha de teste'));
+  const j = (await adm(H, { action: 'system' })).json();
+  assert.equal(j.server.serverErrors.reduce((a, d) => a + d.srv, 0) >= 1, true);
+});

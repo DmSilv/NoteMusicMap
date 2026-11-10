@@ -29,5 +29,8 @@
 | `VAPID_PRIVATE_KEY` | config.js |
 | `VAPID_PUBLIC_KEY` | config.js |
 | `VAPID_SUBJECT` | config.js |
+| `VERCEL_ENV` | admin.js |
+| `VERCEL_GIT_COMMIT_SHA` | admin.js |
+| `VERCEL_REGION` | admin.js |
 
-Total: **24** variáveis. Para o que cada uma faz e quais são obrigatórias, veja `docs/08_OPERACAO.md`.
+Total: **27** variáveis. Para o que cada uma faz e quais são obrigatórias, veja `docs/08_OPERACAO.md`.

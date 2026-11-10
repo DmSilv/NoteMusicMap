@@ -19,6 +19,7 @@ Funções hoje: **8 de 12**.
   bugs {days,sev,status,ver,plat,code,q,offset}  bugs agrupados (relatórios de erro do app), com filtros
   bug {fp}                   um bug: pilha, trilha, ambiente, últimas ocorrências, tendência
   bug_status {fp,status,note?}  marca como seen | resolved | ignored | new (e anota)
+  system                     banco (teste de conexão, tamanho), servidor (versão, erros), variáveis configuradas e limites
   log                        últimas ações do administrador
 
 Não há cadastro nem login no app: "usuário" = perfil anônimo (código + apelido). O apelido pertence
@@ -35,6 +36,7 @@ Custo: só quando o admin abre o painel (kpis ~35 comandos; lista de 25 = ~27; d
 | `delete` | Excluir |
 | `bugs` | Bugs (relatórios de erro do app) |
 | `health` | Saúde (semáforo do painel) |
+| `system` | Sistema: banco, servidor, variáveis e limites Custo: 3 comandos de teste + 14 leituras de erros (só quando o admin abre a aba Sistema). |
 | `costs` | Custos (estimativa de comandos do Redis) |
 | `bug` | — |
 | `bug_status` | — |

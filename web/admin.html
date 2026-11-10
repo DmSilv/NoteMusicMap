@@ -125,6 +125,7 @@
       <h1>Notemusic · Painel</h1>
       <button class="pill" id="healthPill" title="Saúde do app"><span class="dot" id="healthDot"></span><span id="healthTxt">Verificando…</span></button>
       <span class="pill" style="cursor:default"><span class="dot" id="dot"></span><span id="liveTxt">—</span></span>
+      <button class="pill" id="sysPill" title="Banco de dados e limites"><span class="dot" id="sysDot"></span><span id="sysTxt">Sistema…</span></button>
       <button id="refresh">Atualizar</button>
       <button id="out">Sair</button>
     </header>
@@ -136,6 +137,7 @@
       <button data-tab="people">Pessoas</button>
       <button data-tab="bugs">Bugs <span id="bugBadge" class="tag x" hidden></span></button>
       <button data-tab="costs">Custos</button>
+      <button data-tab="system">Sistema</button>
     </nav>
 
     <!-- ===== Visão geral ===== -->
@@ -253,6 +255,28 @@
       <p class="note">Cada aparelho entra uma vez por dia, com uma "ficha" só de categorias (nada de nome, código, som ou IP). A região é aproximada (país e estado, pelo servidor) e não é GPS. Aparelhos antigos, que ainda não atualizaram o app, aparecem como "Não informado" nos campos novos.</p>
     </main>
 
+    <!-- ===== Sistema ===== -->
+    <main id="tab-system" hidden>
+      <h2>Banco de dados (Redis) <button class="help" data-def="sysdb">?</button></h2>
+      <div class="two">
+        <div class="card"><div class="k"><span>Conexão</span><span id="sDbPill">–</span></div><div class="v" id="sDbMs">–</div><div class="s" id="sDbSub"></div></div>
+        <div class="card"><div class="k"><span>Dados guardados</span></div><div class="v" id="sKeys">–</div><div class="s" id="sMem"></div></div>
+      </div>
+      <h2>Servidor (Vercel) <button class="help" data-def="sysserver">?</button></h2>
+      <div class="two">
+        <div class="card"><div class="k"><span>Versão publicada</span></div><div class="v" id="sCommit">–</div><div class="s" id="sEnv"></div></div>
+        <div class="card"><div class="k"><span>Funções usadas</span></div><div class="v" id="sFns">–</div><div class="meter"><i id="sFnsBar" style="width:0%"></i></div><div class="s">limite de 12 no plano gratuito</div></div>
+      </div>
+      <div class="card" style="margin-top:12px"><div class="k"><span>Erros do servidor por dia (14 dias)</span><span id="sSrvTot">–</span></div><div class="bars" id="sSrv"></div><div class="axis"><span id="sSrvA"></span><span id="sSrvB"></span></div></div>
+      <h2>Limites e gasto <button class="help" data-def="syslimits">?</button></h2>
+      <div class="card" id="sLimits"></div>
+      <h2>Variáveis configuradas <button class="help" data-def="syschecks">?</button></h2>
+      <div class="card" id="sChecks"></div>
+      <h2>Serviços de IA</h2>
+      <div class="card" id="sAi"></div>
+      <p class="note">Estimativa onde estiver escrito "estimado": o uso exato do Redis e da Vercel só aparece com as chaves de API desses serviços, que ainda não estão ligadas. Banco, versão, variáveis e erros do servidor são medidos de verdade.</p>
+    </main>
+
     <!-- ===== Custos ===== -->
     <main id="tab-costs" hidden>
       <h2>Comandos do Redis no mês (estimativa) <button class="help" data-def="cost">?</button></h2>
@@ -294,6 +318,10 @@
     heatmap: ['Quando usam', 'Aberturas do app por dia da semana e hora (Brasília) nos últimos 30 dias; quanto mais claro, mais aberturas. Os dados por hora começaram a ser coletados depois da atualização do painel, então o mapa vai se completando.'],
     medals: ['Conquistas', 'Marcos de uso. Servem para comemorar e para lembrar o que já foi alcançado.'],
     devices: ['Aparelhos', 'Filtre os aparelhos por tipo (celular, tablet, computador), sistema e versão, navegador, instalação, idioma, tema, toque, microfone, notificações e versão do app. Os filtros se combinam: por exemplo, Android + celular + notificações negadas. Cada aparelho conta uma vez por dia; no período de 7 ou 30 dias, o mesmo aparelho pode aparecer em mais de um dia.'],
+    sysdb: ['Banco de dados', 'Teste de conexão feito agora: o tempo de resposta do Redis (verde até 300 ms, amarelo até 1 s). "Dados guardados" é o número de chaves; a memória aparece só se o plano informar.'],
+    sysserver: ['Servidor', 'A versão publicada é o código (commit) que está no ar agora, informado pela própria Vercel. As funções do app contam para o limite do plano gratuito (12). Os erros do servidor vêm dos relatórios automáticos.'],
+    syslimits: ['Limites e gasto', 'Cada barra mostra quanto de um limite já foi usado: verde até 70%, amarelo até 90%, vermelho acima. Redis do mês é ESTIMADO a partir dos contadores do app. Para o número exato, a Upstash precisa de uma chave de API (opcional).'],
+    syschecks: ['Variáveis configuradas', 'Mostra se cada serviço tem as variáveis na Vercel. "Obrigatório" sem variável quebra o app; os opcionais só desligam o recurso (lembretes, notificações, IA).'],
     origin: ['De onde vieram', 'Cada link de divulgação leva uma marca no fim (ex.: ?o=yt para YouTube, ?o=ig Instagram, ?o=tt TikTok, ?o=zap WhatsApp, ?o=site página /sobre). O app guarda a do PRIMEIRO acesso do aparelho e avisa uma vez por dia; aqui aparecem os aparelhos de hoje por origem. Sem marca = acesso direto.'],
     bugs: ['Bugs', 'Erros do app e do servidor agrupados pelo mesmo problema. "Graves" derrubam algo importante; "de ação" falharam numa ação; "de conexão" são falhas de internet.'],
     rate100: ['Erros por 100 aberturas', 'Erros de hoje divididos pelas aberturas de hoje, vezes 100. Acima de 5 o painel fica em atenção. Só aparece com pelo menos 20 aberturas.'],
@@ -793,11 +821,89 @@
   $('devDays').onchange = function () { loadDevices(); };
   $('devClear').onclick = function () { devFilter = {}; renderDevices(); toast('Filtros limpos.', 'ok'); };
 
+  // ---------------- Sistema ----------------
+  function lvl(p) { return p >= 90 ? 'bad' : p >= 70 ? 'warn' : 'ok'; }
+  function lvlColor(l) { return l === 'bad' ? 'var(--bad)' : l === 'warn' ? '#e6b450' : 'var(--accent)'; }
+  function limitRow(box, name, used, max, estimated, unit) {
+    var p = max ? Math.min(100, Math.round((used / max) * 1000) / 10) : 0, l = lvl(p);
+    var row = document.createElement('div'); row.style.margin = '10px 0';
+    var h = document.createElement('div'); h.className = 'k';
+    var a = document.createElement('span'); a.textContent = name + (estimated ? ' (estimado)' : '');
+    var b = document.createElement('span'); b.textContent = fmt(used) + ' de ' + fmt(max) + (unit ? ' ' + unit : '') + ' · ' + p + '%'; b.style.color = lvlColor(l);
+    h.appendChild(a); h.appendChild(b);
+    var m = document.createElement('div'); m.className = 'meter'; var i = document.createElement('i'); i.style.width = p + '%'; i.style.background = lvlColor(l); m.appendChild(i);
+    row.appendChild(h); row.appendChild(m); box.appendChild(row);
+    return l;
+  }
+  var sysState = { sys: null, costs: null };
+  function sysPillUpdate() {
+    var s = sysState.sys, c = sysState.costs;
+    if (!s) return;
+    var worst = 'ok', txt = [];
+    var dbl = !s.db.ok ? 'bad' : s.db.ms > 1000 ? 'bad' : s.db.ms > 300 ? 'warn' : 'ok';
+    txt.push(s.db.ok ? 'Banco ' + Math.round(s.db.ms) + ' ms' : 'Banco FORA');
+    var lv = [dbl];
+    if (c) { lv.push(lvl(c.pct)); txt.push('Redis ' + Math.round(c.pct) + '%'); }
+    if (s.server.functions.used != null) lv.push(lvl((s.server.functions.used / s.server.functions.max) * 100));
+    s.checks.forEach(function (x) { if (x.required && !x.ok) lv.push('bad'); });
+    lv.forEach(function (x) { if (x === 'bad') worst = 'bad'; else if (x === 'warn' && worst !== 'bad') worst = 'warn'; });
+    $('sysTxt').textContent = txt.join(' · ');
+    $('sysDot').style.background = lvlColor(worst);
+    $('sysPill').title = 'Banco de dados e limites do plano. Toque para detalhes.';
+  }
+  function renderSystem() {
+    var s = sysState.sys, c = sysState.costs;
+    if (!s) return;
+    var dbl = !s.db.ok ? 'bad' : s.db.ms > 1000 ? 'bad' : s.db.ms > 300 ? 'warn' : 'ok';
+    $('sDbPill').textContent = !s.db.ok ? 'sem resposta' : dbl === 'ok' ? 'normal' : 'lento'; $('sDbPill').style.color = lvlColor(dbl);
+    $('sDbMs').textContent = s.db.ok ? s.db.ms + ' ms' : '—';
+    $('sDbSub').textContent = s.db.memoryMode ? 'Modo de teste (memória): o Redis real não está ligado.' : 'tempo de resposta de um teste feito agora';
+    $('sKeys').textContent = s.db.keys == null ? '—' : fmt(s.db.keys) + ' chaves';
+    var mem = []; if (s.db.usedMemory != null) mem.push('memória ' + (s.db.usedMemory / 1048576).toFixed(1) + ' MB' + (s.db.maxMemory ? ' de ' + Math.round(s.db.maxMemory / 1048576) + ' MB' : ''));
+    if (s.db.commandsProcessed != null) mem.push(fmt(s.db.commandsProcessed) + ' comandos desde que o banco iniciou');
+    $('sMem').textContent = mem.length ? mem.join(' · ') : 'o plano não informa a memória usada';
+    $('sCommit').textContent = s.server.commit || 'desconhecida';
+    $('sEnv').textContent = [s.server.env ? 'ambiente ' + s.server.env : '', s.server.region ? 'região ' + s.server.region : '', s.server.node].filter(Boolean).join(' · ');
+    var f = s.server.functions; $('sFns').textContent = f.used == null ? '? de ' + f.max : f.used + ' de ' + f.max;
+    var fp = f.used == null ? 0 : Math.round((f.used / f.max) * 100); $('sFnsBar').style.width = fp + '%'; $('sFnsBar').style.background = lvlColor(lvl(fp));
+    var sv = s.server.serverErrors || [];
+    bars($('sSrv'), sv.map(function (d) { return d.srv; }), sv.map(function (d) { return dm(d.day); }), true);
+    $('sSrvTot').textContent = sv.reduce(function (a, d) { return a + d.srv; }, 0) + ' falhas';
+    if (sv.length) { $('sSrvA').textContent = dm(sv[0].day); $('sSrvB').textContent = dm(sv[sv.length - 1].day); }
+    var lb = $('sLimits'); lb.innerHTML = '';
+    if (c) limitRow(lb, 'Comandos do Redis no mês', c.month, c.budget, true, '');
+    if (c) limitRow(lb, 'Projeção para 30 dias', c.projection, c.budget, true, '');
+    if (f.used != null) limitRow(lb, 'Funções da Vercel', f.used, f.max, false, '');
+    if (!c) { var e = document.createElement('div'); e.className = 'empty'; e.textContent = 'Carregando estimativa de gasto…'; lb.appendChild(e); }
+    var cb = $('sChecks'); cb.innerHTML = '';
+    s.checks.forEach(function (x) {
+      var r = document.createElement('div'); r.className = 'row'; r.style.alignItems = 'flex-start';
+      var n = document.createElement('span'); n.className = 'n'; n.style.width = '230px'; n.textContent = (x.ok ? '✓ ' : x.required ? '✗ ' : '○ ') + x.label;
+      var t = document.createElement('span'); t.style.flex = '1'; t.style.color = x.ok ? 'var(--accent)' : x.required ? 'var(--bad)' : 'var(--dim)';
+      t.textContent = x.ok ? 'configurado' : (x.required ? 'FALTA (obrigatório): ' : 'não configurado (opcional): ') + x.hint;
+      r.appendChild(n); r.appendChild(t); cb.appendChild(r);
+    });
+    var ab = $('sAi'); ab.innerHTML = '';
+    s.ai.forEach(function (x) {
+      var r = document.createElement('div'); r.className = 'row';
+      var n = document.createElement('span'); n.className = 'n'; n.style.width = '230px'; n.textContent = (x.on ? '✓ ' : '○ ') + x.label;
+      var t = document.createElement('span'); t.style.flex = '1'; t.style.color = x.on ? 'var(--text)' : 'var(--dim)'; t.textContent = x.on ? 'ligada · até ' + x.rpm + ' pedidos por minuto' : 'sem chave';
+      r.appendChild(n); r.appendChild(t); ab.appendChild(r);
+    });
+    sysPillUpdate();
+  }
+  function loadSystem() {
+    setUpd('Atualizando o sistema…', false);
+    post({ action: 'system' }).then(function (r) { if (r.status === 200) { sysState.sys = r.j; renderSystem(); setUpd('', false); } else if (!fail(r.status)) setUpd('Não foi possível ler o sistema (erro ' + r.status + '). Toque para tentar de novo.', true); }).catch(function () { setUpd('Sem conexão com o servidor. Toque para tentar de novo.', true); });
+    post({ action: 'costs' }).then(function (r) { if (r.status === 200) { sysState.costs = r.j; renderSystem(); } }).catch(function () {});
+  }
+  $('sysPill').onclick = function () { showTab('system'); loaded.system = true; loadSystem(); };
+
   // ---------------- Abas ----------------
   var current = 'overview', loaded = {};
   function showTab(name) {
     current = name;
-    ['overview', 'usage', 'devices', 'people', 'bugs', 'costs'].forEach(function (t) { $('tab-' + t).hidden = t !== name; });
+    ['overview', 'usage', 'devices', 'people', 'bugs', 'costs', 'system'].forEach(function (t) { $('tab-' + t).hidden = t !== name; });
     var bs = $('tabs').querySelectorAll('button'); for (var i = 0; i < bs.length; i++) bs[i].className = bs[i].getAttribute('data-tab') === name ? 'on' : '';
     if (!loaded[name]) { loaded[name] = true; loadTab(name); }
     window.scrollTo(0, 0);
@@ -807,6 +913,7 @@
     if (name === 'bugs') loadBugs();
     if (name === 'costs') loadCosts();
     if (name === 'devices') loadDevices();
+    if (name === 'system') loadSystem();
   }
   $('tabs').onclick = function (e) { var t = e.target; if (t && t.getAttribute && t.getAttribute('data-tab')) showTab(t.getAttribute('data-tab')); };
 
@@ -824,6 +931,8 @@
   function start() {
     show(true); loaded = {}; showTab('overview'); loaded.overview = true;
     loadFull(); loadHealth(); loadKpis();
+    post({ action: 'system' }).then(function (r) { if (r.status === 200) { sysState.sys = r.j; sysPillUpdate(); } }).catch(function () {});
+    post({ action: 'costs' }).then(function (r) { if (r.status === 200) { sysState.costs = r.j; sysPillUpdate(); } }).catch(function () {});
     clearInterval(liveTimer); clearInterval(fullTimer);
     // "Online agora" a cada 30 s e o resto a cada 5 min, só com a aba à frente (poupa o servidor).
     liveTimer = setInterval(loadLive, 30000);

@@ -9,6 +9,7 @@
 //   bugs {days,sev,status,ver,plat,code,q,offset}  bugs agrupados (relatórios de erro do app), com filtros
 //   bug {fp}                   um bug: pilha, trilha, ambiente, últimas ocorrências, tendência
 //   bug_status {fp,status,note?}  marca como seen | resolved | ignored | new (e anota)
+//   system                     banco (teste de conexão, tamanho), servidor (versão, erros), variáveis configuradas e limites
 //   log                        últimas ações do administrador
 //
 // Não há cadastro nem login no app: "usuário" = perfil anônimo (código + apelido). O apelido pertence
@@ -358,6 +359,63 @@ function makeHandler(deps = {}) {
         return send(200, {
           ok: true, level, reasons, errorsToday: today.total || 0, criticalToday: today.critical || 0, serverToday: today.srv || 0,
           opensToday: opens, per100, last2h, cleanDays: clean, cleanCapped: clean >= days.length - 1,
+        });
+      }
+
+      // ---------------- Sistema: banco, servidor, variáveis e limites ----------------
+      // Custo: 3 comandos de teste + 14 leituras de erros (só quando o admin abre a aba Sistema).
+      if (action === 'system') {
+        const t0 = process.hrtime.bigint();
+        let pong = null;
+        try { pong = await cmd.cmd(['PING']); } catch (_) { pong = null; }
+        const ms = Math.round(Number(process.hrtime.bigint() - t0) / 1e5) / 10;
+        let keys = null;
+        const info = {};
+        try { const n = Number(await cmd.cmd(['DBSIZE'])); keys = Number.isFinite(n) ? n : null; } catch (_) { /* sem DBSIZE */ }
+        try {
+          const raw = await cmd.cmd(['INFO']);
+          if (typeof raw === 'string') {
+            for (const line of raw.split(/\r?\n/)) {
+              const mm = /^(used_memory|maxmemory|total_commands_processed|uptime_in_seconds):(\d+)/.exec(line);
+              if (mm) info[mm[1]] = Number(mm[2]);
+            }
+          }
+        } catch (_) { /* o plano pode não expor INFO */ }
+        const dk = [];
+        for (let i = 13; i >= 0; i--) dk.push(errDay(now - i * DAY));
+        let srv = [];
+        try {
+          const hs = await cmd.pipeline(dk.map((d2) => ['HGETALL', EK.daily(d2)]));
+          srv = hs.map((flat, i) => { let n = 0, tot = 0; for (let j = 0; j + 1 < (flat || []).length; j += 2) { if (flat[j] === 'srv') n = Number(flat[j + 1]) || 0; if (flat[j] === 'total') tot = Number(flat[j + 1]) || 0; } return { day: dk[i], srv: n, total: tot }; });
+        } catch (_) { srv = []; }
+        let fnCount = null;
+        try {
+          fnCount = require('node:fs').readdirSync(__dirname).filter((f) => f.endsWith('.js') && !f.endsWith('.test.js')).length;
+        } catch (_) { fnCount = null; }
+        const env = cfg.env || {};
+        const providers = Object.keys(cfg.keys || {});
+        const checks = [
+          { id: 'admin', label: 'Chave do painel', ok: !!cfg.adminKey, required: true, hint: 'ADMIN_KEY' },
+          { id: 'redis', label: 'Banco de dados (Redis)', ok: !!(cfg.redisUrl && cfg.redisToken), required: true, hint: 'UPSTASH_REDIS_REST_URL e UPSTASH_REDIS_REST_TOKEN' },
+          { id: 'qstash', label: 'Lembretes agendados (QStash)', ok: !!(cfg.qstash && cfg.qstash.token && cfg.qstash.currentKey && cfg.qstash.nextKey), required: false, hint: 'QSTASH_TOKEN, QSTASH_CURRENT_SIGNING_KEY e QSTASH_NEXT_SIGNING_KEY' },
+          { id: 'vapid', label: 'Notificações no celular (VAPID)', ok: !!(cfg.vapid && cfg.vapid.publicKey && cfg.vapid.privateKey), required: false, hint: 'VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY' },
+          { id: 'ai', label: 'Inteligência artificial', ok: providers.length > 0, required: false, hint: 'ao menos uma chave: GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY…' },
+          { id: 'errors', label: 'Relatórios de erro ligados', ok: cfg.errorsEnabled !== false, required: false, hint: 'ERRORS_DISABLED não pode ser 1' },
+        ];
+        const ai = Object.keys(cfg.rpm || {}).map((id) => ({ id, label: (require('./_lib/config').LABELS || {})[id] || id, on: providers.includes(id), rpm: cfg.rpm[id] }));
+        return send(200, {
+          ok: true, now,
+          db: { ok: pong === 'PONG', ms, keys, usedMemory: info.used_memory ?? null, maxMemory: info.maxmemory ?? null, commandsProcessed: info.total_commands_processed ?? null, memoryMode: !(cfg.redisUrl && cfg.redisToken) },
+          server: {
+            functions: { used: fnCount, max: 12 },
+            node: process.version,
+            region: env.VERCEL_REGION || null,
+            env: env.VERCEL_ENV || null,
+            commit: env.VERCEL_GIT_COMMIT_SHA ? String(env.VERCEL_GIT_COMMIT_SHA).slice(0, 7) : null,
+            serverErrors: srv,
+          },
+          checks, ai,
+          limits: { redisMonth: BUDGET, functions: 12, qstashDay: 500, errorsDay: cfg.errorsDailyCap },
         });
       }
 
