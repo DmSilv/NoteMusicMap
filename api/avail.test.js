@@ -207,3 +207,17 @@ test('desvincular: a aula pegada some do aluno', async () => {
   assert.equal((await as(h, ALU, { action: 'sched' })).json().slots.length, 0);
   assert.equal((await as(h, PROF, { action: 'picks' })).json().slots.length, 0, 'sem vínculo, o professor também não recebe');
 });
+
+test('desvincular limpa a trava dos horários pegos por esse aluno (e só dele)', async () => {
+  const h = mk();
+  await vincula(h);
+  await vincula(h, ALU2);
+  await put(h, open('h1'));
+  await put(h, open('h2', { s: NOW + 5 * DAY }));
+  await take(h, 'h1', ALU);
+  await take(h, 'h2', ALU2);
+  const { hashes } = require('./_lib/store');
+  assert.equal(hashes.get('tk:' + PROF).size, 2);
+  await as(h, ALU, { action: 'unlink', role: 'student', other: PROF });
+  assert.deepEqual([...hashes.get('tk:' + PROF).entries()], [['h2', ALU2]]);
+});

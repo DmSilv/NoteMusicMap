@@ -54,8 +54,10 @@ Legenda: ⬜ a fazer · 🟨 em andamento · ✅ pronto (local) · 🚀 publicad
 - **Testes:** índice de perfis, atividade, retenção, CRUD e segurança (API), proteção da chave de admin.
 - **Feito:** `api/_lib/profiles.js` (índice: entrou em, última atividade com gravação no máximo a cada 6 h, papéis); `api/admin.js` (`kpis`, `list`, `detail`, `block`/`unblock`, `delete` com confirmação digitando o código, `log`); bloqueio devolve 403 `blocked` em todo o vínculo online; painel `web/admin.html` com indicadores, lista com busca por trecho do código, detalhe e registro. O apelido não é editável pelo painel (pertence ao usuário e voltaria no próximo sync). Perfis antigos entram no índice na primeira atividade depois da publicação ("entrou em" = primeira vez visto). Custo: só quando o admin abre o painel (kpis ~35 comandos, lista ~27, detalhe ~12); para os usuários, +3 comandos por perfil novo e ≤1 gravação (2–4 comandos) a cada 6 h por perfil ativo.
 
-### Etapa 6 · Endurecimento final — 🟨 em andamento
+### Etapa 6 · Endurecimento final — 🟨 pronta, aguardando publicação
 - Revisão de custo de Redis por ação e de polling; limites; textos; acessibilidade; regressão completa (núcleo + API + roteiro manual); atualizar este documento.
+- **Feito:** tabela de custos, limites e crescimento de dados + roteiro manual de regressão em `docs/CUSTOS_E_REGRESSAO.md`; limpeza da trava `tk:` ao desvincular (com teste); regressão automática completa (núcleo 453, API 140, analyze limpo).
+- **Fica de fora (backlog):** sincronizar Meu espaço × Agenda, regra das aulas mais estruturada, modal de notificações, revisão de acessibilidade com leitor de tela real e testes em aparelhos reais (push, pedal).
 
 ## Decisões já tomadas
 - **Sem cadastro/login** (decisão do Daniel, 09/11): administrador trabalha com perfis anônimos (código, apelido, entrou em, última atividade, papel, vínculos, uso).

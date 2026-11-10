@@ -598,6 +598,9 @@ function makeHandler(deps = {}) {
         for (const fld of Object.keys(await store.hgetall(dk))) {
           if (fld.startsWith(`${student}:`)) await store.hdel(dk, fld);
         }
+        // A trava de horários pegos por esse aluno com esse professor (libera o espaço no Redis).
+        const tk = await store.hgetall(TK(teacher));
+        for (const [sid, who] of Object.entries(tk)) if (who === student) await store.hdel(TK(teacher), sid);
         // E as decisões desse professor sobre as tarefas desse aluno.
         const vk = VD(student);
         for (const fld of Object.keys(await store.hgetall(vk))) {
