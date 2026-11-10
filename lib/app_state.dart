@@ -1055,6 +1055,20 @@ class AppState extends ChangeNotifier {
 
   /// ALUNO: pega o horário [slot] do professor [teacher]. Devolve o motivo se não der; null se pegou.
   Future<String?> takeOpenSlot(String teacher, ClassSlot slot) async {
+    // Trava contra toque duplo: só um pedido por vez (o servidor também impede dois alunos, mas assim
+    // o mesmo aluno não dispara duas aulas).
+    if (_taking) return 'Aguarde: o pedido anterior ainda está sendo enviado.';
+    _taking = true;
+    try {
+      return await _takeOpenSlot(teacher, slot);
+    } finally {
+      _taking = false;
+    }
+  }
+
+  bool _taking = false;
+
+  Future<String?> _takeOpenSlot(String teacher, ClassSlot slot) async {
     final now = DateTime.now().millisecondsSinceEpoch;
     final mine = myAgenda.where((s) => s.teacherCode == teacher && s.nextStart(now) != null).length;
     final p = checkPick(slot, teacherClasses: const [], studentUpcoming: mine, nowMs: now);

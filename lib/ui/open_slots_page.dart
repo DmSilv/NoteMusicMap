@@ -30,6 +30,21 @@ class OpenSlotsPage extends StatefulWidget {
 class _OpenSlotsPageState extends State<OpenSlotsPage> {
   AppState get app => widget.app;
 
+  Future<void> _remove(ClassSlot s) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Apagar este horário?'),
+        content: Text('${describeOpenSlot(s)}\n\nOs alunos deixam de vê-lo. Aulas já marcadas não mudam.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Voltar')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Apagar')),
+        ],
+      ),
+    );
+    if (ok == true) app.removeOpenSlot(s.id);
+  }
+
   Future<void> _add() async {
     final slot = await showDialog<ClassSlot>(context: context, builder: (_) => const _NewOpenSlotDialog());
     if (slot == null || !mounted) return;
@@ -74,7 +89,7 @@ class _OpenSlotsPageState extends State<OpenSlotsPage> {
                         IconButton(
                           tooltip: 'Apagar horário',
                           icon: const Icon(Icons.delete_outline),
-                          onPressed: () => app.removeOpenSlot(s.id),
+                          onPressed: () => _remove(s),
                         ),
                       ]),
                     ),
@@ -191,6 +206,7 @@ class _PickSlotPageState extends State<PickSlotPage> {
   List<ClassSlot>? slots;
   bool loading = false;
   bool failed = false;
+  bool taking = false;
 
   @override
   void initState() {
@@ -230,9 +246,13 @@ class _PickSlotPageState extends State<PickSlotPage> {
       ),
     );
     if (ok != true || !mounted) return;
+    setState(() => taking = true);
     final err = await app.takeOpenSlot(teacher!, s);
     app.say(err ?? 'Pronto! A aula entrou na sua agenda.');
-    if (mounted) _load();
+    if (mounted) {
+      setState(() => taking = false);
+      _load();
+    }
   }
 
   @override
@@ -282,7 +302,7 @@ class _PickSlotPageState extends State<PickSlotPage> {
                       Icon(s.weekly ? Icons.repeat : Icons.event_available_outlined, color: AppColors.accent),
                       const SizedBox(width: 12),
                       Expanded(child: Text(describeOpenSlot(s), style: const TextStyle(fontWeight: FontWeight.w700))),
-                      FilledButton(onPressed: () => _take(s), child: const Text('Pegar')),
+                      FilledButton(onPressed: taking ? null : () => _take(s), child: Text(taking ? 'Enviando…' : 'Pegar')),
                     ]),
                   ),
                 ),

@@ -54,7 +54,8 @@ const TASK_KINDS = ['scale', 'method', 'repertoire', 'free'];
 
 /** Código "XXXX-XXXX" válido (mesma verificação do app) ou null. */
 function normCode(s) {
-  const t = String(s || '').toUpperCase().replace(/[\s-]/g, '');
+  if (typeof s !== 'string') return null; // só texto: lista ou objeto não viram código
+  const t = s.toUpperCase().replace(/[\s-]/g, '');
   if (t.length !== 8) return null;
   for (const c of t) if (!ALPHABET.includes(c)) return null;
   let sum = 0;
