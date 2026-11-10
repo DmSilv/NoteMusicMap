@@ -167,6 +167,7 @@
         <div class="card"><div class="k">Aparelho e navegador</div><div id="dPl"></div></div>
         <div class="card"><div class="k">Como abriu</div><div id="dIn"></div></div>
         <div class="card"><div class="k">Versão do app</div><div id="dV"></div></div>
+        <div class="card"><div class="k"><span>De onde vieram (marca ?o= do link)</span><button class="help" data-def="origin">?</button></div><div id="dO"></div></div>
         <div class="card"><div class="k">Abas abertas (aparelhos distintos)</div><div id="dTabs"></div></div>
       </div>
       <h2>Quando usam (30 dias) <button class="help" data-def="heatmap">?</button></h2>
@@ -268,6 +269,7 @@
     compare: ['Comparação de 7 dias', 'Soma dos últimos 7 dias contra a soma dos 7 dias anteriores. ▲ subiu, ▼ caiu, = igual.'],
     heatmap: ['Quando usam', 'Aberturas do app por dia da semana e hora (Brasília) nos últimos 30 dias; quanto mais claro, mais aberturas. Os dados por hora começaram a ser coletados depois da atualização do painel, então o mapa vai se completando.'],
     medals: ['Conquistas', 'Marcos de uso. Servem para comemorar e para lembrar o que já foi alcançado.'],
+    origin: ['De onde vieram', 'Cada link de divulgação leva uma marca no fim (ex.: ?o=yt para YouTube, ?o=ig Instagram, ?o=tt TikTok, ?o=zap WhatsApp, ?o=site página /sobre). O app guarda a do PRIMEIRO acesso do aparelho e avisa uma vez por dia; aqui aparecem os aparelhos de hoje por origem. Sem marca = acesso direto.'],
     bugs: ['Bugs', 'Erros do app e do servidor agrupados pelo mesmo problema. "Graves" derrubam algo importante; "de ação" falharam numa ação; "de conexão" são falhas de internet.'],
     rate100: ['Erros por 100 aberturas', 'Erros de hoje divididos pelas aberturas de hoje, vezes 100. Acima de 5 o painel fica em atenção. Só aparece com pelo menos 20 aberturas.'],
     cost: ['Custo (comandos do Redis)', 'O plano gratuito do Upstash permite 500 mil comandos por mês. Aqui é uma ESTIMATIVA: contadores do app × custo médio de cada ação. Se ficar perto do limite, o app pode parar de salvar vínculos.']
@@ -396,7 +398,7 @@
     bars($('chNew'), j.series.map(function (d) { return d.news; }), labels, true);
     var a = labels[0], b2 = labels[labels.length - 1];
     $('axA').textContent = a; $('axB').textContent = b2; $('axC').textContent = a; $('axD').textContent = b2;
-    dist($('dPl'), j.dims.pl); dist($('dIn'), j.dims['in']); dist($('dV'), j.dims.v); dist($('dTabs'), j.tabs);
+    dist($('dPl'), j.dims.pl); dist($('dIn'), j.dims['in']); dist($('dV'), j.dims.v); dist($('dO'), j.dims.o || {}); dist($('dTabs'), j.tabs);
     renderCompare(j); renderHeat(j); renderJourney(); renderMedals();
     var now = new Date();
     $('updated').textContent = 'Atualizado às ' + p2(now.getHours()) + ':' + p2(now.getMinutes()) + ' · horário de Brasília · o dia de hoje é parcial';

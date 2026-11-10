@@ -39,7 +39,7 @@ Tudo guardado no servidor é anônimo: código de perfil, apelido, datas e o nec
 | `st:hll:all` | aparelhos distintos de todos os tempos (HyperLogLog) |
 | `st:hll:d:<d>` | aparelhos distintos do dia |
 | `st:ct:d:<d>` | contadores do dia (hash): open, new, lesson, slot, remind, link |
-| `st:dim:d:<d>` | aparelhos por plataforma/instalação/versão no dia (hash) |
+| `st:dim:d:<d>` | aparelhos por plataforma/instalação/versão/origem do link no dia (hash) |
 | `st:hll:d:<d>:tab:<t>` | aparelhos distintos que abriram cada aba no dia |
 | `st:cnt:all` | totais (hash): profiles, links |
 | `st:online` | conjunto ordenado: aparelho -> última batida (ms) |
@@ -136,6 +136,7 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `stats_dims_day` | stats_service.dart |
 | `stats_id` | stats_service.dart |
 | `stats_on` | stats_service.dart |
+| `stats_origin` | stats_service.dart |
 | `stats_tabs` | stats_service.dart |
 | `study` | app_state.dart |
 | `studyMode` | app_state.dart |
@@ -155,4 +156,4 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `verdict_rev` | app_state.dart |
 | `verdicts` | app_state.dart |
 
-Total: **90** chaves locais.
+Total: **91** chaves locais.

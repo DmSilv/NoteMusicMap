@@ -14,7 +14,7 @@ const K = {
   all: 'st:hll:all', // aparelhos distintos de todos os tempos (HyperLogLog)
   day: (d) => `st:hll:d:${d}`, // aparelhos distintos do dia
   ct: (d) => `st:ct:d:${d}`, // contadores do dia (hash): open, new, lesson, slot, remind, link
-  dim: (d) => `st:dim:d:${d}`, // aparelhos por plataforma/instalação/versão no dia (hash)
+  dim: (d) => `st:dim:d:${d}`, // aparelhos por plataforma/instalação/versão/origem do link no dia (hash)
   tab: (d, t) => `st:hll:d:${d}:tab:${t}`, // aparelhos distintos que abriram cada aba no dia
   total: 'st:cnt:all', // totais (hash): profiles, links
   online: 'st:online', // conjunto ordenado: aparelho -> última batida (ms)

@@ -211,8 +211,9 @@
 |---|---|
 | `web/admin.html` | Página HTML: Notemusic · Painel |
 | `web/flutter_bootstrap.js` | Sem o service worker do Flutter (nesta versão ele só se desregistra). O app usa o próprio `sw.js`, registrado no index.html, para funcionar sem internet e poder ser instalado. |
-| `web/index.html` | Página HTML: Notemusic |
+| `web/index.html` | Página HTML: Notemusic: afinador, metrônomo e estudo para instrumentos de corda |
 | `web/manifest.json` | Configuração (JSON). |
+| `web/sobre.html` | Página HTML: Notemusic: afinador, metrônomo e estudo para instrumentos de corda (grátis, sem cadastro) |
 | `web/sw.js` | Service worker do Notemusic: faz o app abrir e funcionar SEM internet depois da primeira visita e cumpre o requisito de "app instalável" dos navegadores. Estratégia: rede primeiro, cache como reserva. Com internet o… |
 
 ## Scripts e configuração
@@ -227,4 +228,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **184** arquivos mapeados.
+Total: **185** arquivos mapeados.

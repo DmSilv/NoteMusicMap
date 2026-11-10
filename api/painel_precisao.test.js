@@ -228,3 +228,18 @@ test('as novas ações do painel exigem a chave de admin', async () => {
     assert.equal((await post(H.a, { action }, { authorization: 'Bearer errada' })).statusCode, 401, action);
   }
 });
+
+// ---------------- Origem das visitas (?o=) ----------------
+test('estatísticas contam a origem do link (?o=yt) e ignoram marcas inválidas', async () => {
+  const H = mk();
+  const open = (id, o) => post(H.s, { t: 'open', id, d: { pl: 'android-chrome', in: 'pwa', v: 'v1', ...(o === undefined ? {} : { o }) }, tabs: [] });
+  await open('aaaaaaaaaaaaaaaa01', 'yt');
+  await open('bbbbbbbbbbbbbbbb02', 'yt');
+  await open('cccccccccccccccc03', 'ig');
+  await open('dddddddddddddddd04', '<script>');
+  await open('eeeeeeeeeeeeeeee05', 'MUITO-LONGO-123');
+  await open('ffffffffffffffff06'); // direto
+  const j = await statsFull(H);
+  assert.deepEqual(j.dims.o, { yt: 2, ig: 1 });
+  assert.equal(j.series.at(-1).opens, 6);
+});

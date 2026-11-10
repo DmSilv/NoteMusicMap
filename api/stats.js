@@ -103,7 +103,7 @@ function makeHandler(deps = {}) {
         const mauPrev = Number(r[k++]) || 0;
         const totals = hash(r[k++]);
         const dimRaw = hash(r[k++]);
-        const dims = { pl: {}, in: {}, v: {} };
+        const dims = { pl: {}, in: {}, v: {}, o: {} };
         for (const [f, n] of Object.entries(dimRaw)) {
           const [kind, ...rest] = f.split(':');
           if (dims[kind]) dims[kind][rest.join(':')] = n;
@@ -155,9 +155,11 @@ function makeHandler(deps = {}) {
         const pl = clip(d.pl, /^[a-z0-9-]{1,24}$/);
         const inst = ['app', 'pwa', 'browser'].includes(d.in) ? d.in : '';
         const v = clip(d.v, /^[A-Za-z0-9._-]{1,16}$/);
+        const o = clip(d.o, /^[a-z0-9]{1,8}$/); // origem do link (?o=yt, ?o=ig…)
         if (pl) list.push(['HINCRBY', K.dim(today), `pl:${pl}`, '1']);
         if (inst) list.push(['HINCRBY', K.dim(today), `in:${inst}`, '1']);
         if (v) list.push(['HINCRBY', K.dim(today), `v:${v}`, '1']);
+        if (o) list.push(['HINCRBY', K.dim(today), `o:${o}`, '1']);
       }
       for (const t of (Array.isArray(b.tabs) ? b.tabs : []).slice(0, TABS.length)) {
         if (TABS.includes(t)) list.push(['PFADD', K.tab(today, t), id]);

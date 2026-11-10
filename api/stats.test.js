@@ -120,7 +120,7 @@ test('entrada inválida é recusada e nada é gravado', async () => {
   assert.equal((await ping(H, { t: 'open', id: rid(), big: 'x'.repeat(2000) })).statusCode, 400, 'corpo grande demais');
   const j = (await admin(H)).json();
   assert.equal(j.total, 1, 'só o pedido válido contou');
-  assert.deepEqual(j.dims, { pl: {}, in: {}, v: {} }, 'valores estranhos não viram categoria');
+  assert.deepEqual(j.dims, { pl: {}, in: {}, v: {}, o: {} }, 'valores estranhos não viram categoria');
 });
 
 test('painel: sem chave configurada 404; chave errada 401; muitas tentativas 429; certa 200', async () => {

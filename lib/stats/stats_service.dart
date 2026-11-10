@@ -19,6 +19,7 @@ class StatsService {
   final http.Client _http;
 
   String _id = '';
+  String _origin = ''; // de onde veio o primeiro acesso (marca ?o= do link, ex.: yt, ig, zap); vazio = direto
   bool enabled = true;
   String _dimsDay = ''; // dia (AAAA-MM-DD) em que a plataforma/versão foi enviada
   String _tabsDay = '';
@@ -48,6 +49,15 @@ class StatsService {
     if (_id.length < 16) {
       _id = _newId();
       p.setString('stats_id', _id);
+    }
+    _origin = p.getString('stats_origin') ?? '';
+    if (_origin.isEmpty && kIsWeb) {
+      // Marca do link (ex.: ?o=yt): só letras minúsculas e números, até 8; vale o PRIMEIRO acesso.
+      final o = (Uri.base.queryParameters['o'] ?? '').toLowerCase();
+      if (RegExp(r'^[a-z0-9]{1,8}$').hasMatch(o)) {
+        _origin = o;
+        p.setString('stats_origin', o);
+      }
     }
     _dimsDay = p.getString('stats_dims_day') ?? '';
     final t = p.getString('stats_tabs') ?? '';
@@ -154,7 +164,7 @@ class StatsService {
     final day = _today();
     final body = <String, dynamic>{'t': 'open', 'id': _id};
     if (_dimsDay != day) {
-      body['d'] = {'pl': platformTag(), 'in': installTag(), 'v': versionTag()};
+      body['d'] = {'pl': platformTag(), 'in': installTag(), 'v': versionTag(), if (_origin.isNotEmpty) 'o': _origin};
       _dimsDay = day;
       p?.setString('stats_dims_day', day);
     }
