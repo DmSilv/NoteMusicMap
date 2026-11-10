@@ -3,6 +3,9 @@
 Afinador, metrônomo, grade de entonação e registro de estudo, em português, sem login.
 Foco em instrumentos de corda (violino, viola, violoncelo, contrabaixo, violão, cavaquinho, ukulele, bandolim).
 
+## Documentação
+Tudo o que é preciso para manter o projeto está em **[`docs/00_LEIA_PRIMEIRO.md`](docs/00_LEIA_PRIMEIRO.md)**: arquitetura, regras de negócio, API e dados, segurança, testes, painel do administrador, operação, decisões e guia de manutenção. A pasta `docs/referencia/` é **gerada do código** (`node scripts/gen_docs.js`) e `node scripts/check_docs.js` confere se está em dia.
+
 ## Estrutura
 - `packages/afina_core` — núcleo em Dart puro, com testes (`dart test`): matemática de afinação
   (igual / pitagórico / justo, cordas em quintas puras), detector de pitch McLeod, motor do
@@ -12,7 +15,9 @@ Foco em instrumentos de corda (violino, viola, violoncelo, contrabaixo, violão,
 
 ## Comandos (com o Flutter 3.47.9 no PATH)
 ```
-cd packages/afina_core && dart test        # 216 testes (precisão, ponteiro, troca de nota, escalas)
+cd packages/afina_core && dart test        # ~500 testes do núcleo
+node --test api/*.test.js api/_lib/*.test.js   # ~190 testes da API
+node scripts/check_docs.js                 # documentação em dia
 flutter analyze
 flutter run -d web-server --web-port=8099  # abrir http://127.0.0.1:8099
 ```

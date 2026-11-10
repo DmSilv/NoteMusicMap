@@ -1,3 +1,5 @@
+> **Documento histórico (planejamento inicial).** O que foi realmente construído **não usa Postgres nem contas**: usa Redis, perfis anônimos (código + segredo) e vínculo online. A arquitetura atual está em [01_ARQUITETURA.md](01_ARQUITETURA.md) e as decisões em [09_DECISOES.md](09_DECISOES.md).
+
 # Professor e aluno: arquitetura de identidade, vínculo e dados
 
 Planejamento (nada disso está implementado). Objetivo: começar **sem cadastro**, com identificação automática, e evoluir para contas, professores e acompanhamento **sem reconstruir o app**.
