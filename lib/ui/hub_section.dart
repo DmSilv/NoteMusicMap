@@ -27,12 +27,11 @@ class HubSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) => _Ticker(builder: _content);
 
-  bool get _hasTeacher => app.myTeachers.isNotEmpty || app.myLessons.isNotEmpty || app.myAgenda.isNotEmpty;
-
   Widget _content(BuildContext context) {
     final now = DateTime.now();
-    final isT = app.teacherMode;
-    final nc = app.nextClass;
+    final view = app.hubView;
+    final isT = view == HubView.teacher;
+    final nc = app.nextClassFor(view);
     String whoOf(SlotOccurrence o) {
       final st = o.slot.studentCode.isEmpty ? null : app.studentByCode(o.slot.studentCode);
       return st?.name ?? o.slot.teacherName;
@@ -40,40 +39,63 @@ class HubSection extends StatelessWidget {
 
     final cls = nc == null ? null : HubClass(nc.startMs, nc.startMs + nc.slot.endOffsetMs, whoOf(nc));
     final today = isT ? classesToday(app.visibleAgenda, now).count : 0;
-    // O papel vale para ESTA aula: quem é professor e aluno ao mesmo tempo vê a aula certa.
-    final classIsTeacher = nc == null ? isT : nc.slot.studentCode.isNotEmpty;
     final hero = buildHero(
         nowMs: now.millisecondsSinceEpoch,
-        isTeacher: classIsTeacher,
-        hasTeacher: _hasTeacher,
+        isTeacher: isT,
+        hasTeacher: app.hasTeacherSide,
         next: cls,
         todayCount: today,
         hasStudents: app.students.isNotEmpty);
+    final layout = hubLayout(view, hasTeacherSide: app.hasTeacherSide);
 
-    final plan = buildWeekPlan(app.myLessons, app.lessonTasksDone, now);
-    final nextForStudent = nextOccurrence(app.myAgenda, now.millisecondsSinceEpoch);
-    final nextText = nextForStudent == null ? null : fmtSlotWhen(nextForStudent.start, now);
-
+    final tiles = [for (final d in layout.tiles) _tileFor(context, d, now)];
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (app.canSwitchHub) _viewSwitch(view),
       _statusChip(context),
-      ..._news(context),
-      _heroCard(context, hero, nc),
+      ..._news(context, view),
+      _heroCard(context, hero, nc, view),
       const SizedBox(height: 12),
-      if (isT)
-        _pair(
-          _tile(context, validateTile(app.awaitingTotal), Icons.fact_check_outlined, () => _openValidation(context)),
-          _tile(context, studentsTile(app.students.length), Icons.groups_outlined, null),
-        ),
-      if (isT && _hasTeacher) const SizedBox(height: 10),
-      if (_hasTeacher)
-        _pair(
-          _tile(context, tasksTile(open: plan.open, total: plan.total), Icons.checklist_rtl, () => openMyLessons(context, app)),
-          _tile(context, agendaTile(nextText: nextText), Icons.event_outlined, () => _push(context, MyAgendaPage(app: app))),
-        ),
-      const SizedBox(height: 12),
-      _tools(context),
+      if (tiles.length == 2) _pair(tiles[0], tiles[1]) else if (tiles.length == 1) tiles.first,
+      if (tiles.isNotEmpty) const SizedBox(height: 12),
+      _tools(context, layout.tools),
       const SizedBox(height: 12),
     ]);
+  }
+
+  /// Alternador Aluno | Professor (só para quem tem os dois papéis).
+  Widget _viewSwitch(HubView view) => Padding(
+        padding: const EdgeInsets.only(bottom: 10),
+        child: SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<HubView>(
+            showSelectedIcon: false,
+            segments: const [
+              ButtonSegment(value: HubView.student, icon: Icon(Icons.person_outline, size: 18), label: Text('Aluno')),
+              ButtonSegment(value: HubView.teacher, icon: Icon(Icons.school_outlined, size: 18), label: Text('Professor')),
+            ],
+            selected: {view},
+            onSelectionChanged: (s) => app.setHubView(s.first),
+          ),
+        ),
+      );
+
+  /// Cada bloco grande do hub, conforme o destino.
+  Widget _tileFor(BuildContext context, HubDest d, DateTime now) {
+    switch (d) {
+      case HubDest.validate:
+        return _tile(context, validateTile(app.awaitingTotal), Icons.fact_check_outlined, () => _openValidation(context));
+      case HubDest.students:
+        return _tile(context, studentsTile(app.students.length), Icons.groups_outlined, () => _push(context, TeacherPage(app: app)));
+      case HubDest.myTasks:
+        final plan = buildWeekPlan(app.myLessons, app.lessonTasksDone, now);
+        return _tile(context, tasksTile(open: plan.open, total: plan.total), Icons.checklist_rtl, () => openMyLessons(context, app));
+      case HubDest.agendaStudent:
+        final next = nextOccurrence(app.myAgenda, now.millisecondsSinceEpoch);
+        return _tile(context, agendaTile(nextText: next == null ? null : fmtSlotWhen(next.start, now)), Icons.event_outlined,
+            () => _push(context, MyAgendaPage(app: app)));
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
   /// "Para validar": se só um aluno espera validação, abre a ficha dele; senão a lista de alunos.
@@ -122,8 +144,9 @@ class HubSection extends StatelessWidget {
   }
 
   // ---------------- Avisos de novidade ----------------
-  List<Widget> _news(BuildContext context) {
-    final list = app.notices.where((n) => !n.seen).take(1).toList();
+  List<Widget> _news(BuildContext context, HubView view) {
+    final mine = kNoticeKindsByView[view]!;
+    final list = app.notices.where((n) => !n.seen && mine.contains(n.kind)).take(1).toList();
     return [
       for (final n in list)
         Container(
@@ -157,7 +180,7 @@ class HubSection extends StatelessWidget {
   }
 
   // ---------------- Destaque ----------------
-  Widget _heroCard(BuildContext context, HubHero h, SlotOccurrence? nc) {
+  Widget _heroCard(BuildContext context, HubHero h, SlotOccurrence? nc, HubView view) {
     final urgent = h.kind == HeroKind.ongoing || h.kind == HeroKind.soon;
     final student = nc == null || nc.slot.studentCode.isEmpty ? null : app.studentByCode(nc.slot.studentCode);
     final buttons = <Widget>[];
@@ -165,33 +188,23 @@ class HubSection extends StatelessWidget {
         FilledButton.icon(onPressed: f, icon: Icon(i, size: 18), label: Text(t));
     Widget soft(String t, IconData i, VoidCallback f) => OutlinedButton.icon(onPressed: f, icon: Icon(i, size: 18), label: Text(t));
 
-    switch (h.kind) {
-      case HeroKind.ongoing:
-      case HeroKind.soon:
-        if (student != null) {
-          buttons.add(primary('Abrir ficha', Icons.person_outline, () => _push(context, StudentPage(app: app, studentId: student.id))));
-        } else {
-          buttons.add(primary('Agenda do aluno', Icons.event_outlined, () => _push(context, MyAgendaPage(app: app))));
-        }
-      case HeroKind.next:
-        final asTeacher = nc != null && nc.slot.studentCode.isNotEmpty;
-        buttons.add(primary(asTeacher ? 'Agenda do professor' : 'Agenda do aluno', Icons.event_outlined,
-            () => _push(context, asTeacher ? AgendaPage(app: app) : MyAgendaPage(app: app))));
-        if (student != null) {
-          buttons.add(soft('Ficha de ${student.name.split(' ').first}', Icons.person_outline, () => _push(context, StudentPage(app: app, studentId: student.id))));
-        }
-      case HeroKind.none:
-        if (app.teacherMode) {
-          buttons.add(app.students.isEmpty
-              ? primary('Convidar aluno', Icons.person_add_alt_1, () => shareTeacherInvite(app))
-              : primary('Marcar aula', Icons.add, () => openSlotForm(context, app)));
-          buttons.add(soft('Agenda do professor', Icons.event_outlined, () => _push(context, AgendaPage(app: app))));
-        } else {
-          buttons.add(primary('Agenda do aluno', Icons.event_outlined, () => _push(context, MyAgendaPage(app: app))));
-        }
-      case HeroKind.noTeacher:
-        buttons.add(primary('Ler QR do professor', Icons.qr_code_scanner, () => _scanTeacher(context)));
-        buttons.add(soft('Sou professor', Icons.school_outlined, () => _push(context, ProfilePage(app: app, initialTab: 1))));
+    for (final d in heroActions(view, h.kind, hasStudents: app.students.isNotEmpty, hasClassStudent: student != null)) {
+      switch (d) {
+        case HubDest.studentFile:
+          final first = student!.name.split(' ').first;
+          buttons.add(primary(urgent ? 'Abrir ficha' : 'Ficha de $first', Icons.person_outline,
+              () => _push(context, StudentPage(app: app, studentId: student.id))));
+        case HubDest.markClass:
+          buttons.add(primary('Marcar aula', Icons.add, () => openSlotForm(context, app)));
+        case HubDest.inviteStudent:
+          buttons.add(primary('Convidar aluno', Icons.person_add_alt_1, () => shareTeacherInvite(app)));
+        case HubDest.scanTeacher:
+          buttons.add(primary('Ler QR do professor', Icons.qr_code_scanner, () => _scanTeacher(context)));
+          if (!app.teacherMode) {
+            buttons.add(soft('Sou professor', Icons.school_outlined, () => _push(context, ProfilePage(app: app, initialTab: 1))));
+          }
+        default:
+      }
     }
 
     final bg = urgent ? AppColors.accent.withValues(alpha: 0.24) : AppColors.accent.withValues(alpha: 0.14);
@@ -275,14 +288,16 @@ class HubSection extends StatelessWidget {
   }
 
   // ---------------- Ferramentas ----------------
-  Widget _tools(BuildContext context) {
-    final items = <(IconData, String, VoidCallback)>[
-      if (app.teacherMode) (Icons.calendar_month_outlined, 'Agenda do professor', () => _push(context, AgendaPage(app: app))),
-      if (app.teacherMode) (Icons.event_available_outlined, 'Horários livres', () => _push(context, OpenSlotsPage(app: app))),
-      if (app.myTeachers.isNotEmpty) (Icons.event_available_outlined, 'Pegar horário', () => _push(context, PickSlotPage(app: app))),
-      (Icons.timer_outlined, 'Metrônomo', () => app.goTab?.call(1)),
-      (Icons.piano, 'Escalas', () => app.openGridSection(1)),
-    ];
+  Widget _tools(BuildContext context, List<HubDest> dests) {
+    (IconData, String, VoidCallback)? item(HubDest d) => switch (d) {
+          HubDest.agendaTeacher => (Icons.calendar_month_outlined, 'Agenda do professor', () => _push(context, AgendaPage(app: app))),
+          HubDest.openSlots => (Icons.event_available_outlined, 'Horários livres', () => _push(context, OpenSlotsPage(app: app))),
+          HubDest.pickSlot => (Icons.event_available_outlined, 'Pegar horário', () => _push(context, PickSlotPage(app: app))),
+          HubDest.metronome => (Icons.timer_outlined, 'Metrônomo', () => app.goTab?.call(1)),
+          HubDest.scales => (Icons.piano, 'Escalas', () => app.openGridSection(1)),
+          _ => null,
+        };
+    final items = [for (final d in dests) ?item(d)];
     return LayoutBuilder(builder: (context, box) {
     final cols = items.length > 4 ? 3 : items.length;
     final w = ((box.maxWidth - 22) / cols).floorToDouble();

@@ -11,6 +11,7 @@ export 'task_status.dart';
 export 'open_slots.dart';
 export 'class_rules.dart';
 export 'markdown_lite.dart';
+export 'hub_view.dart';
 export 'methods.dart';
 export 'metronome_engine.dart';
 export 'rhythm_challenge.dart';

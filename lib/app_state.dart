@@ -786,6 +786,11 @@ class AppState extends ChangeNotifier {
     myAgenda = read('agenda_in', dropCanceled: true);
     _agendaRev = p.getInt('agenda_rev') ?? 0;
     openSlots = read('open_slots');
+    hubViewPref = switch (p.getString('hub_view')) {
+      'student' => HubView.student,
+      'teacher' => HubView.teacher,
+      _ => null,
+    };
     _picksRev = p.getInt('picks_rev') ?? 0;
   }
 
@@ -1129,6 +1134,30 @@ class AppState extends ChangeNotifier {
     } finally {
       _agendaPulling = false;
     }
+  }
+
+  // ---------------- Visões do Meu espaço (aluno | professor) ----------------
+  /// Escolha da pessoa (null = nunca escolheu).
+  HubView? hubViewPref;
+
+  /// Tem o lado de aluno: professor, aula recebida ou agenda marcada por um professor.
+  bool get hasTeacherSide => myTeachers.isNotEmpty || myLessons.isNotEmpty || myAgenda.isNotEmpty;
+
+  bool get canSwitchHub => canSwitchHubView(teacherMode: teacherMode, hasTeacherSide: hasTeacherSide);
+
+  /// Visão que o Meu espaço mostra agora.
+  HubView get hubView => resolveHubView(teacherMode: teacherMode, hasTeacherSide: hasTeacherSide, preferred: hubViewPref);
+
+  void setHubView(HubView v) {
+    hubViewPref = v;
+    _prefs?.setString('hub_view', v.name);
+    notifyListeners();
+  }
+
+  /// A próxima aula da visão [v]: do professor (as que ele marcou) ou do aluno (as que recebeu).
+  SlotOccurrence? nextClassFor(HubView v) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    return v == HubView.teacher ? nextOccurrence(visibleAgenda, now) : nextOccurrence(myAgenda, now);
   }
 
   /// PROFESSOR: as aulas que valem para mostrar (sem canceladas e sem as de alunos que já não existem).
