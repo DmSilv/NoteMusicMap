@@ -146,6 +146,7 @@
 | `packages/afina_core/test/note_display_test.dart` | Alimenta o filtro com [n] por [seconds], num quadro a cada 30 ms, a partir de [t0]. Devolve a lista do que foi exibido em cada quadro. |
 | `packages/afina_core/test/note_gate_test.dart` | Alimenta a porta com [n] por [seconds], um quadro a cada 17 ms, desde [t0]. Devolve o instante final. |
 | `packages/afina_core/test/open_slots_test.dart` | Testes do módulo `open_slots`. |
+| `packages/afina_core/test/open_strings_grid_test.dart` | O afinador de cordas afina em quintas puras (Sol3 = 195,56 Hz). Em temperamento igual o Sol3 seria 196,00 Hz (3,9 cents acima). A grade precisa concordar. |
 | `packages/afina_core/test/pedal_test.dart` | a soma das amplitudes no pior caso fica contida (< 1,6) |
 | `packages/afina_core/test/pitch_detector_test.dart` | Gera um tom com harmônicos [amps] (índice 0 = fundamental). |
 | `packages/afina_core/test/pitch_grid_test.dart` | Sobe devagar até +52 cents. |
@@ -232,4 +233,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **189** arquivos mapeados.
+Total: **190** arquivos mapeados.

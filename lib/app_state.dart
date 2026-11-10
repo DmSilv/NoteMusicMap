@@ -132,7 +132,23 @@ class AppState extends ChangeNotifier {
         transpose: transpose,
         autoSpelling: spellingAuto,
         keyFlats: spellingAuto ? _keyFlats : null,
+        targetOverrides: _openTargets(),
       );
+
+  // Cordas soltas de arco: no temperamento igual a grade mede o Sol, Ré, Lá e Mi soltos
+  // pelo mesmo alvo do afinador de cordas (quintas puras). Guardado para não recalcular
+  // a cada leitura do microfone.
+  String? _openKey;
+  Map<int, double>? _openMap;
+  Map<int, double>? _openTargets() {
+    if (system != TuningSystem.equal || instrument.fretted) return null;
+    final key = '$instrumentId|$refA';
+    if (key != _openKey) {
+      _openKey = key;
+      _openMap = instrument.openTargets(refA);
+    }
+    return _openMap;
+  }
   Instrument get instrument => instrumentById(instrumentId);
 
   // ---------------- Notificadores finos (desempenho) ----------------

@@ -96,6 +96,12 @@ class TuningConfig {
   /// usa bemóis, false se usa sustenidos; null = sem tonalidade.
   final bool? keyFlats;
 
+  /// Alvos que valem no lugar do sistema para notas específicas (MIDI -> Hz).
+  /// Usado para as cordas soltas de instrumentos de arco: o afinador de cordas
+  /// afina em quintas puras, então a grade e o cromático medem essas notas pelo
+  /// mesmo alvo (senão o Sol afinado aparecia como "baixo").
+  final Map<int, double>? targetOverrides;
+
   /// Semitons somados na leitura escrita (instrumentos transpositores).
   /// Clarinete em Si♭ = +2, sax alto em Mi♭ = +9. Só afeta os NOMES.
   final int transpose;
@@ -109,6 +115,7 @@ class TuningConfig {
     this.transpose = 0,
     this.autoSpelling = false,
     this.keyFlats,
+    this.targetOverrides,
   });
 
   TuningConfig copyWith({
@@ -120,6 +127,7 @@ class TuningConfig {
     int? transpose,
     bool? autoSpelling,
     Object? keyFlats = _keep,
+    Map<int, double>? targetOverrides,
   }) =>
       TuningConfig(
         refA: refA ?? this.refA,
@@ -130,6 +138,7 @@ class TuningConfig {
         transpose: transpose ?? this.transpose,
         autoSpelling: autoSpelling ?? this.autoSpelling,
         keyFlats: identical(keyFlats, _keep) ? this.keyFlats : keyFlats as bool?,
+        targetOverrides: targetOverrides ?? this.targetOverrides,
       );
 }
 
@@ -138,6 +147,8 @@ const Object _keep = Object();
 /// Frequência alvo da nota MIDI [midi] (rótulo em temperamento igual) segundo
 /// o sistema configurado.
 double targetFreq(int midi, TuningConfig c) {
+  final o = c.targetOverrides?[midi];
+  if (o != null) return o;
   if (c.system == TuningSystem.equal) return etFreq(midi, c.refA);
   final ratios =
       c.system == TuningSystem.pythagorean ? pythagoreanRatios : justRatios;
@@ -216,6 +227,12 @@ class Instrument {
   final bool fretted;
 
   const Instrument(this.id, this.name, this.strings, {required this.fretted});
+
+  /// Alvos das cordas soltas (MIDI -> Hz) para instrumentos sem trastes; vazio
+  /// nos com trastes (esses usam temperamento igual mesmo).
+  Map<int, double> openTargets(double refA) => fretted
+      ? const {}
+      : {for (var i = 0; i < strings.length; i++) strings[i].midi: stringFreq(i, refA)};
 
   /// Afinação das cordas soltas.
   /// Sem trastes: quintas/quartas puras ancoradas no Lá (pitagórica, tônica Lá).
