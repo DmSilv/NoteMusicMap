@@ -143,3 +143,6 @@ A tela Ajustes virou uma lista curta de linhas (ícone, título e valor atual): 
 
 ## Bug: Atualizar o app e Apagar tudo falhavam (novembro/2026)
 Primeiro bug reportado pelo painel: "EvalError ... unsafe-eval". As duas ações usavam `eval`, que a política de segurança (CSP) do site proíbe, então "Atualizar o app" e "Apagar tudo e recomeçar" não faziam nada. Agora as rotinas ficam em web/index.html (`nmUpdateApp`, `nmHardReset`) e o Dart só as chama, sem afrouxar a CSP. Um teste de proteção falha se `eval` voltar ao código.
+
+## Aba Visitantes no painel (novembro/2026)
+Nova aba "Visitantes" no /admin para medir a divulgação: aparelhos de hoje (e ontem e 7 dias), novos, voltaram, sem cadastro (estimativa: aparelhos de hoje menos perfis ativos hoje), online agora e perfis novos; tabela de origem por dia (YouTube, Instagram, TikTok, WhatsApp, site e sem marca, pela marca ?o= do link); o que usaram hoje (afinador, metrônomo, grade, escalas…); microfone, instalação e notificações; aparelhos por hora e região. Vem de `action: visitors` em `api/admin.js`, só com contadores que já existiam (~35 comandos por abertura da aba). As visualizações do YouTube e do Instagram não chegam ao app, só quem abriu o link.

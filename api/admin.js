@@ -335,6 +335,60 @@ function makeHandler(deps = {}) {
         });
       }
 
+      // ---------------- Visitantes (quem usa sem cadastro): divulgação e engajamento ----------------
+      // Custo: ~35 comandos por abertura da aba (7 dias de contadores + abas de hoje + 4 contagens).
+      if (action === 'visitors') {
+        const VT = ['tuner', 'metronome', 'grid', 'scales', 'study', 'pedal'];
+        const dl = [];
+        for (let i = 6; i >= 0; i--) dl.push(dayKey(now - i * DAY));
+        const today = dl[6], yesterday = dl[5];
+        const dayStart = Date.parse(`${today}T00:00:00Z`) + BR_OFFSET;
+        const list = [];
+        for (const d of dl) { list.push(['PFCOUNT', K.day(d)], ['HGETALL', K.ct(d)], ['HGETALL', K.dim(d)]); }
+        for (const t of VT) list.push(['PFCOUNT', K.tab(today, t)]);
+        list.push(['PFCOUNT', K.day(today), K.day(yesterday)]);
+        list.push(['PFCOUNT', K.day(dl[0]), K.day(dl[1]), K.day(dl[2]), K.day(dl[3]), K.day(dl[4]), K.day(dl[5]), K.day(dl[6])]);
+        list.push(['ZCOUNT', Z.last, String(dayStart), '+inf'], ['ZCOUNT', Z.born, String(dayStart), '+inf'], ['ZCOUNT', K.online, String(now - 5 * 60 * 1000), '+inf']);
+        const r = await cmd.pipeline(list);
+        const hash = (flat) => { const o = {}; for (let i = 0; i + 1 < (flat || []).length; i += 2) o[flat[i]] = Number(flat[i + 1]) || 0; return o; };
+        const days = dl.map((d, i) => {
+          const dim = hash(r[i * 3 + 2]);
+          const origins = {};
+          for (const [f, n] of Object.entries(dim)) if (f.startsWith('o:')) origins[f.slice(2)] = n;
+          const ct = hash(r[i * 3 + 1]);
+          return { day: d, users: Number(r[i * 3]) || 0, news: ct.new || 0, opens: ct.open || 0, origins, hours: Array.from({ length: 24 }, (_, h) => ct['h' + String(h).padStart(2, '0')] || 0) };
+        });
+        let k = 21;
+        const tabs = {};
+        for (const t of VT) tabs[t] = Number(r[k++]) || 0;
+        const union2 = Number(r[k++]) || 0;
+        const union7 = Number(r[k++]) || 0;
+        const profActive = Number(r[k++]) || 0, profNew = Number(r[k++]) || 0, online5 = Number(r[k++]) || 0;
+        const td = days[6], yd = days[5];
+        const back = Math.max(0, Math.min(td.users, yd.users, td.users + yd.users - union2)); // aparelhos de ontem que voltaram hoje
+        // Fichas de hoje: instalação, microfone, notificações e região (ver DEV_FIELDS em api/stats.js).
+        const dimToday = hash(r[2 + 6 * 3]);
+        const perms = { mic: {}, nt: {}, in: {} };
+        const geo = {};
+        let ficha = 0;
+        for (const [f, n] of Object.entries(dimToday)) {
+          if (!f.startsWith('x:')) continue;
+          const p = f.slice(2).split('|');
+          ficha += n;
+          const add = (o, key) => { o[key] = (o[key] || 0) + n; };
+          add(perms.in, p[1] || '-'); add(perms.mic, p[7] || '-'); add(perms.nt, p[8] || '-');
+          if (p[10] && p[10] !== '-') add(geo, p[10]);
+        }
+        const topGeo = Object.entries(geo).sort((a, b) => b[1] - a[1]).slice(0, 6);
+        return send(200, {
+          ok: true, now, today, days,
+          users: td.users, news: td.news, returning: Math.max(0, td.users - td.news), opens: td.opens,
+          noProfileEst: Math.max(0, td.users - profActive), profilesActive: profActive, profilesNew: profNew, online5,
+          yesterday: { users: yd.users, news: yd.news }, backFromYesterday: back, uniq7: union7,
+          tabs, perms, ficha, geo: topGeo,
+        });
+      }
+
       // Limpa agora os perfis abandonados (sem vínculo, sem dados e parados há 60 dias). Até 30 por toque.
       if (action === 'sweep') {
         let removed = 0;

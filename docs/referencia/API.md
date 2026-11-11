@@ -44,6 +44,7 @@ Custo: só quando o admin abre o painel (kpis ~35 comandos; lista de 25 = ~27; d
 | `block` | Bloquear / liberar |
 | `delete` | Excluir |
 | `indicators` | Indicadores de saúde do uso Custo: 3 comandos + 7 leituras (um hash por dia). Só quando o admin abre ou toca em Atualizar. |
+| `visitors` | Visitantes (quem usa sem cadastro): divulgação e engajamento Custo: ~35 comandos por abertura da aba (7 dias de contadores + abas de hoje + 4 contagens). |
 | `sweep` | Limpa agora os perfis abandonados (sem vínculo, sem dados e parados há 60 dias). Até 30 por toque. |
 | `push` | Avisos de bug grave neste navegador |
 | `presence` | Presença: perfis com vínculo ligado e o app à frente |

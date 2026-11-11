@@ -140,6 +140,7 @@
     <div class="sub" id="updated">—</div>
     <nav class="tabs" id="tabs">
       <button data-tab="overview" class="on">Visão geral</button>
+      <button data-tab="visitors">Visitantes</button>
       <button data-tab="usage">Uso</button>
       <button data-tab="devices">Aparelhos</button>
       <button data-tab="people">Pessoas</button>
@@ -288,6 +289,30 @@
       <p class="note">Cada aparelho entra uma vez por dia, com uma "ficha" só de categorias (nada de nome, código, som ou IP). A região é aproximada (país e estado, pelo servidor) e não é GPS. Aparelhos antigos, que ainda não atualizaram o app, aparecem como "Não informado" nos campos novos.</p>
     </main>
 
+    <!-- ===== Visitantes: quem usa sem cadastro ===== -->
+    <main id="tab-visitors" hidden>
+      <h2>Visitantes de hoje <button class="help" data-def="visitors">?</button> <button id="visRefresh">Atualizar</button></h2>
+      <div class="grid">
+        <div class="card big"><div class="k"><span>Aparelhos hoje</span></div><div class="v" id="vUsers">–</div><div class="s" id="vUsersS"></div></div>
+        <div class="card"><div class="k">Novos hoje</div><div class="v" id="vNew">–</div><div class="s">primeira vez neste aparelho</div></div>
+        <div class="card"><div class="k">Voltaram</div><div class="v" id="vBack">–</div><div class="s" id="vBackS"></div></div>
+        <div class="card"><div class="k">Sem cadastro (estimativa)</div><div class="v" id="vNoProf">–</div><div class="s" id="vNoProfS"></div></div>
+        <div class="card"><div class="k">Online agora</div><div class="v" id="vOn">–</div><div class="s">últimos 5 min</div></div>
+        <div class="card"><div class="k">Viraram cadastro hoje</div><div class="v" id="vProf">–</div><div class="s">perfis novos no servidor</div></div>
+      </div>
+      <h2>De onde vieram (aparelhos por dia) <button class="help" data-def="origin">?</button></h2>
+      <div class="card" style="overflow:auto"><table><thead id="vOrgHead"></thead><tbody id="vOrgRows"></tbody></table></div>
+      <div class="two">
+        <div><h2>O que usaram hoje</h2><div class="card" id="vTabs"></div></div>
+        <div><h2>Permissões e instalação (hoje)</h2><div class="card" id="vPerms"></div></div>
+      </div>
+      <div class="two">
+        <div><h2>Aparelhos por hora (hoje)</h2><div class="card"><div class="bars" id="vHours" style="height:90px"></div><div class="s" id="vHoursS" style="margin-top:6px"></div></div></div>
+        <div><h2>De que região (hoje)</h2><div class="card" id="vGeo"></div></div>
+      </div>
+      <p class="note">Cada aparelho conta uma vez por dia (a mesma pessoa em dois aparelhos conta duas vezes). As visualizações do YouTube e do Instagram não chegam aqui: só quem tocou no link e abriu o app. "Sem cadastro" é uma estimativa: aparelhos de hoje menos perfis com vínculo ativos hoje. Aparelhos antigos, que ainda não atualizaram o app, podem ficar fora de alguns números.</p>
+    </main>
+
     <!-- ===== Sistema ===== -->
     <main id="tab-system" hidden>
       <h2>Banco de dados (Redis) <button class="help" data-def="sysdb">?</button></h2>
@@ -358,6 +383,7 @@
     sysserver: ['Servidor', 'A versão publicada é o código (commit) que está no ar agora, informado pela própria Vercel. As funções do app contam para o limite do plano gratuito (12). Os erros do servidor vêm dos relatórios automáticos.'],
     syslimits: ['Limites e gasto', 'Cada barra mostra quanto de um limite já foi usado: verde até 70%, amarelo até 90%, vermelho acima. Redis do mês é ESTIMADO a partir dos contadores do app. Para o número exato, a Upstash precisa de uma chave de API (opcional).'],
     syschecks: ['Variáveis configuradas', 'Mostra se cada serviço tem as variáveis na Vercel. "Obrigatório" sem variável quebra o app; os opcionais só desligam o recurso (lembretes, notificações, IA).'],
+    visitors: ['Visitantes', 'Quem abriu o app sem ter cadastro (professor ou aluno vinculado). Mostra quantos aparelhos acessaram hoje, quantos são novos, quantos voltaram, de qual divulgação vieram (YouTube, Instagram…) e o que usaram. É o painel para medir o efeito de cada vídeo postado.'],
     origin: ['De onde vieram', 'Cada link de divulgação leva uma marca no fim (ex.: ?o=yt para YouTube, ?o=ig Instagram, ?o=tt TikTok, ?o=zap WhatsApp, ?o=site página /sobre). O app guarda a do PRIMEIRO acesso do aparelho e avisa uma vez por dia; aqui aparecem os aparelhos de hoje por origem. Sem marca = acesso direto.'],
     bugs: ['Bugs', 'Erros do app e do servidor agrupados pelo mesmo problema. "Graves" derrubam algo importante; "de ação" falharam numa ação; "de conexão" são falhas de internet.'],
     rate100: ['Erros por 100 aberturas', 'Erros de hoje divididos pelas aberturas de hoje, vezes 100. Acima de 5 o painel fica em atenção. Só aparece com pelo menos 20 aberturas.'],
@@ -967,6 +993,85 @@
   }
   function loadCosts() { post({ action: 'costs' }).then(function (r) { if (r.status === 200) renderCosts(r.j); else fail(r.status); }).catch(function () {}); }
 
+  // ---------------- Visitantes (sem cadastro) ----------------
+  var ORG_NAME = { yt: 'YouTube', ig: 'Instagram', tt: 'TikTok', zap: 'WhatsApp', site: 'Site (/sobre)', l: 'Site' };
+  var TAB_NAME = { tuner: 'Afinador', metronome: 'Metrônomo', grid: 'Grade', scales: 'Escalas', study: 'Meu espaço', pedal: 'Pedal' };
+  function pct(a, b) { return b > 0 ? Math.round((a / b) * 100) + '%' : '–'; }
+  function rowBar(el, name, n, of) {
+    var r = document.createElement('div'); r.className = 'row';
+    var a = document.createElement('span'); a.className = 'n'; a.textContent = name;
+    var b = document.createElement('span'); b.className = 'b'; var i = document.createElement('i'); i.style.width = of > 0 ? Math.round((n / of) * 100) + '%' : '0%'; b.appendChild(i);
+    var c = document.createElement('span'); c.className = 'c'; c.textContent = fmt(n) + ' · ' + pct(n, of);
+    r.appendChild(a); r.appendChild(b); r.appendChild(c); el.appendChild(r);
+  }
+  function renderVisitors(j) {
+    var u = j.users;
+    $('vUsers').textContent = fmt(u);
+    var dd = u - j.yesterday.users;
+    $('vUsersS').textContent = 'ontem ' + fmt(j.yesterday.users) + (j.yesterday.users ? ' (' + (dd >= 0 ? '+' : '') + fmt(dd) + ')' : '') + ' · ' + fmt(j.uniq7) + ' nos últimos 7 dias';
+    $('vNew').textContent = fmt(j.news);
+    $('vBack').textContent = fmt(j.returning);
+    $('vBackS').textContent = j.yesterday.users ? fmt(j.backFromYesterday) + ' de ' + fmt(j.yesterday.users) + ' de ontem voltaram (' + pct(j.backFromYesterday, j.yesterday.users) + ')' : 'ainda sem dia anterior';
+    $('vNoProf').textContent = fmt(j.noProfileEst);
+    $('vNoProfS').textContent = pct(j.noProfileEst, u) + ' de hoje · ' + fmt(j.profilesActive) + ' perfis ativos';
+    $('vOn').textContent = fmt(j.online5);
+    $('vProf').textContent = fmt(j.profilesNew);
+    // origens por dia
+    var keys = {};
+    j.days.forEach(function (d) { Object.keys(d.origins).forEach(function (k) { keys[k] = 1; }); });
+    var order = ['yt', 'ig', 'tt', 'zap', 'site', 'l'].filter(function (k) { return keys[k]; });
+    Object.keys(keys).forEach(function (k) { if (order.indexOf(k) < 0) order.push(k); });
+    var head = $('vOrgHead'); head.innerHTML = '';
+    var htr = document.createElement('tr');
+    ['Origem'].concat(j.days.map(function (d) { return dm(d.day); })).concat(['7 dias']).forEach(function (t, i) { var th = document.createElement('th'); th.textContent = t; if (i === j.days.length) th.style.color = 'var(--accent)'; htr.appendChild(th); });
+    head.appendChild(htr);
+    var body = $('vOrgRows'); body.innerHTML = '';
+    function addRow(name, vals, strong) {
+      var tr = document.createElement('tr');
+      var td = document.createElement('td'); td.textContent = name; if (strong) td.style.fontWeight = '800'; tr.appendChild(td);
+      var sum = 0;
+      vals.forEach(function (v, i) { var c = document.createElement('td'); c.textContent = v ? fmt(v) : '–'; if (i === vals.length - 1) c.style.fontWeight = '800'; sum += v; tr.appendChild(c); });
+      var t = document.createElement('td'); t.textContent = fmt(sum); t.style.fontWeight = '800'; t.style.color = 'var(--accent)'; tr.appendChild(t);
+      body.appendChild(tr);
+    }
+    order.forEach(function (k) { addRow(ORG_NAME[k] || k, j.days.map(function (d) { return d.origins[k] || 0; })); });
+    addRow('Sem marca (direto)', j.days.map(function (d) { var s = 0; Object.keys(d.origins).forEach(function (k) { s += d.origins[k]; }); return Math.max(0, d.users - s); }));
+    addRow('Todos os aparelhos', j.days.map(function (d) { return d.users; }), true);
+    addRow('Novos', j.days.map(function (d) { return d.news; }));
+    // o que usaram
+    var tabs = $('vTabs'); tabs.innerHTML = '';
+    Object.keys(TAB_NAME).forEach(function (k) { rowBar(tabs, TAB_NAME[k], j.tabs[k] || 0, u); });
+    // permissões e instalação
+    var pm = $('vPerms'); pm.innerHTML = '';
+    var f = j.ficha || 0;
+    if (!f) pm.innerHTML = '<div class="empty">Sem dados ainda (precisa da versão nova do app).</div>';
+    else {
+      rowBar(pm, 'Microfone liberado', j.perms.mic.sim || 0, f);
+      rowBar(pm, 'Microfone negado', j.perms.mic.nao || 0, f);
+      rowBar(pm, 'Instalou o app', (j.perms.in.pwa || 0) + (j.perms.in.app || 0), f);
+      rowBar(pm, 'Notificações ligadas', (j.perms.nt && j.perms.nt.sim) || 0, f);
+    }
+    // horas
+    var hrs = j.days[6].hours;
+    var labels = hrs.map(function (_, h) { return String(h).padStart(2, '0') + 'h'; });
+    bars($('vHours'), hrs, labels, false);
+    var pk = 0; hrs.forEach(function (v, h) { if (v > hrs[pk]) pk = h; });
+    $('vHoursS').textContent = hrs[pk] ? 'Pico às ' + labels[pk] + ' (' + fmt(hrs[pk]) + ' aberturas) · total hoje ' + fmt(j.opens) + ' aberturas' : 'Sem aberturas por hora ainda.';
+    // região
+    var g = $('vGeo'); g.innerHTML = '';
+    if (!j.geo.length) g.innerHTML = '<div class="empty">Sem dados ainda.</div>';
+    var gmax = j.geo.length ? j.geo[0][1] : 1;
+    j.geo.forEach(function (p) {
+      var parts = p[0].split('-'); var nm = parts[1] && BR_UF[parts[1]] && parts[0] === 'br' ? BR_UF[parts[1]] : (PAISES[parts[0]] || parts[0].toUpperCase());
+      rowBar(g, nm, p[1], u);
+    });
+  }
+  function loadVisitors() {
+    $('vUsersS').textContent = 'Atualizando…';
+    post({ action: 'visitors' }).then(function (r) { if (r.status === 200) renderVisitors(r.j); else if (!fail(r.status)) $('vUsersS').textContent = 'Erro ' + r.status + '. Toque em Atualizar.'; }).catch(function () { $('vUsersS').textContent = 'Sem conexão. Toque em Atualizar.'; });
+  }
+  $('visRefresh').onclick = loadVisitors;
+
   // ---------------- Aparelhos (filtros combináveis) ----------------
   var DEV_LABEL = { pl: 'Aparelho e navegador', 'in': 'Instalação', os: 'Sistema', sc: 'Tela', lg: 'Idioma', th: 'Tema', tc: 'Toque', mic: 'Microfone', nt: 'Notificações', v: 'Versão do app', geo: 'Região (aproximada)', tz: 'Fuso horário', mem: 'Memória do aparelho', cpu: 'Processador', net: 'Conexão', dpr: 'Densidade da tela' };
   var BR_UF = { ac: 'Acre', al: 'Alagoas', ap: 'Amapá', am: 'Amazonas', ba: 'Bahia', ce: 'Ceará', df: 'Distrito Federal', es: 'Espírito Santo', go: 'Goiás', ma: 'Maranhão', mt: 'Mato Grosso', ms: 'Mato Grosso do Sul', mg: 'Minas Gerais', pa: 'Pará', pb: 'Paraíba', pr: 'Paraná', pe: 'Pernambuco', pi: 'Piauí', rj: 'Rio de Janeiro', rn: 'Rio Grande do Norte', rs: 'Rio Grande do Sul', ro: 'Rondônia', rr: 'Roraima', sc: 'Santa Catarina', sp: 'São Paulo', se: 'Sergipe', to: 'Tocantins' };
@@ -1132,7 +1237,7 @@
   var current = 'overview', loaded = {};
   function showTab(name) {
     current = name;
-    ['overview', 'usage', 'devices', 'people', 'bugs', 'costs', 'system'].forEach(function (t) { $('tab-' + t).hidden = t !== name; });
+    ['overview', 'visitors', 'usage', 'devices', 'people', 'bugs', 'costs', 'system'].forEach(function (t) { $('tab-' + t).hidden = t !== name; });
     var bs = $('tabs').querySelectorAll('button'); for (var i = 0; i < bs.length; i++) bs[i].className = bs[i].getAttribute('data-tab') === name ? 'on' : '';
     if (!loaded[name]) { loaded[name] = true; loadTab(name); }
     window.scrollTo(0, 0);
@@ -1142,6 +1247,7 @@
     if (name === 'bugs') { loadBugs(); loadPush(); }
     if (name === 'costs') loadCosts();
     if (name === 'devices') loadDevices();
+    if (name === 'visitors') loadVisitors();
     if (name === 'system') loadSystem();
   }
   $('tabs').onclick = function (e) { var t = e.target; if (t && t.getAttribute && t.getAttribute('data-tab')) showTab(t.getAttribute('data-tab')); };
