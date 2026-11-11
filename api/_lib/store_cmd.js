@@ -8,6 +8,7 @@ const { hashes } = require('./store');
 const sets = new Map(); // PFADD/PFCOUNT (só testes): chave -> Set
 const zsets = new Map(); // ZADD...: chave -> Map(membro -> pontos)
 const lists = new Map(); // LPUSH...: chave -> array
+const strs = new Map(); // GET/SET (só testes): chave -> texto
 
 function bound(v, dflt) {
   const s = String(v);
@@ -28,6 +29,21 @@ function memCmd(a) {
       for (const m of a.slice(2)) if (!s.has(String(m))) { s.add(String(m)); added = 1; }
       return added;
     }
+    case 'SADD': { // conjuntos simples (perfis bloqueados)
+      const s = sets.get(key) || sets.set(key, new Set()).get(key);
+      let added = 0;
+      for (const m of a.slice(2)) if (!s.has(String(m))) { s.add(String(m)); added++; }
+      return added;
+    }
+    case 'SREM': {
+      const s = sets.get(key);
+      let removed = 0;
+      for (const m of a.slice(2)) if (s && s.delete(String(m))) removed++;
+      return removed;
+    }
+    case 'SCARD': return (sets.get(key) || new Set()).size;
+    case 'GET': return strs.has(key) ? strs.get(key) : null;
+    case 'SET': strs.set(key, String(a[2])); return 'OK';
     case 'PFCOUNT': {
       const u = new Set();
       for (const k of a.slice(1)) for (const m of sets.get(k) || []) u.add(m);
@@ -200,7 +216,7 @@ function memCmd(a) {
   }
 }
 
-function resetMem() { sets.clear(); zsets.clear(); lists.clear(); }
+function resetMem() { sets.clear(); zsets.clear(); lists.clear(); strs.clear(); }
 
 /** Devolve { cmd, pipeline } ligados ao Redis (ou à memória, se permitido). */
 function createCmd(cfg, fetchImpl, opts = {}) {

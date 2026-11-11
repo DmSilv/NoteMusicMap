@@ -15,7 +15,7 @@ Página estática (`web/admin.html`, JavaScript puro, sem bibliotecas) que fala 
 ## Abas
 | Aba | O que mostra |
 |---|---|
-| **Visão geral** | Online agora; usuários hoje, 7 e 30 dias com ▲▼ contra o período anterior; total de aparelhos; **conquistas**; gráficos de 30 dias; **jornada do uso**; comparação 7×7 de aberturas, aulas, tarefas validadas, horários pegos, lembretes e vínculos |
+| **Visão geral** | **Saúde do uso** (notificações negadas, versão antiga, IA hoje, perfis online e bloqueados); online agora; usuários hoje, 7 e 30 dias com ▲▼ contra o período anterior; total de aparelhos; **conquistas**; gráficos de 30 dias; **jornada do uso**; comparação 7×7 de aberturas, aulas, tarefas validadas, horários pegos, lembretes e vínculos |
 | **Uso** | Quem usa hoje (aparelho/navegador, instalação, versão, abas) e o **mapa de calor** de aberturas por dia da semana × hora (30 dias) |
 | **Pessoas** | Perfis (total, novos, ativos, inativos, professores, alunos), retorno D1/D7/D30, **retorno por semana de entrada**, crescimento, lista com busca por trecho do código, **perfis online agora** (e quem esteve há pouco), detalhe do perfil (bloquear, excluir, **suporte**: ver e encerrar vínculos, ver e apagar itens de agenda, gerar código de liberação) e o registro de ações do admin |
 | **Bugs** | Resumo, erros por hora, lista agrupada com filtros, detalhe e ações |
@@ -60,3 +60,12 @@ Tudo abre no detalhe do perfil (aba Pessoas). Cada ação pede confirmação, va
 
 ## Perfis online agora (aba Pessoas)
 Mostra os perfis com o vínculo online ligado e o app aberto à frente que deram sinal nos últimos **12 minutos**, e abaixo quem esteve online nas últimas 48 h (offline). Toque numa linha para abrir o perfil. O app avisa no máximo a cada 10 minutos (2 comandos do Redis), então a lista pode atrasar alguns minutos; é um número de **perfis**, diferente do "Online agora" da Visão geral, que conta aparelhos (mesmo sem vínculo). Quem só usa o afinador, sem telas de vínculo abertas, pode não aparecer. Só código e horário do último sinal são guardados; o texto de privacidade do app e a política dizem isso.
+
+## Saúde do uso (Visão geral)
+Cinco cartões no topo, atualizados ao abrir ou tocar em Atualizar (cerca de 10 comandos do Redis):
+- **Notificações negadas**: entre os aparelhos dos últimos 7 dias que já responderam, quantos negaram (mostra também liberaram e "ainda não foram perguntados"). Alto = o convite para ativar os lembretes está chegando na hora errada ou mal explicado.
+- **Versão antiga do app**: aparelhos fora da versão publicada agora (compara com o código em produção, `VERCEL_GIT_COMMIT_SHA`). Aparelhos sem versão informada ficam de fora.
+- **IA hoje**: pedidos admitidos no dia contra o limite diário global (`AI_RPD`).
+- **Perfis online**: os mesmos da aba Pessoas (últimos 12 min).
+- **Perfis bloqueados**: conjunto `pf:bl`, mantido ao bloquear, liberar e excluir; **conta só os bloqueios feitos depois desta atualização**.
+Ainda **não existem** indicadores de "aulas pendentes" e "vínculos travados": o servidor não sabe o que está esperando envio no aparelho do professor (isso fica só no app dele), e medir pelo servidor exigiria varrer todos os perfis.

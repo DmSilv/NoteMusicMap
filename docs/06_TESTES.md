@@ -20,7 +20,7 @@ node scripts/check_docs.js
 | Camada | Onde | O que cobre |
 |---|---|---|
 | Núcleo | `packages/afina_core/test/*_test.dart` | Afinação, detector (<0,5 cent em tons limpos), metrônomo sem deriva, grade, escalas, agenda, aulas, **status de tarefas**, **horários livres**, **fase e permissões da aula**, **visões do hub** (sem repetição/mistura), **erros** (catálogo, classificação, higienização, histórico), relatório de erro, markdown da IA |
-| API | `api/*.test.js` | Vínculo e segurança (`link.test.js`), agenda e lembretes (`agenda.test.js`), horários livres (`avail.test.js`), painel (`admin.test.js`, `painel_precisao.test.js`), suporte do painel (`support.test.js`), presença online (`presence.test.js`), relatórios de erro e bugs (`errors.test.js`), IA (`coach.test.js`), feedback, estatísticas, **guardrails** (`guardrails.test.js`) |
+| API | `api/*.test.js` | Vínculo e segurança (`link.test.js`), agenda e lembretes (`agenda.test.js`), horários livres (`avail.test.js`), painel (`admin.test.js`, `painel_precisao.test.js`), suporte do painel (`support.test.js`), presença online (`presence.test.js`), indicadores de saúde (`indicators.test.js`), relatórios de erro e bugs (`errors.test.js`), IA (`coach.test.js`), feedback, estatísticas, **guardrails** (`guardrails.test.js`) |
 | Estático | `flutter analyze` | Tipos, imports, lints |
 | Visual | Chrome em tamanho de celular | Cada pacote é conferido na tela antes de publicar |
 

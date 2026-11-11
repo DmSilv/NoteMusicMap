@@ -59,6 +59,12 @@ Tudo guardado no servidor é anônimo: código de perfil, apelido, datas e o nec
 | `er:b` | hash: build -> primeira vez visto |
 | `er:d:<d>` | hash do dia: total, critical, action, info, hHH |
 
+### Painel do administrador (`api/admin.js`)
+
+| Chave | Conteúdo |
+|---|---|
+| `pf:bl` | conjunto dos perfis bloqueados (para contar sem varrer) |
+
 ## Armazenamento local do app (`SharedPreferences`)
 
 No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no aparelho.

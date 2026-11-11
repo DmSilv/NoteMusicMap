@@ -17,6 +17,7 @@
 //   agenda_del {code, kind, id, other?}  apaga um item travado (kind: class | avail | mine; mine pede other = professor)
 //   support_code {code}        gera o código de uso único (24 h) para liberar a conta em outro aparelho
 //   support_cancel {code}      cancela o código pendente
+//   indicators                 saúde do uso: notificações negadas, versões antigas, cota de IA, bloqueados, online
 //   presence                   quem está online agora (sinal nos últimos 12 min) e quem esteve há pouco
 //
 // Não há cadastro nem login no app: "usuário" = perfil anônimo (código + apelido). O apelido pertence
@@ -44,6 +45,7 @@ const U = (c) => `u:${c}`, T = (c) => `ut:${c}`, S = (c) => `us:${c}`, SL = (c) 
 const UL = (c) => `ul:${c}`, DN = (c) => `dn:${c}`, VD = (c) => `vd:${c}`, AV = (c) => `av:${c}`, TK = (c) => `tk:${c}`, PS = (c) => `ps:${c}`;
 const CODE_RE = /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$/;
 const LOG = 'adm:log';
+const BLOCKED = 'pf:bl'; // conjunto dos perfis bloqueados (para contar sem varrer)
 const BUDGET = 500000; // comandos por mês no plano gratuito do Upstash
 // Comandos do Redis por ação (aproximado; ver docs/CUSTOS_E_REGRESSAO.md).
 const COST = { open: 11, new: 1, rev: 1, lesson: 6, slot: 8, remind: 4, link: 12, verdict: 4, pick: 12, error: 23, beatsPerUser: 6 };
@@ -241,6 +243,7 @@ function makeHandler(deps = {}) {
         if (needCode()) return;
         if ((await store.hget(U(code), 'h')) === undefined) return send(404, { error: 'Perfil não encontrado.' });
         await store.hset(U(code), 'bl', action === 'block' ? '1' : '0');
+        await cmd.cmd([action === 'block' ? 'SADD' : 'SREM', BLOCKED, code]);
         await log(action, code);
         return send(200, { ok: true, blocked: action === 'block' });
       }
@@ -276,9 +279,45 @@ function makeHandler(deps = {}) {
           for (const f of Object.keys(await store.hgetall(key(code)))) await store.hdel(key(code), f);
         }
         await profiles.forget(cmd, code);
+        await cmd.cmd(['SREM', BLOCKED, code]);
         await cmd.cmd(['HINCRBY', K.total, 'profiles', '-1']);
         await log('delete', code);
         return send(200, { ok: true });
+      }
+
+      // ---------------- Indicadores de saúde do uso ----------------
+      // Custo: 3 comandos + 7 leituras (um hash por dia). Só quando o admin abre ou toca em Atualizar.
+      if (action === 'indicators') {
+        const dayKeys = [];
+        for (let i = 6; i >= 0; i--) dayKeys.push(dayKey(now - i * DAY));
+        const aiDay = new Date(now).toISOString().slice(0, 10);
+        const [blocked, onlineNow, aiRaw, ...dims] = await cmd.pipeline([
+          ['SCARD', BLOCKED], ['ZCOUNT', Z.on, String(now - profiles.ONLINE_WINDOW), '+inf'], ['GET', `gd:${aiDay}`],
+          ...dayKeys.map((d2) => ['HGETALL', K.dim(d2)]),
+        ]);
+        const commit = ((cfg.env || {}).VERCEL_GIT_COMMIT_SHA || '').slice(0, 7) || null;
+        const nt = { sim: 0, nao: 0, nd: 0, na: 0 };
+        let devices = 0, onCurrent = 0, withVersion = 0;
+        for (const flat of dims) {
+          for (let i = 0; i + 1 < (flat || []).length; i += 2) {
+            const f = String(flat[i]);
+            if (!f.startsWith('x:')) continue;
+            const n = Number(flat[i + 1]) || 0;
+            const p = f.slice(2).split('|'); // ordem: ver DEV_FIELDS em api/stats.js (nt = 8, v = 9)
+            devices += n;
+            if (nt[p[8]] !== undefined) nt[p[8]] += n;
+            if (p[9] && p[9] !== '-') { withVersion += n; if (commit && p[9] === commit) onCurrent += n; }
+          }
+        }
+        const asked = nt.sim + nt.nao + nt.nd;
+        const pct = (a, b2) => (b2 > 0 ? Math.round((a / b2) * 1000) / 10 : null);
+        return send(200, {
+          ok: true, now, days: 7, devices,
+          notifications: { granted: nt.sim, denied: nt.nao, notAsked: nt.nd, unsupported: nt.na, deniedPct: pct(nt.nao, nt.sim + nt.nao), notAskedPct: pct(nt.nd, asked) },
+          versions: { current: commit, withVersion, outdated: commit ? withVersion - onCurrent : null, outdatedPct: commit ? pct(withVersion - onCurrent, withVersion) : null },
+          ai: { today: Number(aiRaw) || 0, limit: cfg.rpd || 0, pct: cfg.rpd ? pct(Number(aiRaw) || 0, cfg.rpd) : null },
+          blockedProfiles: Number(blocked) || 0, onlineProfiles: Number(onlineNow) || 0,
+        });
       }
 
       // ---------------- Presença: perfis com vínculo ligado e o app à frente ----------------

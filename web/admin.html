@@ -152,6 +152,15 @@
     <main id="tab-overview">
       <div class="hello" id="hello">Olá!</div>
       <div class="sub" style="padding:0 0 12px" id="helloSub"></div>
+      <h2 style="margin-top:0">Saúde do uso <button class="help" data-def="indicators">?</button></h2>
+      <div class="grid" id="indGrid">
+        <div class="card"><div class="k">Notificações negadas</div><div class="v" id="indNt">–</div><div class="s" id="indNtS"></div></div>
+        <div class="card"><div class="k">Versão antiga do app</div><div class="v" id="indVer">–</div><div class="s" id="indVerS"></div></div>
+        <div class="card"><div class="k">IA hoje</div><div class="v" id="indAi">–</div><div class="s" id="indAiS"></div></div>
+        <div class="card"><div class="k">Perfis online</div><div class="v" id="indOn">–</div><div class="s">com vínculo ligado, últimos 12 min</div></div>
+        <div class="card"><div class="k">Perfis bloqueados</div><div class="v" id="indBl">–</div><div class="s">desde que o painel passou a contar</div></div>
+      </div>
+      <h2>Agora</h2>
       <div class="grid">
         <div class="card big"><div class="k"><span>Online agora</span><button class="help" data-def="online">?</button></div><div class="v" id="on5">–</div><div class="s">últimos 5 min · <span id="on1">–</span> no último minuto</div></div>
         <div class="card"><div class="k"><span>Usuários hoje</span><button class="help" data-def="dau">?</button></div><div class="v" id="dau">–</div><div class="s"><span id="opens">–</span> aberturas<span class="delta" id="dDau"></span></div></div>
@@ -319,6 +328,7 @@
   // ---------------- Definições (o "?" de cada número) ----------------
   var DEFS = {
     presence: ['Perfis online agora', 'Perfis com o vínculo online ligado e o app aberto à frente, que deram sinal nos últimos 12 minutos. O app avisa o servidor no máximo a cada 10 minutos (2 comandos do Redis), por isso a lista pode atrasar alguns minutos. Quem só usa o afinador sem abrir telas de vínculo pode não aparecer: este número é de perfis, não de aparelhos. Abaixo ficam quem esteve online há pouco (offline). O servidor guarda só o código e o horário do último sinal; nada de áudio nem de histórico.'],
+    indicators: ['Saúde do uso', 'Indicadores dos últimos 7 dias, calculados dos aparelhos que abriram o app (um aparelho conta uma vez por dia). Notificações negadas: entre quem já foi perguntado, quantos disseram não. Versão antiga: aparelhos que não estão na versão publicada agora (o painel compara com o código em produção). IA hoje: pedidos admitidos no dia contra o limite diário global. Perfis bloqueados: contados a partir desta atualização.'],
     online: ['Online agora', 'Aparelhos que abriram o app ou mandaram sinal nos últimos 5 minutos. O sinal é enviado a cada ~5 minutos, só com o app à frente.'],
     dau: ['Usuários hoje', 'Aparelhos DISTINTOS que abriram o app hoje (horário de Brasília). Um aparelho que abre 10 vezes conta 1. O dia de hoje é parcial: ainda está acontecendo.'],
     wau: ['Últimos 7 dias', 'Aparelhos distintos dos últimos 7 dias (incluindo hoje). A seta compara com os 7 dias anteriores.'],
@@ -615,6 +625,17 @@
     $('pPrev').disabled = j.offset <= 0; $('pNext').disabled = j.offset + j.page >= j.total;
   }
   function loadKpis() { return post({ action: 'kpis' }).then(function (r) { if (r.status === 200) renderKpis(r.j); else fail(r.status); }).catch(function () {}); }
+  function loadIndicators() {
+    post({ action: 'indicators' }).then(function (r) {
+      if (r.status !== 200) return;
+      var j = r.j, n = j.notifications, v = j.versions, a = j.ai;
+      function pc(x) { return x === null || x === undefined ? '–' : String(x).replace('.', ',') + '%'; }
+      $('indNt').textContent = pc(n.deniedPct); $('indNtS').textContent = fmt(n.denied) + ' negaram · ' + fmt(n.granted) + ' liberaram · ' + fmt(n.notAsked) + ' ainda não foram perguntados';
+      $('indVer').textContent = pc(v.outdatedPct); $('indVerS').textContent = v.current ? fmt(v.outdated) + ' de ' + fmt(v.withVersion) + ' fora da versão ' + v.current : 'versão publicada desconhecida';
+      $('indAi').textContent = fmt(a.today) + (a.limit ? ' / ' + fmt(a.limit) : ''); $('indAiS').textContent = a.pct === null ? 'sem limite configurado' : pc(a.pct) + ' do limite diário';
+      $('indOn').textContent = fmt(j.onlineProfiles); $('indBl').textContent = fmt(j.blockedProfiles);
+    }).catch(function () {});
+  }
   function loadPresence() {
     post({ action: 'presence' }).then(function (r) {
       if (r.status !== 200) return;
@@ -1049,7 +1070,7 @@
   function loadLive() { if (document.hidden) return; api('live').then(function (r) { if (r.status === 200) live(r.j); else fail(r.status); }).catch(function () {}); }
   function start() {
     show(true); loaded = {}; showTab('overview'); loaded.overview = true;
-    loadFull(); loadHealth(); loadKpis();
+    loadFull(); loadHealth(); loadKpis(); loadIndicators();
     post({ action: 'system' }).then(function (r) { if (r.status === 200) { sysState.sys = r.j; sysPillUpdate(); } }).catch(function () {});
     post({ action: 'costs' }).then(function (r) { if (r.status === 200) { sysState.costs = r.j; sysPillUpdate(); } }).catch(function () {});
     clearInterval(liveTimer); clearInterval(fullTimer);
@@ -1068,7 +1089,7 @@
     }).catch(function () { $('msg').textContent = 'Sem conexão com o servidor.'; });
   };
   $('key').onkeydown = function (e) { if (e.key === 'Enter') $('enter').onclick(); };
-  $('refresh').onclick = function () { loadFull(); loadHealth(); loadKpis(); if (current !== 'overview' && current !== 'usage') loadTab(current); };
+  $('refresh').onclick = function () { loadFull(); loadHealth(); loadKpis(); loadIndicators(); if (current !== 'overview' && current !== 'usage') loadTab(current); };
   $('out').onclick = function () { logout(''); };
   $('qGo').onclick = function () { query = $('q').value.trim(); offset = 0; loadList(); };
   $('q').onkeydown = function (e) { if (e.key === 'Enter') $('qGo').onclick(); };

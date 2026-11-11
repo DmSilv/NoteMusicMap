@@ -52,6 +52,7 @@ O app pergunta `rev` (devolve os contadores **sem comando extra**, porque o perf
 ## Redis: grupos de chaves
 Formato e descrição de cada uma em [referencia/DADOS.md](referencia/DADOS.md). Por família:
 - `u:`, `ut:`, `us:`, `ul:`, `sl:`, `ss:`, `ps:`, `av:`, `tk:`, `vd:`, `dn:` — vínculo, aulas, agenda, horários, decisões, notificações.
+- `pf:bl` — conjunto dos perfis bloqueados pelo painel (contagem sem varrer).
 - `pf:*` — índice de perfis (entrou em, última atividade, papéis) para o painel. `pf:on` guarda o último sinal de vida de cada perfil (online = nos últimos 12 min; quem some há 2 dias sai).
 - `st:*` — estatísticas anônimas (HyperLogLog de aparelhos, contadores por dia e por hora).
 - `er:*` — relatórios de erro agrupados.

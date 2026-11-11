@@ -72,6 +72,9 @@ A barra tem 5 itens: Afinador, Metrônomo, Grade, Escalas e Meu espaço. A Grade
 ## Minha conta em lista (novembro/2026)
 A tela "Minha conta" deixou as abas Perfil e Professor e virou uma lista curta: nome e código no topo, grupos Vínculos (vínculo online, meus professores, minhas aulas), Professor (modo professor e meus alunos) e Conta (chave de recuperação, ajustes, compartilhar). Cada linha abre a sua tela. O código e o QR agora são um só, em "Meu código e QR", com seletor "Para meu professor / Para meus alunos" (o segundo só no modo professor). Nenhuma função foi removida e a API não mudou.
 
+## Indicadores de saúde do uso (novembro/2026)
+A Visão geral do painel ganhou cinco cartões: notificações negadas, versão antiga do app, IA hoje (contra o limite diário), perfis online e perfis bloqueados (novo conjunto `pf:bl`). Saem de dados que o servidor já tem (fichas dos aparelhos dos últimos 7 dias, contador de IA, presença), em ~10 comandos por abertura. "Aulas pendentes" e "vínculos travados" ficaram de fora: o servidor não sabe o que espera envio no aparelho do professor.
+
 ## Presença online no admin (novembro/2026)
 A aba Pessoas ganhou "Perfis online agora": perfis com vínculo ligado e app à frente que deram sinal nos últimos 12 min, e quem esteve online há pouco (offline). O sinal sai da consulta que o app já faz (`rev`/`sync`): no máximo 1 gravação de 2 comandos a cada 10 min por perfil (~12 comandos por hora de uso). Só código e horário são guardados; o app ganhou o aviso em Minha conta e na política de privacidade.
 
