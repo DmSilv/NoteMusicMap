@@ -112,4 +112,4 @@ A grade da tela Grade ficou menor (4 oitavas por padrão, ~52 px por linha) e ga
 O Modo desafio do metrônomo ganhou três desafios com nome: **Sumiço** (o metrônomo some e volta), **Elástico** (o andamento estica e encolhe) e **Surpresa total** (os dois), mais uma dificuldade Leve/Médio/Intenso. A tela diz exatamente o que vai acontecer ("A cada 4 a 8 compassos… de 100 para cerca de 122 ou 78"), mostra uma prévia de 16 compassos e, tocando, avisa na hora ("Sumiço! Segure o pulso…", "Mais rápido!"). O fim mostra quantas vezes o metrônomo sumiu ou mudou. O formato salvo (`l`, `t`, `s`) não mudou: quem já usava o desafio continua igual.
 
 ## Grade em tela cheia legível (novembro/2026)
-Na tela cheia a grade ganhou margens laterais maiores e letras bem maiores; com o celular em pé, o nome da nota é escrito na vertical para usar a altura do quadrado.
+Na tela cheia a grade ganhou margens laterais maiores e letras bem maiores; com o celular em pé a grade gira: as 12 notas viram linhas e as oitavas viram colunas, e o texto fica reto e grande.

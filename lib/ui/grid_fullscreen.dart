@@ -89,7 +89,7 @@ class _GridFullscreenState extends State<GridFullscreen> {
                         ),
                         child: KeyedSubtree(
                           key: ValueKey('${app.gridOctaves}-$landscape'),
-                          child: GridBoard(app: app, big: true, vertical: !landscape),
+                          child: GridBoard(app: app, big: true, transposed: !landscape),
                         ),
                       ),
                       if (!_showControls) _revealButton(),
