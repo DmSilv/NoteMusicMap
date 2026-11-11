@@ -32,6 +32,7 @@ const { validSubscription } = require('./_lib/webpush');
 const { bump } = require('./_lib/metrics');
 const { createCmd } = require('./_lib/store_cmd');
 const profiles = require('./_lib/profiles');
+const { sweepEmpty } = require('./_lib/sweep');
 const { unlinkPair } = require('./_lib/unlink');
 const { serverError } = require('./_lib/error_store');
 
@@ -39,7 +40,8 @@ const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const MAX_LINKS = 300;
 const MUTATIONS_PER_HOUR = 60;
 const BAD_AUTH_PER_HOUR = 20;
-const NEW_PROFILES_PER_DAY = 30; // perfis novos por origem/dia (evita encher o banco com códigos falsos)
+const NEW_PROFILES_PER_DAY = 100; // perfis novos por origem/dia (escola ou igreja com um Wi-Fi só cabe)
+const NEW_PROFILES_ALERT = 30; // passou disso numa origem: o painel mostra um aviso
 const MAX_BODY = 2048; // bytes: o pedido comum tem ~200
 const MAX_LESSON_BODY = 40000; // pedido de publicar aula (30 tarefas com texto cheio cabem)
 const MAX_LESSON_JSON = 30000; // aula já limpa
@@ -236,9 +238,11 @@ function makeHandler(deps = {}) {
         const day = Math.floor(clock() / 86400000);
         const nw = await store.incr(`lnknew:${ipKey}:${day}`, 86400);
         if (nw.n > NEW_PROFILES_PER_DAY) return send(429, { error: 'Muitos perfis novos desta origem hoje. Tente amanhã.' });
+        if (nw.n === NEW_PROFILES_ALERT + 1) await profiles.hot(cmd, `${ipKey}:${day}`, clock());
         if (await store.hsetnx(U(me), 'h', secretHash)) {
           await metric(null, { field: 'profiles', by: 1 }); // primeira vez: este segredo passa a ser o dono
           await profiles.created(cmd, me, clock());
+          await sweepEmpty(cmd, clock(), 5); // aproveita para limpar perfis abandonados (1 comando se não houver)
         }
         prof = await store.hgetall(U(me));
       }

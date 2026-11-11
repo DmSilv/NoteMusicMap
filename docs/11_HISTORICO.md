@@ -131,3 +131,6 @@ No exercício guiado, o bloco de tocar (nota, agulha e orientação) vem logo no
 
 ## Ícones sumindo depois de atualizar (novembro/2026)
 Causa: a fonte de ícones do Flutter muda a cada publicação (só leva os ícones usados) mas mantém o mesmo nome, e o site mandava guardar `assets/`, `canvaskit/` e `icons/` por 7 dias; o navegador misturava o código novo com a fonte velha e ícones sumiam (em aba anônima funciona porque não há cache). Correção: esses arquivos agora sempre conferem com o servidor (`must-revalidate`, resposta curta 304 quando nada mudou), o service worker pede `no-cache` e ganhou um cache por versão (carimbado pelo build), e, se uma versão nova do service worker assumir logo ao abrir, a página recarrega uma vez sozinha. Ninguém precisa limpar cache.
+
+## Regra de cadastros e limpeza de perfis (novembro/2026)
+Regra escrita em docs/03 (seção 10): visitante não cria cadastro; o perfil nasce só com intenção (e apelido); limite por origem subiu de 30 para 100 por dia, com aviso no painel acima de 30 (escola ou igreja no mesmo Wi-Fi); perfis vazios e parados há 60 dias são apagados automaticamente (e pelo botão "Limpar agora" em Saúde do uso). A política de privacidade avisa da limpeza.

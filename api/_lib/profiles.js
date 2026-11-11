@@ -12,6 +12,7 @@ const Z = {
   teach: 'pf:t', // código -> última atividade, só quem tem alunos
   stud: 'pf:s', // código -> última atividade, só quem tem professor
   on: 'pf:on', // código -> último sinal de vida (presença), de 10 em 10 minutos
+  hot: 'pf:hot', // origem+dia -> quando passou de 30 perfis novos (aviso no painel)
 };
 const TOUCH_EVERY = 6 * 3600 * 1000;
 const PRESENCE_EVERY = 10 * 60 * 1000; // no máximo 1 gravação de presença a cada 10 min por perfil
@@ -61,6 +62,13 @@ async function seen(cmd, prof, code, now) {
   } catch (_) { return false; }
 }
 
+/** Uma origem passou de 30 perfis novos no dia: guarda para o painel avisar (7 dias). */
+async function hot(cmd, key, now) {
+  try {
+    await cmd.pipeline([['ZADD', Z.hot, String(now), key], ['ZREMRANGEBYSCORE', Z.hot, '-inf', String(now - 7 * 86400000)]]);
+  } catch (_) { /* aviso não derruba nada */ }
+}
+
 /** Liga ou desliga o papel: kind 't' (tem alunos) ou 's' (tem professor). */
 async function setRole(cmd, code, kind, on, now) {
   try {
@@ -78,4 +86,4 @@ async function forget(cmd, code) {
   await cmd.pipeline([['ZREM', Z.last, code], ['ZREM', Z.born, code], ['ZREM', Z.teach, code], ['ZREM', Z.stud, code], ['ZREM', Z.on, code]]);
 }
 
-module.exports = { Z, TOUCH_EVERY, PRESENCE_EVERY, ONLINE_WINDOW, PRESENCE_KEEP, created, touch, seen, setRole, forget };
+module.exports = { Z, TOUCH_EVERY, PRESENCE_EVERY, ONLINE_WINDOW, PRESENCE_KEEP, created, touch, seen, setRole, forget, hot };

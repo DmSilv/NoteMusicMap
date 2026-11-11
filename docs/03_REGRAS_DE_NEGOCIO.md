@@ -77,5 +77,11 @@ Tudo que a pessoa digita, cola ou lê de QR passa por `input_guard.dart` (`clean
 | Consultas/h por perfil | 240 | `PULLS_PER_HOUR` |
 | Alterações/h por perfil | 60 | `MUTATIONS_PER_HOUR` |
 | Tentativas erradas/h por origem | 20 | `BAD_AUTH_PER_HOUR` |
-| Perfis novos por origem/dia | 30 | `NEW_PROFILES_PER_DAY` |
+| Perfis novos por origem/dia | 100 (aviso no painel acima de 30) | `NEW_PROFILES_PER_DAY`, `NEW_PROFILES_ALERT` |
 | Relatórios de erro por aparelho/h · por dia | 10 · 150 (`ERRORS_DAILY_CAP`) | `error_store.js` |
+
+## 10. Quando nasce um cadastro (regra de perfis)
+1. **Visitante não cria nada.** Quem só usa as ferramentas tem o código só no aparelho; o vínculo online vem desligado e o servidor não é chamado.
+2. **O perfil nasce na primeira chamada do vínculo**, que só acontece com intenção: modo professor (exige apelido e confirmação), ler QR ou digitar código de professor (exige apelido), adicionar aluno com código, ou ligar o vínculo à mão.
+3. **Limite por origem:** 100 perfis novos por dia; acima de 30 o painel mostra o aviso "Origens com muitos cadastros" (escola ou igreja com um Wi-Fi só é normal). Barrar é a exceção.
+4. **Limpeza:** perfil sem vínculo, sem professor nem aluno, sem horários nem notificações e parado há 60 dias é apagado (`api/_lib/sweep.js`), aos poucos, quando nasce outro perfil, e sob pedido no painel (Saúde do uso › Limpar agora). Quem tem qualquer vínculo ou bloqueio nunca é apagado.

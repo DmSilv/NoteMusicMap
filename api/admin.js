@@ -32,6 +32,7 @@ const { createStore } = require('./_lib/store');
 const { createCmd } = require('./_lib/store_cmd');
 const { K, dayKey, BR_OFFSET } = require('./_lib/metrics');
 const profiles = require('./_lib/profiles');
+const { sweepEmpty, STALE_MS } = require('./_lib/sweep');
 const { serverError } = require('./_lib/error_store');
 const { unlinkPair } = require('./_lib/unlink');
 const adminPush = require('./_lib/admin_push');
@@ -303,8 +304,9 @@ function makeHandler(deps = {}) {
         const dayKeys = [];
         for (let i = 6; i >= 0; i--) dayKeys.push(dayKey(now - i * DAY));
         const aiDay = new Date(now).toISOString().slice(0, 10);
-        const [blocked, onlineNow, aiRaw, ...dims] = await cmd.pipeline([
+        const [blocked, onlineNow, aiRaw, hotOrigins, staleProfiles, ...dims] = await cmd.pipeline([
           ['SCARD', BLOCKED], ['ZCOUNT', Z.on, String(now - profiles.ONLINE_WINDOW), '+inf'], ['GET', `gd:${aiDay}`],
+          ['ZCOUNT', Z.hot, String(now - 7 * DAY), '+inf'], ['ZCOUNT', Z.last, '-inf', String(now - STALE_MS)],
           ...dayKeys.map((d2) => ['HGETALL', K.dim(d2)]),
         ]);
         const commit = ((cfg.env || {}).VERCEL_GIT_COMMIT_SHA || '').slice(0, 7) || null;
@@ -329,7 +331,20 @@ function makeHandler(deps = {}) {
           versions: { current: commit, withVersion, outdated: commit ? withVersion - onCurrent : null, outdatedPct: commit ? pct(withVersion - onCurrent, withVersion) : null },
           ai: { today: Number(aiRaw) || 0, limit: cfg.rpd || 0, pct: cfg.rpd ? pct(Number(aiRaw) || 0, cfg.rpd) : null },
           blockedProfiles: Number(blocked) || 0, onlineProfiles: Number(onlineNow) || 0,
+          hotOrigins: Number(hotOrigins) || 0, staleProfiles: Number(staleProfiles) || 0,
         });
+      }
+
+      // Limpa agora os perfis abandonados (sem vínculo, sem dados e parados há 60 dias). Até 30 por toque.
+      if (action === 'sweep') {
+        let removed = 0;
+        for (let i = 0; i < 3; i++) {
+          const n = await sweepEmpty(cmd, now, 10);
+          removed += n;
+          if (n < 10) break;
+        }
+        await log('sweep', String(removed));
+        return send(200, { ok: true, removed });
       }
 
       // ---------------- Avisos de bug grave neste navegador ----------------

@@ -191,12 +191,12 @@ test('pedido gigante ou que não é objeto é recusado sem tocar no banco', asyn
 test('a mesma origem não consegue criar perfis falsos sem limite', async () => {
   const h = mk();
   let blocked = 0;
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 110; i++) {
     const r = await call(h, { action: 'sync', code: code(50000 + i * 977), secret: secret(i + 10) }, '9.9.9.9');
     if (r.statusCode === 429) blocked++;
   }
-  assert.ok(blocked >= 9, 'depois de 30 perfis novos no dia a origem é barrada, bloqueou ' + blocked);
-  assert.ok(hashes.size <= 31, 'o banco não cresce sem controle');
+  assert.ok(blocked >= 9, 'depois de 100 perfis novos no dia a origem é barrada, bloqueou ' + blocked);
+  assert.ok(hashes.size <= 101, 'o banco não cresce sem controle');
   // outra origem continua podendo
   const ok = await call(h, { action: 'sync', code: code(70001), secret: secret(77) }, '10.10.10.10');
   assert.equal(ok.statusCode, 200);
