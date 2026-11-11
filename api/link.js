@@ -32,6 +32,7 @@ const { validSubscription } = require('./_lib/webpush');
 const { bump } = require('./_lib/metrics');
 const { createCmd } = require('./_lib/store_cmd');
 const profiles = require('./_lib/profiles');
+const { unlinkPair } = require('./_lib/unlink');
 const { serverError } = require('./_lib/error_store');
 
 const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -114,6 +115,17 @@ function cleanLesson(l, now) {
   return { id, t: Math.round(t), d: int(l.d, 0, 86400, 0), tasks, notes, tn: clean(l.tn, 40) };
 }
 
+/** Aviso deixado pelo suporte do painel: { t, k, x } ou null. Vai junto de sync e rev, sem comando extra. */
+function parseNotice(raw) {
+  if (!raw) return null;
+  try {
+    const j = JSON.parse(raw);
+    const t = Number(j.t);
+    if (!Number.isFinite(t) || !['unlink', 'agenda'].includes(j.k)) return null;
+    return { t, k: j.k, x: clean(j.x, 60) };
+  } catch (_) { return null; }
+}
+
 function clientIp(req) {
   const xf = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
   return xf || (req.socket && req.socket.remoteAddress) || 'ip-desconhecido';
@@ -194,6 +206,28 @@ function makeHandler(deps = {}) {
       const hour = Math.floor(clock() / 3600000);
       const failKey = `lnkbad:${ipKey}:${hour}`;
 
+      // Liberação pelo suporte: o aparelho novo prova que tem o código de uso único gerado no painel e
+      // passa a ser o dono do perfil (o segredo antigo deixa de valer). Só a tentativa errada conta.
+      if (b.action === 'claim') {
+        const sup = String(b.support || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const bad = async () => {
+          const f = await store.incr(failKey, 3600);
+          const g = await store.incr(`lnkclaim:${me}:${hour}`, 3600);
+          if (f.n > BAD_AUTH_PER_HOUR || g.n > 10) return send(429, { error: 'Muitas tentativas. Tente mais tarde.' });
+          return send(403, { error: 'Código de suporte inválido ou vencido.' });
+        };
+        if (sup.length !== 8) return bad();
+        const target = await store.hgetall(U(me));
+        if (!target.h || !target.sc || !(Number(target.sx) > clock())) return bad();
+        const given = sha(`sup|${me}|${sup}`);
+        if (given.length !== target.sc.length || !crypto.timingSafeEqual(Buffer.from(given), Buffer.from(target.sc))) return bad();
+        await store.hset(U(me), 'h', sha('lnk|' + secret));
+        await store.hdel(U(me), 'sc');
+        await store.hdel(U(me), 'sx');
+        await store.hset(U(me), 'kr', String(clock()));
+        return send(200, { ok: true });
+      }
+
       // Dono do código: o primeiro a usar registra o hash do segredo; depois só ele passa.
       const secretHash = sha('lnk|' + secret);
       let prof = await store.hgetall(U(me));
@@ -229,12 +263,13 @@ function makeHandler(deps = {}) {
       }
 
       const action = String(b.action || 'sync');
+      const noticeOf = (p) => { const n = parseNotice(p.sn); return n ? { sn: n } : {}; };
 
       if (action === 'sync') {
         // Mudou o apelido: avisa quem está vinculado (o nome fica dentro de cada vínculo).
         if (nameChanged) await propagateName(store, me, name);
         const [asTeacher, asStudent] = await Promise.all([store.hgetall(T(me)), store.hgetall(S(me))]);
-        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: parseLinks(asStudent), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0 });
+        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: parseLinks(asStudent), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...noticeOf(prof) });
       }
 
       // Consulta barata: o perfil já foi lido na autenticação, então não custa nenhum comando a mais.
@@ -242,7 +277,7 @@ function makeHandler(deps = {}) {
       if (action === 'rev') {
         // Conta 1 em cada 10 consultas (barato) para o painel estimar o custo do polling.
         if (Math.random() < 0.1) await metric('rev10');
-        return send(200, { ok: true, lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0 });
+        return send(200, { ok: true, lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...noticeOf(prof) });
       }
 
       // O ALUNO vê os horários disponíveis de um professor a que está vinculado (só os que ainda dá para pegar).
@@ -581,37 +616,8 @@ function makeHandler(deps = {}) {
       }
 
       if (action === 'unlink') {
-        const hadLink = (await store.hget(T(teacher), student)) !== undefined;
-        await store.hdel(T(teacher), student);
+        const hadLink = await unlinkPair(store, cmd, teacher, student, clock());
         if (hadLink) await metric(null, { field: 'links', by: -1 });
-        await store.hdel(S(student), teacher);
-        // As aulas desse professor deixam de existir para esse aluno.
-        const lk = UL(student);
-        for (const fld of Object.keys(await store.hgetall(lk))) {
-          if (fld.startsWith(`${teacher}:`)) await store.hdel(lk, fld);
-        }
-        await store.hset(U(teacher), 'kr', String(clock()));
-        await store.hset(U(student), 'kr', String(clock()));
-        if ((await store.hlen(T(teacher))) === 0) await profiles.setRole(cmd, teacher, 't', false, clock());
-        if ((await store.hlen(S(student))) === 0) await profiles.setRole(cmd, student, 's', false, clock());
-        // As aulas marcadas desse professor para esse aluno.
-        const sk = SS(student);
-        for (const fld of Object.keys(await store.hgetall(sk))) {
-          if (fld.startsWith(`${teacher}:`)) await store.hdel(sk, fld);
-        }
-        // E as marcações de tarefa que esse aluno fez para esse professor.
-        const dk = DN(teacher);
-        for (const fld of Object.keys(await store.hgetall(dk))) {
-          if (fld.startsWith(`${student}:`)) await store.hdel(dk, fld);
-        }
-        // A trava de horários pegos por esse aluno com esse professor (libera o espaço no Redis).
-        const tk = await store.hgetall(TK(teacher));
-        for (const [sid, who] of Object.entries(tk)) if (who === student) await store.hdel(TK(teacher), sid);
-        // E as decisões desse professor sobre as tarefas desse aluno.
-        const vk = VD(student);
-        for (const fld of Object.keys(await store.hgetall(vk))) {
-          if (fld.startsWith(`${teacher}:`)) await store.hdel(vk, fld);
-        }
         return send(200, { ok: true });
       }
 
@@ -641,4 +647,4 @@ async function propagateName(store, me, name) {
 
 module.exports = makeHandler();
 module.exports.makeHandler = makeHandler;
-module.exports._internal = { normCode, parseLinks, cleanLesson };
+module.exports._internal = { normCode, parseLinks, cleanLesson, parseNotice };

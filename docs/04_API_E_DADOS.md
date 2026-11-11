@@ -21,6 +21,8 @@ Todo pedido leva `{ code, secret, action, ... }`:
 4. Perfil bloqueado → 403 `blocked`.
 5. A cada pedido autenticado o servidor registra atividade (no máximo 1 gravação a cada 6 h por perfil) para o painel.
 
+6. **Liberação pelo suporte** (`action: "claim"`, antes da conferência do dono): o aparelho novo manda o código do perfil, um segredo **novo** e o código de suporte de uso único gerado no painel. O servidor guarda só o hash do código (`u:<code>.sc`) e o prazo (`.sx`, 24 h); se conferem, troca o hash do segredo (`.h`) e apaga o código. Só a tentativa errada conta (por origem e por perfil, 10/h por perfil); o aparelho antigo passa a receber 403.
+
 O corpo é limitado (`MAX_BODY` 2 KB; aula 40 KB). Ações de leitura contam em "consultas/h"; ações que mudam dados contam em "alterações/h".
 
 ## Contadores de novidade (o truque que mantém o custo baixo)
@@ -34,6 +36,7 @@ O perfil `u:<code>` guarda carimbos de tempo que mudam quando há novidade:
 | `sr` | agenda (aluno) | professor marca/muda aula; aluno pega horário |
 | `vr` | decisões (aluno) | professor valida/devolve |
 | `ar` | horários pegos (professor) | aluno pega horário |
+| `sn` | aviso do suporte `{ t, k, x }` (vínculo encerrado, item de agenda apagado) | admin age sobre o perfil; vai junto de `sync` e `rev`, sem comando extra; app antigo ignora |
 
 O app pergunta `rev` (devolve os contadores **sem comando extra**, porque o perfil já foi lido na autenticação) a cada ~30 s com o app à frente (esticando até 4× sem novidade; fora de foco não consulta). **Só se um contador mudou** ele baixa a lista (`lessons`, `dones`, `sched`, `verdicts`, `picks`). Disso vem a regra de custo: **não adicionar polling de lista**.
 

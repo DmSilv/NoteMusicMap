@@ -33,6 +33,9 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _showKey = false;
   bool _fast = false;
   final _restore = TextEditingController();
+  final _claimCode = TextEditingController();
+  final _claimSupport = TextEditingController();
+  bool _claiming = false;
   late final TextEditingController _name = TextEditingController(
     text: widget.app.profile.name ?? '',
   );
@@ -53,6 +56,8 @@ class _ProfilePageState extends State<ProfilePage> {
   void dispose() {
     app.unwatchLinks(fast: _fast);
     _restore.dispose();
+    _claimCode.dispose();
+    _claimSupport.dispose();
     _tick.dispose();
     _name.dispose();
     super.dispose();
@@ -522,7 +527,7 @@ class _ProfilePageState extends State<ProfilePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Icon(n.kind == 'lesson' ? Icons.assignment_turned_in_outlined : Icons.how_to_reg_outlined,
+              Icon(n.kind == 'lesson' ? Icons.assignment_turned_in_outlined : (n.kind == 'support' ? Icons.support_agent : Icons.how_to_reg_outlined),
                   color: AppColors.accent),
               const SizedBox(width: 10),
               Expanded(child: Text(n.text, style: const TextStyle(fontWeight: FontWeight.w700, height: 1.3))),
@@ -533,6 +538,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 icon: const Icon(Icons.close, size: 20),
               ),
             ]),
+            if (n.kind != 'support')
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
@@ -641,8 +647,63 @@ class _ProfilePageState extends State<ProfilePage> {
             ],
           ),
         ),
+        const SizedBox(height: 16),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Tenho um código de suporte', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              Text(
+                'Perdeu a chave? O suporte pode liberar a sua conta neste aparelho. Digite o código do seu perfil e o '
+                'código de suporte (vale 24 h e só uma vez). O aparelho antigo perde o acesso.',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _claimCode,
+                inputFormatters: [...codeFormatters, LengthLimitingTextInputFormatter(9)],
+                autocorrect: false,
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(labelText: 'Código do seu perfil', hintText: 'K7QM-4TXD'),
+                onChanged: (_) => _upd(() {}),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _claimSupport,
+                inputFormatters: [...codeFormatters, LengthLimitingTextInputFormatter(9)],
+                autocorrect: false,
+                textCapitalization: TextCapitalization.characters,
+                decoration: const InputDecoration(labelText: 'Código de suporte', hintText: 'XXXX-XXXX'),
+                onChanged: (_) => _upd(() {}),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: _claiming || _claimCode.text.trim().isEmpty || _claimSupport.text.trim().isEmpty ? null : _doClaim,
+                icon: _claiming
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.support_agent),
+                label: const Text('Liberar neste aparelho'),
+              ),
+            ],
+          ),
+        ),
       ],
     );
+  }
+
+  Future<void> _doClaim() async {
+    _upd(() => _claiming = true);
+    final err = await app.claimWithSupport(_claimCode.text, _claimSupport.text);
+    if (!mounted) return;
+    _upd(() => _claiming = false);
+    if (err == null) {
+      _claimCode.clear();
+      _claimSupport.clear();
+      app.say('Conta liberada neste aparelho.');
+    } else {
+      app.say(err);
+    }
   }
 }
 

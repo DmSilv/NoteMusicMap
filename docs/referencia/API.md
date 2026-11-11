@@ -21,6 +21,12 @@ Funções hoje: **8 de 12**.
   bug_status {fp,status,note?}  marca como seen | resolved | ignored | new (e anota)
   system                     banco (teste de conexão, tamanho), servidor (versão, erros), variáveis configuradas e limites
   log                        últimas ações do administrador
+ Suporte (tudo registrado no log e avisado ao usuário no app):
+  unlink {code, other, as}   encerra um vínculo; "as" é o papel de {code}: teacher | student
+  agenda {code}              agenda do perfil: aulas que marcou, horários livres, aulas que recebeu
+  agenda_del {code, kind, id, other?}  apaga um item travado (kind: class | avail | mine; mine pede other = professor)
+  support_code {code}        gera o código de uso único (24 h) para liberar a conta em outro aparelho
+  support_cancel {code}      cancela o código pendente
 
 Não há cadastro nem login no app: "usuário" = perfil anônimo (código + apelido). O apelido pertence
 ao usuário (volta a cada sincronização), por isso o painel não o edita.
@@ -34,6 +40,14 @@ Custo: só quando o admin abre o painel (kpis ~35 comandos; lista de 25 = ~27; d
 | `detail` | Detalhe |
 | `block` | Bloquear / liberar |
 | `delete` | Excluir |
+| `unlink` | Suporte: encerrar um vínculo |
+| `agenda` | Suporte: agenda do perfil |
+| `agenda_del` | Suporte: apagar item de agenda travado |
+| `avail` | — |
+| `class` | — |
+| `mine` | — |
+| `support_code` | Suporte: código para liberar a conta em outro aparelho |
+| `support_cancel` | — |
 | `bugs` | Bugs (relatórios de erro do app) |
 | `health` | Saúde (semáforo do painel) |
 | `system` | Sistema: banco, servidor, variáveis e limites Custo: 3 comandos de teste + 14 leituras de erros (só quando o admin abre a aba Sistema). |
@@ -134,6 +148,7 @@ Precisa do Upstash Redis. Sem ele devolve 503 e o app segue só neste aparelho.
 | Ação / tipo | Descrição (comentário do código) |
 |---|---|
 | `lesson` | Só 'lesson' pode ser grande; os demais pedidos têm ~200 bytes. |
+| `claim` | Liberação pelo suporte: o aparelho novo prova que tem o código de uso único gerado no painel e passa a ser o dono do perfil (o segredo antigo deixa de valer). Só a tentativa errada conta. |
 | `sync` | — |
 | `rev` | Consulta barata: o perfil já foi lido na autenticação, então não custa nenhum comando a mais. lr = aulas novas, dr = tarefas marcadas pelos alunos, kr = vínculos mudaram. |
 | `avail` | O ALUNO vê os horários disponíveis de um professor a que está vinculado (só os que ainda dá para pegar). |

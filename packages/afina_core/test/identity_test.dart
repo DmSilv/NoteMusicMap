@@ -192,4 +192,26 @@ void main() {
       expect(into.length, 1);
     });
   });
+
+  group('liberação pelo suporte', () {
+    test('código de suporte aceita minúsculas, espaços e hífen; recusa o malformado', () {
+      expect(normalizeSupportCode('k7qm-4txd'), 'K7QM-4TXD');
+      expect(normalizeSupportCode(' K7QM 4TXD '), 'K7QM-4TXD');
+      expect(normalizeSupportCode('K7QM4TXD'), 'K7QM-4TXD');
+      expect(normalizeSupportCode('K7QM-4TX'), isNull);
+      expect(normalizeSupportCode('K7QM-4TXO'), isNull); // O não existe no alfabeto
+      expect(normalizeSupportCode(''), isNull);
+    });
+  
+    test('Profile.withCode mantém o código e gera identidade e segredo novos', () {
+      final a = Profile.create(Random(1));
+      final b = Profile.withCode(Random(2), a.shareCode);
+      expect(b.shareCode, a.shareCode);
+      expect(b.secret, isNot(a.secret));
+      expect(b.id, isNot(a.id));
+      expect(RegExp(r'^[0-9a-f]{64}$').hasMatch(b.secret), isTrue);
+      // a chave de recuperação do perfil novo funciona
+      expect(profileFromRecoveryKey(recoveryKeyFor(b))?.shareCode, a.shareCode);
+    });
+  });
 }

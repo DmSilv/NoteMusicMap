@@ -17,7 +17,7 @@ Página estática (`web/admin.html`, JavaScript puro, sem bibliotecas) que fala 
 |---|---|
 | **Visão geral** | Online agora; usuários hoje, 7 e 30 dias com ▲▼ contra o período anterior; total de aparelhos; **conquistas**; gráficos de 30 dias; **jornada do uso**; comparação 7×7 de aberturas, aulas, tarefas validadas, horários pegos, lembretes e vínculos |
 | **Uso** | Quem usa hoje (aparelho/navegador, instalação, versão, abas) e o **mapa de calor** de aberturas por dia da semana × hora (30 dias) |
-| **Pessoas** | Perfis (total, novos, ativos, inativos, professores, alunos), retorno D1/D7/D30, **retorno por semana de entrada**, crescimento, lista com busca por trecho do código, detalhe do perfil (bloquear, excluir) e o registro de ações do admin |
+| **Pessoas** | Perfis (total, novos, ativos, inativos, professores, alunos), retorno D1/D7/D30, **retorno por semana de entrada**, crescimento, lista com busca por trecho do código, detalhe do perfil (bloquear, excluir, **suporte**: ver e encerrar vínculos, ver e apagar itens de agenda, gerar código de liberação) e o registro de ações do admin |
 | **Bugs** | Resumo, erros por hora, lista agrupada com filtros, detalhe e ações |
 | **Custos** | Comandos do Redis estimados no mês × cota de 500 mil |
 
@@ -50,3 +50,10 @@ Estimativa = contadores do app × custo médio por ação (tabela `COST` em `api
 
 ## Custo do próprio painel (só quando aberto)
 `health` ≈ 16 comandos (a cada 5 min com o painel aberto), `kpis` ≈ 35, `costs` ≈ 90, `bugs` até ≈ 115, `bug` 6, `list` ≈ 27.
+
+## Suporte ao usuário (detalhe do perfil)
+Tudo abre no detalhe do perfil (aba Pessoas). Cada ação pede confirmação, vai para o registro e **avisa a pessoa no app** (aviso do tipo "suporte" na tela Minha conta e na central de avisos).
+- **Vínculos**: lista de alunos (se for professor) e de professores (se for aluno), com data e última atividade; selo "Também é aluno" quando o perfil tem os dois papéis. **Encerrar vínculo** apaga o vínculo dos dois lados e o que dependia dele (aulas, marcações, decisões, horários pegos).
+- **Agenda**: "Ver agenda deste perfil" mostra aulas que marcou, horários livres e aulas marcadas para ele; **Apagar** remove um item que esteja travando.
+- **Liberar a conta em outro aparelho**: gera um código de uso único (vale 24 h) que aparece uma vez na tela. A pessoa digita o código do perfil e o de suporte em Minha conta › Chave de recuperação, no aparelho novo. O painel nunca vê a chave de recuperação; o aparelho antigo perde o acesso. Gerar outro código cancela o anterior; dá para cancelar o pendente. Passe o código só depois de confirmar que está falando com o dono.
+- **Nome** não é editado pelo painel: o app reenvia o apelido a cada sincronização e desfaria a edição. O usuário muda o nome no app.

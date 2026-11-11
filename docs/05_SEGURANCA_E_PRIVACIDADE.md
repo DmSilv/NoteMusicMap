@@ -41,5 +41,6 @@ O painel permite **bloquear/liberar** e **excluir dados** (com confirmação dig
 
 ## Pontos de atenção conhecidos
 - `FEEDBACK_ADMIN_KEY` ainda vale como alternativa à `ADMIN_KEY`. Quando a `ADMIN_KEY` própria estiver configurada na Vercel, remover o *fallback* em `api/_lib/config.js`.
+- **Liberação pelo suporte**: o código de uso único (8 letras e números, 24 h) nunca é guardado em texto, só o hash; aparece uma única vez no painel; só vale para o perfil para o qual foi gerado; tentativas erradas são limitadas por origem e por perfil. Quem tem o código assume a conta: o admin só deve passá-lo depois de confirmar a identidade. Toda ação de suporte entra no registro do admin.
 - O segredo do perfil fica no armazenamento local do aparelho (inerente a um app sem login): quem tem acesso ao aparelho desbloqueado tem o perfil. A *chave de recuperação* deve ser guardada pelo usuário.
 - CSP ainda em modo relatório.

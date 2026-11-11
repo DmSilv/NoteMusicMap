@@ -13,6 +13,7 @@ IconData noticeIcon(String kind) => switch (kind) {
       'task' => Icons.fact_check_outlined,
       'done' => Icons.task_alt,
       'pick' => Icons.event_available_outlined,
+      'support' => Icons.support_agent,
       _ => Icons.school_outlined,
     };
 

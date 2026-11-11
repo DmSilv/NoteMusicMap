@@ -105,7 +105,15 @@
     .meter i { display: block; height: 100%; background: var(--accent); transition: width .8s; }
     .meter.warn i { background: var(--warn); } .meter.bad i { background: var(--bad); }
     [hidden] { display: none !important; }
-  </style>
+  
+  .sup { margin-top: 14px; border-top: 1px solid var(--line, #2a3340); padding-top: 10px; }
+  .sup h4 { margin: 0 0 6px; font-size: 13px; color: var(--muted, #8a97a8); font-weight: 600; }
+  .item { display: flex; gap: 8px; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid var(--line, #2a3340); }
+  .item small { color: var(--muted, #8a97a8); display: block; }
+  .item button { padding: 3px 9px; font-size: 12px; }
+  .codebox { font-size: 26px; letter-spacing: 3px; font-weight: 700; text-align: center; padding: 12px; margin: 8px 0; border: 1px dashed var(--line, #2a3340); border-radius: 10px; user-select: all; }
+  .pillx { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 10px; margin-left: 6px; background: rgba(120,160,255,.18); }
+</style>
 </head>
 <body>
   <section id="login">
@@ -606,11 +614,11 @@
       if (r.status !== 200) return;
       var el = $('logRows'); el.innerHTML = '';
       if (!r.j.items.length) { el.textContent = 'Nada ainda.'; return; }
-      var names = { block: 'Bloqueou', unblock: 'Liberou', 'delete': 'Excluiu', bug_seen: 'Marcou bug como visto', bug_resolved: 'Resolveu bug', bug_ignored: 'Ignorou bug', bug_new: 'Reabriu bug' };
+      var names = { block: 'Bloqueou', unblock: 'Liberou', 'delete': 'Excluiu', unlink: 'Encerrou vínculo de', agenda_del: 'Apagou item da agenda de', support_code: 'Gerou código de liberação para', support_cancel: 'Cancelou código de liberação de', bug_seen: 'Marcou bug como visto', bug_resolved: 'Resolveu bug', bug_ignored: 'Ignorou bug', bug_new: 'Reabriu bug' };
       r.j.items.forEach(function (x) {
         var d = document.createElement('div'); d.className = 'kv';
         var a = document.createElement('span'); a.textContent = dt(x.t);
-        var b = document.createElement('span'); b.style.color = 'var(--text)'; b.textContent = (names[x.a] || x.a) + ' ' + x.c; d.appendChild(a); d.appendChild(b); el.appendChild(d);
+        var b = document.createElement('span'); b.style.color = 'var(--text)'; b.textContent = (names[x.a] || x.a) + ' ' + x.c + (x.x ? ' (' + x.x + ')' : ''); d.appendChild(a); d.appendChild(b); el.appendChild(d);
       });
     }).catch(function () {});
   }
@@ -619,13 +627,95 @@
     post({ action: 'detail', code: code }).then(function (r) {
       if (r.status !== 200) { if (!fail(r.status)) alert(r.j.error || 'Não foi possível abrir.'); return; }
       var d = r.j, box = $('detailBox'); box.innerHTML = '';
-      var h = document.createElement('h3'); h.textContent = d.profile.name || 'Sem apelido'; box.appendChild(h);
+      var h = document.createElement('h3'); h.textContent = d.profile.name || 'Sem apelido';
+      if (d.students.length) { var p1 = document.createElement('span'); p1.className = 'pillx'; p1.textContent = 'Professor'; h.appendChild(p1); }
+      if (d.teachers.length) { var p2 = document.createElement('span'); p2.className = 'pillx'; p2.textContent = d.students.length ? 'Também é aluno' : 'Aluno'; h.appendChild(p2); }
+      box.appendChild(h);
       function kv(k, v) { var row = document.createElement('div'); row.className = 'kv'; var a = document.createElement('span'); a.textContent = k; var b = document.createElement('span'); b.textContent = v; row.appendChild(a); row.appendChild(b); box.appendChild(row); }
+      function failToast(what, r2) { toast('Não foi possível ' + what + ': ' + why(r2), 'bad'); }
+      function offline() { toast('Sem conexão com o servidor. Nada foi alterado.', 'bad'); }
       kv('Código', d.profile.code); kv('Entrou em', dt(d.profile.created)); kv('Última atividade', dt(d.profile.last) + ' (' + ago(d.profile.last) + ')'); kv('Situação', d.profile.blocked ? 'Bloqueado' : 'Normal');
-      kv('Alunos vinculados', d.students.length ? d.students.map(function (x) { return (x.name || '?') + ' (' + x.code + ')'; }).join(', ') : 'nenhum');
-      kv('Professores', d.teachers.length ? d.teachers.map(function (x) { return (x.name || '?') + ' (' + x.code + ')'; }).join(', ') : 'nenhum');
       kv('Aulas que marcou', fmt(d.data.classesMade)); kv('Aulas marcadas para ele', fmt(d.data.classesIn)); kv('Aulas recebidas', fmt(d.data.lessonsIn));
       kv('Tarefas marcadas como feitas', fmt(d.data.doneMarks)); kv('Horários livres publicados', fmt(d.data.openSlots)); kv('Aparelhos com lembrete', fmt(d.data.pushDevices));
+
+      // Vínculos, cada um com "Encerrar" (o suporte avisa os dois lados no app).
+      function links(title, list, as) {
+        var sec = document.createElement('div'); sec.className = 'sup';
+        var t = document.createElement('h4'); t.textContent = title + ' (' + list.length + ')'; sec.appendChild(t);
+        if (!list.length) { var n = document.createElement('div'); n.className = 'empty'; n.textContent = 'Nenhum.'; sec.appendChild(n); }
+        list.forEach(function (x) {
+          var row = document.createElement('div'); row.className = 'item';
+          var l = document.createElement('div'); l.textContent = (x.name || 'Sem apelido') + ' · ' + x.code;
+          var sm = document.createElement('small'); sm.textContent = 'vinculado em ' + dt(x.since) + ' · ativo ' + ago(x.last); l.appendChild(sm);
+          var bt = document.createElement('button'); bt.textContent = 'Encerrar vínculo';
+          bt.onclick = function () {
+            if (!confirm('Encerrar o vínculo entre ' + code + ' e ' + x.code + '? Aulas, tarefas e horários entre os dois somem. Os dois recebem um aviso no app.')) return;
+            post({ action: 'unlink', code: code, other: x.code, as: as }).then(function (r2) { if (r2.status === 200) { toast('Vínculo encerrado.', 'ok'); loadKpis(); loadLog(); openDetail(code); } else failToast('encerrar o vínculo', r2); }).catch(offline);
+          };
+          row.appendChild(l); row.appendChild(bt); sec.appendChild(row);
+        });
+        box.appendChild(sec);
+      }
+      links('Alunos vinculados', d.students, 'teacher');
+      links('Professores', d.teachers, 'student');
+
+      // Liberar a conta em outro aparelho: código de uso único, 24 h. O painel nunca vê a chave da pessoa.
+      var rel = document.createElement('div'); rel.className = 'sup';
+      var rt = document.createElement('h4'); rt.textContent = 'Liberar a conta em outro aparelho'; rel.appendChild(rt);
+      var rn = document.createElement('div'); rn.className = 'empty';
+      rn.textContent = d.support.pendingUntil ? 'Há um código pendente, válido até ' + dt(d.support.pendingUntil) + '. Gerar outro cancela o anterior.' : 'Gera um código de uso único (vale 24 h). Passe-o à pessoa por um canal seguro; ela digita em Minha conta › Chave de recuperação, no aparelho novo. O aparelho antigo perde o acesso.';
+      rel.appendChild(rn);
+      var rb = document.createElement('div'); rb.className = 'toolbar';
+      var gen = document.createElement('button'); gen.textContent = 'Gerar código de liberação';
+      gen.onclick = function () {
+        if (!confirm('Gerar o código de liberação de ' + code + '? Quem tiver o código assume esta conta. Confirme que está falando com o dono.')) return;
+        post({ action: 'support_code', code: code }).then(function (r2) {
+          if (r2.status !== 200) { failToast('gerar o código', r2); return; }
+          loadLog();
+          rb.innerHTML = '';
+          var box2 = document.createElement('div'); box2.className = 'codebox'; box2.textContent = r2.j.supportCode; rel.appendChild(box2);
+          var ex = document.createElement('div'); ex.className = 'empty'; ex.textContent = 'Aparece só agora. Vale até ' + dt(r2.j.until) + ' e só uma vez.'; rel.appendChild(ex);
+          var cp = document.createElement('button'); cp.textContent = 'Copiar código'; cp.onclick = function () { try { navigator.clipboard.writeText(r2.j.supportCode); toast('Código copiado.', 'ok'); } catch (e) { toast('Selecione e copie o código.', 'bad'); } }; rb.appendChild(cp);
+        }).catch(offline);
+      };
+      rb.appendChild(gen);
+      if (d.support.pendingUntil) {
+        var cn = document.createElement('button'); cn.textContent = 'Cancelar código pendente';
+        cn.onclick = function () { post({ action: 'support_cancel', code: code }).then(function (r2) { if (r2.status === 200) { toast('Código cancelado.', 'ok'); loadLog(); openDetail(code); } else failToast('cancelar', r2); }).catch(offline); };
+        rb.appendChild(cn);
+      }
+      rel.appendChild(rb); box.appendChild(rel);
+
+      // Agenda: ver e apagar o que estiver travando.
+      var ag = document.createElement('div'); ag.className = 'sup';
+      var at = document.createElement('h4'); at.textContent = 'Agenda'; ag.appendChild(at);
+      var ab = document.createElement('div'); ab.className = 'toolbar';
+      var av = document.createElement('button'); av.textContent = 'Ver agenda deste perfil';
+      var list = document.createElement('div');
+      function when(x) { return dt(x.start) + ' · ' + x.mins + ' min' + (x.weekly ? ' · toda semana' : '') + (x.canceled ? ' · cancelada' : ''); }
+      function itemRow(label, sub, onDel) {
+        var row = document.createElement('div'); row.className = 'item';
+        var l = document.createElement('div'); l.textContent = label; var sm = document.createElement('small'); sm.textContent = sub; l.appendChild(sm);
+        var bt = document.createElement('button'); bt.className = 'danger'; bt.textContent = 'Apagar';
+        bt.onclick = function () {
+          if (!confirm('Apagar este item da agenda? Não dá para desfazer. Quem estiver nele recebe um aviso no app.')) return;
+          onDel().then(function (r2) { if (r2.status === 200) { toast('Item apagado.', 'ok'); loadLog(); av.onclick(); } else failToast('apagar', r2); }).catch(offline);
+        };
+        row.appendChild(l); row.appendChild(bt); return row;
+      }
+      function group(title, rows) { var g = document.createElement('h4'); g.style.marginTop = '10px'; g.textContent = title + ' (' + rows.length + ')'; list.appendChild(g); rows.forEach(function (x) { list.appendChild(x); }); }
+      av.onclick = function () {
+        post({ action: 'agenda', code: code }).then(function (r2) {
+          if (r2.status !== 200) { failToast('ler a agenda', r2); return; }
+          var j = r2.j; list.innerHTML = '';
+          group('Aulas que marcou', j.classes.map(function (x) { return itemRow(x.studentName ? x.studentName + ' · ' + x.student : (x.student || 'sem aluno'), when(x) + (x.picked ? ' · pega pelo aluno' : ''), function () { return post({ action: 'agenda_del', code: code, kind: 'class', id: x.id }); }); }));
+          group('Horários livres publicados', j.free.map(function (x) { return itemRow('Horário livre', when(x), function () { return post({ action: 'agenda_del', code: code, kind: 'avail', id: x.id }); }); }));
+          group('Aulas marcadas para ele', j.received.map(function (x) { return itemRow((x.teacherName || 'Professor') + ' · ' + x.teacher, when(x), function () { return post({ action: 'agenda_del', code: code, kind: 'mine', id: x.id, other: x.teacher }); }); }));
+          var lk = document.createElement('div'); lk.className = 'empty'; lk.textContent = 'Horários travados (já pegos): ' + fmt(j.locks); list.appendChild(lk);
+        }).catch(offline);
+      };
+      ab.appendChild(av); ag.appendChild(ab); ag.appendChild(list); box.appendChild(ag);
+
       var bar = document.createElement('div'); bar.className = 'toolbar'; bar.style.marginTop = '14px';
       var bb = document.createElement('button'); bb.textContent = d.profile.blocked ? 'Liberar' : 'Bloquear';
       bb.onclick = function () {

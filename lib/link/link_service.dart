@@ -82,6 +82,11 @@ class LinkReply {
   /// Notificações: chave pública do servidor (vazia = lembretes desligados no servidor).
   final String pushKey;
 
+  /// Aviso deixado pelo suporte do painel (quando, tipo e texto curto); 0 = nenhum.
+  final int snAt;
+  final String snKind;
+  final String snText;
+
   /// Como ficou o lembrete da aula marcada: 'scheduled', 'off', 'none' ou 'error'.
   final String? reminder;
   const LinkReply({
@@ -109,6 +114,9 @@ class LinkReply {
     this.slots = const [],
     this.pushKey = '',
     this.reminder,
+    this.snAt = 0,
+    this.snKind = '',
+    this.snText = '',
   });
 }
 
@@ -165,6 +173,9 @@ class LinkService {
         ],
         pushKey: j['key'] is String && (j['key'] as String).length < 200 ? j['key'] as String : '',
         reminder: j['reminder'] as String?,
+        snAt: j['sn'] is Map ? (((j['sn'] as Map)['t'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000) : 0,
+        snKind: j['sn'] is Map && ((j['sn'] as Map)['k'] == 'unlink' || (j['sn'] as Map)['k'] == 'agenda') ? (j['sn'] as Map)['k'] as String : '',
+        snText: j['sn'] is Map ? cleanText(((j['sn'] as Map)['x'] as String?), max: 60) : '',
         slots: [for (final x in ((j['slots'] as List?) ?? const []).take(kMaxSlotsPerTeacher)) ?_slotFrom(x)],
         kr: ((j['kr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
         dones: [
@@ -228,6 +239,11 @@ class LinkService {
       _post({..._auth(code, secret, null), 'action': 'lesson', 'other': other, 'lesson': lesson});
 
   /// Só os contadores de novidade (1 comando no servidor): o app baixa listas só se algo mudou.
+  /// Liberação pelo suporte: este aparelho passa a ser o dono do perfil [code] com o [secret] novo,
+  /// provando que tem o código de uso único [support] gerado no painel.
+  Future<LinkReply> claim(String code, String secret, String support) =>
+      _post({..._auth(code, secret, null), 'action': 'claim', 'support': support});
+
   Future<LinkReply> rev(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'rev'});
 
   /// ALUNO: avisa que fez (ou desmarcou) a tarefa [task] da aula [lesson] do professor [teacher].

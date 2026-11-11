@@ -70,7 +70,7 @@ enum MicSensitivity {
 
 /// Tipos de aviso: teacher (um professor te adicionou), lesson (aula/agenda nova), task (decisão do
 /// professor), done (aluno marcou tarefa), pick (aluno pegou horário).
-const kNoticeKinds = ['teacher', 'lesson', 'task', 'done', 'pick'];
+const kNoticeKinds = ['teacher', 'lesson', 'task', 'done', 'pick', 'support'];
 
 /// Aviso para o usuário (aluno ou professor).
 class AppNotice {
@@ -213,6 +213,29 @@ class AppState extends ChangeNotifier {
   bool restoreProfile(String key) {
     final p = profileFromRecoveryKey(key);
     if (p == null) return false;
+    _adoptProfile(p);
+    return true;
+  }
+
+  /// Liberação pelo suporte: o administrador gerou um código de uso único para o perfil [codeText].
+  /// Este aparelho gera um segredo novo, o servidor confere o código e passa a reconhecer só este
+  /// aparelho. Devolve null se deu certo, ou o texto do problema.
+  Future<String?> claimWithSupport(String codeText, String supportText) async {
+    final code = formatShareCode(codeText);
+    if (code == null) return 'O código do perfil está incorreto. Confira as letras e números.';
+    final sup = normalizeSupportCode(supportText);
+    if (sup == null) return 'O código de suporte tem 8 letras e números (ex.: K7QM-4TXD).';
+    final p = Profile.withCode(math.Random.secure(), code);
+    final r = await links.claim(code, p.secret, sup);
+    if (r.unavailable) return 'O vínculo online não está disponível agora. Tente mais tarde.';
+    if (r.offline) return 'Sem conexão com o servidor. Tente de novo quando a internet voltar.';
+    if (!r.ok) return r.error ?? 'Não foi possível liberar a conta.';
+    p.name = profile.name; // é a mesma pessoa, no mesmo aparelho: o nome continua
+    _adoptProfile(p);
+    return null;
+  }
+
+  void _adoptProfile(Profile p) {
     p.teacher = profile.teacher;
     p.recoveryShownAt = DateTime.now();
     profile = p;
@@ -227,7 +250,6 @@ class AppState extends ChangeNotifier {
     _saveTeacher();
     _repo?.saveProfile(profile);
     notifyListeners();
-    return true;
   }
 
   // ---------------- Área do professor (local, sem login) ----------------
@@ -689,6 +711,21 @@ class AppState extends ChangeNotifier {
   List<AppNotice> notices = [];
 
   int get unseenNotices => notices.where((n) => !n.seen).length;
+
+  /// Aviso do suporte do painel (vínculo encerrado, item de agenda apagado): mostra uma vez só.
+  void _supportNotice(LinkReply r) {
+    if (r.snAt <= 0 || r.snKind.isEmpty) return;
+    final seen = _prefs?.getInt('sn_seen') ?? 0;
+    if (r.snAt <= seen) return;
+    _prefs?.setInt('sn_seen', r.snAt);
+    final who = r.snText.isEmpty ? 'outra pessoa' : r.snText;
+    addNotice(
+        'support',
+        r.snKind == 'unlink'
+            ? 'O suporte encerrou o seu vínculo com $who.'
+            : 'O suporte removeu $who da sua agenda.');
+    notifyListeners();
+  }
 
   void addNotice(String kind, String text) {
     notices.insert(0, AppNotice(kind, cleanText(text, max: kMaxNote), DateTime.now().millisecondsSinceEpoch));
@@ -1395,6 +1432,7 @@ class AppState extends ChangeNotifier {
       return;
     }
     linkOnline = true;
+    _supportNotice(r);
     final lessonsNew = myTeachers.isNotEmpty && r.lr != lessonsRev;
     final donesNew = students.isNotEmpty && r.dr != _doneRev;
     final agendaNew = myTeachers.isNotEmpty && r.sr != _agendaRev;
@@ -2175,6 +2213,7 @@ class AppState extends ChangeNotifier {
         return;
       }
       linkOnline = true;
+      _supportNotice(r);
       // 3) Envia o que só existe aqui (cadastrado sem conexão ou antes do vínculo online).
       var sent = false;
       final srvStudents = {for (final x in r.asTeacher) x.code};

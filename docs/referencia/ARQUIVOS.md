@@ -198,6 +198,7 @@
 | `api/_lib/router.js` | REGRA DE NEGÓCIO: qual IA atende cada tipo de pedido, e quando trocar de serviço. - cada tipo de pedido tem uma ordem de preferência e um "nível" de modelo (rápido e barato para resumos; mais capaz para relatórios e… |
 | `api/_lib/store.js` | Contadores, estado de saúde e fila. Usa o Upstash Redis (REST) quando configurado, para valer entre TODAS as instâncias da Vercel; senão cai para a memória da instância. |
 | `api/_lib/store_cmd.js` | Comandos genéricos do Redis (HyperLogLog, conjuntos ordenados, contadores em hash) para as métricas, com um emulador mínimo em memória para os testes. Em produção vai tudo ao Upstash, em lote (`/pipeline`): uma ida e… |
+| `api/_lib/unlink.js` | Desfaz o vínculo entre um professor e um aluno e apaga tudo o que dependia dele. Usado pelo app (ação "unlink" de /api/link) e pelo suporte do painel (/api/admin). |
 | `api/_lib/webpush.js` | Web Push (RFC 8030 + VAPID RFC 8292 + criptografia aes128gcm RFC 8291) só com o módulo `crypto` do Node: o projeto não instala pacotes npm, então nada de dependência externa. |
 
 ## Testes da API (ficam fora do deploy via `.vercelignore`)
@@ -215,6 +216,7 @@
 | `api/link.test.js` | Testes do vínculo professor-aluno, sem rede: `node --test api/link.test.js` |
 | `api/painel_precisao.test.js` | Painel mais preciso: saúde, custos, coortes, período anterior, horas, limpeza e erros do servidor. `node --test api/painel_precisao.test.js` |
 | `api/stats.test.js` | Testes das métricas anônimas e do painel de admin, sem rede: `node --test api/stats.test.js` |
+| `api/support.test.js` | Testes do suporte do painel (vínculo, agenda, código de liberação e aviso ao usuário), sem rede: `node --test api/support.test.js` |
 
 ## Site e painel (`web/`)
 
@@ -240,4 +242,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **197** arquivos mapeados.
+Total: **199** arquivos mapeados.

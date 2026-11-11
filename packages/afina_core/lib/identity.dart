@@ -176,6 +176,15 @@ class Profile {
         created: now,
       );
 
+  /// Perfil novo com um código que já existe (liberação pelo suporte): identidade e segredo novos
+  /// neste aparelho, o mesmo código de sempre.
+  factory Profile.withCode(Random r, String shareCode, {DateTime? now}) => Profile(
+        id: newUuid(r),
+        secret: _hex(r, 32),
+        shareCode: shareCode,
+        created: now,
+      );
+
   Map<String, dynamic> toJson() => {
         'v': 1,
         'id': id,
@@ -238,6 +247,14 @@ String recoveryKeyFor(Profile p) {
     groups.add(body.substring(i, i + 8 > body.length ? body.length : i + 8));
   }
   return '$_keyPrefix-${groups.join('-')}-${_keyCheck(body)}';
+}
+
+/// Código de suporte (uso único, gerado no painel do administrador): 8 letras/números, com ou sem
+/// hífen. Devolve "XXXX-XXXX" ou null se estiver malformado.
+String? normalizeSupportCode(String input) {
+  final t = input.toUpperCase().replaceAll(RegExp(r'[\s-]'), '');
+  if (!RegExp(r'^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{8}$').hasMatch(t)) return null;
+  return '${t.substring(0, 4)}-${t.substring(4)}';
 }
 
 /// Lê uma chave de recuperação. Aceita maiúsculas, espaços e quebras de linha.

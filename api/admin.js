@@ -11,6 +11,12 @@
 //   bug_status {fp,status,note?}  marca como seen | resolved | ignored | new (e anota)
 //   system                     banco (teste de conexão, tamanho), servidor (versão, erros), variáveis configuradas e limites
 //   log                        últimas ações do administrador
+//  Suporte (tudo registrado no log e avisado ao usuário no app):
+//   unlink {code, other, as}   encerra um vínculo; "as" é o papel de {code}: teacher | student
+//   agenda {code}              agenda do perfil: aulas que marcou, horários livres, aulas que recebeu
+//   agenda_del {code, kind, id, other?}  apaga um item travado (kind: class | avail | mine; mine pede other = professor)
+//   support_code {code}        gera o código de uso único (24 h) para liberar a conta em outro aparelho
+//   support_cancel {code}      cancela o código pendente
 //
 // Não há cadastro nem login no app: "usuário" = perfil anônimo (código + apelido). O apelido pertence
 // ao usuário (volta a cada sincronização), por isso o painel não o edita.
@@ -24,6 +30,7 @@ const { createCmd } = require('./_lib/store_cmd');
 const { K, dayKey, BR_OFFSET } = require('./_lib/metrics');
 const profiles = require('./_lib/profiles');
 const { serverError } = require('./_lib/error_store');
+const { unlinkPair } = require('./_lib/unlink');
 const { K: EK, day: errDay, hour: errHour, sanitize } = require('./_lib/errors_lib');
 
 const { Z } = profiles;
@@ -41,6 +48,9 @@ const BUDGET = 500000; // comandos por mês no plano gratuito do Upstash
 const COST = { open: 11, new: 1, rev: 1, lesson: 6, slot: 8, remind: 4, link: 12, verdict: 4, pick: 12, error: 23, beatsPerUser: 6 };
 const SCAN_BUGS = 60; // quantos bugs (do mais recente) a lista examina por consulta
 const BUG_PAGE = 25;
+const SUPPORT_TTL = 24 * 3600 * 1000;
+const ALPHA = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+const ID_RE = /^[A-Za-z0-9_-]{1,40}$/;
 const FP_RE = /^[0-9a-f]{12}$/;
 
 function clientIp(req) {
@@ -59,7 +69,9 @@ function parseLinks(h) {
   for (const [code, json] of Object.entries(h || {})) {
     let n = '';
     try { n = String(JSON.parse(json).n || ''); } catch (_) { /* ruim */ }
-    out.push({ code, name: n });
+    let t = 0;
+    try { t = Number(JSON.parse(json).t) || 0; } catch (_) { /* ruim */ }
+    out.push({ code, name: n, since: t });
   }
   return out;
 }
@@ -107,7 +119,9 @@ function makeHandler(deps = {}) {
         send(400, { error: 'Código inválido.' });
         return true;
       };
-      const log = (a, c) => cmd.pipeline([['LPUSH', LOG, JSON.stringify({ t: now, a, c })], ['LTRIM', LOG, '0', '199']]);
+      const log = (a, c, x) => cmd.pipeline([['LPUSH', LOG, JSON.stringify(x ? { t: now, a, c, x } : { t: now, a, c })], ['LTRIM', LOG, '0', '199']]);
+      // Aviso que o app mostra ao usuário na próxima atualização (viaja junto da sincronização).
+      const notify = (c, k, x) => store.hset(U(c), 'sn', JSON.stringify({ t: now, k, x: String(x || '').slice(0, 60) }));
 
       // ---------------- Indicadores ----------------
       if (action === 'kpis') {
@@ -203,13 +217,20 @@ function makeHandler(deps = {}) {
         const prof = await store.hgetall(U(code));
         if (!prof.h) return send(404, { error: 'Perfil não encontrado.' });
         const [students, teachers] = await Promise.all([store.hgetall(T(code)), store.hgetall(S(code))]);
+        const stuList = parseLinks(students), teaList = parseLinks(teachers);
+        const linked = [...stuList, ...teaList].map((x) => x.code).slice(0, 200);
+        const lasts = linked.length ? await cmd.cmd(['ZMSCORE', Z.last, ...linked]) : [];
+        const lastOf = Object.fromEntries(linked.map((c, i) => [c, Number(lasts && lasts[i]) || 0]));
+        for (const x of [...stuList, ...teaList]) x.last = lastOf[x.code] || 0;
         const counts = await cmd.pipeline([SL, SS, UL, DN, VD, AV, TK, PS].map((f) => ['HLEN', f(code)]));
         const [classesMade, classesIn, lessonsIn, doneMarks, verdicts, openSlots, taken, devices] = counts.map((x) => Number(x) || 0);
         return send(200, {
           ok: true,
           profile: { code, name: prof.n || '', created: Number(prof.ca) || 0, last: Number(prof.la) || 0, blocked: prof.bl === '1' },
-          students: parseLinks(students),
-          teachers: parseLinks(teachers),
+          students: stuList,
+          teachers: teaList,
+          alsoStudent: stuList.length > 0 && teaList.length > 0,
+          support: { pendingUntil: Number(prof.sx) > now ? Number(prof.sx) : 0 },
           data: { classesMade, classesIn, lessonsIn, doneMarks, verdicts, openSlots, taken, pushDevices: devices },
         });
       }
@@ -256,6 +277,98 @@ function makeHandler(deps = {}) {
         await profiles.forget(cmd, code);
         await cmd.cmd(['HINCRBY', K.total, 'profiles', '-1']);
         await log('delete', code);
+        return send(200, { ok: true });
+      }
+
+      // ---------------- Suporte: encerrar um vínculo ----------------
+      if (action === 'unlink') {
+        if (needCode()) return;
+        const other = String(b.other || '').toUpperCase();
+        if (!CODE_RE.test(other) || other === code) return send(400, { error: 'Código do outro lado inválido.' });
+        if (b.as !== 'teacher' && b.as !== 'student') return send(400, { error: 'Informe o papel (teacher ou student).' });
+        const teacher = b.as === 'teacher' ? code : other, student = b.as === 'teacher' ? other : code;
+        if ((await store.hget(U(code), 'h')) === undefined) return send(404, { error: 'Perfil não encontrado.' });
+        if ((await store.hget(T(teacher), student)) === undefined) return send(404, { error: 'Esse vínculo não existe.' });
+        const nameOf = async (c) => String((await store.hget(U(c), 'n')) || '') || c;
+        const [tn, sn] = await Promise.all([nameOf(teacher), nameOf(student)]);
+        await unlinkPair(store, cmd, teacher, student, now);
+        await cmd.cmd(['HINCRBY', K.total, 'links', '-1']);
+        await notify(teacher, 'unlink', sn);
+        await notify(student, 'unlink', tn);
+        await log('unlink', code, other);
+        return send(200, { ok: true });
+      }
+
+      // ---------------- Suporte: agenda do perfil ----------------
+      if (action === 'agenda') {
+        if (needCode()) return;
+        if ((await store.hget(U(code), 'h')) === undefined) return send(404, { error: 'Perfil não encontrado.' });
+        const [made, avail, taken, mine, links] = await Promise.all([store.hgetall(SL(code)), store.hgetall(AV(code)), store.hgetall(TK(code)), store.hgetall(SS(code)), store.hgetall(T(code))]);
+        const parse = (j) => { try { return JSON.parse(j); } catch (_) { return null; } };
+        const names = Object.fromEntries(parseLinks(links).map((x) => [x.code, x.name]));
+        const classes = Object.entries(made).map(([id, j]) => ({ id, j: parse(j) })).filter((x) => x.j)
+          .map(({ id, j }) => ({ id, start: j.s || 0, mins: j.d || 0, weekly: !!j.w, canceled: !!j.c, student: j.sc || '', studentName: names[j.sc] || '', picked: !!j.pk }))
+          .sort((a, b2) => a.start - b2.start).slice(0, 60);
+        const free = Object.entries(avail).map(([id, j]) => ({ id, j: parse(j) })).filter((x) => x.j)
+          .map(({ id, j }) => ({ id, start: j.s || 0, mins: j.d || 0, weekly: !!j.w }))
+          .sort((a, b2) => a.start - b2.start).slice(0, 60);
+        const received = Object.entries(mine).map(([f, j]) => ({ f, j: parse(j) })).filter((x) => x.j)
+          .map(({ f, j }) => ({ id: f.slice(f.indexOf(':') + 1), teacher: f.slice(0, f.indexOf(':')), teacherName: j.tn || '', start: j.s || 0, mins: j.d || 0, weekly: !!j.w, canceled: !!j.c }))
+          .sort((a, b2) => a.start - b2.start).slice(0, 60);
+        return send(200, { ok: true, classes, free, received, locks: Object.keys(taken).length });
+      }
+
+      // ---------------- Suporte: apagar item de agenda travado ----------------
+      if (action === 'agenda_del') {
+        if (needCode()) return;
+        const id = String(b.id || '');
+        const kind = String(b.kind || '');
+        if (!ID_RE.test(id) || !['class', 'avail', 'mine'].includes(kind)) return send(400, { error: 'Item inválido.' });
+        if ((await store.hget(U(code), 'h')) === undefined) return send(404, { error: 'Perfil não encontrado.' });
+        if (kind === 'avail') {
+          if ((await store.hget(AV(code), id)) === undefined) return send(404, { error: 'Item não encontrado.' });
+          await store.hdel(AV(code), id);
+          await store.hdel(TK(code), id);
+          await notify(code, 'agenda', 'um horário livre');
+        } else {
+          const teacher = kind === 'class' ? code : String(b.other || '').toUpperCase();
+          if (!CODE_RE.test(teacher)) return send(400, { error: 'Falta o código do professor.' });
+          const raw = await store.hget(SL(teacher), id);
+          let student = kind === 'mine' ? code : '';
+          if (kind === 'class' && raw !== undefined) { try { student = String(JSON.parse(raw).sc || ''); } catch (_) { /* ruim */ } }
+          const mineRaw = student && CODE_RE.test(student) ? await store.hget(SS(student), `${teacher}:${id}`) : undefined;
+          if (raw === undefined && mineRaw === undefined) return send(404, { error: 'Item não encontrado.' });
+          await store.hdel(SL(teacher), id);
+          if (student && CODE_RE.test(student)) {
+            await store.hdel(SS(student), `${teacher}:${id}`);
+            await store.hset(U(student), 'sr', String(now));
+            await notify(student, 'agenda', 'uma aula marcada');
+          }
+          await store.hset(U(teacher), 'ar', String(now));
+          await notify(teacher, 'agenda', 'uma aula marcada');
+        }
+        await log('agenda_del', code, `${kind}:${id}`);
+        return send(200, { ok: true });
+      }
+
+      // ---------------- Suporte: código para liberar a conta em outro aparelho ----------------
+      if (action === 'support_code') {
+        if (needCode()) return;
+        if ((await store.hget(U(code), 'h')) === undefined) return send(404, { error: 'Perfil não encontrado.' });
+        const bytes = crypto.randomBytes(8);
+        let plain = '';
+        for (const x of bytes) plain += ALPHA[x % 32];
+        const until = now + SUPPORT_TTL;
+        await store.hset(U(code), 'sc', sha(`sup|${code}|${plain}`));
+        await store.hset(U(code), 'sx', String(until));
+        await log('support_code', code);
+        return send(200, { ok: true, supportCode: `${plain.slice(0, 4)}-${plain.slice(4)}`, until });
+      }
+      if (action === 'support_cancel') {
+        if (needCode()) return;
+        await store.hdel(U(code), 'sc');
+        await store.hdel(U(code), 'sx');
+        await log('support_cancel', code);
         return send(200, { ok: true });
       }
 
