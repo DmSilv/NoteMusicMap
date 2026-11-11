@@ -16,7 +16,8 @@ import 'ui/error_ui.dart';
 import 'ui/status_strip.dart';
 import 'ui/teacher_page.dart' show handleIncomingStudentCode;
 import 'ui/grid_page.dart';
-import 'ui/install_banner.dart';
+import 'platform/web_install.dart' show webOnInstallEvents;
+import 'ui/suggestions.dart';
 import 'ui/notifications_sheet.dart';
 import 'ui/profile_page.dart' show ProfilePage, handleIncomingTeacherCode;
 import 'ui/metronome_page.dart';
@@ -349,6 +350,10 @@ class _HomeShellState extends State<HomeShell> {
     super.initState();
     // O hub (Meu espaço) usa isto para levar a outras abas (ex.: Metrônomo).
     widget.app.goTab = _go;
+    // O navegador libera a instalação um pouco depois de abrir a página: atualiza o sino.
+    webOnInstallEvents(() {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -535,8 +540,8 @@ class _HomeShellState extends State<HomeShell> {
               builder: (context, _) => IconButton(
                 tooltip: 'Avisos',
                 icon: Badge(
-                  label: app.unseenNotices > 0 ? Text('${app.unseenNotices}') : null,
-                  isLabelVisible: app.unseenNotices > 0,
+                  label: (app.unseenNotices + suggestionCount(app)) > 0 ? Text('${app.unseenNotices + suggestionCount(app)}') : null,
+                  isLabelVisible: (app.unseenNotices + suggestionCount(app)) > 0,
                   backgroundColor: AppColors.sharp,
                   child: const Icon(Icons.notifications_outlined),
                 ),
@@ -573,9 +578,8 @@ class _HomeShellState extends State<HomeShell> {
               UpdateBar(app: app),
               // Vínculo desligado com gente dependendo dele: avisa que está offline.
               if (split || _index == 0 || _index == 4) LinkOffBar(app: app),
-              if (split || _index == 0 || _index == 4) HelloBar(app: app),
-              // "Instale o Notemusic no celular": só no navegador, enquanto não instalou.
-              InstallBanner(app: app),
+              // Saudação só no Meu espaço; apelido e "instalar" ficam no sino.
+              if (split || _index == 4) HelloBar(app: app),
               Expanded(
                 child: split
                     ? _splitBody()

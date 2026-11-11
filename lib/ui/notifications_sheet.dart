@@ -5,6 +5,8 @@ import 'agenda_page.dart';
 import 'my_lessons_page.dart' show openMyLessons;
 import 'profile_page.dart';
 import 'teacher_page.dart';
+import 'design_system.dart';
+import 'suggestions.dart';
 import 'theme.dart';
 
 /// Ícone de cada tipo de aviso.
@@ -67,7 +69,9 @@ Future<void> showNotificationsSheet(BuildContext context, AppState app) {
                   if (app.unseenNotices > 0) TextButton.icon(onPressed: app.markNoticesSeen, icon: const Icon(Icons.done_all, size: 18), label: const Text('Marcar como lidos')),
                   if (list.isNotEmpty) TextButton.icon(onPressed: app.clearNotices, icon: const Icon(Icons.delete_sweep, size: 18), label: const Text('Limpar')),
                 ]),
-                if (list.isEmpty)
+                const DsGap.small(),
+                SuggestionTiles(app: app, closeSheet: () => Navigator.of(c).pop()),
+                if (list.isEmpty && suggestionCount(app) == 0)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 28),
                     child: Text('Nenhum aviso por enquanto. Aulas novas, tarefas validadas e horários aparecem aqui.',

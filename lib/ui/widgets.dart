@@ -10,7 +10,7 @@ import 'theme.dart';
 class AppCard extends StatelessWidget {
   final Widget child;
   final EdgeInsets padding;
-  const AppCard({super.key, required this.child, this.padding = const EdgeInsets.all(16)});
+  const AppCard({super.key, required this.child, this.padding = const EdgeInsets.all(20)});
 
   @override
   Widget build(BuildContext context) => Container(

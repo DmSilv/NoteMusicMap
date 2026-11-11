@@ -16,7 +16,7 @@ class LinkOffBar extends StatelessWidget {
       builder: (context, _) {
         if (!app.linkNeedsAttention) return const SizedBox.shrink();
         return Padding(
-          padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
           child: Material(
             color: AppColors.sharp.withValues(alpha: 0.14),
             borderRadius: BorderRadius.circular(16),
@@ -32,7 +32,7 @@ class LinkOffBar extends StatelessWidget {
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
                     const Text('Você está offline', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                    Text('O vínculo online está desligado: você não recebe avisos de alunos, aulas nem tarefas.',
+                    Text('Vínculo desligado: sem avisos de alunos, aulas nem tarefas.',
                         style: TextStyle(color: AppColors.textDim, fontSize: 12)),
                   ]),
                 ),
@@ -106,7 +106,7 @@ class UpdateBar extends StatelessWidget {
       builder: (context, _) {
         if (!app.showUpdatePrompt) return const SizedBox.shrink();
         return Padding(
-          padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
           child: Material(
             color: AppColors.accent.withValues(alpha: 0.14),
             borderRadius: BorderRadius.circular(16),
@@ -122,7 +122,7 @@ class UpdateBar extends StatelessWidget {
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
                     const Text('Versão nova disponível', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                    Text('Atualize para receber as correções. Seus dados são mantidos.',
+                    Text('Atualize para receber as correções.',
                         style: TextStyle(color: AppColors.textDim, fontSize: 12)),
                   ]),
                 ),

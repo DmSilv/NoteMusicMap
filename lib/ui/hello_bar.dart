@@ -89,7 +89,8 @@ class HelloBar extends StatelessWidget {
         final name = app.profile.name;
         final hour = DateTime.now().hour;
         if (name == null || name.trim().isEmpty) {
-          if (DateTime.now().millisecondsSinceEpoch < app.nickHideUntil) return const SizedBox.shrink();
+          return const SizedBox.shrink(); // o convite para informar o apelido fica no sino
+          // ignore: dead_code
           return Padding(
             padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
             child: Material(

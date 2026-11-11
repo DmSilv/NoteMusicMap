@@ -7,6 +7,7 @@ import 'package:afina_core/afina_core.dart';
 import 'perf.dart';
 import 'ref_a_dialog.dart';
 import 'note_widgets.dart';
+import 'design_system.dart';
 import 'theme.dart';
 import 'tuning_guide.dart';
 import 'pedal_view.dart';
@@ -186,28 +187,15 @@ class _TunerPageState extends State<TunerPage> {
                 ? 'Afinado'
                 : (cents < 0 ? 'Grave: suba a afinação' : 'Agudo: desça a afinação');
 
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        return Column(children: [
+          Expanded(
+            child: ListView(
+          padding: Ds.screen,
           children: [
             _modeRow(),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: Text(
-                  switch (app.tunerMode) {
-                    TunerMode.strings => 'Para AFINAR o instrumento: toque uma corda solta e ajuste até ficar verde.',
-                    TunerMode.chromatic => 'Para ESTUDAR: reconhece qualquer nota e mostra se está afinada.',
-                    TunerMode.pedal => 'Para OUVIR: notas que soam juntas, para tocar por cima e treinar o ouvido.',
-                  },
-                  key: ValueKey(app.tunerMode),
-                  style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            if (stringsMode) _instrumentPicker(),
-            const SizedBox(height: 8),
+            const DsGap(Ds.s12),
+            _instrumentRow(stringsMode),
+            const DsGap(Ds.s12),
             // ---- Leitura ----
             AppCard(
               child: Column(
@@ -251,65 +239,78 @@ class _TunerPageState extends State<TunerPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            const DsGap(Ds.s12),
             // ---- Cordas ----
             if (stringsMode) _stringsRow(inst, hitString),
-            if (stringsMode)
-              Padding(
-                padding: const EdgeInsets.only(top: 6, bottom: 4),
-                child: Text(
-                  inst.fretted
-                      ? 'Instrumento com trastes: afinação em temperamento igual. Toque numa corda para ouvir a nota.'
-                      : 'Cordas em quintas puras (3:2) a partir do Lá. Toque numa corda para ouvir a nota.',
-                  style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
-                ),
-              ),
-            const SizedBox(height: 8),
-            // ---- Controle do microfone ----
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(56),
-                      backgroundColor: app.listening ? AppColors.surface2 : AppColors.accent,
-                      foregroundColor: app.listening ? AppColors.text : AppColors.onAccent,
-                    ),
-                    onPressed: () => app.listening && !app.demo
-                        ? app.stopListening()
-                        : app.startListening(),
-                    icon: Icon(app.listening && !app.demo ? Icons.mic_off : Icons.mic),
-                    label: Text(app.listening && !app.demo ? 'Parar' : 'Ouvir',
-                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 56)),
-                  onPressed: _toggleA,
-                  icon: Icon(_playingA ? Icons.stop : Icons.volume_up),
-                  label: Text(_playingA ? 'Parar' : 'Ouvir Lá ${app.refA.toStringAsFixed(0)}'),
-                ),
-              ],
-            ),
-            if (app.micError != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(app.micError!, style: TextStyle(color: AppColors.sharp)),
-              ),
-            if (kDevDemo)
-              TextButton.icon(
-                onPressed: () => app.listening && app.demo ? app.stopListening() : app.startListening(demoMode: true),
-                icon: const Icon(Icons.play_circle_outline, size: 18),
-                label: const Text('[dev] Simulação silenciosa'),
-              ),
-            const SizedBox(height: 4),
-            MicSettingsCard(app: app),
-            const SizedBox(height: 12),
-            _tuningCard(stringsMode),
           ],
-        );
+            ),
+          ),
+          _bottomBar(),
+        ]);
       },
+    );
+  }
+
+  /// Instrumento (lista escondida num toque) e o botão que abre os ajustes do afinador.
+  Widget _instrumentRow(bool picker) => Row(children: [
+        if (picker) Expanded(child: _instrumentPicker()) else const Spacer(),
+        const SizedBox(width: Ds.s12),
+        DsSettingsButton(onPressed: _openSettings),
+      ]);
+
+  /// Ação principal sempre à vista, acima da barra de abas.
+  Widget _bottomBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(Ds.screenPad, Ds.s8, Ds.screenPad, Ds.s12),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        if (app.micError != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: Ds.s8),
+            child: Text(app.micError!, style: TextStyle(color: AppColors.sharp)),
+          ),
+        Row(children: [
+          Expanded(
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(Ds.primaryHeight),
+                backgroundColor: app.listening ? AppColors.surface2 : AppColors.accent,
+                foregroundColor: app.listening ? AppColors.text : AppColors.onAccent,
+              ),
+              onPressed: () => app.listening && !app.demo ? app.stopListening() : app.startListening(),
+              icon: Icon(app.listening && !app.demo ? Icons.mic_off : Icons.mic),
+              label: Text(app.listening && !app.demo ? 'Parar' : 'Ouvir',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+            ),
+          ),
+          const SizedBox(width: Ds.s12),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(minimumSize: const Size(0, Ds.primaryHeight)),
+            onPressed: _toggleA,
+            icon: Icon(_playingA ? Icons.stop : Icons.volume_up),
+            label: Text(_playingA ? 'Parar' : 'Lá ${app.refA.toStringAsFixed(0)}'),
+          ),
+        ]),
+        if (kDevDemo)
+          TextButton.icon(
+            onPressed: () => app.listening && app.demo ? app.stopListening() : app.startListening(demoMode: true),
+            icon: const Icon(Icons.play_circle_outline, size: 18),
+            label: const Text('[dev] Simulação silenciosa'),
+          ),
+      ]),
+    );
+  }
+
+  /// Modal com tudo o que é configuração do afinador.
+  void _openSettings() {
+    showDsSheet(
+      context,
+      title: 'Ajustes do afinador',
+      listenable: app,
+      children: (c) => [
+        MicSettingsContent(app: app),
+        const DsGap.section(),
+        _tuningCard(app.tunerMode == TunerMode.strings),
+      ],
     );
   }
 
@@ -371,22 +372,18 @@ class _TunerPageState extends State<TunerPage> {
   /// Modo Pedal: teclado de notas que soam juntas + Lá e sistema de afinação para ajustar ali mesmo.
   Widget _pedalBody() {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: Ds.screen,
       children: [
         _modeRow(),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 6, 4, 10),
-          child: Text('Para OUVIR: notas que soam juntas, para tocar por cima e treinar o ouvido.',
-              style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
-        ),
+        const DsGap(Ds.s12),
+        _instrumentRow(false),
+        const DsGap(Ds.s12),
         // Em telas largas o teclado não estica sem limite.
         Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 640),
             child: Column(children: [
               PedalView(app: app),
-              const SizedBox(height: 12),
-              _tuningCard(false),
             ]),
           ),
         ),
@@ -455,8 +452,7 @@ class _TunerPageState extends State<TunerPage> {
   }
 
   Widget _tuningCard(bool stringsMode) {
-    return AppCard(
-      child: Column(
+    return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
@@ -505,7 +501,7 @@ class _TunerPageState extends State<TunerPage> {
             const SizedBox(height: 8),
             Text(
               'Cordas soltas: quintas puras nos de arco, afinação igual nos de trastes. O sistema só vale no Cromático.',
-              style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+              style: Ds.support(),
             ),
           ],
           if (!stringsMode) ...[
@@ -569,8 +565,7 @@ class _TunerPageState extends State<TunerPage> {
           const SizedBox(height: 6),
           SpellingPicker(app: app),
         ],
-      ),
-    );
+      );
   }
 }
 

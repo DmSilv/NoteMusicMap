@@ -73,9 +73,10 @@ ThemeData buildTheme({required bool dark}) {
     ),
     // Botões mais "quadrados" (cantos de 8 px em vez de pílula/círculo): ficam mais
     // fáceis de ver e de acertar no celular.
-    filledButtonTheme: FilledButtonThemeData(style: ButtonStyle(shape: _squareShape)),
-    elevatedButtonTheme: ElevatedButtonThemeData(style: ButtonStyle(shape: _squareShape)),
-    outlinedButtonTheme: OutlinedButtonThemeData(style: ButtonStyle(shape: _squareShape)),
+    // Alvo de toque mínimo de 48 px (design system).
+    filledButtonTheme: FilledButtonThemeData(style: ButtonStyle(shape: _squareShape, minimumSize: WidgetStateProperty.all(const Size(64, 48)))),
+    elevatedButtonTheme: ElevatedButtonThemeData(style: ButtonStyle(shape: _squareShape, minimumSize: WidgetStateProperty.all(const Size(64, 48)))),
+    outlinedButtonTheme: OutlinedButtonThemeData(style: ButtonStyle(shape: _squareShape, minimumSize: WidgetStateProperty.all(const Size(64, 48)))),
     textButtonTheme: TextButtonThemeData(style: ButtonStyle(shape: _squareShape)),
     iconButtonTheme: IconButtonThemeData(style: ButtonStyle(shape: _squareShape)),
     navigationBarTheme: NavigationBarThemeData(
