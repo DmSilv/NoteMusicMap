@@ -409,7 +409,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ]),
               const SizedBox(height: 10),
               Text(
-                'O que o servidor guarda: seu código, o apelido (opcional), a data de cada vínculo e as tarefas e '
+                'O que o servidor guarda: seu código, o apelido (opcional), a data de cada vínculo, o horário do último sinal do app (para o suporte ver se você está online) e as tarefas e '
                 'observações das aulas que o professor envia. Nunca áudio nem seu histórico de exercícios.',
                 style: TextStyle(color: AppColors.textDim, fontSize: 11.5, height: 1.3),
               ),

@@ -17,7 +17,7 @@ Página estática (`web/admin.html`, JavaScript puro, sem bibliotecas) que fala 
 |---|---|
 | **Visão geral** | Online agora; usuários hoje, 7 e 30 dias com ▲▼ contra o período anterior; total de aparelhos; **conquistas**; gráficos de 30 dias; **jornada do uso**; comparação 7×7 de aberturas, aulas, tarefas validadas, horários pegos, lembretes e vínculos |
 | **Uso** | Quem usa hoje (aparelho/navegador, instalação, versão, abas) e o **mapa de calor** de aberturas por dia da semana × hora (30 dias) |
-| **Pessoas** | Perfis (total, novos, ativos, inativos, professores, alunos), retorno D1/D7/D30, **retorno por semana de entrada**, crescimento, lista com busca por trecho do código, detalhe do perfil (bloquear, excluir, **suporte**: ver e encerrar vínculos, ver e apagar itens de agenda, gerar código de liberação) e o registro de ações do admin |
+| **Pessoas** | Perfis (total, novos, ativos, inativos, professores, alunos), retorno D1/D7/D30, **retorno por semana de entrada**, crescimento, lista com busca por trecho do código, **perfis online agora** (e quem esteve há pouco), detalhe do perfil (bloquear, excluir, **suporte**: ver e encerrar vínculos, ver e apagar itens de agenda, gerar código de liberação) e o registro de ações do admin |
 | **Bugs** | Resumo, erros por hora, lista agrupada com filtros, detalhe e ações |
 | **Custos** | Comandos do Redis estimados no mês × cota de 500 mil |
 
@@ -57,3 +57,6 @@ Tudo abre no detalhe do perfil (aba Pessoas). Cada ação pede confirmação, va
 - **Agenda**: "Ver agenda deste perfil" mostra aulas que marcou, horários livres e aulas marcadas para ele; **Apagar** remove um item que esteja travando.
 - **Liberar a conta em outro aparelho**: gera um código de uso único (vale 24 h) que aparece uma vez na tela. A pessoa digita o código do perfil e o de suporte em Minha conta › Chave de recuperação, no aparelho novo. O painel nunca vê a chave de recuperação; o aparelho antigo perde o acesso. Gerar outro código cancela o anterior; dá para cancelar o pendente. Passe o código só depois de confirmar que está falando com o dono.
 - **Nome** não é editado pelo painel: o app reenvia o apelido a cada sincronização e desfaria a edição. O usuário muda o nome no app.
+
+## Perfis online agora (aba Pessoas)
+Mostra os perfis com o vínculo online ligado e o app aberto à frente que deram sinal nos últimos **12 minutos**, e abaixo quem esteve online nas últimas 48 h (offline). Toque numa linha para abrir o perfil. O app avisa no máximo a cada 10 minutos (2 comandos do Redis), então a lista pode atrasar alguns minutos; é um número de **perfis**, diferente do "Online agora" da Visão geral, que conta aparelhos (mesmo sem vínculo). Quem só usa o afinador, sem telas de vínculo abertas, pode não aparecer. Só código e horário do último sinal são guardados; o texto de privacidade do app e a política dizem isso.

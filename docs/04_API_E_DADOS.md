@@ -19,7 +19,7 @@ Todo pedido leva `{ code, secret, action, ... }`:
 2. O servidor compara o **hash** do segredo (`sha256("lnk|" + secret)`) com `u:<code>.h`. Se o perfil não existe, o primeiro pedido o cria (limite de perfis novos por origem/dia).
 3. Segredo errado → 403 genérico; muitas tentativas → 429.
 4. Perfil bloqueado → 403 `blocked`.
-5. A cada pedido autenticado o servidor registra atividade (no máximo 1 gravação a cada 6 h por perfil) para o painel.
+5. A cada pedido autenticado o servidor registra atividade (no máximo 1 gravação a cada 6 h por perfil) e **presença** (`pf:on` e campo `pa`, no máximo 1 gravação de 2 comandos a cada 10 min por perfil) para o painel. A conferência usa o perfil que já foi lido, então não custa leitura.
 
 6. **Liberação pelo suporte** (`action: "claim"`, antes da conferência do dono): o aparelho novo manda o código do perfil, um segredo **novo** e o código de suporte de uso único gerado no painel. O servidor guarda só o hash do código (`u:<code>.sc`) e o prazo (`.sx`, 24 h); se conferem, troca o hash do segredo (`.h`) e apaga o código. Só a tentativa errada conta (por origem e por perfil, 10/h por perfil); o aparelho antigo passa a receber 403.
 
@@ -52,7 +52,7 @@ O app pergunta `rev` (devolve os contadores **sem comando extra**, porque o perf
 ## Redis: grupos de chaves
 Formato e descrição de cada uma em [referencia/DADOS.md](referencia/DADOS.md). Por família:
 - `u:`, `ut:`, `us:`, `ul:`, `sl:`, `ss:`, `ps:`, `av:`, `tk:`, `vd:`, `dn:` — vínculo, aulas, agenda, horários, decisões, notificações.
-- `pf:*` — índice de perfis (entrou em, última atividade, papéis) para o painel.
+- `pf:*` — índice de perfis (entrou em, última atividade, papéis) para o painel. `pf:on` guarda o último sinal de vida de cada perfil (online = nos últimos 12 min; quem some há 2 dias sai).
 - `st:*` — estatísticas anônimas (HyperLogLog de aparelhos, contadores por dia e por hora).
 - `er:*` — relatórios de erro agrupados.
 - `adm:log` — últimas ações do administrador.

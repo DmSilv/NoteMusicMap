@@ -19,6 +19,8 @@ Valores abaixo são aproximados e contam só o que o servidor faz por pedido.
 | `picks` | professor | 4 | só quando o contador `ar` mudou |
 | Perfil novo | servidor | +3 | uma vez por perfil |
 | Atividade (índice do painel) | servidor | 2–4 | no máximo a cada 6 h por perfil ativo |
+| Presença (online agora) | servidor | 2 | no máximo a cada 10 min por perfil com o app à frente: ~12 comandos por hora de uso |
+| Painel: `presence` | admin | ~4 + até 55 | só quando o admin abre Pessoas ou toca em Atualizar |
 | Painel: `kpis` / `list` / `detail` | admin | ~35 / ~27 / ~12 | só quando o admin abre ou toca em Atualizar |
 
 ## Limites (anti-abuso)

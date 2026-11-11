@@ -31,6 +31,7 @@ Tudo guardado no servidor é anônimo: código de perfil, apelido, datas e o nec
 | `pf:new` | código -> quando entrou (ms) |
 | `pf:t` | código -> última atividade, só quem tem alunos |
 | `pf:s` | código -> última atividade, só quem tem professor |
+| `pf:on` | código -> último sinal de vida (presença), de 10 em 10 minutos |
 
 ### Estatísticas anônimas de uso (`api/_lib/metrics.js`)
 

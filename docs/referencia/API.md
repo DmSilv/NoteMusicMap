@@ -27,6 +27,7 @@ Funções hoje: **8 de 12**.
   agenda_del {code, kind, id, other?}  apaga um item travado (kind: class | avail | mine; mine pede other = professor)
   support_code {code}        gera o código de uso único (24 h) para liberar a conta em outro aparelho
   support_cancel {code}      cancela o código pendente
+  presence                   quem está online agora (sinal nos últimos 12 min) e quem esteve há pouco
 
 Não há cadastro nem login no app: "usuário" = perfil anônimo (código + apelido). O apelido pertence
 ao usuário (volta a cada sincronização), por isso o painel não o edita.
@@ -40,6 +41,7 @@ Custo: só quando o admin abre o painel (kpis ~35 comandos; lista de 25 = ~27; d
 | `detail` | Detalhe |
 | `block` | Bloquear / liberar |
 | `delete` | Excluir |
+| `presence` | Presença: perfis com vínculo ligado e o app à frente |
 | `unlink` | Suporte: encerrar um vínculo |
 | `agenda` | Suporte: agenda do perfil |
 | `agenda_del` | Suporte: apagar item de agenda travado |

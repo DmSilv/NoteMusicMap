@@ -72,6 +72,9 @@ A barra tem 5 itens: Afinador, Metrônomo, Grade, Escalas e Meu espaço. A Grade
 ## Minha conta em lista (novembro/2026)
 A tela "Minha conta" deixou as abas Perfil e Professor e virou uma lista curta: nome e código no topo, grupos Vínculos (vínculo online, meus professores, minhas aulas), Professor (modo professor e meus alunos) e Conta (chave de recuperação, ajustes, compartilhar). Cada linha abre a sua tela. O código e o QR agora são um só, em "Meu código e QR", com seletor "Para meu professor / Para meus alunos" (o segundo só no modo professor). Nenhuma função foi removida e a API não mudou.
 
+## Presença online no admin (novembro/2026)
+A aba Pessoas ganhou "Perfis online agora": perfis com vínculo ligado e app à frente que deram sinal nos últimos 12 min, e quem esteve online há pouco (offline). O sinal sai da consulta que o app já faz (`rev`/`sync`): no máximo 1 gravação de 2 comandos a cada 10 min por perfil (~12 comandos por hora de uso). Só código e horário são guardados; o app ganhou o aviso em Minha conta e na política de privacidade.
+
 ## Suporte do admin (novembro/2026)
 O detalhe do perfil no painel ganhou: vínculos com data e última atividade (e selo "Também é aluno"), **encerrar vínculo**, **ver e apagar itens de agenda** e **código de liberação** de uso único (24 h) para recuperar a conta em outro aparelho (`claim` em `/api/link`; o app tem o campo em Minha conta › Chave de recuperação). Cada ação entra no registro e vira um aviso do tipo "suporte" no app (`sn` em `sync`/`rev`, sem custo extra). A rotina de desvincular foi para `api/_lib/unlink.js` e é a mesma do app e do painel. O nome do usuário não é editável pelo painel.
 

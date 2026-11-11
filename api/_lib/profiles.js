@@ -11,8 +11,12 @@ const Z = {
   born: 'pf:new', // código -> quando entrou (ms)
   teach: 'pf:t', // código -> última atividade, só quem tem alunos
   stud: 'pf:s', // código -> última atividade, só quem tem professor
+  on: 'pf:on', // código -> último sinal de vida (presença), de 10 em 10 minutos
 };
 const TOUCH_EVERY = 6 * 3600 * 1000;
+const PRESENCE_EVERY = 10 * 60 * 1000; // no máximo 1 gravação de presença a cada 10 min por perfil
+const ONLINE_WINDOW = 12 * 60 * 1000; // "online" = sinal nos últimos 12 min
+const PRESENCE_KEEP = 2 * 24 * 3600 * 1000; // quem some há 2 dias sai do índice
 const U = (code) => `u:${code}`;
 
 /** Perfil acabou de nascer. */
@@ -43,6 +47,20 @@ async function touch(cmd, prof, code, now) {
   } catch (_) { return false; }
 }
 
+/**
+ * Sinal de vida: o app à frente com o vínculo ligado consulta o servidor a cada ~30 s; aqui isso vira
+ * "visto agora" com no máximo 1 gravação (2 comandos) a cada 10 min por perfil. A leitura do perfil já
+ * acontece em toda chamada, então checar é de graça. Só código e horário: nada mais é guardado.
+ */
+async function seen(cmd, prof, code, now) {
+  const pa = Number(prof.pa) || 0;
+  if (pa && now - pa < PRESENCE_EVERY) return false;
+  try {
+    await cmd.pipeline([['HSET', U(code), 'pa', String(now)], ['ZADD', Z.on, String(now), code]]);
+    return true;
+  } catch (_) { return false; }
+}
+
 /** Liga ou desliga o papel: kind 't' (tem alunos) ou 's' (tem professor). */
 async function setRole(cmd, code, kind, on, now) {
   try {
@@ -57,7 +75,7 @@ async function setRole(cmd, code, kind, on, now) {
 
 /** Tira o perfil de todos os índices. */
 async function forget(cmd, code) {
-  await cmd.pipeline([['ZREM', Z.last, code], ['ZREM', Z.born, code], ['ZREM', Z.teach, code], ['ZREM', Z.stud, code]]);
+  await cmd.pipeline([['ZREM', Z.last, code], ['ZREM', Z.born, code], ['ZREM', Z.teach, code], ['ZREM', Z.stud, code], ['ZREM', Z.on, code]]);
 }
 
-module.exports = { Z, TOUCH_EVERY, created, touch, setRole, forget };
+module.exports = { Z, TOUCH_EVERY, PRESENCE_EVERY, ONLINE_WINDOW, PRESENCE_KEEP, created, touch, seen, setRole, forget };

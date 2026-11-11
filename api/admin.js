@@ -17,6 +17,7 @@
 //   agenda_del {code, kind, id, other?}  apaga um item travado (kind: class | avail | mine; mine pede other = professor)
 //   support_code {code}        gera o código de uso único (24 h) para liberar a conta em outro aparelho
 //   support_cancel {code}      cancela o código pendente
+//   presence                   quem está online agora (sinal nos últimos 12 min) e quem esteve há pouco
 //
 // Não há cadastro nem login no app: "usuário" = perfil anônimo (código + apelido). O apelido pertence
 // ao usuário (volta a cada sincronização), por isso o painel não o edita.
@@ -278,6 +279,24 @@ function makeHandler(deps = {}) {
         await cmd.cmd(['HINCRBY', K.total, 'profiles', '-1']);
         await log('delete', code);
         return send(200, { ok: true });
+      }
+
+      // ---------------- Presença: perfis com vínculo ligado e o app à frente ----------------
+      if (action === 'presence') {
+        const since = now - profiles.ONLINE_WINDOW;
+        const [, online, recent, cnt] = await cmd.pipeline([
+          ['ZREMRANGEBYSCORE', Z.on, '-inf', String(now - profiles.PRESENCE_KEEP)],
+          ['ZREVRANGEBYSCORE', Z.on, '+inf', String(since), 'WITHSCORES', 'LIMIT', '0', '40'],
+          ['ZREVRANGEBYSCORE', Z.on, String(since - 1), '-inf', 'WITHSCORES', 'LIMIT', '0', '15'],
+          ['ZCOUNT', Z.on, String(since), '+inf'],
+        ]);
+        const rows = [...pairs(online), ...pairs(recent)];
+        const infos = rows.length ? await cmd.pipeline(rows.map(([c]) => ['HMGET', U(String(c)), 'n', 'rt', 'rs'])) : [];
+        const items = rows.map(([c, t], i) => {
+          const [n, rt, rs] = infos[i] || [];
+          return { code: String(c), name: n || '', last: t, online: t >= since, teacher: rt === '1', student: rs === '1' };
+        });
+        return send(200, { ok: true, now, windowMin: profiles.ONLINE_WINDOW / 60000, onlineCount: Number(cnt) || 0, items });
       }
 
       // ---------------- Suporte: encerrar um vínculo ----------------
