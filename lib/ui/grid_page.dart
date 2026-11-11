@@ -10,7 +10,6 @@ import 'perf.dart';
 import 'scale_exercise_page.dart';
 import 'design_system.dart';
 import 'theme.dart';
-import 'octave_colors.dart';
 import 'tuning_pick.dart';
 import 'widgets.dart';
 
@@ -339,33 +338,22 @@ class _GridPageState extends State<GridPage> {
         const DsGap(Ds.gap),
         _scaleHero(tonicPc, names),
         const DsGap(Ds.gap),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Notas (subindo)', style: Ds.support()),
-              const SizedBox(height: Ds.s8),
-              Text.rich(
-                TextSpan(children: [
-                  for (var k = 0; k < app.scaleNotes.length; k++) ...[
-                    if (k > 0) TextSpan(text: '  ·  ', style: TextStyle(color: AppColors.textDim)),
-                    TextSpan(
-                      text: noteName(app.scaleNotes[k], app.cfg),
-                      style: TextStyle(
-                        color: octaveColor(octaveIndex(app.scaleNotes[k], app.scaleNotes.first, app.scaleOctaves)),
-                      ),
-                    ),
-                  ],
-                ]),
-                style: const TextStyle(fontSize: Ds.fontBody, fontWeight: FontWeight.w800, height: 1.5),
-              ),
-              if (app.scaleOctaves > 1) ...[
+        // Só informação (sem moldura, para não parecer botão): as notas que vão ser tocadas.
+        SizedBox(
+          width: double.infinity,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Ds.s4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('NOTAS DO EXERCÍCIO', style: TextStyle(color: AppColors.textDim, fontSize: 12, letterSpacing: 1.1, fontWeight: FontWeight.w700)),
                 const SizedBox(height: Ds.s8),
-                OctaveLegend(octaves: app.scaleOctaves),
+                Text(app.scaleNotes.map((m) => noteName(m, app.cfg)).join('  ·  '),
+                    style: TextStyle(fontSize: Ds.fontBody, color: AppColors.textDim, height: 1.5)),
+                const SizedBox(height: Ds.s4),
+                Text('${app.scaleNotes.length * 2 - 1} notas no total, subindo e descendo.', style: Ds.support()),
               ],
-              const SizedBox(height: Ds.s8),
-              Text('${app.scaleNotes.length * 2 - 1} notas no total, subindo e descendo.', style: Ds.support()),
-            ],
+            ),
           ),
         ),
         const DsGap(Ds.sectionGap),

@@ -118,4 +118,4 @@ Na tela cheia a grade ganhou margens laterais maiores e letras bem maiores; com 
 Os Ajustes da grade ganharam "Afinação": Lá de referência (415 a 443 Hz, com ajuste fino) e sistema (Igual, Pitagórico, Justo), os mesmos das Escalas e do Afinador.
 
 ## Arpejos e escalas com 4 oitavas e cores por oitava (novembro/2026)
-Escalas e arpejos aceitam até 4 oitavas (também nas tarefas do professor; o formato salvo é o mesmo, só o limite subiu de 3 para 4). Cada oitava ganhou uma cor (violeta, rosa, dourado, prata, diferentes das cores de afinação): na prévia das notas, com legenda, e no exercício guiado, onde os quadradinhos vêm em blocos "1ª oitava", "2ª oitava"… (`lib/ui/octave_colors.dart`).
+Escalas e arpejos aceitam até 4 oitavas (também nas tarefas do professor; o formato salvo é o mesmo, só o limite subiu de 3 para 4). Durante o exercício guiado, os quadradinhos vêm em blocos "1ª oitava", "2ª oitava"… com uma tinta bem leve por oitava (violeta, rosa, dourado, prata; `lib/ui/octave_colors.dart`). A prévia "Notas do exercício" é só informativa: texto simples, sem moldura nem cor, para não parecer botão.

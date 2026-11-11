@@ -374,18 +374,18 @@ class ScaleExercisePage extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
           decoration: BoxDecoration(
-            color: octaveColor(o).withValues(alpha: 0.10),
+            color: octaveColor(o).withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: octaveColor(o).withValues(alpha: 0.55)),
+            border: Border.all(color: octaveColor(o).withValues(alpha: 0.16)),
           ),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             if (n > 1)
               Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Row(children: [
-                  Container(width: 10, height: 10, decoration: BoxDecoration(color: octaveColor(o), shape: BoxShape.circle)),
+                  Container(width: 8, height: 8, decoration: BoxDecoration(color: octaveColor(o).withValues(alpha: 0.6), shape: BoxShape.circle)),
                   const SizedBox(width: 6),
-                  Text(octaveName(o), style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: octaveColor(o))),
+                  Text(octaveName(o), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textDim)),
                 ]),
               ),
             Wrap(spacing: 6, runSpacing: 6, children: chips),
@@ -453,8 +453,8 @@ class ScaleExercisePage extends StatelessWidget {
         color: fill,
         borderRadius: BorderRadius.circular(9),
         border: Border.all(
-            color: current ? AppColors.accent : (octave?.withValues(alpha: 0.7) ?? Colors.transparent),
-            width: current ? 2.5 : 1.5),
+            color: current ? AppColors.accent : Colors.transparent,
+            width: current ? 2.5 : 1),
       ),
       child: icon ??
           Text(label,
