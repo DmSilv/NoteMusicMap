@@ -17,6 +17,7 @@ import 'slot_form_page.dart';
 import 'teacher_page.dart';
 import 'open_slots_page.dart';
 import 'hello_bar.dart';
+import 'design_system.dart';
 import 'theme.dart';
 
 /// "Meu espaço": o topo da aba. Um destaque grande (o que importa agora), dois blocos do que pede
@@ -49,16 +50,16 @@ class HubSection extends StatelessWidget {
         hasStudents: app.students.isNotEmpty);
     final layout = hubLayout(view, hasTeacherSide: app.hasTeacherSide);
 
-    final tiles = [for (final d in layout.tiles) _tileFor(context, d, now)];
+    // O bloco de agenda do aluno já está no destaque: não repete como cartão.
+    final tiles = [for (final d in layout.tiles) if (d != HubDest.agendaStudent) _tileFor(context, d, now)];
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       if (app.canSwitchHub) _viewSwitch(view),
       _statusChip(context),
       ..._news(context, view),
-      _heroCard(context, hero, nc, view),
+      _heroCard(context, hero, nc, view, extra: _agendaExtra(context, view, nc, layout.tools, now)),
       const SizedBox(height: 12),
       if (tiles.length == 2) _pair(tiles[0], tiles[1]) else if (tiles.length == 1) tiles.first,
       if (tiles.isNotEmpty) const SizedBox(height: 12),
-      _tools(context, layout.tools),
     ]);
   }
 
@@ -180,7 +181,7 @@ class HubSection extends StatelessWidget {
   }
 
   // ---------------- Destaque ----------------
-  Widget _heroCard(BuildContext context, HubHero h, SlotOccurrence? nc, HubView view) {
+  Widget _heroCard(BuildContext context, HubHero h, SlotOccurrence? nc, HubView view, {Widget? extra}) {
     final urgent = h.kind == HeroKind.ongoing || h.kind == HeroKind.soon;
     final student = nc == null || nc.slot.studentCode.isEmpty ? null : app.studentByCode(nc.slot.studentCode);
     final buttons = <Widget>[];
@@ -231,8 +232,70 @@ class HubSection extends StatelessWidget {
         Text(h.subtitle, style: TextStyle(fontSize: 13.5, color: AppColors.textDim, height: 1.3)),
         const SizedBox(height: 12),
         Wrap(spacing: 8, runSpacing: 8, children: buttons),
+        if (extra != null) ...[
+          const SizedBox(height: Ds.s16),
+          Divider(height: 1, color: AppColors.accent.withValues(alpha: 0.35)),
+          const SizedBox(height: Ds.s12),
+          extra,
+        ],
       ]),
     );
+  }
+
+  /// "Hoje · 18:00", "Amanhã · 14:30", "Dom 15/11 · 12:00" (curto, cabe numa linha).
+  String _shortWhen(DateTime d, DateTime now) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    final day = DateTime(d.year, d.month, d.day).difference(DateTime(now.year, now.month, now.day)).inDays;
+    const wd = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+    final label = day == 0 ? 'Hoje' : (day == 1 ? 'Amanhã' : '${wd[d.weekday - 1]} ${two(d.day)}/${two(d.month)}');
+    return '$label · ${two(d.hour)}:${two(d.minute)}';
+  }
+
+  String _whoOf(SlotOccurrence o) {
+    final st = o.slot.studentCode.isEmpty ? null : app.studentByCode(o.slot.studentCode);
+    return st?.name ?? o.slot.teacherName;
+  }
+
+  /// O que vem depois da próxima aula (até 3, nos próximos 14 dias) e os atalhos da agenda.
+  Widget? _agendaExtra(BuildContext context, HubView view, SlotOccurrence? nc, List<HubDest> tools, DateTime now) {
+    final isT = view == HubView.teacher;
+    final slots = isT ? app.visibleAgenda : app.myAgenda;
+    final nowMs = now.millisecondsSinceEpoch;
+    final later = agendaBetween(slots, nowMs, nowMs + 14 * 86400000)
+        .where((o) => nc == null || o.startMs != nc.startMs)
+        .take(3)
+        .toList();
+    Widget act(IconData i, String t, VoidCallback f) => OutlinedButton.icon(onPressed: f, icon: Icon(i, size: 18), label: Text(t));
+    final actions = <Widget>[
+      if (isT || app.hasTeacherSide)
+        act(Icons.calendar_month_outlined, 'Agenda completa',
+            () => _push(context, isT ? AgendaPage(app: app) : MyAgendaPage(app: app))),
+      if (tools.contains(HubDest.openSlots))
+        act(Icons.event_available_outlined, 'Horários livres', () => _push(context, OpenSlotsPage(app: app))),
+      if (tools.contains(HubDest.pickSlot))
+        act(Icons.event_available_outlined, 'Pegar horário', () => _push(context, PickSlotPage(app: app))),
+    ];
+    if (later.isEmpty && actions.isEmpty) return null;
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (later.isNotEmpty) ...[
+        Text('Depois', style: Ds.section()),
+        const SizedBox(height: Ds.s8),
+        for (final o in later)
+          Padding(
+            padding: const EdgeInsets.only(bottom: Ds.s8),
+            child: Row(children: [
+              Icon(Icons.event_outlined, size: 18, color: AppColors.accent),
+              const SizedBox(width: Ds.s12),
+              Expanded(
+                child: Text(_shortWhen(o.start, now), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody)),
+              ),
+              Flexible(child: Text(_whoOf(o), maxLines: 1, overflow: TextOverflow.ellipsis, style: Ds.support())),
+            ]),
+          ),
+        const SizedBox(height: Ds.s4),
+      ],
+      if (actions.isNotEmpty) Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: actions),
+    ]);
   }
 
   // ---------------- Blocos ----------------
@@ -285,62 +348,6 @@ class HubSection extends StatelessWidget {
         ]),
       ),
     );
-  }
-
-  // ---------------- Ferramentas ----------------
-  Widget _tools(BuildContext context, List<HubDest> dests) {
-    (IconData, String, VoidCallback)? item(HubDest d) => switch (d) {
-          HubDest.agendaTeacher => (Icons.calendar_month_outlined, 'Agenda do professor', () => _push(context, AgendaPage(app: app))),
-          HubDest.openSlots => (Icons.event_available_outlined, 'Horários livres', () => _push(context, OpenSlotsPage(app: app))),
-          HubDest.pickSlot => (Icons.event_available_outlined, 'Pegar horário', () => _push(context, PickSlotPage(app: app))),
-          HubDest.metronome => (Icons.timer_outlined, 'Metrônomo', () => app.goTab?.call(1)),
-          HubDest.scales => (Icons.piano, 'Escalas', () => app.openGridSection(1)),
-          _ => null,
-        };
-    // Metrônomo e Escalas já são abas da barra de baixo: aqui ficam só os atalhos de agenda.
-    final items = [for (final d in dests) if (d != HubDest.metronome && d != HubDest.scales) ?item(d)];
-    if (items.isEmpty) return const SizedBox.shrink();
-    return Column(children: [LayoutBuilder(builder: (context, box) {
-    final cols = items.length > 4 ? 3 : items.length;
-    final w = ((box.maxWidth - 22) / cols).floorToDouble();
-    return Container(
-      padding: const EdgeInsets.fromLTRB(8, 12, 8, 10),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outline),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 6, bottom: 8),
-          child: Text('Ferramentas', style: TextStyle(fontSize: 12.5, color: AppColors.textDim, fontWeight: FontWeight.w700)),
-        ),
-        Wrap(runSpacing: 8, children: [
-          for (final it in items)
-            SizedBox(
-              width: w,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: it.$3,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Column(mainAxisSize: MainAxisSize.min, children: [
-                    Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(14)),
-                      child: Icon(it.$1, color: AppColors.accent),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(it.$2, textAlign: TextAlign.center, style: TextStyle(fontSize: 12, color: AppColors.textDim), maxLines: 2, overflow: TextOverflow.ellipsis),
-                  ]),
-                ),
-              ),
-            ),
-        ]),
-      ]),
-    );
-    }), const SizedBox(height: 12)]);
   }
 
   Future<void> _scanTeacher(BuildContext context) async {

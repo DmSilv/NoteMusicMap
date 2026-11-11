@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import 'design_system.dart';
+import 'evolution_page.dart';
 import 'feedback_sheet.dart';
-import 'study_timers.dart';
-import 'progress_cards.dart';
 import 'hub_section.dart';
 import 'perf.dart';
-import 'design_system.dart';
+import 'study_timers.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
+/// "Meu espaço": o foco é a AGENDA (próxima aula e o que vem depois). Embaixo, o estudo de hoje
+/// num bloco só (resumo + cronômetro); dados e gráficos ficam na tela "Evolução".
 class StudyPage extends StatelessWidget {
   final AppState app;
   final bool active;
@@ -59,19 +61,14 @@ class StudyPage extends StatelessWidget {
     if (ok == true) await app.clearHistory();
   }
 
-  static const _dias = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
-
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: active ? app : kNeverNotifies,
       builder: (context, _) {
         final today = DateTime.now();
-        final days = [for (var i = 6; i >= 0; i--) today.subtract(Duration(days: i))];
-        final mins = [for (final d in days) (app.studySeconds[AppState.dayKey(d)] ?? 0) / 60];
         final goal = app.dailyGoalMinutes;
         final todayMin = app.todaySeconds / 60;
-        final maxV = [goal, ...mins].reduce((a, b) => a > b ? a : b).clamp(5.0, 600.0);
         var streak = 0;
         for (var i = 0;; i++) {
           final d = today.subtract(Duration(days: i));
@@ -89,40 +86,44 @@ class StudyPage extends StatelessWidget {
         return ListView(
           padding: Ds.screen,
           children: [
-            // Hub por papel: destaque (o que importa agora), blocos que pedem ação e ferramentas.
+            // Agenda: próxima aula, as seguintes e os atalhos (marcar, horários livres, agenda completa).
             HubSection(app: app),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
-              child: Text('Seu estudo', style: TextStyle(color: AppColors.textDim, fontSize: 12.5, fontWeight: FontWeight.w700)),
-            ),
-            FeedbackInviteCard(app: app),
+            const DsGap(Ds.gap),
+            // Estudo: resumo de hoje e cronômetro no MESMO bloco.
             AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Row(children: [
+                    const Expanded(child: Text('Seu estudo', style: TextStyle(fontSize: Ds.fontTitle - 2, fontWeight: FontWeight.w800))),
+                    TextButton.icon(
+                      onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => EvolutionPage(app: app))),
+                      icon: const Icon(Icons.show_chart, size: 18),
+                      label: const Text('Evolução'),
+                    ),
+                  ]),
+                  const SizedBox(height: Ds.s8),
                   Row(
                     children: [
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Hoje', style: TextStyle(color: AppColors.textDim)),
-                            Text('${todayMin.floor()} min',
-                                style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w800)),
+                            Text('Hoje', style: Ds.support()),
+                            Text('${todayMin.floor()} min', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w800)),
                           ],
                         ),
                       ),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Text('Dias seguidos', style: TextStyle(color: AppColors.textDim)),
-                          Text('$streak',
-                              style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w800)),
+                          Text('Dias seguidos', style: Ds.support()),
+                          Text('$streak', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w800)),
                         ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: Ds.s8),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(6),
                     child: LinearProgressIndicator(
@@ -132,7 +133,7 @@ class StudyPage extends StatelessWidget {
                       color: todayMin >= goal ? AppColors.inTune : AppColors.flat,
                     ),
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: Ds.s8),
                   Row(children: [
                     Expanded(child: Text('Meta diária: ${goal.round()} min', style: Ds.support())),
                     TextButton.icon(
@@ -141,55 +142,14 @@ class StudyPage extends StatelessWidget {
                       label: const Text('Ajustar'),
                     ),
                   ]),
+                  const Divider(height: Ds.sectionGap),
+                  // O cronômetro entra no mesmo cartão (sem molduras próprias).
+                  FramelessScope(child: StudyTimerSection(app: app)),
                 ],
               ),
             ),
-            const SizedBox(height: 12),
-            StudyTimerSection(app: app),
-            const SizedBox(height: 12),
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Últimos 7 dias', style: TextStyle(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 130,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        for (var i = 0; i < 7; i++)
-                          Expanded(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                Text(mins[i] < 1 ? '' : '${mins[i].round()}',
-                                    style: TextStyle(fontSize: 11, color: AppColors.textDim)),
-                                const SizedBox(height: 2),
-                                Container(
-                                  margin: const EdgeInsets.symmetric(horizontal: 6),
-                                  height: (mins[i] / maxV * 90).clamp(3.0, 90.0),
-                                  decoration: BoxDecoration(
-                                    color: mins[i] >= goal ? AppColors.inTune : AppColors.flat,
-                                    borderRadius: BorderRadius.circular(5),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(_dias[days[i].weekday - 1],
-                                    style: TextStyle(fontSize: 12, color: AppColors.textDim)),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            EvolutionCard(app: app),
-            const SizedBox(height: 12),
-            CoachCard(app: app),
+            const DsGap(Ds.gap),
+            FeedbackInviteCard(app: app),
           ],
         );
       },

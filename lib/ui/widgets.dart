@@ -7,13 +7,26 @@ import '../app_state.dart';
 import 'needle.dart';
 import 'theme.dart';
 
+/// Dentro deste escopo, os [AppCard] não desenham moldura nem espaço próprio: servem para juntar
+/// vários cartões num bloco só (ex.: resumo de estudo + cronômetro no Meu espaço).
+class FramelessScope extends InheritedWidget {
+  const FramelessScope({super.key, required super.child});
+
+  static bool of(BuildContext context) => context.dependOnInheritedWidgetOfExactType<FramelessScope>() != null;
+
+  @override
+  bool updateShouldNotify(FramelessScope oldWidget) => false;
+}
+
 class AppCard extends StatelessWidget {
   final Widget child;
   final EdgeInsets padding;
   const AppCard({super.key, required this.child, this.padding = const EdgeInsets.all(20)});
 
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => FramelessScope.of(context)
+      ? Material(type: MaterialType.transparency, child: child)
+      : Container(
         width: double.infinity,
         padding: padding,
         decoration: BoxDecoration(

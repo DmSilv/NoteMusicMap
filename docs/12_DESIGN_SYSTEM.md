@@ -39,4 +39,4 @@
 5. Abri no navegador em 390×844 e olhei antes de pedir "sim, publicar"?
 
 ## Onde já está aplicado
-Afinador (instrumento + Ajustes, Ouvir fixo), Metrônomo (BPM, play e Modo desafio à vista; ajustes no modal), Grade (ajustes no modal), Escalas (escala + Iniciar à vista; configurar no modal), Meu espaço (meta no modal, explicações dos timers no "?"), sino com sugestões. Telas de professor e aluno (listas, fichas) ainda usam os espaçamentos antigos e entram nas próximas passadas.
+Afinador (instrumento + Ajustes, Ouvir fixo), Metrônomo (BPM, play e Modo desafio à vista; ajustes no modal), Grade (ajustes no modal), Escalas (escala + Iniciar à vista; configurar no modal), Meu espaço (agenda em primeiro lugar; estudo e cronômetro num bloco só; gráficos na tela Evolução; meta no modal; explicações dos timers no "?"), sino com sugestões. Telas de professor e aluno (listas, fichas) ainda usam os espaçamentos antigos e entram nas próximas passadas.

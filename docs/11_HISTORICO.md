@@ -72,6 +72,9 @@ A barra tem 5 itens: Afinador, Metrônomo, Grade, Escalas e Meu espaço. A Grade
 ## Minha conta em lista (novembro/2026)
 A tela "Minha conta" deixou as abas Perfil e Professor e virou uma lista curta: nome e código no topo, grupos Vínculos (vínculo online, meus professores, minhas aulas), Professor (modo professor e meus alunos) e Conta (chave de recuperação, ajustes, compartilhar). Cada linha abre a sua tela. O código e o QR agora são um só, em "Meu código e QR", com seletor "Para meu professor / Para meus alunos" (o segundo só no modo professor). Nenhuma função foi removida e a API não mudou.
 
+## Meu espaço com foco na agenda (novembro/2026)
+O Meu espaço passou a abrir pela **agenda**: a próxima aula em destaque, as próximas 3 (14 dias) e os atalhos (agenda completa, horários livres, pegar horário) dentro do mesmo bloco; a faixa de "Ferramentas" (que repetia Metrônomo e Escalas da barra de baixo) saiu. O resumo de estudo e o cronômetro viraram **um bloco só** (`FramelessScope` tira a moldura dos cartões internos). Os dados e gráficos (últimos 7 dias, evolução nas escalas, treinador) foram para a tela **Evolução** (`lib/ui/evolution_page.dart`), aberta por "Evolução" no bloco de estudo.
+
 ## Design system e telas principais enxutas (novembro/2026)
 Criado `lib/ui/design_system.dart` e `docs/12_DESIGN_SYSTEM.md` (regra permanente para toda tela). Afinador, Metrônomo, Grade, Escalas e Meu espaço passaram a mostrar só o essencial e a ação principal; os ajustes foram para modais ("Ajustes ⚙", "Concluir"). Apelido e "Instalar" saíram do topo e foram para o sino; cartões com 20 px, margem de 20 px e botões de 48 px no tema.
 
