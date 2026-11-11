@@ -35,6 +35,7 @@ void main() {
       expect(scaleSequence(55, ScaleType.major, octaves: 1).length, 15);
       expect(scaleSequence(55, ScaleType.major, octaves: 2).length, 29);
       expect(scaleSequence(55, ScaleType.major, octaves: 3).length, 43);
+      expect(scaleSequence(55, ScaleType.major, octaves: 4).length, 57);
     });
 
     test('3 oitavas vai de Sol3 a Sol6 e volta', () {

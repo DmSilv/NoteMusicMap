@@ -174,7 +174,7 @@ class Assignment {
         note: cleanText(j['note'] as String?, max: kMaxNote, multiline: true),
         scaleTypeIndex: (j['st'] as num?)?.toInt() ?? 0,
         tonicPc: ((j['pc'] as num?)?.toInt() ?? 0) % 12,
-        octaves: ((j['oct'] as num?)?.toInt() ?? 1).clamp(1, 3),
+        octaves: ((j['oct'] as num?)?.toInt() ?? 1).clamp(1, 4),
         goal: ((j['goal'] as num?) ?? 0.8).toDouble().clamp(0.0, 1.0),
         done: j['done'] == true,
         created: DateTime.parse(j['c'] as String),

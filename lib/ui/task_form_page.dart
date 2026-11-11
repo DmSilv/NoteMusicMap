@@ -260,7 +260,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
       ),
       _label('Oitavas'),
       ChipGrid(
-        labels: [for (final o in [1, 2, 3]) Text('$o')],
+        labels: [for (final o in [1, 2, 3, 4]) Text('$o')],
         selected: oct - 1,
         onSelected: (i) => setState(() => oct = i + 1),
       ),

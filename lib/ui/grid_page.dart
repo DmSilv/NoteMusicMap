@@ -10,6 +10,7 @@ import 'perf.dart';
 import 'scale_exercise_page.dart';
 import 'design_system.dart';
 import 'theme.dart';
+import 'octave_colors.dart';
 import 'tuning_pick.dart';
 import 'widgets.dart';
 
@@ -344,8 +345,24 @@ class _GridPageState extends State<GridPage> {
             children: [
               Text('Notas (subindo)', style: Ds.support()),
               const SizedBox(height: Ds.s8),
-              Text(app.scaleNotes.map((m) => noteName(m, app.cfg)).join('  ·  '),
-                  style: const TextStyle(fontSize: Ds.fontBody, fontWeight: FontWeight.w700, height: 1.4)),
+              Text.rich(
+                TextSpan(children: [
+                  for (var k = 0; k < app.scaleNotes.length; k++) ...[
+                    if (k > 0) TextSpan(text: '  ·  ', style: TextStyle(color: AppColors.textDim)),
+                    TextSpan(
+                      text: noteName(app.scaleNotes[k], app.cfg),
+                      style: TextStyle(
+                        color: octaveColor(octaveIndex(app.scaleNotes[k], app.scaleNotes.first, app.scaleOctaves)),
+                      ),
+                    ),
+                  ],
+                ]),
+                style: const TextStyle(fontSize: Ds.fontBody, fontWeight: FontWeight.w800, height: 1.5),
+              ),
+              if (app.scaleOctaves > 1) ...[
+                const SizedBox(height: Ds.s8),
+                OctaveLegend(octaves: app.scaleOctaves),
+              ],
               const SizedBox(height: Ds.s8),
               Text('${app.scaleNotes.length * 2 - 1} notas no total, subindo e descendo.', style: Ds.support()),
             ],
@@ -435,7 +452,7 @@ class _GridPageState extends State<GridPage> {
               _tile(Icons.layers, 'Oitavas', '${app.scaleOctaves}',
                   () => _pick<int>(
                         'Quantas oitavas',
-                        const [(1, '1 oitava'), (2, '2 oitavas'), (3, '3 oitavas')],
+                        const [(1, '1 oitava'), (2, '2 oitavas'), (3, '3 oitavas'), (4, '4 oitavas')],
                         app.scaleOctaves,
                         (o) => app.setScale(octaves: o),
                         hint:

@@ -6,6 +6,7 @@ import '../app_state.dart';
 import 'guidance_banner.dart';
 import 'needle.dart';
 import 'note_widgets.dart';
+import 'octave_colors.dart';
 import 'theme.dart';
 import 'transitions.dart';
 import 'tuning_pick.dart';
@@ -355,6 +356,44 @@ class ScaleExercisePage extends StatelessWidget {
     );
   }
 
+  /// Agrupa os quadradinhos por oitava: cada trecho seguido na mesma oitava vira um bloco com a
+  /// cor e o nome da oitava, para a pessoa saber onde está.
+  Widget _octaveBlocks(List<int> midis, Widget Function(int i, Color oc) chip) {
+    final lo = midis.reduce((a, b) => a < b ? a : b);
+    final n = app.scaleOctaves;
+    final blocks = <(int, List<Widget>)>[];
+    for (var i = 0; i < midis.length; i++) {
+      final o = octaveIndex(midis[i], lo, n);
+      if (blocks.isEmpty || blocks.last.$1 != o) blocks.add((o, <Widget>[]));
+      blocks.last.$2.add(chip(i, octaveColor(o)));
+    }
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      for (final (o, chips) in blocks)
+        Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+          decoration: BoxDecoration(
+            color: octaveColor(o).withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: octaveColor(o).withValues(alpha: 0.55)),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            if (n > 1)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(children: [
+                  Container(width: 10, height: 10, decoration: BoxDecoration(color: octaveColor(o), shape: BoxShape.circle)),
+                  const SizedBox(width: 6),
+                  Text(octaveName(o), style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: octaveColor(o))),
+                ]),
+              ),
+            Wrap(spacing: 6, runSpacing: 6, children: chips),
+          ]),
+        ),
+    ]);
+  }
+
   Widget _steps(ScaleExercise e) {
     final zone = app.zoneCents;
     final cur = app.current;
@@ -363,45 +402,37 @@ class ScaleExercisePage extends StatelessWidget {
       // a que está soando agora acompanha o ponteiro ao vivo.
       return AppCard(
         padding: const EdgeInsets.all(12),
-        child: Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (final m in e.freeNotes)
-              _noteChip(
-                noteName(m, app.cfg),
-                (cur != null && cur.midi == m && e.currentFreeMidi == m)
-                    ? cur.cents
-                    : e.board[m]?.cents,
-                current: e.currentFreeMidi == m,
-                zone: zone,
-              ),
-          ],
-        ),
+        child: _octaveBlocks(e.freeNotes, (i, oc) {
+          final m = e.freeNotes[i];
+          return _noteChip(
+            noteName(m, app.cfg),
+            (cur != null && cur.midi == m && e.currentFreeMidi == m) ? cur.cents : e.board[m]?.cents,
+            current: e.currentFreeMidi == m,
+            zone: zone,
+            octave: oc,
+          );
+        }),
       );
     }
     return AppCard(
       padding: const EdgeInsets.all(12),
-      child: Wrap(
-        spacing: 6,
-        runSpacing: 6,
-        children: [
-          for (var i = 0; i < e.sequence.length; i++)
-            i < e.results.length && (e.results[i].skipped || e.results[i].cents == null)
-                ? _noteChip(noteName(e.sequence[i], app.cfg), null, current: false, zone: zone, skipped: true)
-                : _noteChip(
-                    noteName(e.sequence[i], app.cfg),
-                    i < e.results.length ? e.results[i].cents : null,
-                    current: i == e.index && !e.finished,
-                    zone: zone,
-                  ),
-        ],
+      child: _octaveBlocks(
+        e.sequence,
+        (i, oc) => i < e.results.length && (e.results[i].skipped || e.results[i].cents == null)
+            ? _noteChip(noteName(e.sequence[i], app.cfg), null, current: false, zone: zone, skipped: true, octave: oc)
+            : _noteChip(
+                noteName(e.sequence[i], app.cfg),
+                i < e.results.length ? e.results[i].cents : null,
+                current: i == e.index && !e.finished,
+                zone: zone,
+                octave: oc,
+              ),
       ),
     );
   }
 
   Widget _noteChip(String label, double? cents,
-      {required bool current, required double zone, bool skipped = false}) {
+      {required bool current, required double zone, bool skipped = false, Color? octave}) {
     Color fill = AppColors.surface2;
     Color text = AppColors.textDim;
     Widget? icon;
@@ -422,7 +453,8 @@ class ScaleExercisePage extends StatelessWidget {
         color: fill,
         borderRadius: BorderRadius.circular(9),
         border: Border.all(
-            color: current ? AppColors.accent : Colors.transparent, width: current ? 2.5 : 1),
+            color: current ? AppColors.accent : (octave?.withValues(alpha: 0.7) ?? Colors.transparent),
+            width: current ? 2.5 : 1.5),
       ),
       child: icon ??
           Text(label,
