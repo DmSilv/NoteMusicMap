@@ -180,6 +180,54 @@ class _GridPageState extends State<GridPage> {
     );
   }
 
+  /// Afinação da grade: Lá de referência e sistema (igual, pitagórico, justo), como nas Escalas.
+  void _openTuning() {
+    const refs = [415.0, 432.0, 440.0, 442.0, 443.0];
+    showDsSheet(
+      context,
+      title: 'Afinação da grade',
+      listenable: app,
+      children: (c) => [
+        DsSettingRow(
+          label: 'Lá de referência: ${app.refA.toStringAsFixed(app.refA == app.refA.roundToDouble() ? 0 : 1)} Hz',
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
+              for (final hz in refs)
+                ChoiceChip(
+                  label: Text(hz.toStringAsFixed(0)),
+                  selected: app.refA == hz,
+                  onSelected: (_) => app.setTuning(refA: hz),
+                ),
+            ]),
+            Row(children: [
+              IconButton(onPressed: () => app.setTuning(refA: app.refA - 1), icon: const Icon(Icons.remove_circle_outline)),
+              Text('ajuste fino', style: Ds.support()),
+              IconButton(onPressed: () => app.setTuning(refA: app.refA + 1), icon: const Icon(Icons.add_circle_outline)),
+            ]),
+          ]),
+        ),
+        DsSettingRow(
+          label: 'Sistema de afinação',
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            SegmentedButton<TuningSystem>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: TuningSystem.equal, label: Text('Igual')),
+                ButtonSegment(value: TuningSystem.pythagorean, label: Text('Pitagórico')),
+                ButtonSegment(value: TuningSystem.just, label: Text('Justo')),
+              ],
+              selected: {app.system},
+              onSelectionChanged: (s) => app.setTuning(
+                  system: s.first, tonicPc: s.first == TuningSystem.equal ? null : app.scaleTonicMidi % 12),
+            ),
+            const DsGap(Ds.s8),
+            Text(tuningExplain(app), style: Ds.support()),
+          ]),
+        ),
+      ],
+    );
+  }
+
   void _openFullscreen() => Navigator.of(context).push(MaterialPageRoute<void>(
         fullscreenDialog: true,
         builder: (_) => GridFullscreen(app: app),
@@ -483,6 +531,8 @@ class _GridPageState extends State<GridPage> {
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(
             children: [
+              _tile(Icons.straighten, 'Afinação', tuningSummary(app), _openTuning),
+              const Divider(height: 1),
               _tile(Icons.history, 'Memória da nota', histLabel,
                   () => _pick<HistoryMode>(
                         'Memória da nota',

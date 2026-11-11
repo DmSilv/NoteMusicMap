@@ -113,3 +113,6 @@ O Modo desafio do metrônomo ganhou três desafios com nome: **Sumiço** (o metr
 
 ## Grade em tela cheia legível (novembro/2026)
 Na tela cheia a grade ganhou margens laterais maiores e letras bem maiores; com o celular em pé a grade gira: as 12 notas viram linhas e as oitavas viram colunas, e o texto fica reto e grande.
+
+## Afinação na Grade (novembro/2026)
+Os Ajustes da grade ganharam "Afinação": Lá de referência (415 a 443 Hz, com ajuste fino) e sistema (Igual, Pitagórico, Justo), os mesmos das Escalas e do Afinador.
