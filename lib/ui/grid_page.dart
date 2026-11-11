@@ -8,6 +8,7 @@ import 'grid_widgets.dart';
 import 'note_widgets.dart';
 import 'perf.dart';
 import 'scale_exercise_page.dart';
+import 'design_system.dart';
 import 'theme.dart';
 import 'tuning_pick.dart';
 import 'widgets.dart';
@@ -46,34 +47,25 @@ class _GridPageState extends State<GridPage> {
         app.requestGridSection = null;
       }
       if (_section == 1) _section = 0; // a seção Escala agora é uma aba própria
+      // Pedido de abrir os ajustes (atalhos de outras telas): sobe o modal.
+      if (_section == 2) {
+        _section = 0;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _openGridSettings();
+        });
+      }
     }
     return ListenableBuilder(
       listenable: widget.active ? app.live : kNeverNotifies,
       builder: (context, _) {
         return ListView(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+          padding: Ds.screen,
           children: [
-            if (!widget.scalesOnly) ...[
-              SegmentedButton<int>(
-                showSelectedIcon: false,
-                segments: const [
-                  ButtonSegment(value: 0, icon: Icon(Icons.grid_view_rounded), label: Text('Grade')),
-                  ButtonSegment(value: 2, icon: Icon(Icons.tune), label: Text('Ajustes')),
-                ],
-                selected: {_section},
-                onSelectionChanged: (s) => setState(() => _section = s.first),
-              ),
-              const SizedBox(height: 12),
-            ],
             AnimatedSwitcher(
               duration: const Duration(milliseconds: 220),
               child: KeyedSubtree(
                 key: ValueKey(_section),
-                child: switch (_section) {
-                  0 => _gridSection(),
-                  1 => _scaleSection(),
-                  _ => _settingsSection(),
-                },
+                child: widget.scalesOnly ? _scaleSection() : _gridSection(),
               ),
             ),
           ],
@@ -205,9 +197,9 @@ class _GridPageState extends State<GridPage> {
     final tr = app.transpose == 0 ? '' : ' · transpõe ${app.transpose > 0 ? '+' : ''}${app.transpose}';
     return InkWell(
       borderRadius: BorderRadius.circular(10),
-      onTap: () => setState(() => _section = 2),
+      onTap: _openGridSettings,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: Ds.s12, horizontal: Ds.s8),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -308,43 +300,84 @@ class _GridPageState extends State<GridPage> {
     final names = app.cfg.copyWith(transpose: 0);
     return Column(
       children: [
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<bool>(
+            showSelectedIcon: false,
+            segments: const [
+              ButtonSegment(value: false, icon: Icon(Icons.trending_up), label: Text('Escalas')),
+              ButtonSegment(value: true, icon: Icon(Icons.stacked_bar_chart), label: Text('Arpejos')),
+            ],
+            selected: {app.scaleType.arpeggio},
+            onSelectionChanged: (v) => app.setScale(type: v.first ? ScaleType.majorTriad : ScaleType.major),
+          ),
+        ),
+        const DsGap(Ds.gap),
+        _scaleHero(tonicPc, names),
+        const DsGap(Ds.gap),
         AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(children: [
-                Icon(Icons.queue_music),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text('Escalas e arpejos guiados',
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-                ),
-              ]),
-              const SizedBox(height: 6),
-              Text(
-                'Escolha tom, tipo e oitavas. O app mostra a próxima nota e dá a taxa de acerto no fim.',
-                style: TextStyle(color: AppColors.textDim, fontSize: 13),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: SegmentedButton<bool>(
-                  showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment(value: false, icon: Icon(Icons.trending_up), label: Text('Escalas')),
-                    ButtonSegment(value: true, icon: Icon(Icons.stacked_bar_chart), label: Text('Arpejos')),
-                  ],
-                  selected: {app.scaleType.arpeggio},
-                  onSelectionChanged: (v) => app.setScale(
-                      type: v.first ? ScaleType.majorTriad : ScaleType.major),
-                ),
-              ),
+              Text('Notas (subindo)', style: Ds.support()),
+              const SizedBox(height: Ds.s8),
+              Text(app.scaleNotes.map((m) => noteName(m, app.cfg)).join('  ·  '),
+                  style: const TextStyle(fontSize: Ds.fontBody, fontWeight: FontWeight.w700, height: 1.4)),
+              const SizedBox(height: Ds.s8),
+              Text('${app.scaleNotes.length * 2 - 1} notas no total, subindo e descendo.', style: Ds.support()),
             ],
           ),
         ),
-        const SizedBox(height: 10),
-        _scaleHero(tonicPc, names),
-        const SizedBox(height: 10),
+        const DsGap(Ds.sectionGap),
+        DsPrimaryButton(
+          onPressed: () {
+            app.startExercise();
+            Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => ScaleExercisePage(app: app),
+            ));
+          },
+          icon: Icons.play_arrow,
+          label: 'Iniciar exercício guiado',
+        ),
+        if (kDevDemo)
+          TextButton.icon(
+            onPressed: () {
+              app.startExercise(demoMode: true);
+              Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => ScaleExercisePage(app: app),
+              ));
+            },
+            icon: const Icon(Icons.play_circle_outline),
+            label: const Text('[dev] Simular exercício (silencioso)'),
+          ),
+        const DsGap(Ds.gap),
+        SizedBox(width: double.infinity, child: DsSettingsButton(onPressed: _openScaleSettings, label: 'Configurar escala')),
+      ],
+    );
+  }
+
+  /// Modal da escala: tônica, tipo, oitavas, afinação e como o exercício acompanha.
+  void _openScaleSettings() {
+    showDsSheet(
+      context,
+      title: 'Configurar escala',
+      listenable: app,
+      children: (c) => _scaleSettingsList(app.scaleTonicMidi % 12, app.cfg.copyWith(transpose: 0)),
+    );
+  }
+
+  /// Modal dos ajustes da grade (memória da nota, troca de nota, microfone, zerar).
+  void _openGridSettings() {
+    showDsSheet(
+      context,
+      title: 'Ajustes da grade',
+      listenable: app,
+      children: (c) => [_settingsSection()],
+    );
+  }
+
+  List<Widget> _scaleSettingsList(int tonicPc, TuningConfig names) {
+    return [
         AppCard(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(
@@ -391,26 +424,8 @@ class _GridPageState extends State<GridPage> {
             ],
           ),
         ),
-        const SizedBox(height: 10),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Notas (subindo)',
-                  style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-              const SizedBox(height: 4),
-              Text(app.scaleNotes.map((m) => noteName(m, app.cfg)).join('  ·  '),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 6),
-              Text(
-                '${app.scaleNotes.length * 2 - 1} notas no total, subindo e descendo. ${tuningExplain(app)}',
-                style: TextStyle(color: AppColors.textDim, fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 10),
-        // Como o exercício acompanha: no seu ritmo (padrão) ou esperando cada nota.
+        const DsGap(Ds.gap),
+        // Como o exercício acompanha: guiado (padrão) ou livre.
         AppCard(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: SwitchListTile(
@@ -418,39 +433,15 @@ class _GridPageState extends State<GridPage> {
             title: const Text('Execução livre', style: TextStyle(fontWeight: FontWeight.w700)),
             subtitle: Text(
               app.exerciseFlow
-                  ? 'Toque qualquer nota da escala, em qualquer ordem: o app reconhece e valida a afinação de cada uma, com aviso de suba ou desça.'
-                  : 'Desligado (guiado): uma nota por vez; a próxima só aparece quando a atual estiver afinada e segurada.',
-              style: const TextStyle(fontSize: 12.5),
+                  ? 'Toque as notas em qualquer ordem: o app valida cada uma.'
+                  : 'Guiado: uma nota por vez; a próxima só aparece quando a atual estiver afinada.',
+              style: const TextStyle(fontSize: Ds.fontLabel),
             ),
             value: app.exerciseFlow,
             onChanged: app.setExerciseFlow,
           ),
         ),
-        const SizedBox(height: 12),
-        FilledButton.icon(
-          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54)),
-          onPressed: () {
-            app.startExercise();
-            Navigator.of(context).push(MaterialPageRoute<void>(
-              builder: (_) => ScaleExercisePage(app: app),
-            ));
-          },
-          icon: const Icon(Icons.play_arrow),
-          label: const Text('Iniciar exercício guiado',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-        ),
-        if (kDevDemo)
-          TextButton.icon(
-            onPressed: () {
-              app.startExercise(demoMode: true);
-              Navigator.of(context).push(MaterialPageRoute<void>(
-                builder: (_) => ScaleExercisePage(app: app),
-              ));
-            },
-            icon: const Icon(Icons.play_circle_outline),
-            label: const Text('[dev] Simular exercício (silencioso)'),
-          ),
-        const SizedBox(height: 6),
+        const DsGap(Ds.gap),
         AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -462,12 +453,9 @@ class _GridPageState extends State<GridPage> {
                 ),
                 Switch(value: app.scaleMode, onChanged: (v) => app.setScale(enabled: v)),
               ]),
-              Text(
-                'Para tocar livremente: as notas da escala ficam destacadas na aba Grade.',
-                style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
-              ),
+              Text('As notas da escala ficam destacadas na aba Grade.', style: Ds.support()),
               if (app.scaleMode) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: Ds.s12),
                 OutlinedButton.icon(
                   onPressed: _showReport,
                   icon: const Icon(Icons.assessment_outlined),
@@ -477,8 +465,7 @@ class _GridPageState extends State<GridPage> {
             ],
           ),
         ),
-      ],
-    );
+    ];
   }
 
   // =====================================================================

@@ -32,6 +32,7 @@
 | `lib/stats/stats_service.dart` | Estatísticas ANÔNIMAS de uso (para o painel do administrador). Manda um aviso ao abrir o app e uma batida a cada ~5 minutos enquanto ele está à frente. Vai só: um código aleatório do aparelho (que NÃO é o código de… |
 | `lib/ui/agenda_page.dart` | Agenda do PROFESSOR: as aulas marcadas, por semana ou por mês. Marcar, mudar, cancelar uma aula (ou só um dia de uma aula semanal) e ligar o lembrete de 15 minutos. |
 | `lib/ui/app_logo.dart` | Logo do Notemusic: um mostrador de afinador (arco verde, a cor do app) com uma nota musical branca no centro. Mesma geometria de tools/make_icons.mjs. |
+| `lib/ui/design_system.dart` | Design system do Notemusic. REGRA: toda tela nova ou alterada usa estes valores e estes componentes (ver docs/12_DESIGN_SYSTEM.md). Números soltos de espaçamento, raio ou altura de botão não entram em tela nova.… |
 | `lib/ui/dictation_button.dart` | Botão de microfone para ditar num campo de texto. Use como `suffixIcon` do `InputDecoration`. Pisca em vermelho enquanto ouve; tocar de novo para. |
 | `lib/ui/error_ui.dart` | Telas e blocos de erro: tela crítica (APP-99), cartão amigável no lugar de bloco que quebrou e a lista "Problemas recentes". |
 | `lib/ui/feedback_sheet.dart` | Dar uma nota de 1 a 5 ao app (com comentário opcional). |
@@ -70,8 +71,9 @@
 | `lib/ui/smooth_color.dart` | Transição suave de cor para os quadrados da grade e do ponteiro. |
 | `lib/ui/status_strip.dart` | Faixa fina logo abaixo da barra superior com os avisos que ficam ativos: microfone ouvindo e timer do Pomodoro. Só aparece quando há algo ativo, e os dois avisos ficam lado a lado, sem disputar espaço com o título e… |
 | `lib/ui/student_identity.dart` | Selo do vínculo online e campo do código do aluno, na ficha e na lista. |
-| `lib/ui/study_page.dart` | Hub por papel: destaque (o que importa agora), blocos que pedem ação e ferramentas. |
+| `lib/ui/study_page.dart` | Modal de ajustes do estudo: meta diária e apagar o histórico. |
 | `lib/ui/study_timers.dart` | Bloco "Como você quer estudar?": submenu com Pomodoro, Cronômetro e Meu tempo, cada um com uma explicação curta de quando usar. |
+| `lib/ui/suggestions.dart` | Sugestões do app (não são avisos de aula): ficam no sino, não presas no topo da tela. Hoje: informar o apelido e instalar no celular. |
 | `lib/ui/task_form_page.dart` | Formulário de tarefa (escala, arpejo, método e lição, repertório ou outra) com observações. |
 | `lib/ui/teacher_page.dart` | Tela Alunos do professor (lista, novo aluno, QR, importar, métodos, senha) e a ficha do aluno (aula, tarefas, validação, observações, relatórios). |
 | `lib/ui/theme.dart` | Paleta do app, com tema escuro e claro. As cores que mudam com o tema são `getters` lidos a cada construção de tela. [AppColors.dark] é definido uma vez por troca de tema em `main.dart` (que recria a árvore de… |
@@ -246,4 +248,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **203** arquivos mapeados.
+Total: **205** arquivos mapeados.

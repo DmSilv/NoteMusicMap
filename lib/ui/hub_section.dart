@@ -59,7 +59,6 @@ class HubSection extends StatelessWidget {
       if (tiles.length == 2) _pair(tiles[0], tiles[1]) else if (tiles.length == 1) tiles.first,
       if (tiles.isNotEmpty) const SizedBox(height: 12),
       _tools(context, layout.tools),
-      const SizedBox(height: 12),
     ]);
   }
 
@@ -298,8 +297,10 @@ class HubSection extends StatelessWidget {
           HubDest.scales => (Icons.piano, 'Escalas', () => app.openGridSection(1)),
           _ => null,
         };
-    final items = [for (final d in dests) ?item(d)];
-    return LayoutBuilder(builder: (context, box) {
+    // Metrônomo e Escalas já são abas da barra de baixo: aqui ficam só os atalhos de agenda.
+    final items = [for (final d in dests) if (d != HubDest.metronome && d != HubDest.scales) ?item(d)];
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Column(children: [LayoutBuilder(builder: (context, box) {
     final cols = items.length > 4 ? 3 : items.length;
     final w = ((box.maxWidth - 22) / cols).floorToDouble();
     return Container(
@@ -339,7 +340,7 @@ class HubSection extends StatelessWidget {
         ]),
       ]),
     );
-    });
+    }), const SizedBox(height: 12)]);
   }
 
   Future<void> _scanTeacher(BuildContext context) async {

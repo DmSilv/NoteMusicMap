@@ -2,6 +2,9 @@
 
 Receitas passo a passo e as armadilhas que já custaram tempo.
 
+## Regra de interface
+Toda tela nova ou alterada segue o [design system](12_DESIGN_SYSTEM.md): essencial e ação principal à vista, configuração em modal (`showDsSheet`), texto longo no "?", avisos no sino, medidas de `Ds`. Confira no navegador em 390×844 antes de publicar.
+
 ## Receitas
 
 ### 1. Nova ação na API (`/api/link` ou outro)

@@ -72,6 +72,9 @@ A barra tem 5 itens: Afinador, Metrônomo, Grade, Escalas e Meu espaço. A Grade
 ## Minha conta em lista (novembro/2026)
 A tela "Minha conta" deixou as abas Perfil e Professor e virou uma lista curta: nome e código no topo, grupos Vínculos (vínculo online, meus professores, minhas aulas), Professor (modo professor e meus alunos) e Conta (chave de recuperação, ajustes, compartilhar). Cada linha abre a sua tela. O código e o QR agora são um só, em "Meu código e QR", com seletor "Para meu professor / Para meus alunos" (o segundo só no modo professor). Nenhuma função foi removida e a API não mudou.
 
+## Design system e telas principais enxutas (novembro/2026)
+Criado `lib/ui/design_system.dart` e `docs/12_DESIGN_SYSTEM.md` (regra permanente para toda tela). Afinador, Metrônomo, Grade, Escalas e Meu espaço passaram a mostrar só o essencial e a ação principal; os ajustes foram para modais ("Ajustes ⚙", "Concluir"). Apelido e "Instalar" saíram do topo e foram para o sino; cartões com 20 px, margem de 20 px e botões de 48 px no tema.
+
 ## Links curtos de divulgação (novembro/2026)
 Foram criados `/yt`, `/ig`, `/tt`, `/zap` e `/l`, que abrem o app já com a origem marcada (`?o=`), para o link falado e digitado nos vídeos ser curto. O roteiro do vídeo V09 (foco em abrir o link no Shorts) fica em `divulgacao/videos/`.
 

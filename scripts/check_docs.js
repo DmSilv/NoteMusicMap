@@ -23,7 +23,7 @@ if (gen.status !== 0) problems.push(`Referência gerada desatualizada. Rode: nod
 // documentos escritos à mão
 const docsDir = path.join(ROOT, 'docs');
 const manual = fs.readdirSync(docsDir).filter((f) => /^\d\d_.*\.md$/.test(f));
-const expected = ['00_LEIA_PRIMEIRO', '01_ARQUITETURA', '02_APP_E_NUCLEO', '03_REGRAS_DE_NEGOCIO', '04_API_E_DADOS', '05_SEGURANCA_E_PRIVACIDADE', '06_TESTES', '07_PAINEL_ADMIN', '08_OPERACAO', '09_DECISOES', '10_GUIA_DE_MANUTENCAO', '11_HISTORICO'];
+const expected = ['00_LEIA_PRIMEIRO', '01_ARQUITETURA', '02_APP_E_NUCLEO', '03_REGRAS_DE_NEGOCIO', '04_API_E_DADOS', '05_SEGURANCA_E_PRIVACIDADE', '06_TESTES', '07_PAINEL_ADMIN', '08_OPERACAO', '09_DECISOES', '10_GUIA_DE_MANUTENCAO', '11_HISTORICO', '12_DESIGN_SYSTEM'];
 for (const e of expected) if (!manual.includes(`${e}.md`)) problems.push(`Falta o documento docs/${e}.md`);
 const manualText = manual.map((f) => read(`docs/${f}`)).join('\n');
 

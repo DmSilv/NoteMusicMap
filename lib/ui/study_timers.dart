@@ -40,27 +40,31 @@ class StudyTimerSection extends StatelessWidget {
       listenable: app,
       builder: (context, _) {
         final m = app.studyMode;
-        final (icon, title, text) = _info[m]!;
         return Column(
           children: [
             AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Como você quer estudar?',
-                      style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 4),
-                  Text('Escolha um jeito de marcar o seu tempo. O que você estuda entra no total de hoje.',
-                      style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+                  Row(children: [
+                    const Expanded(
+                      child: Text('Como você quer estudar?',
+                          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                    ),
+                    HelpButton(
+                      title: 'Pomodoro, Cronômetro ou Meu tempo?',
+                      sections: [for (final e in _info.values) (e.$2, e.$3)],
+                    ),
+                  ]),
                   const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: SegmentedButton<StudyMode>(
                       showSelectedIcon: false,
                       style: const ButtonStyle(
-                        visualDensity: VisualDensity.compact,
+                        minimumSize: WidgetStatePropertyAll(Size(0, 48)),
                         textStyle: WidgetStatePropertyAll(
-                            TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                            TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                         padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 6)),
                       ),
                       segments: const [
@@ -70,36 +74,6 @@ class StudyTimerSection extends StatelessWidget {
                       ],
                       selected: {m},
                       onSelectionChanged: (s) => app.setStudyMode(s.first),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: Container(
-                      key: ValueKey(m),
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.accent.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(icon, color: AppColors.accent),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-                                const SizedBox(height: 3),
-                                Text(text, style: const TextStyle(fontSize: 13, height: 1.3)),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ],

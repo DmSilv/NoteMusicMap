@@ -29,6 +29,7 @@ Roda no **navegador** (PWA instalável, hospedado na Vercel) e tem projetos Andr
 | [09_DECISOES.md](09_DECISOES.md) | Por que as coisas são como são (decisões e alternativas) |
 | [10_GUIA_DE_MANUTENCAO.md](10_GUIA_DE_MANUTENCAO.md) | Receitas passo a passo e armadilhas conhecidas |
 | [11_HISTORICO.md](11_HISTORICO.md) | Etapas e pacotes já publicados |
+| [12_DESIGN_SYSTEM.md](12_DESIGN_SYSTEM.md) | **Regra de interface**: medidas, componentes, ajustes em modal |
 | `referencia/` | **Gerado do código**: arquivos, API, dados, erros, ambiente (não edite à mão) |
 
 Documentos de planejamento antigos (`ROADMAP_ETAPAS.md`, `PLANO_*.md`, `ARQUITETURA_PROFESSOR_ALUNO.md`, `CUSTOS_E_REGRESSAO.md`, `MATRIZ_BOTOES.md`) continuam na pasta como **histórico e roteiro**; a verdade atual está nos documentos numerados acima e em `referencia/`.

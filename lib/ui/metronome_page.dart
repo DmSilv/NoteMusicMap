@@ -4,6 +4,7 @@ import '../app_state.dart';
 import 'safe_input.dart';
 import 'package:afina_core/afina_core.dart';
 import 'perf.dart';
+import 'design_system.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -50,8 +51,6 @@ class MetronomePage extends StatefulWidget {
 
 class _MetronomePageState extends State<MetronomePage>
     with SingleTickerProviderStateMixin {
-  bool _showAdvanced = false;
-
   AppState get app => widget.app;
 
   // Os cliques (e a vibração) são lidos pelo app, não por esta tela: assim continuam
@@ -91,7 +90,7 @@ class _MetronomePageState extends State<MetronomePage>
         final m = app.metro;
         final running = app.metroRunning;
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          padding: Ds.screen,
           children: [
             AppCard(
               child: Column(
@@ -190,7 +189,7 @@ class _MetronomePageState extends State<MetronomePage>
                               : (b.bar < 0
                                   ? 'Contagem inicial'
                                   : (app.challengeOn ? 'Modo desafio' : 'Compasso ${b.bar + 1}')))
-                          : 'Toque numa bolinha para mudar o acento (forte · médio · fraco · mudo)',
+                          : 'Toque numa bolinha para mudar o acento',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
                     ),
@@ -222,7 +221,27 @@ class _MetronomePageState extends State<MetronomePage>
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const DsGap(Ds.sectionGap),
+            _challengeQuick(m),
+            const DsGap(Ds.gap),
+            SizedBox(width: double.infinity, child: DsSettingsButton(onPressed: _openSettings, label: 'Ajustes do metrônomo')),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Modal com tudo o que é configuração do metrônomo.
+  void _openSettings() {
+    showDsSheet(
+      context,
+      title: 'Ajustes do metrônomo',
+      listenable: app,
+      children: (c) => _settingsList(app.metro),
+    );
+  }
+
+  List<Widget> _settingsList(MetronomeConfig m) => [
             // ---- Compasso ----
             AppCard(
               child: Column(
@@ -302,19 +321,9 @@ class _MetronomePageState extends State<MetronomePage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  InkWell(
-                    onTap: () => setState(() => _showAdvanced = !_showAdvanced),
-                    child: Row(
-                      children: [
-                        const Expanded(
-                          child: Text('Treino de andamento e pulso',
-                              style: TextStyle(fontWeight: FontWeight.w700)),
-                        ),
-                        Icon(_showAdvanced ? Icons.expand_less : Icons.expand_more),
-                      ],
-                    ),
-                  ),
-                  if (_showAdvanced) ...[
+                  const Text('Treino de andamento e pulso',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  ...[
                     const SizedBox(height: 8),
                     Text('Contagem inicial', style: TextStyle(color: AppColors.textDim)),
                     Wrap(spacing: 6, children: [
@@ -388,9 +397,21 @@ class _MetronomePageState extends State<MetronomePage>
             ),
             const SizedBox(height: 12),
             _challengeCard(m),
-          ],
-        );
-      },
+      ];
+
+  /// Interruptor rápido do modo desafio (a intensidade fica nos ajustes).
+  Widget _challengeQuick(MetronomeConfig m) {
+    final on = app.challengeOn;
+    return AppCard(
+      padding: const EdgeInsets.symmetric(horizontal: Ds.cardPad, vertical: Ds.s4),
+      child: SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        secondary: Icon(Icons.psychology_alt_outlined, color: on ? AppColors.accent : AppColors.textDim),
+        title: const Text('Modo desafio', style: TextStyle(fontWeight: FontWeight.w800)),
+        subtitle: const Text('De surpresa muda o ritmo ou silencia.', style: TextStyle(fontSize: Ds.fontLabel)),
+        value: on,
+        onChanged: (v) => app.setChallenge(on: v),
+      ),
     );
   }
 

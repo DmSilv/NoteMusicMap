@@ -21,6 +21,7 @@ node scripts/check_docs.js
 |---|---|---|
 | Núcleo | `packages/afina_core/test/*_test.dart` | Afinação, detector (<0,5 cent em tons limpos), metrônomo sem deriva, grade, escalas, agenda, aulas, **status de tarefas**, **horários livres**, **fase e permissões da aula**, **visões do hub** (sem repetição/mistura), **erros** (catálogo, classificação, higienização, histórico), relatório de erro, markdown da IA |
 | Texto | `scripts/check_text.js` | Trava da dieta de texto: falha se houver mais textos de tela com mais de 110 caracteres do que o teto (`LIMIT`, que só desce). Texto longo vai para o "?" |
+| Interface | conferência manual em 390×844 | Roteiro do design system (`12_DESIGN_SYSTEM.md`): ação principal sem rolar, ajustes no modal, nada abaixo de 13 px. Não há teste automático de tela (`flutter test` não roda neste ambiente) |
 | API | `api/*.test.js` | Vínculo e segurança (`link.test.js`), agenda e lembretes (`agenda.test.js`), horários livres (`avail.test.js`), painel (`admin.test.js`, `painel_precisao.test.js`), suporte do painel (`support.test.js`), presença online (`presence.test.js`), indicadores de saúde (`indicators.test.js`), aviso de bug grave, precisão dos bugs e busca por apelido (`admin_push.test.js`), relatórios de erro e bugs (`errors.test.js`), IA (`coach.test.js`), feedback, estatísticas, **guardrails** (`guardrails.test.js`) |
 | Estático | `flutter analyze` | Tipos, imports, lints |
 | Visual | Chrome em tamanho de celular | Cada pacote é conferido na tela antes de publicar |

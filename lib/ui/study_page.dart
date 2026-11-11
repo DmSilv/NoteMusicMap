@@ -6,6 +6,7 @@ import 'study_timers.dart';
 import 'progress_cards.dart';
 import 'hub_section.dart';
 import 'perf.dart';
+import 'design_system.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -13,6 +14,50 @@ class StudyPage extends StatelessWidget {
   final AppState app;
   final bool active;
   const StudyPage({super.key, required this.app, this.active = true});
+
+  /// Modal de ajustes do estudo: meta diária e apagar o histórico.
+  void _openSettings(BuildContext context) {
+    showDsSheet(
+      context,
+      title: 'Ajustes do estudo',
+      listenable: app,
+      children: (c) => [
+        DsSettingRow(
+          label: 'Meta diária: ${app.dailyGoalMinutes.round()} min',
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Slider(
+              min: 5,
+              max: 120,
+              divisions: 23,
+              value: app.dailyGoalMinutes.clamp(5, 120),
+              onChanged: (v) => app.setTuning(dailyGoalMinutes: v),
+            ),
+            Text('Conta o tempo com o metrônomo ligado ou tocando no microfone.', style: Ds.support()),
+          ]),
+        ),
+        OutlinedButton.icon(
+          onPressed: () => _confirmClear(c),
+          icon: const Icon(Icons.delete_outline),
+          label: const Text('Apagar histórico'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _confirmClear(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Apagar histórico?'),
+        content: const Text('Isso remove o tempo de estudo e as escalas salvas deste aparelho. Não dá para desfazer.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          FilledButton.icon(onPressed: () => Navigator.pop(ctx, true), icon: const Icon(Icons.delete_outline, size: 18), label: const Text('Apagar')),
+        ],
+      ),
+    );
+    if (ok == true) await app.clearHistory();
+  }
 
   static const _dias = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
 
@@ -42,7 +87,7 @@ class StudyPage extends StatelessWidget {
         }
 
         return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          padding: Ds.screen,
           children: [
             // Hub por papel: destaque (o que importa agora), blocos que pedem ação e ferramentas.
             HubSection(app: app),
@@ -51,8 +96,6 @@ class StudyPage extends StatelessWidget {
               child: Text('Seu estudo', style: TextStyle(color: AppColors.textDim, fontSize: 12.5, fontWeight: FontWeight.w700)),
             ),
             FeedbackInviteCard(app: app),
-            StudyTimerSection(app: app),
-            const SizedBox(height: 12),
             AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,22 +133,19 @@ class StudyPage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 6),
-                  Text('Meta diária: ${goal.round()} min',
-                      style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-                  Slider(
-                    min: 5,
-                    max: 120,
-                    divisions: 23,
-                    value: goal.clamp(5, 120),
-                    onChanged: (v) => app.setTuning(dailyGoalMinutes: v),
-                  ),
-                  Text(
-                    'Conta o tempo com o metrônomo ligado ou tocando no microfone.',
-                    style: TextStyle(color: AppColors.textDim, fontSize: 12),
-                  ),
+                  Row(children: [
+                    Expanded(child: Text('Meta diária: ${goal.round()} min', style: Ds.support())),
+                    TextButton.icon(
+                      onPressed: () => _openSettings(context),
+                      icon: const Icon(Icons.tune, size: 18),
+                      label: const Text('Ajustar'),
+                    ),
+                  ]),
                 ],
               ),
             ),
+            const SizedBox(height: 12),
+            StudyTimerSection(app: app),
             const SizedBox(height: 12),
             AppCard(
               child: Column(
@@ -150,25 +190,6 @@ class StudyPage extends StatelessWidget {
             EvolutionCard(app: app),
             const SizedBox(height: 12),
             CoachCard(app: app),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () async {
-                final ok = await showDialog<bool>(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    title: const Text('Apagar histórico?'),
-                    content: const Text('Isso remove o tempo de estudo e as escalas salvas deste aparelho. Não dá para desfazer.'),
-                    actions: [
-                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-                      FilledButton.icon(onPressed: () => Navigator.pop(ctx, true), icon: const Icon(Icons.delete_outline, size: 18), label: const Text('Apagar')),
-                    ],
-                  ),
-                );
-                if (ok == true) await app.clearHistory();
-              },
-              icon: const Icon(Icons.delete_outline),
-              label: const Text('Apagar histórico'),
-            ),
           ],
         );
       },
