@@ -64,6 +64,24 @@
       window.dispatchEvent(new Event('nm-installed'));
     });
   </script>
+  <!-- Atualizar o app / apagar tudo: chamadas pelo Dart (sem eval, que a política de segurança do site proíbe). -->
+  <script>
+    function nmClean(clearData) {
+      return (async function () {
+        try { var regs = await navigator.serviceWorker.getRegistrations(); for (var i = 0; i < regs.length; i++) await regs[i].unregister(); } catch (e) {}
+        try { var ks = await caches.keys(); for (var j = 0; j < ks.length; j++) await caches.delete(ks[j]); } catch (e) {}
+        if (clearData) { try { localStorage.clear(); sessionStorage.clear(); } catch (e) {} }
+      })();
+    }
+    window.nmHardReset = function () { return nmClean(true).then(function () { location.reload(); }); };
+    window.nmUpdateApp = function () {
+      return nmClean(false).then(function () {
+        var u = new URL(location.href);
+        u.searchParams.set('v', Date.now().toString(36));
+        location.replace(u.toString());
+      });
+    };
+  </script>
   <!-- Funcionar sem internet: service worker próprio. Depois de carregar, pede para guardar tudo o que a página já baixou. -->
   <script>
     if ('serviceWorker' in navigator) {

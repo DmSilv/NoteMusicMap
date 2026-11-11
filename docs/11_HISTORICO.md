@@ -140,3 +140,6 @@ A tela Ajustes virou uma lista curta de linhas (ícone, título e valor atual): 
 
 ## Piscar e vibrar desligados por padrão (novembro/2026)
 "Piscar a tela na batida" e "Vibrar na batida" agora vêm desligados para quem abre o app pela primeira vez (e em Restaurar ajustes). Quem já tinha a escolha salva no aparelho continua com ela. A vibração é a mesma dos exercícios de escala e do Pomodoro, então esses também começam sem vibrar.
+
+## Bug: Atualizar o app e Apagar tudo falhavam (novembro/2026)
+Primeiro bug reportado pelo painel: "EvalError ... unsafe-eval". As duas ações usavam `eval`, que a política de segurança (CSP) do site proíbe, então "Atualizar o app" e "Apagar tudo e recomeçar" não faziam nada. Agora as rotinas ficam em web/index.html (`nmUpdateApp`, `nmHardReset`) e o Dart só as chama, sem afrouxar a CSP. Um teste de proteção falha se `eval` voltar ao código.

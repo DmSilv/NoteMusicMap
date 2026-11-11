@@ -237,3 +237,24 @@ test('cache do site: arquivos do app sempre conferem com o servidor e o service 
   const sh = fs.readFileSync(path.join(root, 'scripts', 'vercel_build.sh'), 'utf8');
   assert.match(sh, /const BUILD = '/);
 });
+
+test('o app não usa eval nem new Function: a política de segurança (CSP) do site proíbe e o recurso falha em silêncio', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const root = path.join(__dirname, '..');
+  const v = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+  const csp = v.headers.flatMap((h) => h.headers).find((x) => x.key === 'Content-Security-Policy').value;
+  assert.doesNotMatch(csp, /(?<!wasm-)unsafe-eval/); // a regra continua restrita
+  const bad = [];
+  (function walk(d) {
+    for (const f of fs.readdirSync(d)) {
+      const p = path.join(d, f);
+      if (fs.statSync(p).isDirectory()) walk(p);
+      else if (p.endsWith('.dart') && /['"]eval['"]|\bFunction\(\s*['"]/.test(fs.readFileSync(p, 'utf8').replace(/\/\/.*$/gm, ''))) bad.push(path.relative(root, p));
+    }
+  })(path.join(root, 'lib'));
+  assert.deepEqual(bad, [], 'use funções prontas em web/index.html em vez de eval');
+  const html = fs.readFileSync(path.join(root, 'web', 'index.html'), 'utf8');
+  assert.match(html, /window\.nmHardReset/);
+  assert.match(html, /window\.nmUpdateApp/);
+});
