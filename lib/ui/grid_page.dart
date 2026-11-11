@@ -285,34 +285,35 @@ class _GridPageState extends State<GridPage> {
   Widget _scaleHero(int tonicPc, TuningConfig names) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: const EdgeInsets.fromLTRB(16, 10, 6, 10),
       decoration: BoxDecoration(
-        color: AppColors.accent.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.accent.withValues(alpha: 0.6), width: 1.5),
+        color: AppColors.accent.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.4)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Text(app.scaleType.arpeggio ? 'ARPEJO ESCOLHIDO' : 'ESCALA ESCOLHIDA',
-              style: TextStyle(color: AppColors.textDim, fontSize: 11.5, letterSpacing: 1.1, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 4),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
-            child: Text(_scaleTitle(tonicPc),
-                key: ValueKey(_scaleTitle(tonicPc) + app.scaleOctaves.toString()),
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, height: 1.15)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  child: Text(_scaleTitle(tonicPc),
+                      key: ValueKey(_scaleTitle(tonicPc) + app.scaleOctaves.toString()),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, height: 1.15)),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${app.scaleOctaves} ${app.scaleOctaves == 1 ? 'oitava' : 'oitavas'} · '
+                  'começa em ${noteName(app.scaleTonicMidi + app.scaleType.start, app.cfg, withOctave: true)}',
+                  style: Ds.support(),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            '${app.scaleOctaves} ${app.scaleOctaves == 1 ? 'oitava' : 'oitavas'} · '
-            'começa em ${noteName(app.scaleTonicMidi + app.scaleType.start, app.cfg, withOctave: true)}',
-            style: TextStyle(color: AppColors.textDim, fontSize: 13),
-          ),
-          if (app.scaleType.hint.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(app.scaleType.hint, style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
-          ],
+          if (app.scaleType.hint.isNotEmpty)
+            HelpButton(title: 'Sobre este exercício', sections: [('O que é', app.scaleType.hint)]),
         ],
       ),
     );
@@ -461,8 +462,8 @@ class _GridPageState extends State<GridPage> {
             title: const Text('Execução livre', style: TextStyle(fontWeight: FontWeight.w700)),
             subtitle: Text(
               app.exerciseFlow
-                  ? 'Toque as notas em qualquer ordem: o app valida cada uma.'
-                  : 'Guiado: uma nota por vez; a próxima só aparece quando a atual estiver afinada.',
+                  ? 'Qualquer ordem, o app valida cada nota.'
+                  : 'Guiado: uma nota por vez.',
               style: const TextStyle(fontSize: Ds.fontLabel),
             ),
             value: app.exerciseFlow,
@@ -481,7 +482,7 @@ class _GridPageState extends State<GridPage> {
                 ),
                 Switch(value: app.scaleMode, onChanged: (v) => app.setScale(enabled: v)),
               ]),
-              Text('As notas da escala ficam destacadas na aba Grade.', style: Ds.support()),
+              Text('Destaca as notas na aba Grade.', style: Ds.support()),
               if (app.scaleMode) ...[
                 const SizedBox(height: Ds.s12),
                 OutlinedButton.icon(

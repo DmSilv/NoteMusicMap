@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app_state.dart';
+import 'design_system.dart';
 import 'guidance_banner.dart';
 import 'needle.dart';
 import 'note_widgets.dart';
@@ -71,8 +72,14 @@ class ScaleExercisePage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(_title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
+          Row(children: [
+            Expanded(child: Text(_title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
+            const HelpButton(title: 'Como funciona', sections: [
+              ('Execução livre', 'Toque qualquer nota da escala, em qualquer ordem: o app reconhece e valida a afinação de cada uma.'),
+              ('Guiado', 'Uma nota por vez: a próxima só aparece quando a atual estiver afinada (dentro da faixa verde) e segurada por meio segundo.'),
+            ]),
+          ]),
+          const SizedBox(height: 2),
           // Qual afinação está valendo (toque para trocar).
           Builder(builder: (context) => ActionChip(
                 visualDensity: VisualDensity.compact,
@@ -131,13 +138,6 @@ class ScaleExercisePage extends StatelessWidget {
                 onSelectionChanged: (v) => app.setExerciseFlow(v.first),
               ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              e.flow
-                  ? 'Toque qualquer nota da escala, em qualquer ordem: o app reconhece e valida a afinação de cada uma.'
-                  : 'Uma nota por vez: a próxima só aparece quando a atual estiver afinada e segurada.',
-              style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
-            ),
           ],
         ],
       ),
@@ -148,18 +148,15 @@ class ScaleExercisePage extends StatelessWidget {
     return AppCard(
       child: Column(
         children: [
-          const Icon(Icons.mic_none, size: 40),
-          const SizedBox(height: 8),
-          const Text('Para começar, deixe o app ouvir seu instrumento.',
-              textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 4),
-          Text('O som é analisado no aparelho e não é gravado.',
-              textAlign: TextAlign.center, style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-          const SizedBox(height: 14),
+          const Text('Deixe o app ouvir seu instrumento',
+              textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 2),
+          Text('O som fica no aparelho e não é gravado.', textAlign: TextAlign.center, style: Ds.support()),
+          const SizedBox(height: 12),
           FilledButton.icon(
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(Ds.tap)),
             onPressed: () => app.startListening(),
-            icon: const Icon(Icons.mic),
+            icon: const Icon(Icons.mic, size: 20),
             label: const Text('Ouvir meu instrumento', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           ),
           if (kDevDemo) ...[
@@ -244,9 +241,6 @@ class ScaleExercisePage extends StatelessWidget {
                       fontWeight: e.tunedNow ? FontWeight.w700 : FontWeight.w400)),
             ),
           ),
-          const SizedBox(height: 4),
-          _rule('A próxima nota só aparece quando esta estiver afinada (dentro da faixa verde) '
-              'e segurada por meio segundo.'),
         ],
       ),
     );
@@ -361,6 +355,7 @@ class ScaleExercisePage extends StatelessWidget {
   Widget _octaveBlocks(List<int> midis, Widget Function(int i, Color oc) chip) {
     final lo = midis.reduce((a, b) => a < b ? a : b);
     final n = app.scaleOctaves;
+    if (n == 1) return Wrap(spacing: 6, runSpacing: 6, children: [for (var i = 0; i < midis.length; i++) chip(i, octaveColor(0))]);
     final blocks = <(int, List<Widget>)>[];
     for (var i = 0; i < midis.length; i++) {
       final o = octaveIndex(midis[i], lo, n);

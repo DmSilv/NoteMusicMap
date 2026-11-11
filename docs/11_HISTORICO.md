@@ -119,3 +119,6 @@ Os Ajustes da grade ganharam "Afinação": Lá de referência (415 a 443 Hz, com
 
 ## Arpejos e escalas com 4 oitavas e cores por oitava (novembro/2026)
 Escalas e arpejos aceitam até 4 oitavas (também nas tarefas do professor; o formato salvo é o mesmo, só o limite subiu de 3 para 4). Durante o exercício guiado, os quadradinhos vêm em blocos "1ª oitava", "2ª oitava"… com uma tinta bem leve por oitava (violeta, rosa, dourado, prata; `lib/ui/octave_colors.dart`). A prévia "Notas do exercício" é só informativa: texto simples, sem moldura nem cor, para não parecer botão.
+
+## Escalas e arpejos mais enxutos (novembro/2026)
+A tela Escalas ficou mais limpa: o cartão da escala tem título menor e a explicação do arpejo foi para o "?"; no exercício guiado os textos explicativos dos modos foram para o "?", o pedido de microfone ficou compacto e, com 1 oitava, os quadradinhos não ganham bloco colorido.
