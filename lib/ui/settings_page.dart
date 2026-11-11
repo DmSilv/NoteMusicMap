@@ -3,18 +3,18 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'app_logo.dart';
+import 'design_system.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../platform/web_install.dart' show webIsStandalone;
 import 'error_ui.dart' show CriticalErrorPage, ProblemsPage;
 import 'feedback_sheet.dart';
 import 'install_banner.dart';
-import 'profile_page.dart';
 import 'qr_scan_page.dart';
 import 'ref_a_dialog.dart';
 import 'share_sheet.dart';
 import 'theme.dart';
-import 'tuning_guide.dart';
+import 'tuning_pick.dart';
 import 'widgets.dart';
 
 const String kAppName = 'Notemusic';
@@ -29,6 +29,10 @@ class SettingsPage extends StatelessWidget {
   final AppState app;
   const SettingsPage({super.key, required this.app});
 
+  /// Abre o modal de um assunto: mexe, toca em "Concluir" e volta à lista.
+  void _open(BuildContext context, String title, List<Widget> Function(BuildContext) children) =>
+      showDsSheet(context, title: title, listenable: Listenable.merge([app, app.feedback]), children: children);
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -36,57 +40,77 @@ class SettingsPage extends StatelessWidget {
       body: SafeArea(
         child: ListenableBuilder(
           listenable: Listenable.merge([app, app.feedback]),
-          builder: (context, _) => ListView(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 28),
-            children: [
-              _header(),
-              _section('Aparência', [
-                _appearance(),
-                const SizedBox(height: 6),
-                _switch('Manter a tela acesa', 'Evita apagar enquanto você ouve, usa o metrônomo ou o timer.', app.keepAwake, app.setKeepAwake),
-              ]),
-              _section('Afinação', [_tuning(context)]),
-              _section('Microfone', [MicSettingsContent(app: app)]),
-              _section('Metrônomo', [_metronome()]),
-              _section('Grade', [_grid()]),
-              _section('Estudo', [_study(context)]),
-              _section('Permissões e privacidade', [_permissions(context)]),
-              _section('Minha conta', [_profileHub(context)]),
-              _section('Sobre', [_about(context)]),
-              _section('Diagnóstico', [_diagnostics(context)]),
-              _section('Problemas?', [_resetAll(context)]),
-            ],
-          ),
+          builder: (context, _) {
+            final themeName = switch (app.themeMode) { ThemeMode.light => 'Claro', ThemeMode.dark => 'Escuro', _ => 'Automático' };
+            final soundName = const {ClickSound.click: 'Clique', ClickSound.wood: 'Madeira', ClickSound.clave: 'Clave', ClickSound.drum: 'Tambor', ClickSound.beep: 'Bipe'}[app.metro.sound] ?? 'Clique';
+            final micName = switch (app.micGranted) { true => 'Liberado', false => 'Sem permissão', null => 'Ainda não verificado' };
+            return ListView(
+              padding: Ds.screen,
+              children: [
+                _header(),
+                const DsGap(Ds.gap),
+                _navCard([
+                  DsNavRow(Icons.palette_rounded, 'Aparência e tela', '$themeName${app.keepAwake ? ' · tela acesa' : ''}', () => _open(context, 'Aparência e tela', (c) => _appearanceList())),
+                  DsNavRow(Icons.straighten, 'Afinação', tuningSummary(app), () => _open(context, 'Afinação', (c) => [_tuningBasic(c)])),
+                  DsNavRow(Icons.graphic_eq_rounded, 'Som de referência', app.toneTimbre == ToneTimbre.fork ? 'Diapasão' : 'Flauta', () => _open(context, 'Som de referência', (c) => [_tone()])),
+                  DsNavRow(Icons.abc_rounded, 'Nomes das notas', app.transpose == 0 ? 'Som real' : 'Transpositor', () => _open(context, 'Nomes das notas', (c) => [_names()])),
+                  DsNavRow(Icons.mic_none_rounded, 'Microfone', micName, () => _open(context, 'Microfone', (c) => [MicSettingsContent(app: app)])),
+                  DsNavRow(Icons.timer_outlined, 'Metrônomo', soundName, () => _open(context, 'Metrônomo', (c) => [_metronome()])),
+                  DsNavRow(Icons.grid_view_rounded, 'Grade', 'Memória ${const {HistoryMode.short: '1 s', HistoryMode.medium: '3 s', HistoryMode.long: '30 s', HistoryMode.unlimited: 'da sessão'}[app.history]}', () => _open(context, 'Grade', (c) => [_grid()])),
+                  DsNavRow(Icons.auto_stories_rounded, 'Estudo', 'Meta ${app.dailyGoalMinutes.round()} min', () => _open(context, 'Estudo', (c) => [_study(c)])),
+                ]),
+                const DsGap(Ds.gap),
+                _navCard([
+                  DsNavRow(Icons.verified_user_outlined, 'Permissões e privacidade', micName, () => _open(context, 'Permissões e privacidade', (c) => [_permissions(c)])),
+                  DsNavRow(Icons.info_outline_rounded, 'Sobre o app', app.updateAvailable ? 'Versão nova disponível' : 'Versão $kAppVersion', () => _open(context, 'Sobre o app', (c) => [_about(c)]),
+                      alert: app.updateAvailable),
+                  DsNavRow(Icons.bug_report_outlined, 'Problemas e diagnóstico', app.errorLog.items.isEmpty ? 'Nenhum problema' : '${app.errorLog.items.length} registrado(s)', () => _open(context, 'Problemas e diagnóstico', (c) => [_diagnostics(c)])),
+                  DsNavRow(Icons.restart_alt_rounded, 'Restaurar e apagar', 'Voltar ao início', () => _open(context, 'Restaurar e apagar', (c) => [_resetAll(c)])),
+                ]),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  // ------------------------------------------------------------------
-  Widget _header() => Padding(
-        padding: const EdgeInsets.fromLTRB(4, 8, 4, 12),
-        child: Row(
-          children: [
-            const AppLogo(size: 64),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(kAppName,
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w800)),
-                  Text('Afine. Estude. Evolua.',
-                      style: TextStyle(color: AppColors.textDim, fontSize: 14)),
-                  Text('Versão $kAppVersion',
-                      style: TextStyle(color: AppColors.textDim, fontSize: 12)),
-                ],
-              ),
-            ),
+  /// Cartão com linhas de navegação separadas por filete.
+  Widget _navCard(List<Widget> rows) => AppCard(
+        padding: EdgeInsets.zero,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(Ds.radiusCard),
+          child: Column(children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) Divider(height: 1, indent: 64, color: AppColors.outline.withValues(alpha: 0.5)),
+            rows[i],
           ],
+        ]),
         ),
       );
 
-  Widget _diagnostics(BuildContext context) => Column(children: [
+  Widget _header() => Row(
+        children: [
+          const AppLogo(size: 48),
+          const SizedBox(width: Ds.s12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(kAppName, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                Text('Afine. Estude. Evolua.', style: Ds.support()),
+              ],
+            ),
+          ),
+        ],
+      );
+
+  List<Widget> _appearanceList() => [
+        DsSettingRow(label: 'Tema', child: SizedBox(width: double.infinity, child: _appearance())),
+        _switch('Manter a tela acesa', 'Enquanto você ouve ou estuda.', app.keepAwake, app.setKeepAwake),
+      ];
+
+  Widget _diagnostics(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.bug_report_outlined),
@@ -95,29 +119,20 @@ class SettingsPage extends StatelessWidget {
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ProblemsPage(app: app))),
         ),
-        const Divider(height: 20),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text('Enviar relatório de erro ao desenvolvedor', style: const TextStyle(fontWeight: FontWeight.w700)),
-        ),
-        const SizedBox(height: 4),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Text('Só dados técnicos: nada de nome, código de perfil, áudio ou o que você toca.',
-              style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
-        ),
-        const SizedBox(height: 8),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Wrap(spacing: 8, children: [
-            for (final m in ReportMode.values)
-              ChoiceChip(
-                label: Text(reportModeLabel(m)),
-                selected: app.reportMode == m,
-                onSelected: (_) => app.setReportMode(m),
-              ),
-          ]),
-        ),
+        const Divider(height: Ds.sectionGap),
+        Row(children: [
+          const Expanded(child: Text('Enviar relatório de erro', style: TextStyle(fontWeight: FontWeight.w700))),
+          HelpButton(title: 'Relatório de erro', sections: const [('O que vai', 'Só dados técnicos: nada de nome, código de perfil, áudio ou o que você toca.')]),
+        ]),
+        const SizedBox(height: Ds.s8),
+        Wrap(spacing: 8, children: [
+          for (final m in ReportMode.values)
+            ChoiceChip(
+              label: Text(reportModeLabel(m)),
+              selected: app.reportMode == m,
+              onSelected: (_) => app.setReportMode(m),
+            ),
+        ]),
         if (kDevDemo)
           ListTile(
             contentPadding: EdgeInsets.zero,
@@ -138,25 +153,6 @@ class SettingsPage extends StatelessWidget {
             )),
           ),
       ]);
-
-  Widget _section(String title, List<Widget> children) => Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
-              child: Text(title.toUpperCase(),
-                  style: TextStyle(
-                      color: AppColors.textDim,
-                      fontSize: 12,
-                      letterSpacing: 1.1,
-                      fontWeight: FontWeight.w700)),
-            ),
-            AppCard(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: children)),
-          ],
-        ),
-      );
 
   Widget _label(String t, [String? sub, Widget? help]) => Padding(
         padding: const EdgeInsets.only(top: 12, bottom: 6),
@@ -193,19 +189,6 @@ class SettingsPage extends StatelessWidget {
         onSelectionChanged: (s) => app.setThemeMode(s.first),
       );
 
-  /// Cabeçalho de subgrupo dentro de um cartão.
-  Widget _group(IconData icon, String title, {Widget? help}) => Padding(
-        padding: const EdgeInsets.only(top: 18, bottom: 6),
-        child: Row(children: [
-          Icon(icon, size: 20, color: AppColors.accent),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(title, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w800)),
-          ),
-          ?help,
-        ]),
-      );
-
   /// Opção em cartão: título, explicação curta e marca de selecionada.
   Widget _choice(String title, String sub, bool selected, VoidCallback onTap) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
@@ -239,22 +222,16 @@ class SettingsPage extends StatelessWidget {
         ),
       );
 
-  Widget _tuning(BuildContext context) {
+  Widget _tuningBasic(BuildContext context) {
+    const refs = [415.0, 432.0, 440.0, 442.0, 443.0];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ---- 1. Básico ----
-        _group(Icons.tune, 'Básico',
-            help: const HelpButton(title: 'Lá de referência', sections: Help.refA)),
-        _label('Lá de referência', 'A maioria usa 440 Hz. Orquestras costumam usar 442 ou 443.'),
+        _label('Lá de referência', null, const HelpButton(title: 'Lá de referência', sections: Help.refA)),
         Wrap(spacing: 6, runSpacing: 4, children: [
-          for (final hz in const [415.0, 432.0, 440.0, 442.0, 443.0])
-            ChoiceChip(
-              label: Text('${hz.round()} Hz'),
-              selected: app.refA == hz,
-              onSelected: (_) => app.setTuning(refA: hz),
-            ),
-          refAOtherChip(context, app, const [415.0, 432.0, 440.0, 442.0, 443.0]),
+          for (final hz in refs)
+            ChoiceChip(label: Text('${hz.round()} Hz'), selected: app.refA == hz, onSelected: (_) => app.setTuning(refA: hz)),
+          refAOtherChip(context, app, refs),
         ]),
         _label('Instrumento padrão'),
         PickerField<String>(
@@ -263,62 +240,35 @@ class SettingsPage extends StatelessWidget {
           options: instrumentOptions(app.cfg),
           onChanged: (v) => app.setTuning(instrumentId: v),
         ),
+        _label('Sistema de afinação', null, const HelpButton(title: 'Qual sistema de afinação?', sections: Help.system, footer: Help.systemFooter)),
+        _choice('Igual', 'Piano, violão e trastes.', app.system == TuningSystem.equal, () => app.setTuning(system: TuningSystem.equal)),
+        _choice('Pitagórico', 'Arco e melodias.', app.system == TuningSystem.pythagorean, () => app.setTuning(system: TuningSystem.pythagorean)),
+        _choice('Justo', 'Acordes e conjunto.', app.system == TuningSystem.just, () => app.setTuning(system: TuningSystem.just)),
+      ],
+    );
+  }
 
-        // ---- 2. Sistema de afinação ----
-        const Divider(height: 28),
-        _group(Icons.straighten, 'Sistema de afinação',
-            help: const HelpButton(
-                title: 'Qual sistema de afinação?',
-                sections: Help.system,
-                footer: Help.systemFooter)),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Text('Define como cada nota é medida no modo Cromático. As cordas soltas usam a afinação do próprio instrumento.',
-              style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
-        ),
-        _choice('Igual', 'Piano, violão e instrumentos de trastes: as 12 notas à mesma distância.',
-            app.system == TuningSystem.equal, () => app.setTuning(system: TuningSystem.equal)),
-        _choice('Pitagórico', 'Melodias e escalas em instrumentos de arco: terças e sensível mais altas, quintas puras.',
-            app.system == TuningSystem.pythagorean, () => app.setTuning(system: TuningSystem.pythagorean)),
-        _choice('Justo', 'Acordes e conjunto: terças e quintas puras, sem tremor. A terça fica mais baixa que no piano.',
-            app.system == TuningSystem.just, () => app.setTuning(system: TuningSystem.just)),
-        SystemAdvice(app: app),
-        TuningSystemGuide(app: app),
-
-        // ---- 3. Som do diapasão ----
-        const Divider(height: 28),
-        _group(Icons.graphic_eq, 'Som de referência'),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Text('O som que o app toca quando você toca numa corda ou no Lá.',
-              style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
-        ),
-        _choice('Diapasão (puro)', 'Som limpo, como um diapasão de verdade. Melhor para afinar de ouvido.',
-            app.toneTimbre == ToneTimbre.fork, () => app.setToneTimbre(ToneTimbre.fork)),
-        _choice('Flauta (mais cheio)', 'Soa mais forte em alto-falantes pequenos de celular.',
-            app.toneTimbre == ToneTimbre.soft, () => app.setToneTimbre(ToneTimbre.soft)),
-        _label('Volume do diapasão: ${(app.toneVolume * 100).round()}%',
-            'Notas graves (como o Sol3) ganham reforço automático para aparecerem no alto-falante do celular.'),
-        Slider(
-          min: 0.2,
-          max: 1.0,
-          value: app.toneVolume.clamp(0.2, 1.0),
-          onChanged: app.setToneVolume,
-        ),
+  Widget _tone() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _choice('Diapasão', 'Som puro, para afinar de ouvido.', app.toneTimbre == ToneTimbre.fork, () => app.setToneTimbre(ToneTimbre.fork)),
+        _choice('Flauta', 'Mais cheio no celular.', app.toneTimbre == ToneTimbre.soft, () => app.setToneTimbre(ToneTimbre.soft)),
+        _label('Volume: ${(app.toneVolume * 100).round()}%'),
+        Slider(min: 0.2, max: 1.0, value: app.toneVolume.clamp(0.2, 1.0), onChanged: app.setToneVolume),
         Align(
           alignment: Alignment.centerLeft,
-          child: OutlinedButton.icon(
-            onPressed: app.testLowTone,
-            icon: const Icon(Icons.volume_up),
-            label: const Text('Testar com o Sol3'),
-          ),
+          child: OutlinedButton.icon(onPressed: app.testLowTone, icon: const Icon(Icons.volume_up, size: 20), label: const Text('Testar com o Sol3')),
         ),
+      ],
+    );
+  }
 
-        // ---- 4. Nomes das notas ----
-        const Divider(height: 28),
-        _group(Icons.abc, 'Nomes das notas'),
-        _label('Instrumento transpositor',
-            'Mostra os nomes como estão escritos na partitura do seu instrumento.'),
+  Widget _names() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _label('Instrumento transpositor'),
         PickerField<int>(
           label: 'Transpositor',
           value: app.transpose,
@@ -329,12 +279,11 @@ class SettingsPage extends StatelessWidget {
             OptionItem(5, 'Sol', subtitle: 'Flauta alto'),
             OptionItem(7, 'Fá', subtitle: 'Trompa, corne inglês'),
             OptionItem(9, 'Mi♭', subtitle: 'Sax alto e barítono'),
-            OptionItem(12, 'Oitava acima', subtitle: 'Violão, guitarra e contrabaixo (escritos uma oitava acima)'),
+            OptionItem(12, 'Oitava acima', subtitle: 'Violão, guitarra e contrabaixo'),
           ],
           onChanged: (v) => app.setTuning(transpose: v),
         ),
-        const SizedBox(height: 4),
-        _label('Sustenidos e bemóis', 'Como as notas pretas aparecem (Lá♭ ou Sol♯).'),
+        _label('Sustenidos e bemóis'),
         SpellingPicker(app: app),
       ],
     );
@@ -345,9 +294,9 @@ class SettingsPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _switch('Piscar na batida', 'Acende os círculos dos tempos junto com o som.',
+        _switch('Piscar a tela na batida', 'Um clarão a cada tempo.',
             app.flashEnabled, (v) => app.setTuning(flashEnabled: v)),
-        _switch('Vibrar na batida', 'Vibração leve a cada tempo (só em celulares).',
+        _switch('Vibrar na batida', 'Só no celular Android.',
             app.hapticEnabled, (v) => app.setTuning(hapticEnabled: v)),
         _label('Som do metrônomo'),
         Wrap(spacing: 6, runSpacing: 4, children: [
@@ -371,8 +320,7 @@ class SettingsPage extends StatelessWidget {
           value: m.volume.clamp(0.1, 1.0),
           onChanged: (v) => app.setMetro(m.copyWith(volume: v)),
         ),
-        _label('Ajuste de sincronia: ${app.outputLatencyMs.round()} ms',
-            'Se a luz ou a vibração parecerem adiantadas em relação ao som (comum com fone Bluetooth), aumente.'),
+        _label('Sincronia: ${app.outputLatencyMs.round()} ms', 'Aumente se a luz vier antes do som (fone Bluetooth).'),
         Slider(
           min: 0,
           max: 250,
@@ -388,8 +336,8 @@ class SettingsPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _switch('Mostrar frequência na grade', 'Mostra os Hz da nota que você toca, ao lado da dica.', app.showFreq, app.setShowFreq),
-        _label('Memória da nota', 'Quanto tempo o que você tocou antes ainda pesa na cor.'),
+        _switch('Mostrar frequência', 'Os Hz da nota que você toca.', app.showFreq, app.setShowFreq),
+        _label('Memória da nota'),
         Wrap(spacing: 6, runSpacing: 4, children: [
           for (final e in const {
             HistoryMode.short: '1 s',
@@ -439,63 +387,41 @@ class SettingsPage extends StatelessWidget {
             }
           },
           icon: const Icon(Icons.delete_outline),
-          label: const Text('Apagar histórico de estudo'),
+          label: const Text('Apagar histórico'),
         ),
       ],
     );
   }
 
-  /// Uma única entrada para perfil e professor. Tudo o que é de identidade e de
-  /// ensino mora na tela de destino (abas), sem repetir aqui.
-  Widget _profileHub(BuildContext context) {
-    final p = app.profile;
-    final pending = p.recoveryShownAt == null;
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(
-        backgroundColor: AppColors.accent.withValues(alpha: 0.18),
-        child: Icon(app.teacherMode ? Icons.school_outlined : Icons.badge_outlined, color: AppColors.accent),
-      ),
-      title: Text(p.name ?? 'Meu perfil', style: const TextStyle(fontWeight: FontWeight.w800)),
-      subtitle: Text(
-        'Código ${p.shareCode} · Modo professor ${app.teacherMode ? 'ligado' : 'desligado'}'
-        '${pending ? '\nGuarde a chave de recuperação' : ''}',
-        style: TextStyle(color: pending ? AppColors.sharp : AppColors.textDim, fontSize: 12.5),
-      ),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ProfilePage(app: app))),
-    );
-  }
-
-  /// Zera tudo: ajustes, histórico, IA e (na web) o cache da página.
+  /// Restaurar e apagar (do mais leve ao mais pesado).
   Widget _resetAll(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Se algo estiver estranho, apague tudo e recomece. Remove ajustes, histórico, análises e cache deste aparelho.',
-          style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+        OutlinedButton.icon(
+          onPressed: () async {
+            final ok = await _confirm(context, 'Restaurar padrões?', 'Os ajustes voltam ao início. O histórico de estudo é mantido.', 'Restaurar');
+            if (ok) await app.resetSettings();
+          },
+          icon: const Icon(Icons.settings_backup_restore),
+          label: const Text('Restaurar ajustes'),
         ),
-        const SizedBox(height: 10),
+        const DsGap(Ds.s12),
         FilledButton.icon(
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.sharp,
-            foregroundColor: readableOn(AppColors.sharp),
-            minimumSize: const Size.fromHeight(48),
-          ),
+          style: FilledButton.styleFrom(backgroundColor: AppColors.sharp, foregroundColor: readableOn(AppColors.sharp)),
           onPressed: () async {
             final ok = await _confirm(
                 context,
                 'Apagar tudo e recomeçar?',
-                'Isso apaga neste aparelho todas as configurações, o histórico de estudo, '
-                    'as escalas, as análises de IA e o cache da página. O app volta ao primeiro uso. '
-                    'Não dá para desfazer.',
+                'Apaga neste aparelho os ajustes, o histórico, as análises de IA e o cache. O app volta ao primeiro uso. Não dá para desfazer.',
                 'Apagar tudo');
             if (ok) await app.resetEverything();
           },
           icon: const Icon(Icons.delete_forever_outlined),
           label: const Text('Apagar tudo e recomeçar', style: TextStyle(fontWeight: FontWeight.w700)),
         ),
+        const DsGap(Ds.s8),
+        Text('Use se algo estiver estranho.', style: Ds.support()),
       ],
     );
   }
@@ -503,103 +429,54 @@ class SettingsPage extends StatelessWidget {
   Widget _permissions(BuildContext context) {
     final g = app.micGranted;
     final v = app.vibrationAvailable;
-    final (micIcon, micColor, micStatus) = switch (g) {
-      true => (Icons.check_circle, AppColors.inTune, 'Liberado'),
-      false => (Icons.cancel, AppColors.sharp, 'Sem permissão'),
-      null => (Icons.help_outline, AppColors.textDim, 'Ainda não verificado'),
-    };
-    final (vibIcon, vibColor, vibStatus) = switch (v) {
-      true => (Icons.check_circle, AppColors.inTune, 'Disponível neste aparelho'),
-      false => (Icons.remove_circle_outline, AppColors.textDim, 'Indisponível aqui. ${app.vibrationWhy()} O app funciona sem'),
-      null => (Icons.help_outline, AppColors.textDim, 'Ainda não verificado'),
-    };
     final cam = app.cameraGranted;
-    final (camIcon, camColor, camStatus) = switch (cam) {
-      true => (Icons.check_circle, AppColors.inTune, 'Liberada'),
-      false => (Icons.cancel, AppColors.sharp, 'Sem permissão'),
-      null => (Icons.help_outline, AppColors.textDim, 'Ainda não pedida'),
-    };
+    (IconData, Color, String) st(bool? ok, String yes, String no, String unknown) => switch (ok) {
+          true => (Icons.check_circle, AppColors.inTune, yes),
+          false => (Icons.cancel, AppColors.sharp, no),
+          null => (Icons.help_outline, AppColors.textDim, unknown),
+        };
+    final (micIcon, micColor, micStatus) = st(g, 'Liberado', 'Sem permissão', 'Não verificado');
+    final (camIcon, camColor, camStatus) = st(cam, 'Liberada', 'Sem permissão', 'Ainda não pedida');
+    final (vibIcon, vibColor, vibStatus) = v == false
+        ? (Icons.remove_circle_outline, AppColors.textDim, 'Indisponível aqui')
+        : st(v, 'Disponível', '', 'Não verificado');
+    Widget row(IconData i, Color c, String title, String status, String action, VoidCallback on) => ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(i, color: c, size: 28),
+          title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: Text(status),
+          trailing: FilledButton.tonal(onPressed: on, child: Text(action)),
+        );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        FilledButton.icon(
-          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-          onPressed: app.requestAllPermissions,
-          icon: const Icon(Icons.verified_user_outlined),
-          label: const Text('Permitir tudo o que o app usa',
-              style: TextStyle(fontWeight: FontWeight.w700)),
-        ),
-        const SizedBox(height: 4),
-        Text('Pede microfone e vibração de uma vez. A câmera só é pedida ao ler um QR (ou pelo botão abaixo).',
-            style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
-        const Divider(height: 24),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: Icon(micIcon, color: micColor, size: 30),
-          title: const Text('Microfone', style: TextStyle(fontWeight: FontWeight.w700)),
-          subtitle: Text('$micStatus · necessário para o afinador, a grade e as escalas'),
-          trailing: FilledButton.tonal(
-            onPressed: app.checkMicPermission,
-            child: Text(g == true ? 'Verificar' : 'Permitir'),
-          ),
-        ),
-        if (g == false)
+        DsPrimaryButton(onPressed: app.requestAllPermissions, icon: Icons.verified_user_outlined, label: 'Permitir tudo'),
+        const DsGap(Ds.s12),
+        row(micIcon, micColor, 'Microfone', micStatus, g == true ? 'Verificar' : 'Permitir', app.checkMicPermission),
+        row(camIcon, camColor, 'Câmera', camStatus, cam == true ? 'Testar' : 'Permitir',
+            () => scanShareCode(context, title: 'Testar a câmera', onCamera: app.setCameraStatus)),
+        row(vibIcon, vibColor, 'Vibração', vibStatus, 'Testar', app.testVibration),
+        if (g == false || cam == false)
           Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(
-              'Depois de negar: libere em Configurações › Apps › $kAppName › Permissões, ou no cadeado do navegador.',
-              style: TextStyle(color: AppColors.sharp, fontSize: 12.5),
-            ),
+            padding: const EdgeInsets.only(top: Ds.s8),
+            child: Text('Negou antes? Libere no cadeado do navegador ou em Configurações › Apps › $kAppName.', style: TextStyle(color: AppColors.sharp, fontSize: Ds.fontLabel)),
           ),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: Icon(camIcon, color: camColor, size: 30),
-          title: const Text('Câmera', style: TextStyle(fontWeight: FontWeight.w700)),
-          subtitle: Text('$camStatus · só para ler o QR de alunos e professores (você também pode digitar o código)'),
-          trailing: FilledButton.tonal(
-            onPressed: () => scanShareCode(context, title: 'Testar a câmera', onCamera: app.setCameraStatus),
-            child: Text(cam == true ? 'Testar' : 'Permitir'),
+        const Divider(height: Ds.sectionGap),
+        _switch('Vibrar na batida e nas escalas', 'Metrônomo e exercícios.', app.hapticEnabled, (x) => app.setTuning(hapticEnabled: x)),
+        Row(children: [
+          Expanded(
+            child: _switch('Estatísticas anônimas', 'Sem identificar você.', app.statsEnabled, app.setStatsEnabled),
           ),
-        ),
-        if (cam == false)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(
-              'Depois de negar: libere em Configurações › Apps › $kAppName › Permissões, ou no cadeado do navegador.',
-              style: TextStyle(color: AppColors.sharp, fontSize: 12.5),
-            ),
-          ),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: Icon(vibIcon, color: vibColor, size: 30),
-          title: const Text('Vibração', style: TextStyle(fontWeight: FontWeight.w700)),
-          subtitle: Text('$vibStatus · batida do metrônomo, fim do Pomodoro e notas das escalas'),
-          trailing: FilledButton.tonal(
-            onPressed: app.testVibration,
-            child: const Text('Testar'),
-          ),
-        ),
-        _switch('Vibrar na batida e nas escalas', 'Liga ou desliga a vibração do metrônomo e dos exercícios.',
-            app.hapticEnabled, (x) => app.setTuning(hapticEnabled: x)),
-        const Divider(height: 20),
-        _info(Icons.screen_lock_portrait, 'Tela sempre acesa',
-            'Usada enquanto você estuda para a tela não apagar. Não exige permissão.'),
-        _info(Icons.cloud_outlined, 'Internet (só para a análise por IA)',
-            'O app funciona sem internet. Ela só é usada se você pedir a análise por IA, e mesmo assim só vão números de afinação, nunca áudio.'),
-        _info(Icons.shield_outlined, 'Seu áudio fica com você',
-            'O som é analisado no próprio aparelho e descartado na hora. Nada é gravado nem enviado.'),
-        const Divider(height: 20),
-        _switch(
-            'Estatísticas anônimas de uso',
-            'Ajuda a melhorar o app: avisa, sem identificar você, que o app foi aberto, em que tipo de aparelho '
-                '(sistema, tela, idioma, permissões e região aproximada, só como categorias) e quais abas são mais usadas. Não envia nome, áudio, localização nem o que você toca.',
-            app.statsEnabled,
-            app.setStatsEnabled),
-        const SizedBox(height: 4),
+          const HelpButton(title: 'Estatísticas anônimas', sections: [
+            ('O que vai', 'Que o app foi aberto, o tipo de aparelho (sistema, tela, idioma, região aproximada) e as abas mais usadas, só como categorias.'),
+            ('O que não vai', 'Nome, áudio, localização nem o que você toca.'),
+          ]),
+        ]),
+        _info(Icons.shield_outlined, 'Seu áudio fica com você', 'Analisado no aparelho e descartado na hora.'),
         TextButton.icon(
           onPressed: () => _showPrivacy(context),
           icon: const Icon(Icons.privacy_tip_outlined),
-          label: const Text('Ler a política de privacidade'),
+          label: const Text('Política de privacidade'),
         ),
       ],
     );
@@ -610,101 +487,44 @@ class SettingsPage extends StatelessWidget {
         dense: true,
         leading: Icon(i, color: AppColors.textDim),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
-        subtitle: Text(sub, style: const TextStyle(fontSize: 12.5)),
+        subtitle: Text(sub, style: const TextStyle(fontSize: Ds.fontLabel)),
       );
 
   Widget _about(BuildContext context) {
+    Widget tile(IconData i, String title, VoidCallback on, {String? sub}) => ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: Icon(i),
+          title: Text(title),
+          subtitle: sub == null ? null : Text(sub),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: on,
+        );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          '$kAppName reúne afinador, metrônomo, grade de entonação e registro de estudo, '
-          'pensado para instrumentistas de corda, mas útil para qualquer instrumento.',
-          style: TextStyle(color: AppColors.textDim),
-        ),
-        const SizedBox(height: 12),
-        // Instalar no celular (só no navegador e enquanto não está instalado).
-        if (kIsWeb && !webIsStandalone()) ...[
-          FilledButton.icon(
-            onPressed: () => runInstall(context, app),
-            icon: const Icon(Icons.install_mobile),
-            label: const Text('Instalar no celular', style: TextStyle(fontWeight: FontWeight.w700)),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 10),
-            child: Text('Coloca o Notemusic na tela inicial: abre em tela cheia, como um app, e funciona sem internet.',
-                style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
-          ),
-        ],
-        FilledButton.icon(
+        DsPrimaryButton(
           onPressed: () async {
-            final ok = await _confirm(context, 'Atualizar o app?',
-                'O app busca a versão mais nova e reinicia. Seus ajustes e seu histórico são mantidos.',
-                'Atualizar');
+            final ok = await _confirm(context, 'Atualizar o app?', 'Busca a versão mais nova e reinicia. Seus ajustes e histórico ficam.', 'Atualizar');
             if (ok) await app.updateApp();
           },
-          icon: const Icon(Icons.system_update),
-          label: Text(app.updateAvailable ? 'Atualizar agora (versão nova!)' : 'Atualizar o app',
-              style: const TextStyle(fontWeight: FontWeight.w700)),
+          icon: Icons.system_update,
+          label: app.updateAvailable ? 'Atualizar (versão nova!)' : 'Atualizar o app',
         ),
-        Padding(
-          padding: const EdgeInsets.only(top: 4, bottom: 10),
-          child: Text(
-            'Instalou no celular e parece desatualizado? Toque aqui para buscar a versão mais nova. Versão atual: $kAppVersion.',
-            style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
-          ),
-        ),
-        Wrap(
-          spacing: 8,
-          runSpacing: 6,
-          children: [
-            FilledButton.tonalIcon(
-              onPressed: () => showRatingSheet(context, app),
-              icon: Icon(app.feedback.rating > 0 ? Icons.star_rounded : Icons.star_outline_rounded),
-              label: Text(app.feedback.rating > 0 ? 'Sua nota: ${app.feedback.rating}/5' : 'Avaliar o app'),
-            ),
-            if (!app.feedback.surveyAnswered)
-              FilledButton.tonalIcon(
-                onPressed: () => showSurveySheet(context, app),
-                icon: const Icon(Icons.poll_outlined),
-                label: const Text('Pesquisa rápida'),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        FilledButton.tonalIcon(
-          onPressed: () => showShareSheet(context),
-          icon: const Icon(Icons.qr_code_2),
-          label: const Text('Compartilhar o app (link e QR code)'),
-        ),
-        const SizedBox(height: 8),
-        Row(children: [
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () => showLicensePage(
-                  context: context,
-                  applicationName: kAppName,
-                  applicationVersion: kAppVersion,
-                  applicationIcon: const Padding(
-                      padding: EdgeInsets.all(8), child: AppLogo(size: 56))),
-              icon: const Icon(Icons.description_outlined),
-              label: const Text('Licenças'),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: OutlinedButton.icon(
-              onPressed: () async {
-                final ok = await _confirm(context, 'Restaurar padrões?',
-                    'Todas as configurações voltam ao início. O histórico de estudo é mantido.',
-                    'Restaurar');
-                if (ok) await app.resetSettings();
-              },
-              icon: const Icon(Icons.settings_backup_restore),
-              label: const Text('Restaurar'),
-            ),
-          ),
-        ]),
+        const DsGap(Ds.s8),
+        Text('Versão $kAppVersion', style: Ds.support()),
+        const DsGap(Ds.s8),
+        if (kIsWeb && !webIsStandalone()) tile(Icons.install_mobile, 'Instalar no celular', () => runInstall(context, app), sub: 'Abre em tela cheia e funciona sem internet.'),
+        tile(app.feedback.rating > 0 ? Icons.star_rounded : Icons.star_outline_rounded, app.feedback.rating > 0 ? 'Sua nota: ${app.feedback.rating}/5' : 'Avaliar o app', () => showRatingSheet(context, app)),
+        if (!app.feedback.surveyAnswered) tile(Icons.poll_outlined, 'Pesquisa rápida', () => showSurveySheet(context, app)),
+        tile(Icons.qr_code_2, 'Compartilhar o app', () => showShareSheet(context), sub: 'Link e QR code.'),
+        tile(
+            Icons.description_outlined,
+            'Licenças',
+            () => showLicensePage(
+                context: context,
+                applicationName: kAppName,
+                applicationVersion: kAppVersion,
+                applicationIcon: const Padding(padding: EdgeInsets.all(8), child: AppLogo(size: 56)))),
       ],
     );
   }

@@ -134,3 +134,6 @@ Causa: a fonte de ícones do Flutter muda a cada publicação (só leva os ícon
 
 ## Regra de cadastros e limpeza de perfis (novembro/2026)
 Regra escrita em docs/03 (seção 10): visitante não cria cadastro; o perfil nasce só com intenção (e apelido); limite por origem subiu de 30 para 100 por dia, com aviso no painel acima de 30 (escola ou igreja no mesmo Wi-Fi); perfis vazios e parados há 60 dias são apagados automaticamente (e pelo botão "Limpar agora" em Saúde do uso). A política de privacidade avisa da limpeza.
+
+## Ajustes mais limpos (novembro/2026)
+A tela Ajustes virou uma lista curta de linhas (ícone, título e valor atual): Aparência e tela, Afinação, Som de referência, Nomes das notas, Microfone, Metrônomo, Grade, Estudo, Permissões e privacidade, Sobre o app, Problemas e diagnóstico, Restaurar e apagar. Cada linha abre um modal ("Concluir" para voltar), com os textos bem mais curtos (explicações longas foram para o "?" ou saíram). Nova peça no design system: `DsNavRow`.

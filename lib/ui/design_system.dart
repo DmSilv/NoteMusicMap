@@ -181,3 +181,37 @@ Future<void> showDsSheet(
     ),
   );
 }
+
+/// Linha de navegação de uma lista de ajustes: ícone, título, valor atual e seta. Abre um modal ou uma tela.
+/// [alert] pinta um pontinho (algo pede atenção).
+class DsNavRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool alert;
+  const DsNavRow(this.icon, this.title, this.subtitle, this.onTap, {super.key, this.alert = false});
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 60),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Ds.s16, vertical: Ds.s8),
+            child: Row(children: [
+              DsIconBadge(icon, size: 36),
+              const SizedBox(width: Ds.s12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                  Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: Ds.fontBody, fontWeight: FontWeight.w700)),
+                  Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: Ds.fontLabel, color: AppColors.textDim)),
+                ]),
+              ),
+              if (alert) Container(width: 8, height: 8, margin: const EdgeInsets.only(right: Ds.s8), decoration: BoxDecoration(color: AppColors.sharp, shape: BoxShape.circle)),
+              Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
+            ]),
+          ),
+        ),
+      );
+}
