@@ -232,7 +232,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
             if (app.teacherMode)
-              _row(Icons.list_alt, 'Meus alunos',
+              _row(Icons.groups_rounded, 'Meus alunos',
                   sub: app.students.isEmpty
                       ? 'Nenhum aluno ainda'
                       : '${app.students.length} ${app.students.length == 1 ? 'aluno' : 'alunos'}'

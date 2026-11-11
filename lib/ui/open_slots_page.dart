@@ -183,7 +183,7 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
               ),
             );
           },
-          icon: const Icon(Icons.event_available_outlined, size: 18), label: const Text('Publicar'),
+          icon: const Icon(Icons.publish_rounded, size: 18), label: const Text('Publicar'),
         ),
       ],
     );

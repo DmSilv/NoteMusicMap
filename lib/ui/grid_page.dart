@@ -329,8 +329,8 @@ class _GridPageState extends State<GridPage> {
           child: SegmentedButton<bool>(
             showSelectedIcon: false,
             segments: const [
-              ButtonSegment(value: false, icon: Icon(Icons.trending_up), label: Text('Escalas')),
-              ButtonSegment(value: true, icon: Icon(Icons.stacked_bar_chart), label: Text('Arpejos')),
+              ButtonSegment(value: false, icon: Icon(Icons.stairs_rounded), label: Text('Escalas')),
+              ButtonSegment(value: true, icon: Icon(Icons.piano_rounded), label: Text('Arpejos')),
             ],
             selected: {app.scaleType.arpeggio},
             onSelectionChanged: (v) => app.setScale(type: v.first ? ScaleType.majorTriad : ScaleType.major),

@@ -125,3 +125,6 @@ A tela Escalas ficou mais limpa: o cartão da escala tem título menor e a expli
 
 ## Exercício guiado: o essencial primeiro (novembro/2026)
 No exercício guiado, o bloco de tocar (nota, agulha e orientação) vem logo no topo; o progresso virou uma linha fina embaixo dele, e o jeito de tocar (Livre ou Guiado) e a afinação foram para o modal de ajustes (botão na barra de cima). Os textos ficaram curtos ("Sua vez!", "Qualquer uma da escala!") e o aviso de espera "Toque uma nota" ficou pequeno e discreto.
+
+## Revisão dos ícones (novembro/2026)
+Ícones trocados para combinar com o texto: Evolução (gráfico com brilho), Seu estudo (livro aberto, deixando o cronômetro só para o metrônomo), Escalas (degraus), Arpejos (teclas de piano), aba Afinador (onda de som, já que os controles deslizantes são o ícone de Ajustes), Publicar horário, Apagar tudo e recomeçar (lixeira), Pesquisa rápida e Meus alunos (grupo).

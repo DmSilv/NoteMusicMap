@@ -371,7 +371,7 @@ class _HomeShellState extends State<HomeShell> {
 
   static const _tabNames = ['tuner', 'metronome', 'grid', 'scales', 'study'];
 
-  static const _icons = [Icons.tune, Icons.timer_outlined, Icons.grid_view_rounded, Icons.queue_music, Icons.calendar_month_rounded];
+  static const _icons = [Icons.graphic_eq_rounded, Icons.timer_outlined, Icons.grid_view_rounded, Icons.queue_music, Icons.calendar_month_rounded];
 
   /// Em duas telas: qual lado recebe o próximo atalho (o último que a pessoa tocou).
   bool _focusRight = true;
@@ -602,7 +602,7 @@ class _HomeShellState extends State<HomeShell> {
           selectedIndex: _index,
           onDestinationSelected: _go,
           destinations: const [
-            NavigationDestination(icon: Icon(Icons.tune), label: 'Afinador'),
+            NavigationDestination(icon: Icon(Icons.graphic_eq_rounded), label: 'Afinador'),
             NavigationDestination(
               icon: Icon(Icons.timer_outlined),
               label: 'Metrônomo',

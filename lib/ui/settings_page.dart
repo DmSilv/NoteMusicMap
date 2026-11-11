@@ -493,7 +493,7 @@ class SettingsPage extends StatelessWidget {
                 'Apagar tudo');
             if (ok) await app.resetEverything();
           },
-          icon: const Icon(Icons.restart_alt),
+          icon: const Icon(Icons.delete_forever_outlined),
           label: const Text('Apagar tudo e recomeçar', style: TextStyle(fontWeight: FontWeight.w700)),
         ),
       ],
@@ -666,7 +666,7 @@ class SettingsPage extends StatelessWidget {
             if (!app.feedback.surveyAnswered)
               FilledButton.tonalIcon(
                 onPressed: () => showSurveySheet(context, app),
-                icon: const Icon(Icons.forum_outlined),
+                icon: const Icon(Icons.poll_outlined),
                 label: const Text('Pesquisa rápida'),
               ),
           ],
