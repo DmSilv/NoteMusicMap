@@ -5,6 +5,33 @@
   "buildCommand": "bash scripts/vercel_build.sh",
   "outputDirectory": "build/web",
   "cleanUrls": true,
+  "redirects": [
+    {
+      "source": "/yt",
+      "destination": "/?o=yt",
+      "permanent": false
+    },
+    {
+      "source": "/ig",
+      "destination": "/?o=ig",
+      "permanent": false
+    },
+    {
+      "source": "/tt",
+      "destination": "/?o=tt",
+      "permanent": false
+    },
+    {
+      "source": "/zap",
+      "destination": "/?o=zap",
+      "permanent": false
+    },
+    {
+      "source": "/l",
+      "destination": "/?o=site",
+      "permanent": false
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

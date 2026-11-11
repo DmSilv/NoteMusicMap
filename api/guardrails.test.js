@@ -207,3 +207,15 @@ test('respostas de erro nunca trazem rastros internos', async () => {
     assert.equal(r.headers['Cache-Control'], 'no-store');
   }
 });
+
+test('links curtos de divulgação (/yt, /ig, /tt, /zap, /l) apontam para o app com a origem certa', () => {
+  const v = JSON.parse(require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'vercel.json'), 'utf8'));
+  const r = Object.fromEntries((v.redirects || []).map((x) => [x.source, x]));
+  for (const k of ['yt', 'ig', 'tt', 'zap', 'l']) {
+    const x = r['/' + k];
+    assert.ok(x, `falta o redirecionamento /${k}`);
+    assert.equal(x.permanent, false); // temporário: dá para trocar o destino depois
+    const o = new URL(x.destination, 'https://x.test').searchParams.get('o');
+    assert.match(o, /^[a-z0-9]{1,8}$/); // mesma regra da origem aceita em api/stats.js
+  }
+});

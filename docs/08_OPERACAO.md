@@ -41,6 +41,9 @@
 
 Mudou uma variável? É preciso um **novo deploy** para valer.
 
+## Links curtos de divulgação
+`/yt`, `/ig`, `/tt`, `/zap` e `/l` (em `vercel.json` › `redirects`, temporários) levam ao app com `?o=yt|ig|tt|zap|site`, que o painel mostra em Uso › "De onde vieram". Use o link curto em perfis e vídeos (no YouTube Shorts o link da descrição não é clicável; o link do perfil do canal é). Para trocar o destino ou criar outro, edite os `redirects` e publique; quando houver domínio próprio, basta apontá-lo para a Vercel.
+
 ## Rollback
 1. **Vercel**: Deployments › escolher o deploy anterior bom › *Promote to Production* (instantâneo).
 2. **Git**: `git revert <commit>` e `git push` (gera um deploy novo).

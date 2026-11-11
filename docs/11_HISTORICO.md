@@ -72,6 +72,9 @@ A barra tem 5 itens: Afinador, Metrônomo, Grade, Escalas e Meu espaço. A Grade
 ## Minha conta em lista (novembro/2026)
 A tela "Minha conta" deixou as abas Perfil e Professor e virou uma lista curta: nome e código no topo, grupos Vínculos (vínculo online, meus professores, minhas aulas), Professor (modo professor e meus alunos) e Conta (chave de recuperação, ajustes, compartilhar). Cada linha abre a sua tela. O código e o QR agora são um só, em "Meu código e QR", com seletor "Para meu professor / Para meus alunos" (o segundo só no modo professor). Nenhuma função foi removida e a API não mudou.
 
+## Links curtos de divulgação (novembro/2026)
+Foram criados `/yt`, `/ig`, `/tt`, `/zap` e `/l`, que abrem o app já com a origem marcada (`?o=`), para o link falado e digitado nos vídeos ser curto. O roteiro do vídeo V09 (foco em abrir o link no Shorts) fica em `divulgacao/videos/`.
+
 ## Backlog fechado: CSP em bloqueio, dieta de texto e aviso da chave (novembro/2026)
 A política de segurança de conteúdo (CSP) passou de "somente relatório" para **bloqueio**, depois de aplicá-la localmente e conferir app, abas, conta, som e painel sem violações. 19 textos longos de tela foram encurtados (de 37 para 19 acima de 110 caracteres) e `scripts/check_text.js` impede que voltem a crescer. O painel (Sistema) avisa quando ainda usa a chave do feedback no lugar da `ADMIN_KEY`; o *fallback* continua no código até você confirmar que a `ADMIN_KEY` própria está na Vercel.
 
