@@ -55,6 +55,7 @@
 | `lib/ui/needle.dart` | Ponteiro do afinador com movimento fluido. Em vez de reiniciar uma animação a cada leitura do microfone (o que dá trancos), um relógio a 60 fps aproxima o ponteiro do valor alvo com suavização exponencial. O… |
 | `lib/ui/note_widgets.dart` | Nome de nota com o acidente (♯/♭) DESENHADO, elevado ao lado da letra, e a oitava pequena embaixo, tudo alinhado à linha de base: "Sol" + ♯ + 4. O ♯ e o ♭ são traçados à mão (não vêm da fonte): assim têm sempre o… |
 | `lib/ui/notifications_sheet.dart` | Central de avisos (sino): lista todos os avisos, marca como lidos, limpa e leva ao lugar certo conforme o tipo. |
+| `lib/ui/octave_colors.dart` | Uma cor para cada oitava do exercício (escalas e arpejos), diferente das cores de afinação (azul, verde, laranja): violeta, rosa, dourado e prata. |
 | `lib/ui/open_slots_page.dart` | Horários livres do professor (publicar e apagar) e "Pegar horário" do aluno. |
 | `lib/ui/pedal_view.dart` | Modo "Pedal" do Afinador: escolha notas num teclado e elas soam juntas, sustentadas. Serve para tocar uma melodia por cima (bordão) e para treinar o ouvido com intervalos e acordes. Soa no sistema de afinação… |
 | `lib/ui/perf.dart` | Um [Listenable] que nunca avisa nada. Uma aba escondida escuta este em vez do app: assim ela não se reconstrói enquanto não está na tela, e volta a atualizar sozinha (o ListenableBuilder reassina) quando fica visível. |
@@ -249,4 +250,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **206** arquivos mapeados.
+Total: **207** arquivos mapeados.
