@@ -14,6 +14,7 @@ const { config } = require('./_lib/config');
 const { createCmd } = require('./_lib/store_cmd');
 const { cleanReport } = require('./_lib/errors_lib');
 const { checkLimits, storeReport } = require('./_lib/error_store');
+const { notifyCritical } = require('./_lib/admin_push');
 
 const MAX_BODY = 4096;
 
@@ -48,7 +49,7 @@ function makeHandler(deps = {}) {
       if (!lim.ok) {
         return lim.dropped ? send(200, { ok: true, dropped: true }) : send(429, { error: 'Muitos relatórios deste aparelho. Tente mais tarde.' });
       }
-      const status = await storeReport(m, now, r);
+      const status = await storeReport(m, now, r, (bug) => notifyCritical(cfg, fetchImpl, m, now, bug));
       return send(200, { ok: true, fp: r.fp, status });
     } catch (e) {
       if (String(e.message) === 'no-redis') return send(503, { error: 'sync_unavailable' });

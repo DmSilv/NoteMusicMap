@@ -72,6 +72,9 @@ A barra tem 5 itens: Afinador, Metrônomo, Grade, Escalas e Meu espaço. A Grade
 ## Minha conta em lista (novembro/2026)
 A tela "Minha conta" deixou as abas Perfil e Professor e virou uma lista curta: nome e código no topo, grupos Vínculos (vínculo online, meus professores, minhas aulas), Professor (modo professor e meus alunos) e Conta (chave de recuperação, ajustes, compartilhar). Cada linha abre a sua tela. O código e o QR agora são um só, em "Meu código e QR", com seletor "Para meu professor / Para meus alunos" (o segundo só no modo professor). Nenhuma função foi removida e a API não mudou.
 
+## Aviso de bug grave, precisão dos bugs e exportação (novembro/2026)
+O painel avisa por notificação do navegador quando surge um bug grave novo ou reaberto (`push` em `/api/admin`, `api/_lib/admin_push.js`, `sw.js`; até 5 navegadores, 6 avisos por hora, precisa das chaves VAPID). Os bugs agrupam melhor (números e endereços variáveis saem da impressão digital) e mostram se ainda acontecem na versão publicada agora (filtro "só na versão atual"). Bugs e Pessoas exportam CSV no navegador; Pessoas busca também pelo apelido (100 mais recentes).
+
 ## Indicadores de saúde do uso (novembro/2026)
 A Visão geral do painel ganhou cinco cartões: notificações negadas, versão antiga do app, IA hoje (contra o limite diário), perfis online e perfis bloqueados (novo conjunto `pf:bl`). Saem de dados que o servidor já tem (fichas dos aparelhos dos últimos 7 dias, contador de IA, presença), em ~10 comandos por abertura. "Aulas pendentes" e "vínculos travados" ficaram de fora: o servidor não sabe o que espera envio no aparelho do professor.
 

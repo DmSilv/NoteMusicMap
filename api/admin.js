@@ -2,7 +2,7 @@
 //
 //  POST { action, ... } com "Authorization: Bearer <chave de admin>". Ações:
 //   kpis                       indicadores (total, ativos x inativos, professores, crescimento, retenção)
-//   list {offset?, q?}         perfis, do mais recente ao mais antigo (busca por trecho do código)
+//   list {offset?, q?, by?}    perfis, do mais recente ao mais antigo (busca por trecho do código; by:'name' busca pelo apelido nos 100 mais recentes)
 //   detail {code}              um perfil: papel, vínculos, volume de dados (NUNCA o segredo)
 //   block / unblock {code}     impede / libera o vínculo online do perfil
 //   delete {code, confirm}     apaga os dados e vínculos do perfil (confirm tem que ser o código)
@@ -18,6 +18,7 @@
 //   support_code {code}        gera o código de uso único (24 h) para liberar a conta em outro aparelho
 //   support_cancel {code}      cancela o código pendente
 //   indicators                 saúde do uso: notificações negadas, versões antigas, cota de IA, bloqueados, online
+//   push {op}                  avisos de bug grave neste navegador: status | sub {sub} | unsub {endpoint} | test
 //   presence                   quem está online agora (sinal nos últimos 12 min) e quem esteve há pouco
 //
 // Não há cadastro nem login no app: "usuário" = perfil anônimo (código + apelido). O apelido pertence
@@ -33,6 +34,8 @@ const { K, dayKey, BR_OFFSET } = require('./_lib/metrics');
 const profiles = require('./_lib/profiles');
 const { serverError } = require('./_lib/error_store');
 const { unlinkPair } = require('./_lib/unlink');
+const adminPush = require('./_lib/admin_push');
+const { validSubscription } = require('./_lib/webpush');
 const { K: EK, day: errDay, hour: errHour, sanitize } = require('./_lib/errors_lib');
 
 const { Z } = profiles;
@@ -40,6 +43,7 @@ const sha = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
 const DAY = 86400000;
 const PAGE = 25;
 const SEARCH_SCAN = 500; // a busca olha os 500 perfis mais recentes (1 comando)
+const NAME_SCAN = 100; // a busca por apelido lê o apelido dos 100 mais recentes (100 comandos)
 const COHORT = 300; // amostra máxima para a retenção
 const U = (c) => `u:${c}`, T = (c) => `ut:${c}`, S = (c) => `us:${c}`, SL = (c) => `sl:${c}`, SS = (c) => `ss:${c}`;
 const UL = (c) => `ul:${c}`, DN = (c) => `dn:${c}`, VD = (c) => `vd:${c}`, AV = (c) => `av:${c}`, TK = (c) => `tk:${c}`, PS = (c) => `ps:${c}`;
@@ -194,10 +198,18 @@ function makeHandler(deps = {}) {
       // ---------------- Lista ----------------
       if (action === 'list') {
         const offset = Math.max(0, Math.min(100000, Math.round(Number(b.offset)) || 0));
-        const q = String(b.q || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 9);
+        const byName = b.by === 'name';
+        const nameQ = byName ? String(b.q || '').replace(/[\u0000-\u001f]/g, ' ').trim().toLowerCase().slice(0, 40) : '';
+        const q = byName ? '' : String(b.q || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 9);
         let rows; // [[code, la]]
         let total = null;
-        if (q) {
+        if (byName && nameQ) {
+          const scan = pairs(await cmd.cmd(['ZREVRANGE', Z.last, '0', String(NAME_SCAN - 1), 'WITHSCORES']));
+          const names = scan.length ? await cmd.pipeline(scan.map(([c]) => ['HGET', U(String(c)), 'n'])) : [];
+          const hit = scan.filter((_, i) => String(names[i] || '').toLowerCase().includes(nameQ));
+          total = hit.length;
+          rows = hit.slice(offset, offset + PAGE);
+        } else if (q) {
           const scan = pairs(await cmd.cmd(['ZREVRANGE', Z.last, '0', String(SEARCH_SCAN - 1), 'WITHSCORES'])).filter(([c]) => String(c).includes(q));
           total = scan.length;
           rows = scan.slice(offset, offset + PAGE);
@@ -211,7 +223,7 @@ function makeHandler(deps = {}) {
           const [n, ca, rt, rs, bl] = infos[i] || [];
           return { code: String(c), name: n || '', la, ca: Number(ca) || 0, teacher: rt === '1', student: rs === '1', blocked: bl === '1', inactive: la < now - 30 * DAY };
         });
-        return send(200, { ok: true, items, total, offset, page: PAGE, scanned: q ? SEARCH_SCAN : null });
+        return send(200, { ok: true, items, total, offset, page: PAGE, scanned: byName && nameQ ? NAME_SCAN : (q ? SEARCH_SCAN : null) });
       }
 
       // ---------------- Detalhe ----------------
@@ -318,6 +330,44 @@ function makeHandler(deps = {}) {
           ai: { today: Number(aiRaw) || 0, limit: cfg.rpd || 0, pct: cfg.rpd ? pct(Number(aiRaw) || 0, cfg.rpd) : null },
           blockedProfiles: Number(blocked) || 0, onlineProfiles: Number(onlineNow) || 0,
         });
+      }
+
+      // ---------------- Avisos de bug grave neste navegador ----------------
+      if (action === 'push') {
+        const op = String(b.op || 'status');
+        const on = adminPush.enabled(cfg);
+        if (op === 'status') {
+          return send(200, { ok: true, enabled: on, key: on ? cfg.vapid.publicKey : '', devices: await store.hlen(adminPush.KEY), maxPerHour: adminPush.MAX_PER_HOUR });
+        }
+        if (!on) return send(503, { error: 'push_unavailable', message: 'Faltam as chaves VAPID (VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY) na Vercel.' });
+        if (op === 'sub') {
+          const sub = validSubscription(b.sub);
+          if (!sub) return send(400, { error: 'Inscrição de notificação inválida.' });
+          const field = adminPush.fieldOf(sub.endpoint);
+          if ((await store.hget(adminPush.KEY, field)) === undefined && (await store.hlen(adminPush.KEY)) >= adminPush.MAX_DEVICES) {
+            const all = await store.hgetall(adminPush.KEY);
+            const oldest = Object.entries(all).map(([f, j]) => { let t = 0; try { t = JSON.parse(j).t || 0; } catch (_) { /* ruim */ } return [f, t]; }).sort((x, y) => x[1] - y[1])[0];
+            if (oldest) await store.hdel(adminPush.KEY, oldest[0]);
+          }
+          await store.hset(adminPush.KEY, field, JSON.stringify({ ...sub, t: now }));
+          await log('push_on', 'admin');
+          return send(200, { ok: true });
+        }
+        if (op === 'unsub') {
+          const ep = String(b.endpoint || '');
+          if (ep.length < 20 || ep.length > 600) return send(400, { error: 'Endereço inválido.' });
+          await store.hdel(adminPush.KEY, adminPush.fieldOf(ep));
+          await log('push_off', 'admin');
+          return send(200, { ok: true });
+        }
+        if (op === 'test') {
+          const hk = `adm:pt:${Math.floor(now / 3600000)}`;
+          const t = await store.incr(hk, 3600);
+          if (t.n > 5) return send(429, { error: 'Muitos testes. Tente mais tarde.' });
+          const sent = await adminPush.broadcast(cfg, fetchImpl, cmd, { kind: 'admin', body: 'Teste: os avisos de bug grave estão funcionando.', tag: 'teste' }, now);
+          return send(200, { ok: true, sent });
+        }
+        return send(400, { error: 'Operação desconhecida.' });
       }
 
       // ---------------- Presença: perfis com vínculo ligado e o app à frente ----------------
@@ -441,7 +491,9 @@ function makeHandler(deps = {}) {
           plat: String(b.plat || '').replace(/[^a-z0-9-]/g, '').slice(0, 24),
           code: String(b.code || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 8),
           q: sanitize(b.q, 60).toLowerCase(),
+          cur: b.cur === true || b.cur === '1',
         };
+        const current = ((cfg.env || {}).VERCEL_GIT_COMMIT_SHA || '').slice(0, 7) || null;
         // Limpeza: bugs sem ocorrência há mais de 90 dias saem do Redis (poucos por consulta).
         const old = (await cmd.cmd(['ZRANGEBYSCORE', EK.idx, '-inf', String(now - 90 * DAY), 'LIMIT', '0', '10'])) || [];
         for (const ofp of old.map(String)) {
@@ -464,11 +516,11 @@ function makeHandler(deps = {}) {
             n: Number(h.n) || 0, first: Number(h.first) || 0, last: Number(h.last) || 0,
             versions: count('v:'), platforms: count('p:'), installs: count('i:'),
           };
-        });
+        }).map((r) => ({ ...r, onCurrent: current ? !!r.versions[current] : null }));
         const match = rows.filter((r) =>
           (!f.sev || r.sev === f.sev) &&
           (!f.status || (f.status === 'open' ? ['new', 'seen', 'reopened'].includes(r.status) : r.status === f.status)) &&
-          (!f.ver || r.versions[f.ver]) && (!f.plat || r.platforms[f.plat]) && (!f.code || r.code === f.code) &&
+          (!f.cur || !current || r.onCurrent) && (!f.ver || r.versions[f.ver]) && (!f.plat || r.platforms[f.plat]) && (!f.code || r.code === f.code) &&
           (!f.q || (r.where + ' ' + r.msg + ' ' + r.code).toLowerCase().includes(f.q)));
         const page = match.slice(offset, offset + BUG_PAGE);
         const extra = page.length ? await cmd.pipeline(page.flatMap((r) => [['PFCOUNT', EK.devices(r.fp)], ['HGETALL', EK.trend(r.fp)]])) : [];
@@ -485,7 +537,7 @@ function makeHandler(deps = {}) {
         const hours = Array.from({ length: 24 }, (_, i) => dh['h' + String(i).padStart(2, '0')] || 0);
         const open = rows.filter((r) => ['new', 'seen', 'reopened'].includes(r.status));
         return send(200, {
-          ok: true, days, offset, page: BUG_PAGE, gc: old.length, total: match.length, scanned: ids.length, scanLimit: SCAN_BUGS,
+          ok: true, current, days, offset, page: BUG_PAGE, gc: old.length, total: match.length, scanned: ids.length, scanLimit: SCAN_BUGS,
           items,
           filters: {
             versions: [...new Set(rows.flatMap((r) => Object.keys(r.versions)))].sort(),

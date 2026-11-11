@@ -5,6 +5,7 @@
 const crypto = require('node:crypto');
 const { createCmd } = require('./store_cmd');
 const { cleanReport, day, hour, K, sanitize } = require('./errors_lib');
+const { notifyCritical } = require('./admin_push');
 
 const PER_DEVICE_HOUR = 10;
 const LIGHT_AFTER = 200; // depois de tantas repetições, só os contadores
@@ -20,8 +21,11 @@ async function checkLimits(m, cfg, now, deviceId) {
   return { ok: true };
 }
 
-/** Grava o relatório [r] (já limpo por `cleanReport`). Devolve o status do bug. */
-async function storeReport(m, now, r) {
+/**
+ * Grava o relatório [r] (já limpo por `cleanReport`). Devolve o status do bug.
+ * [onCritical] (opcional) é chamado quando um bug GRAVE aparece pela primeira vez ou é reaberto.
+ */
+async function storeReport(m, now, r, onCritical) {
   const d = day(now);
   // A versão (build) é registrada antes, para a "primeira vez vista" valer já neste evento.
   const [cur, resolvedRaw, , firstSeenRaw] = await m.pipeline([
@@ -66,6 +70,9 @@ async function storeReport(m, now, r) {
   }
   if (nextStatus !== status) list.push(['HSET', K.bug(r.fp), 'st', nextStatus]);
   await m.pipeline(list);
+  if (onCritical && r.s === 'critical' && (!status || (nextStatus === 'reopened' && status !== 'reopened'))) {
+    await onCritical({ fp: r.fp, c: r.c, w: r.w, reopened: nextStatus === 'reopened' });
+  }
   return nextStatus;
 }
 
@@ -88,7 +95,7 @@ async function serverError(deps, endpoint, error) {
     const now = deps.clock();
     const lim = await checkLimits(m, cfg, now, SERVER_ID);
     if (!lim.ok) return;
-    await storeReport(m, now, r);
+    await storeReport(m, now, r, (bug) => notifyCritical(cfg, deps.fetchImpl, m, now, bug));
   } catch (_) { /* silencioso */ }
 }
 

@@ -60,6 +60,20 @@ self.addEventListener('push', (event) => {
   } catch (_) {
     d = {};
   }
+  // Aviso do administrador (bug grave): só texto curto vindo do nosso servidor.
+  if (d.kind === 'admin') {
+    const body = typeof d.body === 'string' ? d.body.slice(0, 140) : 'Há um aviso no painel.';
+    event.waitUntil(
+      self.registration.showNotification('Notemusic · painel', {
+        body,
+        icon: '/icons/Icon-192.png',
+        badge: '/icons/Icon-192.png',
+        tag: `admin-${typeof d.tag === 'string' ? d.tag.slice(0, 20) : 'x'}`,
+        data: { url: '/admin.html' },
+      }),
+    );
+    return;
+  }
   if (d.kind !== 'lesson' || !Number.isFinite(Number(d.start))) return;
   const hhmm = new Date(Number(d.start)).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const who = typeof d.who === 'string' && d.who ? ` com ${d.who.slice(0, 40)}` : '';

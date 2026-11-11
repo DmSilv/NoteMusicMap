@@ -223,7 +223,7 @@
       <div class="card" style="overflow:auto"><table class="cohort"><thead><tr><th>Semana</th><th>Entraram</th><th>D1</th><th>D7</th><th>D30</th></tr></thead><tbody id="cohortRows"></tbody></table></div>
       <h2>Lista de perfis</h2>
       <div class="card">
-        <div class="toolbar"><input id="q" placeholder="Buscar por trecho do código" maxlength="9"><button id="qGo">Buscar</button><span class="empty" id="pCount"></span></div>
+        <div class="toolbar"><input id="q" placeholder="Buscar por trecho do código" maxlength="40"><label class="empty"><input type="checkbox" id="qName"> pelo apelido</label><button id="qGo">Buscar</button><button id="pExport">Exportar CSV</button><span class="empty" id="pCount"></span></div>
         <div style="overflow:auto"><table><thead><tr><th>Código</th><th>Apelido</th><th>Papel</th><th>Entrou</th><th>Última atividade</th></tr></thead><tbody id="pRows"></tbody></table></div>
         <div class="toolbar" style="margin-top:10px"><button id="pPrev">‹ Anterior</button><button id="pNext">Próxima ›</button><span class="empty" id="pNote"></span></div>
       </div>
@@ -243,6 +243,12 @@
       </div>
       <h2>Erros por hora (hoje)</h2>
       <div class="card"><div class="bars" id="bHours"></div><div class="axis"><span>0h</span><span>12h</span><span>23h</span></div></div>
+      <h2>Avisos de bug grave <button class="help" data-def="pushadmin">?</button></h2>
+      <div class="card">
+        <div class="kv"><span>Neste navegador</span><span id="pushState">–</span></div>
+        <div class="kv"><span>Aparelhos avisados</span><span id="pushDevs">–</span></div>
+        <div class="toolbar" style="margin-top:8px"><button id="pushOn" class="primary">Ativar avisos neste navegador</button><button id="pushOff" hidden>Desativar</button><button id="pushTest" hidden>Enviar teste</button><span class="empty" id="pushNote"></span></div>
+      </div>
       <h2>Bugs agrupados</h2>
       <div class="filters">
         <select id="fDays"><option value="1">Últimas 24 h</option><option value="7" selected>7 dias</option><option value="30">30 dias</option><option value="90">90 dias</option></select>
@@ -252,7 +258,9 @@
         <select id="fPlat"><option value="">Toda plataforma</option></select>
         <select id="fCode"><option value="">Todo código</option></select>
         <input id="fQ" placeholder="Buscar (tela, mensagem)" maxlength="60">
+        <label class="empty"><input type="checkbox" id="fCur"> só na versão atual</label>
         <button id="fGo" class="primary">Filtrar</button>
+        <button id="bExport">Exportar CSV</button>
       </div>
       <div class="card" style="overflow:auto">
         <table><thead><tr><th>Bug</th><th>Onde</th><th>Vezes</th><th>Aparelhos</th><th>Última</th><th>14 dias</th><th>Status</th></tr></thead><tbody id="bRows"></tbody></table>
@@ -329,6 +337,7 @@
   var DEFS = {
     presence: ['Perfis online agora', 'Perfis com o vínculo online ligado e o app aberto à frente, que deram sinal nos últimos 12 minutos. O app avisa o servidor no máximo a cada 10 minutos (2 comandos do Redis), por isso a lista pode atrasar alguns minutos. Quem só usa o afinador sem abrir telas de vínculo pode não aparecer: este número é de perfis, não de aparelhos. Abaixo ficam quem esteve online há pouco (offline). O servidor guarda só o código e o horário do último sinal; nada de áudio nem de histórico.'],
     indicators: ['Saúde do uso', 'Indicadores dos últimos 7 dias, calculados dos aparelhos que abriram o app (um aparelho conta uma vez por dia). Notificações negadas: entre quem já foi perguntado, quantos disseram não. Versão antiga: aparelhos que não estão na versão publicada agora (o painel compara com o código em produção). IA hoje: pedidos admitidos no dia contra o limite diário global. Perfis bloqueados: contados a partir desta atualização.'],
+    pushadmin: ['Avisos de bug grave', 'Quando aparece um bug GRAVE novo (ou um grave resolvido que volta), o servidor manda uma notificação para os navegadores em que você ativou isto. No máximo 6 por hora, para um erro em loop não virar spam. Cada navegador precisa ativar uma vez (o painel pede a permissão). Precisa das chaves VAPID configuradas na Vercel. Bugs comuns não avisam: só os graves.'],
     online: ['Online agora', 'Aparelhos que abriram o app ou mandaram sinal nos últimos 5 minutos. O sinal é enviado a cada ~5 minutos, só com o app à frente.'],
     dau: ['Usuários hoje', 'Aparelhos DISTINTOS que abriram o app hoje (horário de Brasília). Um aparelho que abre 10 vezes conta 1. O dia de hoje é parcial: ainda está acontecendo.'],
     wau: ['Últimos 7 dias', 'Aparelhos distintos dos últimos 7 dias (incluindo hoje). A seta compara com os 7 dias anteriores.'],
@@ -604,7 +613,9 @@
     });
     renderJourney(); renderMedals();
   }
+  var lastRows = [];
   function renderRows(j) {
+    lastRows = j.items;
     var body = $('pRows'); body.innerHTML = '';
     if (!j.items.length) { var tr0 = document.createElement('tr'), td0 = document.createElement('td'); td0.colSpan = 5; td0.className = 'empty'; td0.textContent = 'Nenhum perfil.'; tr0.appendChild(td0); body.appendChild(tr0); }
     j.items.forEach(function (p) {
@@ -621,7 +632,7 @@
     });
     var from = j.items.length ? j.offset + 1 : 0;
     $('pCount').textContent = from + '–' + (j.offset + j.items.length) + ' de ' + fmt(j.total);
-    $('pNote').textContent = j.scanned ? 'A busca olha os ' + j.scanned + ' perfis mais recentes.' : '';
+    $('pNote').textContent = j.scanned ? 'A busca ' + ($('qName').checked ? 'pelo apelido ' : '') + 'olha os ' + j.scanned + ' perfis mais recentes.' : '';
     $('pPrev').disabled = j.offset <= 0; $('pNext').disabled = j.offset + j.page >= j.total;
   }
   function loadKpis() { return post({ action: 'kpis' }).then(function (r) { if (r.status === 200) renderKpis(r.j); else fail(r.status); }).catch(function () {}); }
@@ -636,6 +647,72 @@
       $('indOn').textContent = fmt(j.onlineProfiles); $('indBl').textContent = fmt(j.blockedProfiles);
     }).catch(function () {});
   }
+  // ---------------- Exportar CSV (só no navegador: nada é enviado a lugar nenhum) ----------------
+  function csvCell(v) {
+    var t = v === null || v === undefined ? '' : String(v);
+    if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; // evita que a planilha execute fórmulas
+    return '"' + t.replace(/"/g, '""') + '"';
+  }
+  function downloadCsv(name, head, rows) {
+    var text = '\ufeff' + [head].concat(rows).map(function (r2) { return r2.map(csvCell).join(';'); }).join('\r\n');
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: 'text/csv;charset=utf-8' }));
+    a.download = name + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    toast('Arquivo ' + a.download + ' gerado (' + rows.length + ' linhas).', 'ok');
+  }
+  function iso(ms) { return ms ? new Date(ms).toISOString() : ''; }
+  $('bExport').onclick = function () {
+    if (!lastBugs.length) { toast('Não há bugs na lista para exportar.', 'bad'); return; }
+    downloadCsv('bugs', ['codigo', 'gravidade', 'status', 'onde', 'mensagem', 'vezes', 'aparelhos', 'primeira_vez', 'ultima_vez', 'versoes', 'plataformas', 'na_versao_atual'], lastBugs.map(function (b) {
+      return [b.code, b.sev, b.status, b.where, (b.msg || '').split('\n')[0], b.n, b.devices, iso(b.first), iso(b.last), Object.keys(b.versions).join(' '), Object.keys(b.platforms).join(' '), b.onCurrent === null ? '' : (b.onCurrent ? 'sim' : 'nao')];
+    }));
+  };
+  $('pExport').onclick = function () {
+    if (!lastRows.length) { toast('Não há perfis na lista para exportar.', 'bad'); return; }
+    downloadCsv('perfis', ['codigo', 'apelido', 'professor', 'aluno', 'bloqueado', 'entrou_em', 'ultima_atividade'], lastRows.map(function (p) {
+      return [p.code, p.name, p.teacher ? 'sim' : 'nao', p.student ? 'sim' : 'nao', p.blocked ? 'sim' : 'nao', iso(p.ca), iso(p.la)];
+    }));
+  };
+
+  // ---------------- Avisos de bug grave (Web Push neste navegador) ----------------
+  var pushKey = '';
+  function b64uToBytes(b64) { var pad = '='.repeat((4 - b64.length % 4) % 4); var raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/')); var out = new Uint8Array(raw.length); for (var i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i); return out; }
+  function pushSupported() { return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window; }
+  function thisSub() { return navigator.serviceWorker.register('/sw.js').then(function () { return navigator.serviceWorker.ready; }).then(function (reg) { return reg.pushManager.getSubscription(); }); }
+  function loadPush() {
+    post({ action: 'push', op: 'status' }).then(function (r) {
+      if (r.status !== 200) return;
+      var j = r.j; pushKey = j.key; $('pushDevs').textContent = fmt(j.devices);
+      if (!j.enabled) { $('pushState').textContent = 'indisponível'; $('pushNote').textContent = 'Faltam as chaves VAPID na Vercel (VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY).'; $('pushOn').hidden = true; return; }
+      if (!pushSupported()) { $('pushState').textContent = 'este navegador não suporta'; $('pushOn').hidden = true; return; }
+      thisSub().then(function (sub) {
+        var on = !!sub && Notification.permission === 'granted';
+        $('pushState').textContent = on ? 'ativado' : (Notification.permission === 'denied' ? 'bloqueado nas permissões do navegador' : 'desativado');
+        $('pushOn').hidden = on; $('pushOff').hidden = !on; $('pushTest').hidden = !on;
+        $('pushNote').textContent = j.maxPerHour + ' avisos por hora, no máximo.';
+      }).catch(function () { $('pushState').textContent = 'indisponível aqui'; $('pushOn').hidden = true; $('pushNote').textContent = 'Este navegador não deixou registrar o serviço de avisos (abra o painel pelo endereço https do site).'; });
+    }).catch(function () {});
+  }
+  $('pushOn').onclick = function () {
+    if (!pushKey) { toast('Os avisos não estão configurados no servidor.', 'bad'); return; }
+    Notification.requestPermission().then(function (perm) {
+      if (perm !== 'granted') { toast('Sem permissão do navegador para notificar.', 'bad'); loadPush(); return; }
+      return navigator.serviceWorker.register('/sw.js').then(function () { return navigator.serviceWorker.ready; })
+        .then(function (reg) { return reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uToBytes(pushKey) }); })
+        .then(function (sub) { return post({ action: 'push', op: 'sub', sub: sub.toJSON() }); })
+        .then(function (r2) { if (r2.status === 200) toast('Avisos ativados neste navegador.', 'ok'); else toast('Não foi possível ativar: ' + why(r2), 'bad'); loadPush(); loadLog(); });
+    }).catch(function () { toast('Não foi possível ativar os avisos neste navegador.', 'bad'); });
+  };
+  $('pushOff').onclick = function () {
+    thisSub().then(function (sub) {
+      if (!sub) { loadPush(); return; }
+      return post({ action: 'push', op: 'unsub', endpoint: sub.endpoint }).then(function () { return sub.unsubscribe(); }).then(function () { toast('Avisos desativados neste navegador.', 'ok'); loadPush(); loadLog(); });
+    }).catch(function () { toast('Não foi possível desativar.', 'bad'); });
+  };
+  $('pushTest').onclick = function () {
+    post({ action: 'push', op: 'test' }).then(function (r) { if (r.status === 200) toast(r.j.sent ? 'Teste enviado. Deve chegar em instantes.' : 'Nenhum aparelho recebeu (inscrição expirada?). Desative e ative de novo.', r.j.sent ? 'ok' : 'bad'); else toast('Não foi possível enviar o teste: ' + why(r), 'bad'); }).catch(function () { toast('Sem conexão com o servidor.', 'bad'); });
+  };
   function loadPresence() {
     post({ action: 'presence' }).then(function (r) {
       if (r.status !== 200) return;
@@ -658,13 +735,13 @@
       section('Esteve há pouco (offline)', j.items.filter(function (x) { return !x.online; }));
     }).catch(function () {});
   }
-  function loadList() { post({ action: 'list', offset: offset, q: query }).then(function (r) { if (r.status === 200) renderRows(r.j); else fail(r.status); }).catch(function () {}); }
+  function loadList() { post({ action: 'list', offset: offset, q: query, by: $('qName').checked ? 'name' : '' }).then(function (r) { if (r.status === 200) renderRows(r.j); else fail(r.status); }).catch(function () {}); }
   function loadLog() {
     post({ action: 'log' }).then(function (r) {
       if (r.status !== 200) return;
       var el = $('logRows'); el.innerHTML = '';
       if (!r.j.items.length) { el.textContent = 'Nada ainda.'; return; }
-      var names = { block: 'Bloqueou', unblock: 'Liberou', 'delete': 'Excluiu', unlink: 'Encerrou vínculo de', agenda_del: 'Apagou item da agenda de', support_code: 'Gerou código de liberação para', support_cancel: 'Cancelou código de liberação de', bug_seen: 'Marcou bug como visto', bug_resolved: 'Resolveu bug', bug_ignored: 'Ignorou bug', bug_new: 'Reabriu bug' };
+      var names = { block: 'Bloqueou', unblock: 'Liberou', 'delete': 'Excluiu', unlink: 'Encerrou vínculo de', push_on: 'Ativou avisos de bug grave em', push_off: 'Desativou avisos de bug grave em', agenda_del: 'Apagou item da agenda de', support_code: 'Gerou código de liberação para', support_cancel: 'Cancelou código de liberação de', bug_seen: 'Marcou bug como visto', bug_resolved: 'Resolveu bug', bug_ignored: 'Ignorou bug', bug_new: 'Reabriu bug' };
       r.j.items.forEach(function (x) {
         var d = document.createElement('div'); d.className = 'kv';
         var a = document.createElement('span'); a.textContent = dt(x.t);
@@ -804,7 +881,9 @@
     Object.keys(obj).sort(function (a, b) { return obj[b] - obj[a]; }).slice(0, 3).forEach(function (k) { f.appendChild(tag(k + ' ×' + obj[k])); });
     return f;
   }
+  var lastBugs = [];
   function renderBugs(j) {
+    lastBugs = j.items;
     var sm = j.summary;
     setNum('bOpen', sm.open); $('bCrit').textContent = fmt(sm.criticalOpen); $('bReopen').textContent = fmt(sm.reopened); setNum('bNew', sm.newToday);
     setNum('bToday', sm.today.total); $('bTodayC').textContent = fmt(sm.today.critical); $('bTodayA').textContent = fmt(sm.today.action); $('bTodayI').textContent = fmt(sm.today.info);
@@ -819,6 +898,7 @@
     j.items.forEach(function (b) {
       var tr = document.createElement('tr'); tr.className = 'pick';
       var c1 = document.createElement('td'); c1.appendChild(sevDot(b.sev)); var st = document.createElement('strong'); st.textContent = b.code; c1.appendChild(st);
+      if (b.onCurrent === false) { var old = tag('só em versões antigas', 'i'); old.style.marginLeft = '6px'; old.title = 'Não aconteceu na versão publicada agora'; c1.appendChild(old); }
       var m = document.createElement('div'); m.className = 'empty'; m.textContent = (b.msg || '').split('\n')[0].slice(0, 70); c1.appendChild(m);
       var c2 = document.createElement('td'); c2.textContent = b.where || '—';
       var c3 = document.createElement('td'); c3.textContent = fmt(b.n); var c4 = document.createElement('td'); c4.textContent = fmt(b.devices);
@@ -831,7 +911,7 @@
     $('bPrev').disabled = j.offset <= 0; $('bNext').disabled = j.offset + j.page >= j.total;
   }
   function loadBugs() {
-    post({ action: 'bugs', days: Number($('fDays').value), sev: $('fSev').value, status: $('fStatus').value, ver: $('fVer').value, plat: $('fPlat').value, code: $('fCode').value, q: $('fQ').value, offset: bOffset })
+    post({ action: 'bugs', days: Number($('fDays').value), sev: $('fSev').value, status: $('fStatus').value, ver: $('fVer').value, plat: $('fPlat').value, code: $('fCode').value, q: $('fQ').value, cur: $('fCur').checked, offset: bOffset })
       .then(function (r) { if (r.status === 200) renderBugs(r.j); else fail(r.status); }).catch(function () {});
   }
   function closeBug() { $('bugDetail').hidden = true; }
@@ -1050,7 +1130,7 @@
   }
   function loadTab(name) {
     if (name === 'people') { loadList(); loadLog(); loadPresence(); }
-    if (name === 'bugs') loadBugs();
+    if (name === 'bugs') { loadBugs(); loadPush(); }
     if (name === 'costs') loadCosts();
     if (name === 'devices') loadDevices();
     if (name === 'system') loadSystem();

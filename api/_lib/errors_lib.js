@@ -29,9 +29,17 @@ function sanitize(s, max = MAX_DETAIL) {
 
 const firstLine = (s) => String(s || '').split('\n')[0];
 
-/** Impressão digital: o mesmo bug dá sempre a mesma (código + onde + 1ª linha do detalhe). */
+/**
+ * 1ª linha do detalhe sem o que varia de uma ocorrência para outra (endereços de memória, índices,
+ * tamanhos, linhas e colunas): "índice 3 fora de 10" e "índice 4 fora de 12" são o MESMO bug.
+ */
+function stableLine(detail) {
+  return firstLine(detail).replace(/0x[0-9a-fA-F]+/g, '0x#').replace(/\d+/g, '#');
+}
+
+/** Impressão digital: o mesmo bug dá sempre a mesma (código + onde + 1ª linha estável do detalhe). */
 function fingerprint(code, where, detail) {
-  return crypto.createHash('sha256').update(`${code}|${where}|${firstLine(detail)}`).digest('hex').slice(0, 12);
+  return crypto.createHash('sha256').update(`${code}|${where}|${stableLine(detail)}`).digest('hex').slice(0, 12);
 }
 
 const SEVERITIES = ['critical', 'action', 'info'];
@@ -77,4 +85,4 @@ const K = {
   rateGlobal: (d) => `er:cap:${d}`,
 };
 
-module.exports = { sanitize, fingerprint, cleanReport, day, hour, K, MAX_DETAIL, SEVERITIES };
+module.exports = { sanitize, fingerprint, stableLine, cleanReport, day, hour, K, MAX_DETAIL, SEVERITIES };

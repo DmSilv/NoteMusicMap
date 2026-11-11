@@ -17,8 +17,8 @@ Página estática (`web/admin.html`, JavaScript puro, sem bibliotecas) que fala 
 |---|---|
 | **Visão geral** | **Saúde do uso** (notificações negadas, versão antiga, IA hoje, perfis online e bloqueados); online agora; usuários hoje, 7 e 30 dias com ▲▼ contra o período anterior; total de aparelhos; **conquistas**; gráficos de 30 dias; **jornada do uso**; comparação 7×7 de aberturas, aulas, tarefas validadas, horários pegos, lembretes e vínculos |
 | **Uso** | Quem usa hoje (aparelho/navegador, instalação, versão, abas) e o **mapa de calor** de aberturas por dia da semana × hora (30 dias) |
-| **Pessoas** | Perfis (total, novos, ativos, inativos, professores, alunos), retorno D1/D7/D30, **retorno por semana de entrada**, crescimento, lista com busca por trecho do código, **perfis online agora** (e quem esteve há pouco), detalhe do perfil (bloquear, excluir, **suporte**: ver e encerrar vínculos, ver e apagar itens de agenda, gerar código de liberação) e o registro de ações do admin |
-| **Bugs** | Resumo, erros por hora, lista agrupada com filtros, detalhe e ações |
+| **Pessoas** | Perfis (total, novos, ativos, inativos, professores, alunos), retorno D1/D7/D30, **retorno por semana de entrada**, crescimento, lista com busca por trecho do código ou **pelo apelido** (nos 100 mais recentes) e **exportar CSV**, **perfis online agora** (e quem esteve há pouco), detalhe do perfil (bloquear, excluir, **suporte**: ver e encerrar vínculos, ver e apagar itens de agenda, gerar código de liberação) e o registro de ações do admin |
+| **Bugs** | Resumo, erros por hora, **avisos de bug grave** (notificação neste navegador), lista agrupada com filtros (inclui **só na versão atual**), **exportar CSV**, detalhe e ações |
 | **Custos** | Comandos do Redis estimados no mês × cota de 500 mil |
 
 ## Números: como são calculados
@@ -69,3 +69,19 @@ Cinco cartões no topo, atualizados ao abrir ou tocar em Atualizar (cerca de 10 
 - **Perfis online**: os mesmos da aba Pessoas (últimos 12 min).
 - **Perfis bloqueados**: conjunto `pf:bl`, mantido ao bloquear, liberar e excluir; **conta só os bloqueios feitos depois desta atualização**.
 Ainda **não existem** indicadores de "aulas pendentes" e "vínculos travados": o servidor não sabe o que está esperando envio no aparelho do professor (isso fica só no app dele), e medir pelo servidor exigiria varrer todos os perfis.
+
+## Avisos de bug grave (Bugs)
+O painel pode avisar você por **notificação do navegador** quando aparece um bug **grave novo** ou um grave **resolvido que reabre** (volta numa versão publicada depois da correção). Bugs de ação e de conexão não avisam.
+1. Aba **Bugs** › "Avisos de bug grave" › **Ativar avisos neste navegador** (o navegador pede a permissão; cada navegador ativa uma vez, até 5 aparelhos). **Enviar teste** confirma que chega.
+2. Precisa das chaves **VAPID** na Vercel (as mesmas dos lembretes de aula). Sem elas o cartão diz "indisponível" e nada quebra.
+3. Limite de **6 avisos por hora** no total (um erro em loop não vira spam) e 5 testes por hora. Inscrição que o navegador apagou (404/410) é removida sozinha.
+4. Custo: nada quando não há bug grave novo; num bug grave novo, ~3 comandos mais 1 envio por navegador. Falhar o aviso nunca atrapalha o relatório do app.
+5. Para parar: **Desativar** no mesmo cartão. Ativar e desativar entram no registro de ações.
+
+## Precisão dos bugs
+- **Mesmo bug, números diferentes**: a impressão digital ignora números e endereços de memória da 1ª linha do erro ("índice 3 fora de 10" e "índice 4 fora de 12" agrupam). Bugs antigos gravados com a regra anterior aparecem uma vez separados do grupo novo; os antigos saem sozinhos em 90 dias.
+- **Ainda acontece na versão atual?** Cada bug mostra "só em versões antigas" quando não ocorreu na versão publicada agora, e o filtro **só na versão atual** esconde esse ruído.
+
+## Exportar e buscar
+- **Exportar CSV** (Bugs e Pessoas): gera o arquivo no próprio navegador a partir da lista que está na tela (nada é enviado a lugar nenhum). Células que começariam com = + - @ ganham um apóstrofo, para a planilha não executar como fórmula.
+- **Pessoas › pelo apelido**: lê o apelido dos 100 perfis mais recentes (100 comandos por busca; só quando você clica em Buscar). Para achar alguém mais antigo, use o código.

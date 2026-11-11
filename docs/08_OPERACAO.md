@@ -29,7 +29,7 @@
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` (ou, pela integração da Vercel, `KV_REST_API_URL`, `KV_REST_API_TOKEN`) | **Sim** para vínculo, painel e erros | Banco |
 | `ADMIN_KEY` | Recomendada | Chave do painel (cai em `FEEDBACK_ADMIN_KEY` se faltar) |
 | `FEEDBACK_ADMIN_KEY` | Opcional | Leitura do painel de feedback (e fallback do painel) |
-| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Para lembretes | Web Push (gerar com `node scripts/gen_vapid.js`; a privada nunca vai ao chat) |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Para lembretes e para os avisos de bug grave do admin | Web Push (gerar com `node scripts/gen_vapid.js`; a privada nunca vai ao chat) |
 | `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY`, `QSTASH_URL` | Para lembretes | Agendamento e verificação de assinatura |
 | `APP_BASE_URL` | Opcional | Endereço público (padrão `https://notemusicmap.vercel.app`) |
 | `VERCEL_GIT_COMMIT_SHA`, `VERCEL_ENV`, `VERCEL_REGION` | Automáticas (a Vercel preenche) | A aba Sistema do painel mostra a versão publicada, o ambiente e a região |
@@ -58,6 +58,7 @@ Dados no Redis não precisam de rollback: as mudanças da API são **aditivas**.
 | E-mail da Vercel: *"Não mais que 12 Funções Serverless"* | Contar `api/*.js` (sem `_lib`); garantir `.vercelignore` com `api/*.test.js`; juntar endpoints se preciso. Enquanto falha, a produção segue na **última versão que compilou**. |
 | Custos perto de 100% do plano | Aba Custos mostra o maior item. Se for polling: aumentar o intervalo no app (`app_state.dart`); se for erros: `ERRORS_DISABLED=1` e/ou baixar `ERRORS_DAILY_CAP`. |
 | Pico de erros / semáforo vermelho | Aba Bugs ordenada por recência; abrir o bug (pilha + trilha + versão); se for da versão nova, rollback na Vercel. |
+| Aviso de bug grave não chega ao admin | Aba Bugs › cartão "Avisos de bug grave": se disser "indisponível", faltam as VAPID; se estiver "desativado", ative neste navegador e use "Enviar teste". |
 | Lembretes não chegam | `POST /api/link {action:'push_key'}` deve devolver `enabled: true`; conferir `VAPID_*` e `QSTASH_*`; no iPhone o app precisa estar instalado na tela inicial. |
 | IA não responde | `GET /api/ai-status` (quais serviços estão ativos); conferir chaves; fila cheia devolve 429 com `retryAfterMs`. |
 | Painel diz "chave inválida" | Conferir `ADMIN_KEY`/`FEEDBACK_ADMIN_KEY`; redeploy depois de mudar. |

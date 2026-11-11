@@ -12,7 +12,7 @@ Funções hoje: **8 de 12**.
 
  POST { action, ... } com "Authorization: Bearer <chave de admin>". Ações:
   kpis                       indicadores (total, ativos x inativos, professores, crescimento, retenção)
-  list {offset?, q?}         perfis, do mais recente ao mais antigo (busca por trecho do código)
+  list {offset?, q?, by?}    perfis, do mais recente ao mais antigo (busca por trecho do código; by:'name' busca pelo apelido nos 100 mais recentes)
   detail {code}              um perfil: papel, vínculos, volume de dados (NUNCA o segredo)
   block / unblock {code}     impede / libera o vínculo online do perfil
   delete {code, confirm}     apaga os dados e vínculos do perfil (confirm tem que ser o código)
@@ -28,6 +28,7 @@ Funções hoje: **8 de 12**.
   support_code {code}        gera o código de uso único (24 h) para liberar a conta em outro aparelho
   support_cancel {code}      cancela o código pendente
   indicators                 saúde do uso: notificações negadas, versões antigas, cota de IA, bloqueados, online
+  push {op}                  avisos de bug grave neste navegador: status | sub {sub} | unsub {endpoint} | test
   presence                   quem está online agora (sinal nos últimos 12 min) e quem esteve há pouco
 
 Não há cadastro nem login no app: "usuário" = perfil anônimo (código + apelido). O apelido pertence
@@ -43,6 +44,7 @@ Custo: só quando o admin abre o painel (kpis ~35 comandos; lista de 25 = ~27; d
 | `block` | Bloquear / liberar |
 | `delete` | Excluir |
 | `indicators` | Indicadores de saúde do uso Custo: 3 comandos + 7 leituras (um hash por dia). Só quando o admin abre ou toca em Atualizar. |
+| `push` | Avisos de bug grave neste navegador |
 | `presence` | Presença: perfis com vínculo ligado e o app à frente |
 | `unlink` | Suporte: encerrar um vínculo |
 | `agenda` | Suporte: agenda do perfil |

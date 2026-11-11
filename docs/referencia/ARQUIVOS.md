@@ -186,6 +186,7 @@
 
 | Arquivo | O que faz |
 |---|---|
+| `api/_lib/admin_push.js` | Aviso (Web Push) para o administrador quando aparece um bug GRAVE novo (ou um grave reaberto). As inscrições do navegador do admin ficam em `adm:ps` (feitas no painel, com a chave de admin). Custo: zero quando não há… |
 | `api/_lib/agenda.js` | Agenda de aulas no servidor: limpeza do que chega, cálculo da próxima aula e agendamento do lembrete (QStash), uma mensagem por vez (a aula semanal agenda a próxima ao disparar). |
 | `api/_lib/config.js` | Configuração lida das variáveis de ambiente da Vercel. NENHUMA chave fica no código. |
 | `api/_lib/error_store.js` | Gravação dos relatórios de erro no Redis (usada pelo endpoint do app e pelos erros do próprio servidor). Limites, agrupamento por impressão digital, reabertura e modo leve num só lugar. |
@@ -207,6 +208,7 @@
 |---|---|
 | `api/_lib/webpush.test.js` | Exemplo oficial da RFC 8291 (apêndice A). |
 | `api/admin.test.js` | Testes do painel do administrador (indicadores e gestão de perfis), sem rede: `node --test api/admin.test.js` |
+| `api/admin_push.test.js` | Aviso de bug grave ao admin (Web Push), precisão dos bugs e busca por nome, sem rede: `node --test api/admin_push.test.js` |
 | `api/agenda.test.js` | Testes da agenda e dos lembretes, sem rede: `node --test api/agenda.test.js` |
 | `api/avail.test.js` | Testes dos horários disponíveis (professor) e de "pegar horário" (aluno), sem rede: `node --test api/avail.test.js` |
 | `api/coach.test.js` | Testes da IA (vários serviços + fila) sem rede e sem chaves reais: `node --test api/` |
@@ -244,4 +246,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **201** arquivos mapeados.
+Total: **203** arquivos mapeados.
