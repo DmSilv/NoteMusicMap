@@ -104,3 +104,6 @@ O detalhe do perfil no painel ganhou: vínculos com data e última atividade (e 
 
 ## Divulgação (novembro/2026)
 Site: página `/sobre` (texto indexável + perguntas frequentes), `robots.txt`, `sitemap.xml`, título/descrição e dados estruturados melhores, `<noscript>`. Medição de origem das visitas por marca no link (`?o=yt`, `?o=ig`, `?o=tt`, `?o=zap`, `?o=site`), guardada no primeiro acesso do aparelho e mostrada em `/admin` › Uso › "De onde vieram". O plano de divulgação e os textos prontos ficam fora do repositório, na pasta local `divulgacao/`.
+
+## Grade mais limpa (novembro/2026)
+A grade da tela Grade ficou menor (4 oitavas por padrão, ~52 px por linha) e ganhou o botão "Ampliar a grade" para tocar em tela cheia. A legenda virou uma barra de cores com três rótulos (Grave: suba · Afinado · Agudo: desça). O seletor de oitavas é um trilho único com uma janela que desliza (números 0–8, ponto nas já tocadas, "Lá" na 4) e setas redondas. Quantidade de oitavas e "Seguir a nota que eu toco" foram para o modal "Ajustes da grade".

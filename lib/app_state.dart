@@ -3025,7 +3025,7 @@ class AppState extends ChangeNotifier {
     transpose = 0;
     instrumentId = 'violino';
     _gridLow = null;
-    gridOctCount = 5;
+    gridOctCount = 4;
     gridFollow = false;
     tunerMode = TunerMode.strings;
     history = HistoryMode.medium;
@@ -3080,7 +3080,7 @@ class AppState extends ChangeNotifier {
   static const int minOct = 1; // Dó0
   static const int maxOct = 9; // Dó8
   int? _gridLow; // null = padrão do instrumento
-  int gridOctCount = 5;
+  int gridOctCount = 4;
   bool gridFollow = false;
 
   /// Faixa [baixa, alta] de oitavas visíveis (inclusive).

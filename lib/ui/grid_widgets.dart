@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../app_state.dart';
+import 'design_system.dart';
 import 'theme.dart';
 import 'transitions.dart';
 
@@ -39,10 +40,10 @@ class OctaveNav extends StatelessWidget {
 
     Widget arrow(IconData i, String tip, VoidCallback? on) => IconButton(
           tooltip: tip,
-          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
           padding: EdgeInsets.zero,
-          style: IconButton.styleFrom(backgroundColor: AppColors.surface2),
-          icon: Icon(i, size: 24),
+          style: IconButton.styleFrom(backgroundColor: AppColors.surface2, shape: const CircleBorder()),
+          icon: Icon(i, size: 22),
           onPressed: on,
         );
 
@@ -51,7 +52,7 @@ class OctaveNav extends StatelessWidget {
       children: [
         Row(
           children: [
-            arrow(Icons.chevron_left, 'Oitava abaixo',
+            arrow(Icons.chevron_left_rounded, 'Oitava abaixo',
                 canDown ? () => app.shiftOctaves(-1) : null),
             const SizedBox(width: 8),
             Expanded(
@@ -63,7 +64,7 @@ class OctaveNav extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            arrow(Icons.chevron_right, 'Oitava acima',
+            arrow(Icons.chevron_right_rounded, 'Oitava acima',
                 canUp ? () => app.shiftOctaves(1) : null),
             if (onMore != null) ...[
               const SizedBox(width: 8),
@@ -121,64 +122,63 @@ class OctaveChips extends StatelessWidget {
           onTapDown: (d) => goTo(d.localPosition.dx),
           onHorizontalDragUpdate: (d) => goTo(d.localPosition.dx),
           child: SizedBox(
-            height: 52,
-            child: Row(
-              children: [
-                for (var label = 0; label < _count; label++)
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
-                      child: _chip(label),
-                    ),
+            height: 48,
+            child: Stack(children: [
+              // trilho com as nove oitavas
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+              // a "janela" das oitavas que aparecem na grade (desliza ao mudar)
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                left: first * cell + 3,
+                width: (last - first + 1) * cell - 6,
+                top: 4,
+                bottom: 4,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(11),
+                    border: Border.all(color: AppColors.accent, width: 1.5),
                   ),
-              ],
-            ),
+                ),
+              ),
+              Row(children: [
+                for (var label = 0; label < _count; label++) Expanded(child: _num(label)),
+              ]),
+            ]),
           ),
         ),
       );
     });
   }
 
-  Widget _chip(int label) {
+  Widget _num(int label) {
     final on = label >= first && label <= last;
-    final isRef = label == 4; // oitava do Lá 440 Hz
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOutCubic,
-      decoration: BoxDecoration(
-        color: on ? AppColors.accent.withValues(alpha: 0.26) : AppColors.surface2,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: on ? AppColors.accent : Colors.transparent, width: 1.6),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            '$label',
-            style: TextStyle(
-              fontSize: 17,
-              height: 1.0,
-              fontWeight: on ? FontWeight.w800 : FontWeight.w600,
-              color: on ? AppColors.text : AppColors.textDim,
-            ),
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          '$label',
+          style: TextStyle(
+            fontSize: 15,
+            height: 1.0,
+            fontWeight: on ? FontWeight.w800 : FontWeight.w600,
+            color: on ? AppColors.text : AppColors.textDim,
           ),
-          const SizedBox(height: 5),
-          // Pontinho = já tocou nessa oitava; "Lá" marca a oitava do Lá 440.
-          SizedBox(
-            height: 9,
-            child: played.contains(label)
-                ? Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(color: AppColors.accent, shape: BoxShape.circle),
-                  )
-                : (isRef
-                    ? Text('Lá',
-                        style: TextStyle(fontSize: 9, height: 1.0, color: AppColors.textDim))
-                    : null),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 4),
+        // Pontinho = já tocou nessa oitava; "Lá" marca a oitava do Lá 440 Hz.
+        SizedBox(
+          height: 8,
+          child: played.contains(label)
+              ? Container(width: 5, height: 5, decoration: BoxDecoration(color: AppColors.accent, shape: BoxShape.circle))
+              : (label == 4 ? Text('Lá', style: TextStyle(fontSize: 9, height: 1.0, color: AppColors.textDim)) : null),
+        ),
+      ],
     );
   }
 }
@@ -195,6 +195,26 @@ class IntonationLegend extends StatelessWidget {
     final colors = [for (var c = -range; c <= range; c += 3) intonationColor(c, zone)];
     final z = (zone / range).clamp(0.0, 1.0);
 
+    if (compact) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            height: 10,
+            child: DecoratedBox(
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(5), gradient: LinearGradient(colors: colors)),
+            ),
+          ),
+          const SizedBox(height: Ds.s8),
+          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            _legendWord(Icons.arrow_upward_rounded, 'Grave: suba', AppColors.flat),
+            _legendWord(Icons.check_circle_rounded, 'Afinado', AppColors.inTune),
+            _legendWord(Icons.arrow_downward_rounded, 'Agudo: desça', AppColors.sharp, iconAfter: true),
+          ]),
+        ],
+      );
+    }
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -265,6 +285,16 @@ class IntonationLegend extends StatelessWidget {
       ],
     );
   }
+}
+
+Widget _legendWord(IconData icon, String text, Color color, {bool iconAfter = false}) {
+  final t = Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 13));
+  final i = Icon(icon, size: 16, color: color);
+  return Row(mainAxisSize: MainAxisSize.min, children: [
+    if (!iconAfter) ...[i, const SizedBox(width: 4)],
+    t,
+    if (iconAfter) ...[const SizedBox(width: 4), i],
+  ]);
 }
 
 class _LegendTag extends StatelessWidget {

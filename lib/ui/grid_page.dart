@@ -126,14 +126,6 @@ class _GridPageState extends State<GridPage> {
               onPressed: () => confirmResetGrid(context, app),
             ),
             IconButton(
-              tooltip: 'Tela cheia',
-              icon: const Icon(Icons.fullscreen),
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                fullscreenDialog: true,
-                builder: (_) => GridFullscreen(app: app),
-              )),
-            ),
-            IconButton(
               tooltip: 'Como ler as cores',
               icon: const Icon(Icons.help_outline),
               onPressed: _explainColors,
@@ -171,51 +163,34 @@ class _GridPageState extends State<GridPage> {
           ),
         const SizedBox(height: 8),
         // A grade em si: 12 colunas (Dó a Si) x oitavas, agudos em cima.
-        SizedBox(height: rows * 62.0, child: GridBoard(app: app)),
-        const SizedBox(height: 10),
-        Center(child: SessionChips(app: app)),
-        const SizedBox(height: 10),
+        // Grade pequena (visão geral); "Ampliar" abre em tela cheia para tocar com mais conforto.
+        SizedBox(height: rows * 52.0, child: GridBoard(app: app)),
+        Align(alignment: Alignment.centerRight, child: _expandChip()),
+        const DsGap(Ds.s12),
         IntonationLegend(zone: zone, compact: true),
-        const SizedBox(height: 10),
-        OctaveNav(app: app, compact: true, onMore: () => showOctaveSheet(context, app)),
-        const SizedBox(height: 8),
-        _settingsSummary(),
+        const DsGap(Ds.s16),
+        OctaveNav(app: app),
+        const DsGap(Ds.s16),
+        Row(children: [
+          Expanded(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: SessionChips(app: app))),
+          const SizedBox(width: Ds.s12),
+          DsSettingsButton(onPressed: _openGridSettings),
+        ]),
       ],
     );
   }
 
-  /// Resumo dos ajustes ativos ("Lá 440 Hz · Igual"); toque para mudar.
-  Widget _settingsSummary() {
-    final hz = app.refA == app.refA.roundToDouble()
-        ? app.refA.toStringAsFixed(0)
-        : app.refA.toStringAsFixed(1);
-    final sys = switch (app.system) {
-      TuningSystem.equal => 'Igual',
-      TuningSystem.pythagorean => 'Pitagórico',
-      TuningSystem.just => 'Justo',
-    };
-    final tr = app.transpose == 0 ? '' : ' · transpõe ${app.transpose > 0 ? '+' : ''}${app.transpose}';
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: _openGridSettings,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: Ds.s12, horizontal: Ds.s8),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.tune, size: 15, color: AppColors.textDim),
-            const SizedBox(width: 6),
-            Flexible(
-              child: Text('Lá $hz Hz · $sys$tr',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
-            ),
-            Icon(Icons.chevron_right, size: 16, color: AppColors.textDim),
-          ],
-        ),
-      ),
-    );
-  }
+  void _openFullscreen() => Navigator.of(context).push(MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (_) => GridFullscreen(app: app),
+      ));
+
+  /// Botão "Ampliar" no canto da grade.
+  Widget _expandChip() => TextButton.icon(
+        onPressed: _openFullscreen,
+        icon: const Icon(Icons.open_in_full_rounded, size: 18),
+        label: const Text('Ampliar a grade'),
+      );
 
   // =====================================================================
   // Seção 2: Escala
@@ -483,6 +458,27 @@ class _GridPageState extends State<GridPage> {
         : (app.holdSeconds >= 120 ? '2 minutos' : '${app.holdSeconds.round()} segundos');
     return Column(
       children: [
+        AppCard(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Oitavas na grade: ${app.gridOctCount}', style: const TextStyle(fontWeight: FontWeight.w700)),
+            Slider(
+              min: 2,
+              max: 7,
+              divisions: 5,
+              value: app.gridOctCount.toDouble(),
+              onChanged: (v) => app.setOctCount(v.round()),
+            ),
+            Text('Menos oitavas = quadrados maiores.', style: Ds.support()),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Seguir a nota que eu toco'),
+              subtitle: const Text('A grade muda de oitava sozinha.', style: TextStyle(fontSize: Ds.fontLabel)),
+              value: app.gridFollow,
+              onChanged: app.setFollow,
+            ),
+          ]),
+        ),
+        const DsGap(Ds.gap),
         AppCard(
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(
