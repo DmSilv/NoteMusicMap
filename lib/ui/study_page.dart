@@ -95,6 +95,8 @@ class StudyPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(children: [
+                    const DsIconBadge(Icons.timer_rounded, size: 34),
+                    const SizedBox(width: Ds.s12),
                     const Expanded(child: Text('Seu estudo', style: TextStyle(fontSize: Ds.fontTitle - 2, fontWeight: FontWeight.w800))),
                     TextButton.icon(
                       onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => EvolutionPage(app: app))),

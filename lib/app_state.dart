@@ -3457,6 +3457,7 @@ class AppState extends ChangeNotifier {
     cameraGranted = p.getBool('cam_granted');
     installHideUntil = p.getInt('install_hide') ?? 0;
     nickHideUntil = p.getInt('nick_hide') ?? 0;
+    autoMicEnabled = p.getBool('auto_mic') ?? true;
     // Chaves novas (split_l2/r2): as antigas tinham 4 telas e o índice 3 era Meu espaço.
     splitLeft = (p.getInt('split_l2') ?? 0).clamp(0, 4);
     splitRight = (p.getInt('split_r2') ?? 1).clamp(0, 4);
@@ -3565,7 +3566,8 @@ class AppState extends ChangeNotifier {
   // ===================================================================
   // Escuta
   // ===================================================================
-  Future<void> startListening({bool demoMode = false, bool demoGlide = false}) async {
+  Future<void> startListening({bool demoMode = false, bool demoGlide = false, bool auto = false}) async {
+    if (!auto) _autoMic = false; // o usuário assumiu o microfone
     if (listening) await stopListening(quiet: true);
     micError = null;
     // Antes do primeiro pedido real de microfone, explica para que serve.
@@ -3609,14 +3611,51 @@ class AppState extends ChangeNotifier {
     _wake(true);
     micOn.value = true;
     if (kDevDemo && demoMode) FrameMeter.instance.start();
-    if (!demoMode && hapticEnabled) buzz(ms: 30);
-    say(demoMode
-        ? 'Simulação de desenvolvimento ligada (sem som)'
-        : 'Microfone ligado. Toque uma nota!');
+    if (!demoMode && hapticEnabled && !auto) buzz(ms: 30);
+    if (!auto) {
+      say(demoMode
+          ? 'Simulação de desenvolvimento ligada (sem som)'
+          : 'Microfone ligado. Toque uma nota!');
+    }
     notifyListeners();
   }
 
+  /// O microfone foi ligado sozinho pelo Afinador (e não pelo usuário).
+  bool _autoMic = false;
+
+  /// Preferência: ligar o microfone sozinho ao abrir o Afinador (só depois de o usuário liberar uma vez).
+  bool autoMicEnabled = true;
+
+  void setAutoMic(bool v) {
+    autoMicEnabled = v;
+    _prefs?.setBool('auto_mic', v);
+    if (!v) autoRelease();
+    notifyListeners();
+  }
+
+  /// Liga o microfone sozinho quando o Afinador está à frente, mas só se o usuário já o liberou antes
+  /// (nunca abre o pedido de permissão) e nenhum exercício está usando o som.
+  Future<void> autoListen() async {
+    if (!autoMicEnabled || listening || exercise != null || !micRationaleSeen) return;
+    if (micGranted != true) {
+      await checkMicPermission(request: false, announce: false);
+      if (micGranted != true) return;
+    }
+    if (listening || exercise != null) return;
+    _autoMic = true;
+    await startListening(auto: true);
+    if (!listening) _autoMic = false;
+  }
+
+  /// Ao sair do Afinador, desliga o microfone se foi ele que ligou sozinho (Grade e Escalas ligam o seu).
+  Future<void> autoRelease() async {
+    if (!_autoMic) return;
+    _autoMic = false;
+    if (listening && !demo && exercise == null) await stopListening(quiet: true);
+  }
+
   Future<void> stopListening({bool quiet = false}) async {
+    _autoMic = false;
     await _sub?.cancel();
     _sub = null;
     await _source?.stop();

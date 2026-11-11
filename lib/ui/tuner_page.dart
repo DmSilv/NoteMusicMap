@@ -112,6 +112,10 @@ class _TunerPageState extends State<TunerPage> {
     Future<void>.delayed(const Duration(milliseconds: 1500), () {
       if (mounted) _preload();
     });
+    // Microfone sozinho ao abrir o Afinador (só se já foi liberado antes).
+    if (widget.active && app.tunerMode != TunerMode.pedal) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => app.autoListen());
+    }
   }
 
   /// Gera com antecedência o som de cada corda e do Lá de referência.
@@ -133,6 +137,9 @@ class _TunerPageState extends State<TunerPage> {
       app.tone.stop();
       _playingString = null;
       _playingA = false;
+      app.autoRelease();
+    } else if (!old.active && widget.active && app.tunerMode != TunerMode.pedal) {
+      app.autoListen();
     }
   }
 
@@ -187,9 +194,7 @@ class _TunerPageState extends State<TunerPage> {
                 ? 'Afinado'
                 : (cents < 0 ? 'Grave: suba a afinação' : 'Agudo: desça a afinação');
 
-        return Column(children: [
-          Expanded(
-            child: ListView(
+        return ListView(
           padding: Ds.screen,
           children: [
             _modeRow(),
@@ -242,11 +247,10 @@ class _TunerPageState extends State<TunerPage> {
             const DsGap(Ds.s12),
             // ---- Cordas ----
             if (stringsMode) _stringsRow(inst, hitString),
+            const DsGap(Ds.gap),
+            _bottomBar(),
           ],
-            ),
-          ),
-          _bottomBar(),
-        ]);
+        );
       },
     );
   }
@@ -261,7 +265,7 @@ class _TunerPageState extends State<TunerPage> {
   /// Ação principal sempre à vista, acima da barra de abas.
   Widget _bottomBar() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(Ds.screenPad, Ds.s8, Ds.screenPad, Ds.s12),
+      padding: EdgeInsets.zero,
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         if (app.micError != null)
           Padding(
@@ -307,6 +311,14 @@ class _TunerPageState extends State<TunerPage> {
       title: 'Ajustes do afinador',
       listenable: app,
       children: (c) => [
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Microfone sozinho', style: TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: const Text('Liga ao abrir o Afinador (depois de liberado uma vez).', style: TextStyle(fontSize: Ds.fontLabel)),
+          value: app.autoMicEnabled,
+          onChanged: app.setAutoMic,
+        ),
+        const DsGap.section(),
         MicSettingsContent(app: app),
         const DsGap.section(),
         _tuningCard(app.tunerMode == TunerMode.strings),
@@ -356,7 +368,14 @@ class _TunerPageState extends State<TunerPage> {
               ButtonSegment(value: TunerMode.pedal, label: seg('Pedal')),
             ],
             selected: {app.tunerMode},
-            onSelectionChanged: (s) => app.setTuning(tunerMode: s.first),
+            onSelectionChanged: (s) {
+              app.setTuning(tunerMode: s.first);
+              if (s.first == TunerMode.pedal) {
+                app.autoRelease();
+              } else {
+                app.autoListen();
+              }
+            },
             showSelectedIcon: false,
           ),
         ),

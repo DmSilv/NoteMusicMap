@@ -84,7 +84,8 @@ ThemeData buildTheme({required bool dark}) {
       indicatorColor: AppColors.accent.withValues(alpha: 0.2),
       indicatorShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       labelTextStyle: WidgetStateProperty.all(
-          const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+          const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600)),
+      labelPadding: const EdgeInsets.only(top: 2),
     ),
     chipTheme: ChipThemeData(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),

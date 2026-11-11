@@ -13,8 +13,8 @@
 | Token | Valor | Uso |
 |---|---|---|
 | `Ds.s4 / s8 / s12 / s16 / s20 / s24 / s32` | 4 a 32 | escala de espaçamento |
-| `Ds.screenPad` | 20 | margem lateral das telas (`Ds.screen` = margem completa de lista) |
-| `Ds.cardPad` | 20 | espaço dentro do cartão (`AppCard`) |
+| `Ds.screenPad` | 16 | margem lateral das telas (`Ds.screen` = margem completa de lista) |
+| `Ds.cardPad` | 18 | espaço dentro do cartão (`AppCard`) |
 | `Ds.gap` | 16 | entre cartões da mesma tela |
 | `Ds.sectionGap` | 24 | entre seções |
 | `Ds.tap` | 48 | alvo de toque mínimo (o tema já impõe 48 px de altura em botões cheios e com borda) |
@@ -28,7 +28,8 @@
 - `DsPrimaryButton`: ação principal, largura total.
 - `DsSettingRow`: rótulo + controle dentro de um modal.
 - `DsGap`: espaço vertical padrão (`DsGap(Ds.s12)`, `DsGap.section()`).
-- `AppCard`: cartão (20 px por dentro).
+- `AppCard`: cartão (18 px por dentro).
+- `DsIconBadge`: ícone num quadradinho arredondado de fundo suave (usado no Meu espaço).
 - `SuggestionTiles`: cartões de sugestão do sino.
 
 ## Como aplicar numa tela nova (checklist)

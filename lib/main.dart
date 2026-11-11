@@ -370,7 +370,7 @@ class _HomeShellState extends State<HomeShell> {
 
   static const _tabNames = ['tuner', 'metronome', 'grid', 'scales', 'study'];
 
-  static const _icons = [Icons.tune, Icons.timer_outlined, Icons.grid_view_rounded, Icons.queue_music, Icons.insights];
+  static const _icons = [Icons.tune, Icons.timer_outlined, Icons.grid_view_rounded, Icons.queue_music, Icons.calendar_month_rounded];
 
   /// Em duas telas: qual lado recebe o próximo atalho (o último que a pessoa tocou).
   bool _focusRight = true;
@@ -543,7 +543,10 @@ class _HomeShellState extends State<HomeShell> {
                   label: (app.unseenNotices + suggestionCount(app)) > 0 ? Text('${app.unseenNotices + suggestionCount(app)}') : null,
                   isLabelVisible: (app.unseenNotices + suggestionCount(app)) > 0,
                   backgroundColor: AppColors.sharp,
-                  child: const Icon(Icons.notifications_outlined),
+                  child: _BarCircle(
+                    fill: AppColors.surface2,
+                    child: Icon(Icons.notifications_none_rounded, size: 22, color: AppColors.text),
+                  ),
                 ),
                 onPressed: () => showNotificationsSheet(context, app),
               ),
@@ -557,7 +560,7 @@ class _HomeShellState extends State<HomeShell> {
                   smallSize: 8,
                   isLabelVisible: app.profile.recoveryShownAt == null,
                   backgroundColor: AppColors.sharp,
-                  child: Icon(app.teacherMode ? Icons.school_outlined : Icons.account_circle_outlined),
+                  child: _ProfileAvatar(app: app),
                 ),
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(builder: (_) => ProfilePage(app: app)),
@@ -572,7 +575,7 @@ class _HomeShellState extends State<HomeShell> {
           child: Column(
             children: [
               // Microfone e Pomodoro ativos: faixa própria, longe do título.
-              StatusStrip(app: app, onPomodoro: () => _go(4)),
+              StatusStrip(app: app, hideMic: !split && (_index == 0 || _index == 2 || _index == 3), onPomodoro: () => _go(4)),
               // Saudação com o apelido (ou convite para preencher), só nas telas principais.
               // Versão nova disponível (faixa fixa, com botão).
               UpdateBar(app: app),
@@ -606,10 +609,50 @@ class _HomeShellState extends State<HomeShell> {
               label: 'Grade',
             ),
             NavigationDestination(icon: Icon(Icons.queue_music), label: 'Escalas'),
-            NavigationDestination(icon: Icon(Icons.insights), label: 'Meu espaço'),
+            NavigationDestination(icon: Icon(Icons.calendar_month_rounded), label: 'Meu espaço'),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Círculo de 36 px usado nos ícones da barra de cima.
+class _BarCircle extends StatelessWidget {
+  final Widget child;
+  final Color fill;
+  final Color? border;
+  const _BarCircle({required this.child, required this.fill, this.border});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: fill,
+          border: border == null ? null : Border.all(color: border!, width: 1.5),
+        ),
+        child: child,
+      );
+}
+
+/// Perfil na barra de cima: a inicial do nome (ou um ícone) dentro de um círculo na cor de destaque.
+class _ProfileAvatar extends StatelessWidget {
+  final AppState app;
+  const _ProfileAvatar({required this.app});
+
+  @override
+  Widget build(BuildContext context) {
+    final name = (app.profile.name ?? '').trim();
+    return _BarCircle(
+      fill: AppColors.accent.withValues(alpha: 0.18),
+      border: AppColors.accent.withValues(alpha: 0.7),
+      child: name.isEmpty
+          ? Icon(app.teacherMode ? Icons.school_rounded : Icons.person_rounded, size: 20, color: AppColors.accent)
+          : Text(name.characters.first.toUpperCase(),
+              style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800, fontSize: 16)),
     );
   }
 }

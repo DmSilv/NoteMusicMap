@@ -24,10 +24,10 @@ class Ds {
   static const double s32 = 32;
 
   /// Margem lateral das telas.
-  static const double screenPad = 20;
+  static const double screenPad = 16;
 
   /// Espaço dentro de um cartão.
-  static const double cardPad = 20;
+  static const double cardPad = 18;
 
   /// Espaço entre cartões/blocos da mesma tela.
   static const double gap = 16;
@@ -57,6 +57,25 @@ class Ds {
   static TextStyle title() => const TextStyle(fontSize: fontTitle, fontWeight: FontWeight.w800);
   static TextStyle section() => TextStyle(fontSize: fontSupport, fontWeight: FontWeight.w700, color: AppColors.textDim);
   static TextStyle support() => TextStyle(fontSize: fontSupport, color: AppColors.textDim, height: 1.35);
+}
+
+/// Ícone dentro de um quadrado arredondado com fundo suave (mais bonito que o ícone solto).
+class DsIconBadge extends StatelessWidget {
+  final IconData icon;
+  final double size;
+  final Color? color;
+  const DsIconBadge(this.icon, {super.key, this.size = 40, this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? AppColors.accent;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: c.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(size * 0.32)),
+      child: Icon(icon, color: c, size: size * 0.55),
+    );
+  }
 }
 
 /// Espaço vertical padrão entre blocos.

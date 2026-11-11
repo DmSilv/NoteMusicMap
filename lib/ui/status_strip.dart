@@ -14,14 +14,18 @@ import 'toast.dart';
 class StatusStrip extends StatelessWidget {
   final AppState app;
   final VoidCallback onPomodoro;
-  const StatusStrip({super.key, required this.app, required this.onPomodoro});
+
+  /// Esconde o aviso do microfone nas telas que já mostram o próprio (Afinador, Grade, Escalas).
+  final bool hideMic;
+  const StatusStrip({super.key, required this.app, required this.onPomodoro, this.hideMic = false});
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: Listenable.merge([app.micOn, app.pomoLive]),
       builder: (context, _) {
-        final active = app.micOn.value || app.pomo.phase != PomoPhase.idle || app.manualClockActive;
+        final micShown = app.micOn.value && !hideMic;
+        final active = micShown || app.pomo.phase != PomoPhase.idle || app.manualClockActive;
         kToastExtraTop = active ? 40 : 0;
         return AnimatedSize(
           duration: const Duration(milliseconds: 220),
@@ -35,7 +39,7 @@ class StatusStrip extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     child: Row(
                       children: [
-                        MicPill(app: app),
+                        if (micShown) MicPill(app: app),
                         PomodoroPill(app: app, onTap: onPomodoro),
                         ClockPill(app: app, onTap: onPomodoro),
                       ],

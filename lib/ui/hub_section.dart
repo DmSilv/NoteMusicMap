@@ -84,15 +84,15 @@ class HubSection extends StatelessWidget {
   Widget _tileFor(BuildContext context, HubDest d, DateTime now) {
     switch (d) {
       case HubDest.validate:
-        return _tile(context, validateTile(app.awaitingTotal), Icons.fact_check_outlined, () => _openValidation(context));
+        return _tile(context, validateTile(app.awaitingTotal), Icons.fact_check_rounded, () => _openValidation(context));
       case HubDest.students:
-        return _tile(context, studentsTile(app.students.length), Icons.groups_outlined, () => _push(context, TeacherPage(app: app)));
+        return _tile(context, studentsTile(app.students.length), Icons.groups_rounded, () => _push(context, TeacherPage(app: app)));
       case HubDest.myTasks:
         final plan = buildWeekPlan(app.myLessons, app.lessonTasksDone, now);
-        return _tile(context, tasksTile(open: plan.open, total: plan.total), Icons.checklist_rtl, () => openMyLessons(context, app));
+        return _tile(context, tasksTile(open: plan.open, total: plan.total), Icons.checklist_rounded, () => openMyLessons(context, app));
       case HubDest.agendaStudent:
         final next = nextOccurrence(app.myAgenda, now.millisecondsSinceEpoch);
-        return _tile(context, agendaTile(nextText: next == null ? null : fmtSlotWhen(next.start, now)), Icons.event_outlined,
+        return _tile(context, agendaTile(nextText: next == null ? null : fmtSlotWhen(next.start, now)), Icons.event_rounded,
             () => _push(context, MyAgendaPage(app: app)));
       default:
         return const SizedBox.shrink();
@@ -284,17 +284,22 @@ class HubSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: Ds.s8),
             child: Row(children: [
-              Icon(Icons.event_outlined, size: 18, color: AppColors.accent),
+              const DsIconBadge(Icons.event_rounded, size: 30),
               const SizedBox(width: Ds.s12),
               Expanded(
-                child: Text(_shortWhen(o.start, now), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody)),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(_shortWhen(o.start, now), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody)),
+                  Text(_whoOf(o), maxLines: 1, overflow: TextOverflow.ellipsis, style: Ds.support()),
+                ]),
               ),
-              Flexible(child: Text(_whoOf(o), maxLines: 1, overflow: TextOverflow.ellipsis, style: Ds.support())),
             ]),
           ),
         const SizedBox(height: Ds.s4),
       ],
-      if (actions.isNotEmpty) Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: actions),
+      if (actions.isNotEmpty)
+        Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          for (var i = 0; i < actions.length; i++) ...[if (i > 0) const SizedBox(height: Ds.s8), actions[i]],
+        ]),
     ]);
   }
 
@@ -322,9 +327,9 @@ class HubSection extends StatelessWidget {
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            Icon(icon, size: 20, color: AppColors.accent),
-            const SizedBox(width: 6),
-            Expanded(child: Text(t.title, style: TextStyle(fontSize: 12.5, color: AppColors.textDim, fontWeight: FontWeight.w600))),
+            DsIconBadge(icon, size: 34),
+            const SizedBox(width: 10),
+            Expanded(child: Text(t.title, style: TextStyle(fontSize: Ds.fontLabel, color: AppColors.textDim, fontWeight: FontWeight.w700))),
           ]),
           const SizedBox(height: 6),
           Text(t.headline,

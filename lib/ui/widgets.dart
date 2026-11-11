@@ -4,6 +4,7 @@ import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import 'design_system.dart';
 import 'needle.dart';
 import 'theme.dart';
 
@@ -21,7 +22,7 @@ class FramelessScope extends InheritedWidget {
 class AppCard extends StatelessWidget {
   final Widget child;
   final EdgeInsets padding;
-  const AppCard({super.key, required this.child, this.padding = const EdgeInsets.all(20)});
+  const AppCard({super.key, required this.child, this.padding = const EdgeInsets.all(Ds.cardPad)});
 
   @override
   Widget build(BuildContext context) => FramelessScope.of(context)
