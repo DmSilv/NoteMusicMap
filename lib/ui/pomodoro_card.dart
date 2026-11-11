@@ -131,7 +131,7 @@ class PomodoroCard extends StatelessWidget {
           Row(
             children: [
               IconButton.outlined(
-                tooltip: 'Zerar',
+                tooltip: 'Reiniciar',
                 iconSize: 26,
                 onPressed: p.phase == PomoPhase.idle ? null : app.pomoReset,
                 icon: const Icon(Icons.restart_alt),

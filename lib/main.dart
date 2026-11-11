@@ -17,6 +17,7 @@ import 'ui/status_strip.dart';
 import 'ui/teacher_page.dart' show handleIncomingStudentCode;
 import 'ui/grid_page.dart';
 import 'platform/web_install.dart' show webOnInstallEvents;
+import 'ui/design_system.dart';
 import 'ui/suggestions.dart';
 import 'ui/notifications_sheet.dart';
 import 'ui/profile_page.dart' show ProfilePage, handleIncomingTeacherCode;
@@ -525,7 +526,9 @@ class _HomeShellState extends State<HomeShell> {
       },
       child: Scaffold(
         appBar: AppBar(
-          titleSpacing: 14,
+          // Bordas alinhadas com a margem das telas (16 px) dos dois lados.
+          titleSpacing: Ds.screenPad,
+          actionsPadding: const EdgeInsets.only(right: 10),
           title: Row(
             children: [
               const AppLogo(size: 30),

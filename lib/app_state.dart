@@ -3801,7 +3801,7 @@ class AppState extends ChangeNotifier {
     metroBeat.value = MetroBeat(last.beat, last.bar, last.accent, hidden: last.hidden);
     // Várias de uma vez (o app ficou parado um instante): vibra uma vez só, no tempo mais recente.
     if (hapticEnabled && last.audible && !last.hidden) {
-      buzz(ms: last.accent == Accent.strong ? 50 : 30);
+      buzz(ms: last.accent == Accent.strong ? 70 : 45);
     }
   }
 

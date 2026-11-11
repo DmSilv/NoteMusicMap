@@ -84,6 +84,14 @@ class _MetronomePageState extends State<MetronomePage>
 
   @override
   Widget build(BuildContext context) {
+    return Stack(children: [
+      Positioned.fill(child: _content()),
+      // O clarão da batida: por cima de tudo, sem atrapalhar os toques.
+      Positioned.fill(child: IgnorePointer(child: _BeatFlash(app: app))),
+    ]);
+  }
+
+  Widget _content() {
     return ListenableBuilder(
       listenable: widget.active ? app : kNeverNotifies,
       builder: (context, _) {
@@ -233,6 +241,7 @@ class _MetronomePageState extends State<MetronomePage>
 
   /// Modal com tudo o que é configuração do metrônomo.
   void _openSettings() {
+    app.checkVibration(); // mostra se este aparelho vibra de verdade
     showDsSheet(
       context,
       title: 'Ajustes do metrônomo',
@@ -301,17 +310,33 @@ class _MetronomePageState extends State<MetronomePage>
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     dense: true,
-                    title: const Text('Piscar na batida'),
+                    title: const Text('Piscar a tela na batida'),
+                    subtitle: const Text('Um clarão a cada tempo e a bolinha acende. Não usa a lanterna.',
+                        style: TextStyle(fontSize: Ds.fontLabel)),
                     value: app.flashEnabled,
                     onChanged: (v) => app.setTuning(flashEnabled: v),
                   ),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     dense: true,
-                    title: const Text('Vibrar na batida (celular)'),
-                    value: app.hapticEnabled,
-                    onChanged: (v) => app.setTuning(hapticEnabled: v),
+                    title: const Text('Vibrar na batida'),
+                    subtitle: Text(
+                        app.vibrationAvailable == false
+                            ? app.vibrationWhy()
+                            : 'Uma pulsação a cada tempo. Funciona no celular Android.',
+                        style: const TextStyle(fontSize: Ds.fontLabel)),
+                    value: app.hapticEnabled && app.vibrationAvailable != false,
+                    onChanged: app.vibrationAvailable == false ? null : (v) => app.setTuning(hapticEnabled: v),
                   ),
+                  if (app.vibrationAvailable != false)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: app.testVibration,
+                        icon: const Icon(Icons.vibration, size: 18),
+                        label: const Text('Testar vibração'),
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -601,4 +626,44 @@ class _BeatDot extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Clarão rápido na tela a cada batida (forte = mais claro). Só com "Piscar a tela" ligado.
+class _BeatFlash extends StatefulWidget {
+  final AppState app;
+  const _BeatFlash({required this.app});
+
+  @override
+  State<_BeatFlash> createState() => _BeatFlashState();
+}
+
+class _BeatFlashState extends State<_BeatFlash> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(vsync: this, duration: const Duration(milliseconds: 180));
+  double _peak = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.app.metroBeat.addListener(_onBeat);
+  }
+
+  void _onBeat() {
+    final b = widget.app.metroBeat.value;
+    if (!widget.app.flashEnabled || !widget.app.metroRunning || b.hidden || b.beat < 0 || b.accent == Accent.mute) return;
+    _peak = b.accent == Accent.strong ? 0.30 : 0.16;
+    _c.forward(from: 0);
+  }
+
+  @override
+  void dispose() {
+    widget.app.metroBeat.removeListener(_onBeat);
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) => ColoredBox(color: Colors.white.withValues(alpha: _peak * (1 - _c.value))),
+      );
 }

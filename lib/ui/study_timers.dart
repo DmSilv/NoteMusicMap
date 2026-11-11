@@ -221,12 +221,12 @@ class _CustomCard extends StatelessWidget {
   }
 }
 
-/// Iniciar/Pausar + Zerar.
+/// Iniciar/Pausar + Reiniciar.
 Widget _clockButtons(AppState app, StudyClock c, {required String startLabel, bool done = false}) {
   return Row(
     children: [
       Expanded(
-        flex: 2,
+        flex: 3,
         child: FilledButton.icon(
           style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
           onPressed: done
@@ -239,11 +239,12 @@ Widget _clockButtons(AppState app, StudyClock c, {required String startLabel, bo
       ),
       const SizedBox(width: 10),
       Expanded(
+        flex: 2,
         child: OutlinedButton.icon(
           style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
           onPressed: () => app.clockReset(c),
           icon: const Icon(Icons.restart_alt),
-          label: const Text('Zerar'),
+          label: const FittedBox(fit: BoxFit.scaleDown, child: Text('Reiniciar')),
         ),
       ),
     ],

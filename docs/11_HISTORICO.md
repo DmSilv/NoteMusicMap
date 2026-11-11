@@ -72,6 +72,9 @@ A barra tem 5 itens: Afinador, Metrônomo, Grade, Escalas e Meu espaço. A Grade
 ## Minha conta em lista (novembro/2026)
 A tela "Minha conta" deixou as abas Perfil e Professor e virou uma lista curta: nome e código no topo, grupos Vínculos (vínculo online, meus professores, minhas aulas), Professor (modo professor e meus alunos) e Conta (chave de recuperação, ajustes, compartilhar). Cada linha abre a sua tela. O código e o QR agora são um só, em "Meu código e QR", com seletor "Para meu professor / Para meus alunos" (o segundo só no modo professor). Nenhuma função foi removida e a API não mudou.
 
+## Metrônomo: piscar e vibrar de verdade (novembro/2026)
+"Piscar a tela na batida" agora dá um clarão na tela do metrônomo (forte = mais claro) além de acender a bolinha; **não usa a lanterna** (sites não controlam a lanterna de forma confiável). "Vibrar na batida" usa pulsos de 70 ms (forte) e 45 ms (demais), mostra por que não vibra quando o aparelho não suporta (iPhone/iPad, computador) e ganhou "Testar vibração". "Zerar" dos cronômetros virou "Reiniciar". Barra de cima alinhada à margem de 16 px.
+
 ## Ajustes finos de tela, microfone sozinho e ícones (novembro/2026)
 Margem lateral de 16 px e cartões de 18 px (cabe em 360 px sem quebrar o menu); botões do Afinador logo abaixo das cordas; **microfone liga sozinho no Afinador** (só depois de liberado uma vez, desliga ao sair da aba, preferência em Ajustes); barra de cima com sino e perfil em círculos (inicial do nome) e aba Meu espaço com ícone de calendário; ícones do Meu espaço em quadradinhos coloridos; o aviso "Ouvindo" não se repete nas telas que já têm o botão do microfone.
 
