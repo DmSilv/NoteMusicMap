@@ -504,8 +504,7 @@ class _TunerPageState extends State<TunerPage> {
           if (stringsMode) ...[
             const SizedBox(height: 8),
             Text(
-              'As cordas soltas usam a afinação própria do instrumento: quintas puras nos de arco e '
-              'afinação igual nos de trastes. O "sistema de afinação" só vale no modo Cromático.',
+              'Cordas soltas: quintas puras nos de arco, afinação igual nos de trastes. O sistema só vale no Cromático.',
               style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
             ),
           ],

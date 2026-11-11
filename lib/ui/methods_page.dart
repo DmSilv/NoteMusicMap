@@ -43,9 +43,7 @@ class MethodsPage extends StatelessWidget {
               children: [
                 AppCard(
                   child: Text(
-                    'Guarde aqui os métodos e livros que você usa (Suzuki, Ševčík, Mazas…) e as lições de cada um. '
-                    'Ao passar uma tarefa, você escolhe com um toque. Se digitar um método ou lição novo numa '
-                    'tarefa, ele entra aqui sozinho.',
+                    'Seus métodos e lições (Suzuki, Ševčík, Mazas…). Ao passar uma tarefa, escolha com um toque.',
                     style: TextStyle(color: AppColors.textDim, fontSize: 13, height: 1.3),
                   ),
                 ),

@@ -36,8 +36,7 @@ class EvolutionCard extends StatelessWidget {
             ]),
             const SizedBox(height: 8),
             Text(
-              'Faça um exercício guiado em Grade › Escala. A cada escala o app guarda a taxa de '
-              'acerto e mostra aqui como você está melhorando.',
+              'Faça uma escala guiada em Escalas: a taxa de acerto aparece aqui.',
               style: TextStyle(color: AppColors.textDim),
             ),
           ],
@@ -271,8 +270,7 @@ class CoachCard extends StatelessWidget {
           ]),
           const SizedBox(height: 4),
           Text(
-            'Analisa as suas últimas escalas e aponta o que ajustar. As dicas abaixo são calculadas no '
-            'seu aparelho; a análise por IA é opcional.',
+            'Aponta o que ajustar nas suas últimas escalas. Dicas calculadas no aparelho; a IA é opcional.',
             style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
           ),
           const SizedBox(height: 10),
@@ -328,8 +326,7 @@ class _AiSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Análise por IA: pede à IA orientações em linguagem natural sobre os seus últimos exercícios. '
-              'Só números são enviados, nunca áudio. Opcional e precisa de internet.',
+              'Análise por IA: orientações sobre os últimos exercícios. Só números vão, nunca áudio. Precisa de internet.',
               style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
             ),
             const SizedBox(height: 8),

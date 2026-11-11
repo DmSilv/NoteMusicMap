@@ -473,8 +473,7 @@ class SettingsPage extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Se a página não atualizar ou algo estiver estranho, apague tudo e comece do zero. '
-          'Remove ajustes, histórico de estudo, análises de IA e o cache do site neste aparelho.',
+          'Se algo estiver estranho, apague tudo e recomece. Remove ajustes, histórico, análises e cache deste aparelho.',
           style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
         ),
         const SizedBox(height: 10),
@@ -531,8 +530,7 @@ class SettingsPage extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.w700)),
         ),
         const SizedBox(height: 4),
-        Text('Pede o microfone e testa a vibração de uma vez, para você não ser interrompido depois. '
-            'A câmera é pedida só quando você lê um QR (use o botão dela abaixo para liberar antes).',
+        Text('Pede microfone e vibração de uma vez. A câmera só é pedida ao ler um QR (ou pelo botão abaixo).',
             style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
         const Divider(height: 24),
         ListTile(
@@ -549,8 +547,7 @@ class SettingsPage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
-              'Para liberar depois de negar: no celular, abra Configurações › Apps › $kAppName › Permissões › Microfone. '
-              'No navegador, use o cadeado ao lado do endereço.',
+              'Depois de negar: libere em Configurações › Apps › $kAppName › Permissões, ou no cadeado do navegador.',
               style: TextStyle(color: AppColors.sharp, fontSize: 12.5),
             ),
           ),
@@ -568,8 +565,7 @@ class SettingsPage extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Text(
-              'Para liberar depois de negar: no celular, abra Configurações › Apps › $kAppName › Permissões › Câmera. '
-              'No navegador, use o cadeado ao lado do endereço.',
+              'Depois de negar: libere em Configurações › Apps › $kAppName › Permissões, ou no cadeado do navegador.',
               style: TextStyle(color: AppColors.sharp, fontSize: 12.5),
             ),
           ),

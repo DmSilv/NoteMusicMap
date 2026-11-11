@@ -47,7 +47,7 @@ Escolha do dono/recomendação: "Só os graves" por padrão, com "Todos" e "Nunc
 ## D14. Reabertura de bug só por versão publicada depois da correção
 Evita falso alarme de aparelhos com versão antiga em cache; usa a "primeira vez que a versão foi vista" (`er:b`).
 
-## D15. CSP em modo "somente relatório" primeiro
+## D15. CSP: primeiro "somente relatório", depois bloqueio (feito em 11/2026, depois de testar a política aplicada)
 O app carrega CanvasKit/WASM e workers; uma política errada o derrubaria. Testada localmente aplicando a política sem violações; passa a bloquear depois de conferir produção.
 
 ## D16. Painel aceita `FEEDBACK_ADMIN_KEY` como alternativa à `ADMIN_KEY`

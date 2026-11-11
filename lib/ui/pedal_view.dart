@@ -57,8 +57,7 @@ class _PedalViewState extends State<PedalView> {
               const Text('Pedal: notas que soam juntas', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
               const SizedBox(height: 4),
               Text(
-                'Toque nas teclas para ligar ou desligar notas (até $kMaxPedalVoices). Elas ficam soando: use para tocar uma '
-                'melodia por cima ou para treinar o ouvido com intervalos e acordes.',
+                'Ligue até $kMaxPedalVoices notas que ficam soando: toque por cima ou treine o ouvido.',
                 style: TextStyle(color: AppColors.textDim, fontSize: 12.5, height: 1.3),
               ),
               const SizedBox(height: 12),

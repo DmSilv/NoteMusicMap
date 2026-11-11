@@ -105,3 +105,13 @@ test('indicadores só para o admin e sem nada pessoal na resposta', async () => 
   assert.equal(body.includes(ALU), false);
   assert.equal(body.includes('Fulana'), false);
 });
+
+test('Sistema avisa quando o painel ainda usa a chave do feedback em vez da ADMIN_KEY', async () => {
+  const mkWith = (env) => admin.makeHandler({ config: () => config(env), allowMemory: true, fetch: async () => ({ status: 200 }), now: () => NOW });
+  const call = async (h, key) => { const res = fakeRes(); await h({ method: 'POST', headers: { 'x-forwarded-for': '5.5.5.' + ++ipN, authorization: 'Bearer ' + key }, body: { action: 'system' }, socket: {} }, res); return res.json(); };
+  hashes.clear(); memory.clear(); resetMem();
+  const antigo = await call(mkWith({ FEEDBACK_ADMIN_KEY: 'k-feedback' }), 'k-feedback');
+  assert.match(antigo.checks.find((c) => c.id === 'admin').warn, /FEEDBACK_ADMIN_KEY/);
+  const proprio = await call(mkWith({ ADMIN_KEY: 'k-admin', FEEDBACK_ADMIN_KEY: 'k-feedback' }), 'k-admin');
+  assert.equal(proprio.checks.find((c) => c.id === 'admin').warn, '');
+});

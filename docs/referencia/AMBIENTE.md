@@ -5,7 +5,7 @@
 
 | Variável | Lida em |
 |---|---|
-| `ADMIN_KEY` | config.js |
+| `ADMIN_KEY` | admin.js, config.js |
 | `AI_COOLDOWN_S` | config.js |
 | `AI_MAX_WAIT_MS` | config.js |
 | `AI_PROVIDERS` | config.js |
@@ -16,7 +16,7 @@
 | `APP_BASE_URL` | config.js |
 | `ERRORS_DAILY_CAP` | config.js |
 | `ERRORS_DISABLED` | config.js |
-| `FEEDBACK_ADMIN_KEY` | config.js |
+| `FEEDBACK_ADMIN_KEY` | admin.js, config.js |
 | `GEMINI_MODEL` | config.js, providers.js |
 | `KV_REST_API_TOKEN` | config.js |
 | `KV_REST_API_URL` | config.js |

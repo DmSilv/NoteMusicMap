@@ -72,6 +72,9 @@ A barra tem 5 itens: Afinador, Metrônomo, Grade, Escalas e Meu espaço. A Grade
 ## Minha conta em lista (novembro/2026)
 A tela "Minha conta" deixou as abas Perfil e Professor e virou uma lista curta: nome e código no topo, grupos Vínculos (vínculo online, meus professores, minhas aulas), Professor (modo professor e meus alunos) e Conta (chave de recuperação, ajustes, compartilhar). Cada linha abre a sua tela. O código e o QR agora são um só, em "Meu código e QR", com seletor "Para meu professor / Para meus alunos" (o segundo só no modo professor). Nenhuma função foi removida e a API não mudou.
 
+## Backlog fechado: CSP em bloqueio, dieta de texto e aviso da chave (novembro/2026)
+A política de segurança de conteúdo (CSP) passou de "somente relatório" para **bloqueio**, depois de aplicá-la localmente e conferir app, abas, conta, som e painel sem violações. 19 textos longos de tela foram encurtados (de 37 para 19 acima de 110 caracteres) e `scripts/check_text.js` impede que voltem a crescer. O painel (Sistema) avisa quando ainda usa a chave do feedback no lugar da `ADMIN_KEY`; o *fallback* continua no código até você confirmar que a `ADMIN_KEY` própria está na Vercel.
+
 ## Aviso de bug grave, precisão dos bugs e exportação (novembro/2026)
 O painel avisa por notificação do navegador quando surge um bug grave novo ou reaberto (`push` em `/api/admin`, `api/_lib/admin_push.js`, `sw.js`; até 5 navegadores, 6 avisos por hora, precisa das chaves VAPID). Os bugs agrupam melhor (números e endereços variáveis saem da impressão digital) e mostram se ainda acontecem na versão publicada agora (filtro "só na versão atual"). Bugs e Pessoas exportam CSV no navegador; Pessoas busca também pelo apelido (100 mais recentes).
 

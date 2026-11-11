@@ -407,8 +407,7 @@ class _MetronomePageState extends State<MetronomePage>
             secondary: Icon(Icons.psychology_alt_outlined, color: on ? AppColors.accent : AppColors.textDim),
             title: const Text('Modo desafio', style: TextStyle(fontWeight: FontWeight.w800)),
             subtitle: Text(
-              'De surpresa, o metrônomo acelera, desacelera ou fica mudo por alguns compassos, e sempre volta '
-              'aos ${m.bpm.round()} BPM. Treina manter o tempo por dentro.',
+              'De surpresa, acelera, desacelera ou silencia por alguns compassos e volta aos ${m.bpm.round()} BPM.',
               style: const TextStyle(fontSize: 12.5),
             ),
             value: on,

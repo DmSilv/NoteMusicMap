@@ -34,7 +34,7 @@
 - Higienização repetida no servidor; apelido sem caracteres invisíveis e com tamanho máximo.
 - Erros de servidor não expõem detalhes internos.
 
-**Cabeçalhos HTTP** (`vercel.json`): `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `X-Frame-Options: SAMEORIGIN`, `Permissions-Policy` (microfone/câmera só do próprio site), `Cross-Origin-Opener/Embedder-Policy`, `Strict-Transport-Security`, e **`Content-Security-Policy-Report-Only`** (só relata; testado localmente **aplicando** a política sem violações, incluindo o som WASM). Para passar a bloquear: renomear para `Content-Security-Policy` depois de ver o console de produção sem avisos.
+**Cabeçalhos HTTP** (`vercel.json`): `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `X-Frame-Options: SAMEORIGIN`, `Permissions-Policy` (microfone/câmera só do próprio site), `Cross-Origin-Opener/Embedder-Policy`, `Strict-Transport-Security`, e **`Content-Security-Policy`** (**em modo bloqueio** desde 11/2026; testada localmente aplicando a política: app, abas, conta, som WASM e painel funcionam sem violações). Se algo quebrar em produção, a volta é renomear para `Content-Security-Policy-Report-Only` em `vercel.json` (só relata) e publicar.
 
 ## Administração de perfis
 O painel permite **bloquear/liberar** e **excluir dados** (com confirmação digitando o código e registro no log). O apelido **não** é editável pelo painel (pertence ao usuário e voltaria no próximo sincronismo).
@@ -45,4 +45,4 @@ O painel permite **bloquear/liberar** e **excluir dados** (com confirmação dig
 - **Presença**: com o vínculo online ligado, o servidor guarda o código do perfil e o horário do último sinal (no máximo a cada 10 min) para o painel mostrar quem está online. Desligar o vínculo online para o sinal. O aviso está em Minha conta e na política de privacidade do app.
 - **Liberação pelo suporte**: o código de uso único (8 letras e números, 24 h) nunca é guardado em texto, só o hash; aparece uma única vez no painel; só vale para o perfil para o qual foi gerado; tentativas erradas são limitadas por origem e por perfil. Quem tem o código assume a conta: o admin só deve passá-lo depois de confirmar a identidade. Toda ação de suporte entra no registro do admin.
 - O segredo do perfil fica no armazenamento local do aparelho (inerente a um app sem login): quem tem acesso ao aparelho desbloqueado tem o perfil. A *chave de recuperação* deve ser guardada pelo usuário.
-- CSP ainda em modo relatório.
+- A CSP usa `'unsafe-inline'` para scripts e estilos (o painel e o `index.html` têm código inline); endurecer isso exigiria nonces e é uma melhoria futura.

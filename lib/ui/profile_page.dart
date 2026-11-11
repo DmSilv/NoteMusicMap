@@ -409,8 +409,7 @@ class _ProfilePageState extends State<ProfilePage> {
               ]),
               const SizedBox(height: 10),
               Text(
-                'O que o servidor guarda: seu código, o apelido (opcional), a data de cada vínculo, o horário do último sinal do app (para o suporte ver se você está online) e as tarefas e '
-                'observações das aulas que o professor envia. Nunca áudio nem seu histórico de exercícios.',
+                'O servidor guarda só: código, apelido, datas dos vínculos, último sinal e tarefas das aulas. Nunca áudio nem histórico.',
                 style: TextStyle(color: AppColors.textDim, fontSize: 11.5, height: 1.3),
               ),
             ],
@@ -570,8 +569,7 @@ class _ProfilePageState extends State<ProfilePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Guarde esta chave em lugar seguro. Com ela você leva seu perfil para outro aparelho '
-                'ou depois de reinstalar o app. Quem tiver a chave pode se passar por você: não envie a ninguém.',
+                'Guarde em lugar seguro: com ela você leva o perfil a outro aparelho. Quem a tiver pode se passar por você.',
                 style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
               ),
               if (p.recoveryShownAt == null) ...[
@@ -655,8 +653,7 @@ class _ProfilePageState extends State<ProfilePage> {
               const Text('Tenho um código de suporte', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
               Text(
-                'Perdeu a chave? O suporte pode liberar a sua conta neste aparelho. Digite o código do seu perfil e o '
-                'código de suporte (vale 24 h e só uma vez). O aparelho antigo perde o acesso.',
+                'Perdeu a chave? Digite o código do perfil e o de suporte (24 h, uso único). O aparelho antigo perde o acesso.',
                 style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
               ),
               const SizedBox(height: 8),

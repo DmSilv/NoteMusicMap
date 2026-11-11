@@ -53,7 +53,7 @@ Manual, com dois aparelhos/abas (professor e aluno), vínculo online ligado:
 8. **Telas:** celular estreito e tela larga; modo escuro; textos em português.
 
 ## Guardrails de segurança (10/11/2026)
-- **Cabeçalhos (vercel.json):** `Strict-Transport-Security` e `Content-Security-Policy-Report-Only` (só relata; não bloqueia). Testado localmente **aplicando** a política: app, abas e som (WASM/worker) funcionam sem violações. Para passar a bloquear, trocar o nome do cabeçalho para `Content-Security-Policy` depois de ver o console de produção sem avisos.
+- **Cabeçalhos (vercel.json):** `Strict-Transport-Security` e `Content-Security-Policy` (**bloqueia**). Testado localmente aplicando a política: app, abas, conta, som (WASM/worker) e painel funcionam sem violações. Roteiro de regressão: depois de cada deploy, abrir o app e o `/admin` e conferir que o console não tem "Refused to…".
 - **API:** código só aceito como texto (lista/objeto não viram código); `api/guardrails.test.js` cobre corpo ausente/gigante/malformado, `__proto__`, ids hostis, apelido com caracteres invisíveis, segredo/hash nunca na resposta, erro sem rastro interno, chave do painel só no cabeçalho.
 - **App:** "Pegar horário" trava contra toque duplo; apagar horário livre pede confirmação. Já existiam confirmações para excluir aluno, desvincular professor, apagar tudo e vincular por convite/QR.
 - **Não alterado de propósito:** o painel ainda aceita `FEEDBACK_ADMIN_KEY` como alternativa à `ADMIN_KEY` (tirar agora poderia trancar o administrador para fora); trocar quando a `ADMIN_KEY` própria estiver configurada na Vercel.

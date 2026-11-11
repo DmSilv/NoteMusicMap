@@ -44,8 +44,7 @@ class ValidationCard extends StatelessWidget {
           ]),
           const SizedBox(height: 4),
           Text(
-            '${student.name} marcou como feita. Só fica finalizada quando você confirma; se não estiver boa, '
-            'devolva e ela volta a ficar pendente.',
+            '${student.name} marcou como feita. Confirme para finalizar ou devolva para ficar pendente.',
             style: TextStyle(color: AppColors.textDim, fontSize: 12.5, height: 1.3),
           ),
           for (final t in list)
@@ -120,8 +119,7 @@ Future<void> showValidationDialog(BuildContext context, AppState app, Student s)
         content: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(
-              'Ele marcou como feita desde a última aula. Deixe marcada a que está boa (finaliza) e desmarque '
-              'a que precisa refazer (volta a pendente).',
+              'Ele marcou como feita. Deixe marcada a que está boa e desmarque a que precisa refazer.',
               style: TextStyle(color: AppColors.textDim, fontSize: 13, height: 1.3),
             ),
             const SizedBox(height: 6),

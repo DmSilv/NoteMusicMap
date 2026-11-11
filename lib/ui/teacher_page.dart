@@ -1084,8 +1084,7 @@ class StudentPage extends StatelessWidget {
           ]),
           if (s.tasks.isEmpty)
             Text(
-                'Nenhuma tarefa ainda. Toque em "Nova tarefa" para passar uma escala, uma lição de método, '
-                'uma peça do repertório ou outra atividade, com observações se quiser.',
+                'Nenhuma tarefa. Toque em "Nova tarefa" para passar escala, lição, repertório ou atividade.',
                 style: TextStyle(color: AppColors.textDim, fontSize: 13)),
           _pendingBanner(s),
           for (final t in s.tasks)

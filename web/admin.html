@@ -1099,8 +1099,8 @@
     s.checks.forEach(function (x) {
       var r = document.createElement('div'); r.className = 'row'; r.style.alignItems = 'flex-start';
       var n = document.createElement('span'); n.className = 'n'; n.style.width = '230px'; n.textContent = (x.ok ? '✓ ' : x.required ? '✗ ' : '○ ') + x.label;
-      var t = document.createElement('span'); t.style.flex = '1'; t.style.color = x.ok ? 'var(--accent)' : x.required ? 'var(--bad)' : 'var(--dim)';
-      t.textContent = x.ok ? 'configurado' : (x.required ? 'FALTA (obrigatório): ' : 'não configurado (opcional): ') + x.hint;
+      var t = document.createElement('span'); t.style.flex = '1'; t.style.color = x.ok ? (x.warn ? 'var(--warn)' : 'var(--accent)') : x.required ? 'var(--bad)' : 'var(--dim)';
+      t.textContent = x.ok ? (x.warn ? 'configurado, mas: ' + x.warn : 'configurado') : (x.required ? 'FALTA (obrigatório): ' : 'não configurado (opcional): ') + x.hint;
       r.appendChild(n); r.appendChild(t); cb.appendChild(r);
     });
     var ab = $('sAi'); ab.innerHTML = '';

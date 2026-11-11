@@ -618,7 +618,7 @@ function makeHandler(deps = {}) {
         const env = cfg.env || {};
         const providers = Object.keys(cfg.keys || {});
         const checks = [
-          { id: 'admin', label: 'Chave do painel', ok: !!cfg.adminKey, required: true, hint: 'ADMIN_KEY' },
+          { id: 'admin', label: 'Chave do painel', ok: !!cfg.adminKey, required: true, hint: 'ADMIN_KEY', warn: !env.ADMIN_KEY && env.FEEDBACK_ADMIN_KEY ? 'Usando a chave do feedback (FEEDBACK_ADMIN_KEY). Defina uma ADMIN_KEY própria na Vercel.' : '' },
           { id: 'redis', label: 'Banco de dados (Redis)', ok: !!(cfg.redisUrl && cfg.redisToken), required: true, hint: 'UPSTASH_REDIS_REST_URL e UPSTASH_REDIS_REST_TOKEN' },
           { id: 'qstash', label: 'Lembretes agendados (QStash)', ok: !!(cfg.qstash && cfg.qstash.token && cfg.qstash.currentKey && cfg.qstash.nextKey), required: false, hint: 'QSTASH_TOKEN, QSTASH_CURRENT_SIGNING_KEY e QSTASH_NEXT_SIGNING_KEY' },
           { id: 'vapid', label: 'Notificações no celular (VAPID)', ok: !!(cfg.vapid && cfg.vapid.publicKey && cfg.vapid.privateKey), required: false, hint: 'VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY' },

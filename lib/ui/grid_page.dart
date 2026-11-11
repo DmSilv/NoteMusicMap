@@ -322,8 +322,7 @@ class _GridPageState extends State<GridPage> {
               ]),
               const SizedBox(height: 6),
               Text(
-                'Como no sistema de escalas de Carl Flesch: escolha o tom, o tipo e 1, 2 ou 3 oitavas. '
-                'O app mostra a próxima nota, sobe e desce com você e dá a taxa de acerto no fim.',
+                'Escolha tom, tipo e oitavas. O app mostra a próxima nota e dá a taxa de acerto no fim.',
                 style: TextStyle(color: AppColors.textDim, fontSize: 13),
               ),
               const SizedBox(height: 12),

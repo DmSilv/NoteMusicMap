@@ -69,4 +69,4 @@ Dados no Redis não precisam de rollback: as mudanças da API são **aditivas**.
 - **A cada pacote publicado:** conferir o e-mail da Vercel e, se possível, a aba Bugs depois de algumas horas.
 - **Mensal:** olhar a aba Custos e o crescimento de perfis; revisar dependências do Flutter se necessário.
 - **Quando a `ADMIN_KEY` própria existir:** remover o *fallback* para `FEEDBACK_ADMIN_KEY` em `api/_lib/config.js`.
-- **Quando a CSP estiver sem avisos em produção:** renomear `Content-Security-Policy-Report-Only` para `Content-Security-Policy` em `vercel.json`.
+- **CSP:** já está em modo bloqueio. Se uma tela quebrar depois de um deploy e o console do navegador falar em "Content Security Policy", volte o cabeçalho para `Content-Security-Policy-Report-Only` em `vercel.json`.

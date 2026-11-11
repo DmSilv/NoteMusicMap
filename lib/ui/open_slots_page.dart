@@ -69,8 +69,7 @@ class _OpenSlotsPageState extends State<OpenSlotsPage> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
             children: [
               Text(
-                'Deixe horários livres: o aluno vinculado a você escolhe um e a aula entra na agenda dos dois, '
-                'sem precisar de aprovação. O primeiro que pegar leva. Você ainda pode mover ou cancelar depois.',
+                'O aluno vinculado escolhe um horário livre e a aula entra na agenda dos dois. O primeiro que pegar leva.',
                 style: TextStyle(color: AppColors.textDim, fontSize: 13, height: 1.35),
               ),
               const SizedBox(height: 12),
