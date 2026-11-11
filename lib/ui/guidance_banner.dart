@@ -155,7 +155,7 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOutCubic,
-          height: 96,
+          height: data.kind == GuideKind.idle ? 68 : 92,
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
@@ -172,7 +172,7 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
               key: ValueKey('${data.kind}-${data.title}'),
               children: [
                 SizedBox(
-                  width: 56,
+                  width: data.kind == GuideKind.idle ? 40 : 52,
                   child: AnimatedBuilder(
                     animation: _bounce,
                     builder: (context, child) {
@@ -181,7 +181,7 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
                           : 0.0;
                       return Transform.translate(offset: Offset(0, dy), child: child);
                     },
-                    child: Icon(icon, size: 48, color: color),
+                    child: Icon(icon, size: data.kind == GuideKind.idle ? 26 : 44, color: data.kind == GuideKind.idle ? color.withValues(alpha: 0.7) : color),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -197,9 +197,9 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
                           data.title,
                           maxLines: 1,
                           style: TextStyle(
-                            color: data.kind == GuideKind.idle ? AppColors.text : color,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
+                            color: data.kind == GuideKind.idle ? AppColors.textDim : color,
+                            fontSize: data.kind == GuideKind.idle ? 17 : 24,
+                            fontWeight: data.kind == GuideKind.idle ? FontWeight.w700 : FontWeight.w900,
                             letterSpacing: 0.4,
                           ),
                         ),
@@ -211,7 +211,7 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
                             : data.detail,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: AppColors.text, fontSize: 14.5, height: 1.2),
+                        style: TextStyle(color: data.kind == GuideKind.idle ? AppColors.textDim : AppColors.text, fontSize: data.kind == GuideKind.idle ? 13 : 14.5, height: 1.2),
                       ),
                     ],
                   ),

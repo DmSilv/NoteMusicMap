@@ -28,6 +28,10 @@ class ScaleExercisePage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Escala guiada'),
+        actions: [
+          IconButton(tooltip: 'Ajustes do exercício', icon: const Icon(Icons.tune), onPressed: () => _openSettings(context)),
+          const SizedBox(width: Ds.s4),
+        ],
         leading: IconButton(
           tooltip: 'Encerrar exercício',
           icon: const Icon(Icons.close),
@@ -46,14 +50,14 @@ class ScaleExercisePage extends StatelessWidget {
             return ListView(
               padding: const EdgeInsets.fromLTRB(14, 4, 14, 24),
               children: [
-                _header(e),
-                const SizedBox(height: 10),
                 if (!app.listening) _needMic(context) else if (!e.finished) ...[
                   _target(e),
                   const SizedBox(height: 10),
                   _live(e),
                 ],
                 if (e.finished) _result(context, e),
+                const SizedBox(height: 14),
+                _header(e),
                 const SizedBox(height: 10),
                 _steps(e),
                 const SizedBox(height: 10),
@@ -66,81 +70,72 @@ class ScaleExercisePage extends StatelessWidget {
     );
   }
 
+  /// Linha enxuta no topo: o que está sendo feito e quanto falta. O resto fica nos Ajustes.
   Widget _header(ScaleExercise e) {
-    return AppCard(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Expanded(child: Text(_title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
-            const HelpButton(title: 'Como funciona', sections: [
-              ('Execução livre', 'Toque qualquer nota da escala, em qualquer ordem: o app reconhece e valida a afinação de cada uma.'),
-              ('Guiado', 'Uma nota por vez: a próxima só aparece quando a atual estiver afinada (dentro da faixa verde) e segurada por meio segundo.'),
+    final status = e.finished
+        ? 'Concluído'
+        : (e.flow
+            ? '${e.board.length} de ${e.freeNotes.length} notas'
+            : 'Nota ${e.index + 1} de ${e.sequence.length} · ${e.ascendingNow ? 'subindo' : 'descendo'}');
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: Ds.s4),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(child: Text(_title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
+          Text(status, style: Ds.support()),
+        ]),
+        const SizedBox(height: Ds.s8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: LinearProgressIndicator(
+            minHeight: 6,
+            value: e.finished ? 1 : e.progress,
+            backgroundColor: AppColors.surface2,
+            color: AppColors.accent,
+          ),
+        ),
+      ]),
+    );
+  }
+
+  /// Ajustes do exercício (modal): afinação e jeito de tocar.
+  void _openSettings(BuildContext context) {
+    showDsSheet(
+      context,
+      title: 'Ajustes do exercício',
+      listenable: Listenable.merge([app, app.live]),
+      children: (c) {
+        final e = app.exercise;
+        return [
+          DsSettingRow(
+            label: 'Jeito de tocar',
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<bool>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: true, icon: Icon(Icons.shuffle_rounded, size: 18), label: Text('Livre')),
+                    ButtonSegment(value: false, icon: Icon(Icons.format_list_numbered_rounded, size: 18), label: Text('Guiado')),
+                  ],
+                  selected: {e?.flow ?? true},
+                  onSelectionChanged: (v) => app.setExerciseFlow(v.first),
+                ),
+              ),
+              const DsGap(Ds.s8),
+              Text((e?.flow ?? true) ? 'Toque as notas na ordem que quiser.' : 'Uma nota de cada vez, na ordem.', style: Ds.support()),
             ]),
-          ]),
-          const SizedBox(height: 2),
-          // Qual afinação está valendo (toque para trocar).
-          Builder(builder: (context) => ActionChip(
-                visualDensity: VisualDensity.compact,
-                avatar: Icon(Icons.straighten, size: 16, color: AppColors.accent),
-                label: Text('Afinação: ${tuningSummary(app)}', style: const TextStyle(fontSize: 12.5)),
-                onPressed: () => pickTuningSystem(context, app, tonicPc: app.scaleTonicMidi % 12),
-              )),
-          const SizedBox(height: 6),
-          Row(children: [
-            Text(
-              e.finished
-                  ? 'Concluído'
-                  : (e.flow
-                      ? 'Notas tocadas: ${e.board.length} de ${e.freeNotes.length}'
-                      : 'Nota ${e.index + 1} de ${e.sequence.length} · ${e.ascendingNow ? 'subindo' : 'descendo'}'),
-              style: TextStyle(color: AppColors.textDim),
-            ),
-            if (!e.finished && !e.flow) ...[
-              const SizedBox(width: 6),
-              Icon(e.ascendingNow ? Icons.north_east : Icons.south_east,
-                  size: 16, color: AppColors.textDim),
-            ],
-          ]),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              minHeight: 8,
-              value: e.finished ? 1 : e.progress,
-              backgroundColor: AppColors.surface2,
-              color: AppColors.accent,
+          ),
+          DsSettingRow(
+            label: 'Afinação',
+            child: OutlinedButton.icon(
+              onPressed: () => pickTuningSystem(c, app, tonicPc: app.scaleTonicMidi % 12),
+              icon: const Icon(Icons.straighten, size: 20),
+              label: Text(tuningSummary(app)),
             ),
           ),
-          if (!e.finished) ...[
-            const SizedBox(height: 12),
-            // Como o app acompanha: no seu ritmo (sem esperar) ou esperando cada nota.
-            SizedBox(
-              width: double.infinity,
-              child: SegmentedButton<bool>(
-                showSelectedIcon: false,
-                style: const ButtonStyle(
-                  visualDensity: VisualDensity.compact,
-                  textStyle: WidgetStatePropertyAll(TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                ),
-                segments: const [
-                  ButtonSegment(
-                      value: true,
-                      icon: Icon(Icons.play_arrow, size: 18),
-                      label: Text('Execução livre')),
-                  ButtonSegment(
-                      value: false,
-                      icon: Icon(Icons.hourglass_bottom, size: 16),
-                      label: Text('Guiado')),
-                ],
-                selected: {e.flow},
-                onSelectionChanged: (v) => app.setExerciseFlow(v.first),
-              ),
-            ),
-          ],
-        ],
-      ),
+        ];
+      },
     );
   }
 
@@ -257,7 +252,7 @@ class ScaleExercisePage extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(
         children: [
-          Text('Toque qualquer nota da escala', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+          Text('Sua vez!', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
           const SizedBox(height: 6),
           SizedBox(
             height: 92,
@@ -295,9 +290,6 @@ class ScaleExercisePage extends StatelessWidget {
                     ),
             ),
           ),
-          const SizedBox(height: 4),
-          _rule('Execução livre: toque as notas na ordem que quiser. Cada uma é reconhecida '
-              'e a afinação é validada; notas de fora da escala são ignoradas.'),
         ],
       ),
     );
@@ -308,16 +300,6 @@ class ScaleExercisePage extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
         decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(10)),
         child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-      );
-
-  /// Linha fixa que explica a regra do modo atual.
-  Widget _rule(String text) => Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info_outline, size: 16, color: AppColors.textDim),
-          const SizedBox(width: 6),
-          Expanded(child: Text(text, style: TextStyle(color: AppColors.textDim, fontSize: 12.5, height: 1.25))),
-        ],
       );
 
   Widget _live(ScaleExercise e) {
@@ -339,9 +321,7 @@ class ScaleExercisePage extends StatelessWidget {
             cue: cue,
             noteLabel: (m) => noteName(m, app.cfg, withOctave: true),
             idleTitle: e.flow ? 'TOQUE UMA NOTA' : 'TOQUE ${exp == null ? '' : noteName(exp, app.cfg, withOctave: true).toUpperCase()}',
-            idleDetail: e.flow
-                ? 'Qualquer nota da escala, na ordem que quiser.'
-                : 'A próxima nota só vem quando esta estiver afinada.',
+            idleDetail: e.flow ? 'Qualquer uma da escala!' : 'Afine para liberar a próxima.',
             tunedTitle: e.flow ? 'AFINADA!' : 'AFINADA — SEGURE',
             tunedDetail: e.flow ? 'Muito bem! Pode tocar outra nota.' : 'Segure até a barra encher.',
           ),

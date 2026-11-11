@@ -122,3 +122,6 @@ Escalas e arpejos aceitam até 4 oitavas (também nas tarefas do professor; o fo
 
 ## Escalas e arpejos mais enxutos (novembro/2026)
 A tela Escalas ficou mais limpa: o cartão da escala tem título menor e a explicação do arpejo foi para o "?"; no exercício guiado os textos explicativos dos modos foram para o "?", o pedido de microfone ficou compacto e, com 1 oitava, os quadradinhos não ganham bloco colorido.
+
+## Exercício guiado: o essencial primeiro (novembro/2026)
+No exercício guiado, o bloco de tocar (nota, agulha e orientação) vem logo no topo; o progresso virou uma linha fina embaixo dele, e o jeito de tocar (Livre ou Guiado) e a afinação foram para o modal de ajustes (botão na barra de cima). Os textos ficaram curtos ("Sua vez!", "Qualquer uma da escala!") e o aviso de espera "Toque uma nota" ficou pequeno e discreto.
