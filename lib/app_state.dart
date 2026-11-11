@@ -3039,8 +3039,8 @@ class AppState extends ChangeNotifier {
     grid.history = history;
     grid.holdSeconds = holdSeconds <= 0 ? null : holdSeconds;
     dailyGoalMinutes = 20;
-    flashEnabled = true;
-    hapticEnabled = true;
+    flashEnabled = false;
+    hapticEnabled = false;
     keepAwake = true;
     showFreq = true;
     sensitivity = MicSensitivity.normal;
@@ -3350,8 +3350,8 @@ class AppState extends ChangeNotifier {
   }
   bool get metroRunning => metroPlayer.running;
   final TapTempo _tap = TapTempo();
-  bool flashEnabled = true;
-  bool hapticEnabled = true;
+  bool flashEnabled = false;
+  bool hapticEnabled = false;
 
   /// Mantém a tela acesa enquanto ouve, toca o metrônomo ou usa o timer.
   bool keepAwake = true;
@@ -3417,8 +3417,8 @@ class AppState extends ChangeNotifier {
     tone.timbre = ToneTimbre.values[(p.getInt('timbre') ?? 0).clamp(0, ToneTimbre.values.length - 1)];
     sensitivity = MicSensitivity.values[p.getInt('sens') ?? 1];
     micGain = p.getDouble('gain') ?? 1.0;
-    flashEnabled = p.getBool('flash') ?? true;
-    hapticEnabled = p.getBool('haptic') ?? true;
+    flashEnabled = p.getBool('flash') ?? false;
+    hapticEnabled = p.getBool('haptic') ?? false;
     keepAwake = p.getBool('keepAwake') ?? true;
     showFreq = p.getBool('showFreq') ?? true;
     final bpm = p.getDouble('bpm') ?? 100;

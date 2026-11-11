@@ -137,3 +137,6 @@ Regra escrita em docs/03 (seção 10): visitante não cria cadastro; o perfil na
 
 ## Ajustes mais limpos (novembro/2026)
 A tela Ajustes virou uma lista curta de linhas (ícone, título e valor atual): Aparência e tela, Afinação, Som de referência, Nomes das notas, Microfone, Metrônomo, Grade, Estudo, Permissões e privacidade, Sobre o app, Problemas e diagnóstico, Restaurar e apagar. Cada linha abre um modal ("Concluir" para voltar), com os textos bem mais curtos (explicações longas foram para o "?" ou saíram). Nova peça no design system: `DsNavRow`.
+
+## Piscar e vibrar desligados por padrão (novembro/2026)
+"Piscar a tela na batida" e "Vibrar na batida" agora vêm desligados para quem abre o app pela primeira vez (e em Restaurar ajustes). Quem já tinha a escolha salva no aparelho continua com ela. A vibração é a mesma dos exercícios de escala e do Pomodoro, então esses também começam sem vibrar.
