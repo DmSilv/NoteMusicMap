@@ -15,6 +15,7 @@ export 'hub_view.dart';
 export 'errors.dart';
 export 'error_report.dart';
 export 'methods.dart';
+export 'library.dart';
 export 'metronome_engine.dart';
 export 'rhythm_challenge.dart';
 export 'needle_spring.dart';

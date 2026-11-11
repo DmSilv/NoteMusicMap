@@ -10,8 +10,8 @@ const { Z } = profiles;
 const STALE_MS = 60 * 86400000;
 const PAGE = 10;
 // Todas as chaves que pertencem a um perfil (ver docs/04_API_E_DADOS.md).
-const KEYS = (c) => ['u', 'ut', 'us', 'sl', 'ss', 'ul', 'dn', 'vd', 'av', 'tk', 'ps'].map((p) => `${p}:${c}`);
-const DATA_KEYS = (c) => ['ut', 'us', 'sl', 'ss', 'av', 'ps', 'ul', 'dn', 'vd', 'tk'].map((p) => `${p}:${c}`);
+const KEYS = (c) => ['u', 'ut', 'us', 'sl', 'ss', 'ul', 'dn', 'vd', 'av', 'tk', 'ps', 'lb'].map((p) => `${p}:${c}`);
+const DATA_KEYS = (c) => ['ut', 'us', 'sl', 'ss', 'av', 'ps', 'ul', 'dn', 'vd', 'tk', 'lb'].map((p) => `${p}:${c}`);
 
 /** Este perfil pode ser apagado? (sem papel, sem dados, sem bloqueio) */
 async function isEmpty(cmd, code) {

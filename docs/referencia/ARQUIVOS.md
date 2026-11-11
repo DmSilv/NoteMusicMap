@@ -46,6 +46,7 @@
 | `lib/ui/hello_bar.dart` | Pergunta "Como posso te chamar?" e grava o apelido no perfil. Antes de vincular: o nome é obrigatório (sem ele o professor não sabe quem é o aluno). Devolve true se já havia nome ou se a pessoa acabou de informar. |
 | `lib/ui/hub_section.dart` | "Meu espaço": o topo da aba. Um destaque grande (o que importa agora), dois blocos do que pede ação e uma faixa de ferramentas. Muda conforme o papel (aluno, professor ou os dois). |
 | `lib/ui/install_banner.dart` | Faixa "Instale o Notemusic no celular" (só no navegador, enquanto não instalou). |
+| `lib/ui/library_page.dart` | Abre o acervo. Sem [teacher]: o próprio professor (edita). Com [teacher]: o aluno (só abre e denuncia). [focusTitle] e [folder] vêm de uma tarefa "Material do professor": filtram e destacam o item. |
 | `lib/ui/link_bar.dart` | Aviso do alto da tela quando o vínculo online está DESLIGADO mas há quem dependa dele (modo professor, professor ou aluno vinculado): sem ele, nada chega ao aparelho. |
 | `lib/ui/markdown_lite.dart` | Mostra um texto em Markdown simples (o que a IA devolve): títulos com `##`, tópicos com `-`, listas numeradas, **negrito** e *itálico*. A leitura dos trechos mora no núcleo (`parseInline`), com testes; aqui só se… |
 | `lib/ui/methods_page.dart` | "Meus métodos e lições": a biblioteca do professor. Cadastrar, editar, copiar a lista. Ela também cresce sozinha com o que é digitado nas tarefas. |
@@ -105,6 +106,7 @@
 | `packages/afina_core/lib/input_guard.dart` | Limpeza e limites de tudo que a pessoa digita, cola ou lê de um QR. Dart puro. O app não monta HTML nem consulta banco com esses textos, mas eles aparecem na tela, vão para backups colados e (em resumo) para a IA.… |
 | `packages/afina_core/lib/lesson.dart` | Aulas: o professor começa a aula com um aluno, pode pausar, e ao encerrar o que ele passou nela (tarefas e observações) é empacotado para o aluno receber. Dart puro e testável (o relógio é sempre passado de fora). |
 | `packages/afina_core/lib/lesson_week.dart` | "Esta semana" do aluno: junta as tarefas das aulas recebidas dos últimos 7 dias e as que ficaram em aberto de aulas mais antigas. Dart puro e testável. |
+| `packages/afina_core/lib/library.dart` | Acervo e Repertório do professor: só LINKS (Google Drive, IMSLP, YouTube…), nenhum arquivo é guardado. A mesma lista de sites aceitos existe no servidor (api/_lib/library.js): mantenha as duas iguais. |
 | `packages/afina_core/lib/link_pref.dart` | Regra do "Vínculo online": ligado por padrão para quem tem professor, aluno ou modo professor, e só desligado se a pessoa escolheu desligar (e confirmou o aviso). |
 | `packages/afina_core/lib/link_status.dart` | Estado do vínculo online em linguagem simples: o que está acontecendo com a conexão, o que isso significa para a pessoa e o que ela pode fazer. Dart puro e testável. |
 | `packages/afina_core/lib/markdown_lite.dart` | Markdown simples da IA (títulos `##`, tópicos, listas numeradas, **negrito** e *itálico*): leitura dos trechos em linha e conversão para texto puro com quebras de linha (para copiar). Dart puro e testável; a tela só… |
@@ -148,6 +150,7 @@
 | `packages/afina_core/test/lesson_delivery_test.dart` | dados antigos (sem a chave) continuam lendo, como "não se aplica" |
 | `packages/afina_core/test/lesson_test.dart` | Testes do módulo `lesson`. |
 | `packages/afina_core/test/lesson_week_test.dart` | Testes do módulo `lesson_week`. |
+| `packages/afina_core/test/library_test.dart` | Testes do módulo `library`. |
 | `packages/afina_core/test/link_pref_test.dart` | Testes do módulo `link_pref`. |
 | `packages/afina_core/test/link_status_test.dart` | Testes do módulo `link_status`. |
 | `packages/afina_core/test/markdown_lite_test.dart` | Testes do módulo `markdown_lite`. |
@@ -195,6 +198,7 @@
 | `api/_lib/config.js` | Configuração lida das variáveis de ambiente da Vercel. NENHUMA chave fica no código. |
 | `api/_lib/error_store.js` | Gravação dos relatórios de erro no Redis (usada pelo endpoint do app e pelos erros do próprio servidor). Limites, agrupamento por impressão digital, reabertura e modo leve num só lugar. |
 | `api/_lib/errors_lib.js` | Regras dos relatórios de erro (iguais às do app, em `afina_core/errors.dart`): higienização, impressão digital do bug, validação do pacote e nomes das chaves no Redis. |
+| `api/_lib/library.js` | Acervo e Repertório do professor (só LINKS, nenhum arquivo é guardado aqui). O professor cadastra título, autor e o endereço do material (Google Drive, IMSLP, YouTube…); o aluno vinculado abre o endereço. Liberado só… |
 | `api/_lib/metrics.js` | Métricas anônimas de uso: nomes das chaves, o dia (fuso de Brasília) e o contador que o servidor soma sozinho quando algo acontece (aula enviada, vínculo criado...). Falhar aqui NUNCA pode derrubar o que o usuário… |
 | `api/_lib/profiles.js` | Índice dos perfis anônimos (código + apelido) para o painel do administrador: quando entrou, última atividade, papel (professor / aluno) e bloqueio. NÃO há cadastro nem login. Custo: 3 comandos quando o perfil nasce;… |
 | `api/_lib/prompts.js` | Instruções de cada tipo de pedido. O texto recebido é DADO, nunca instrução. |
@@ -221,6 +225,7 @@
 | `api/feedback.test.js` | Testes da nota do app e das pesquisas rápidas, sem rede: `node --test api/feedback.test.js` |
 | `api/guardrails.test.js` | Guardrails de segurança da API: entradas malformadas, gigantes e hostis. Nada pode quebrar, vazar segredo ou gravar lixo. `node --test api/guardrails.test.js` |
 | `api/indicators.test.js` | Testes dos indicadores de saúde do uso no painel, sem rede: `node --test api/indicators.test.js` |
+| `api/library.test.js` | Testes do Acervo e Repertório do professor (só links): `node --test api/library.test.js` |
 | `api/link.test.js` | Testes do vínculo professor-aluno, sem rede: `node --test api/link.test.js` |
 | `api/painel_precisao.test.js` | Painel mais preciso: saúde, custos, coortes, período anterior, horas, limpeza e erros do servidor. `node --test api/painel_precisao.test.js` |
 | `api/presence.test.js` | Testes da presença (quem está online agora) no painel, sem rede: `node --test api/presence.test.js` |
@@ -253,4 +258,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **210** arquivos mapeados.
+Total: **215** arquivos mapeados.

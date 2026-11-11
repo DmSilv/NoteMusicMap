@@ -47,6 +47,7 @@ const SEARCH_SCAN = 500; // a busca olha os 500 perfis mais recentes (1 comando)
 const NAME_SCAN = 100; // a busca por apelido lê o apelido dos 100 mais recentes (100 comandos)
 const COHORT = 300; // amostra máxima para a retenção
 const U = (c) => `u:${c}`, T = (c) => `ut:${c}`, S = (c) => `us:${c}`, SL = (c) => `sl:${c}`, SS = (c) => `ss:${c}`;
+const LB = (c) => `lb:${c}`; // acervo do professor (só links)
 const UL = (c) => `ul:${c}`, DN = (c) => `dn:${c}`, VD = (c) => `vd:${c}`, AV = (c) => `av:${c}`, TK = (c) => `tk:${c}`, PS = (c) => `ps:${c}`;
 const CODE_RE = /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$/;
 const LOG = 'adm:log';
@@ -288,7 +289,7 @@ function makeHandler(deps = {}) {
           await store.hset(U(te), 'kr', String(now));
           if ((await store.hlen(T(te))) === 0) await profiles.setRole(cmd, te, 't', false, now);
         }
-        for (const key of [T, S, SL, SS, UL, DN, VD, AV, TK, PS, U]) {
+        for (const key of [T, S, SL, SS, UL, DN, VD, AV, TK, PS, LB, U]) {
           for (const f of Object.keys(await store.hgetall(key(code)))) await store.hdel(key(code), f);
         }
         await profiles.forget(cmd, code);
@@ -333,6 +334,36 @@ function makeHandler(deps = {}) {
           blockedProfiles: Number(blocked) || 0, onlineProfiles: Number(onlineNow) || 0,
           hotOrigins: Number(hotOrigins) || 0, staleProfiles: Number(staleProfiles) || 0,
         });
+      }
+
+      // ---------------- Acervo e Repertório (professores de teste) ----------------
+      if (action === 'library') {
+        const codes = (cfg.libraryTesters || []).map((c) => String(c).toUpperCase()).filter((c) => CODE_RE.test(c));
+        const list = [];
+        for (const c of codes) list.push(['HLEN', LB(c)], ['HGET', U(c), 'n']);
+        const r = list.length ? await cmd.pipeline(list) : [];
+        const testers = codes.map((c, i) => ({ code: c, items: Number(r[i * 2]) || 0, name: r[i * 2 + 1] || '' }));
+        const reps = await store.hgetall('lbrep');
+        const reports = [];
+        for (const [f, json] of Object.entries(reps).slice(0, 50)) {
+          const [teacher, id] = f.split(':');
+          let n = 0, t = 0; try { const j = JSON.parse(json); n = j.n; t = j.t; } catch (_) { /* ok */ }
+          let item = null; try { item = JSON.parse((await store.hget(LB(teacher), id)) || 'null'); } catch (_) { /* ok */ }
+          if (item) reports.push({ teacher, id, n, t, title: item.t, url: item.u, hidden: !!item.x });
+        }
+        return send(200, { ok: true, testers, reports, hosts: require('./_lib/library').HOSTS });
+      }
+      if (action === 'library_hide') {
+        const teacher = String(b.teacher || '').toUpperCase();
+        const id = String(b.id || '');
+        if (!CODE_RE.test(teacher) || !ID_RE.test(id)) return send(400, { error: 'Pedido inválido.' });
+        const raw = await store.hget(LB(teacher), id);
+        if (raw === undefined) return send(404, { error: 'Item não encontrado.' });
+        const it = JSON.parse(raw);
+        if (b.hide === false) delete it.x; else it.x = 1;
+        await store.hset(LB(teacher), id, JSON.stringify(it));
+        await log(b.hide === false ? 'lib_show' : 'lib_hide', teacher, id);
+        return send(200, { ok: true });
       }
 
       // ---------------- Visitantes (quem usa sem cadastro): divulgação e engajamento ----------------

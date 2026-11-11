@@ -1202,6 +1202,7 @@ class StudentPage extends StatelessWidget {
         TaskKind.method => Icons.menu_book_outlined,
         TaskKind.repertoire => Icons.library_music_outlined,
         TaskKind.free => Icons.edit_note,
+        TaskKind.material => Icons.folder_open_rounded,
       };
 
   Future<void> _startTask(BuildContext context, Student s, Assignment t) async {

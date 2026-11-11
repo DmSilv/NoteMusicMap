@@ -2180,6 +2180,61 @@ class AppState extends ChangeNotifier {
 
   /// Atualiza tudo com o servidor: desfaz o que foi removido aqui, envia o que ficou
   /// pendente, e traz quem se vinculou a você (aparece sozinho na lista).
+  // ---------------- Acervo e Repertório (só links; só professores liberados no servidor) ----------------
+  /// Este perfil é um professor liberado para o acervo (o servidor decide: LIBRARY_TESTERS).
+  bool libraryOn = false;
+
+  /// Professores vinculados que têm acervo (para o aluno).
+  Set<String> libraryTeachers = {};
+  final Map<String, List<LibItem>> _libCache = {}; // código do professor (ou '' = o próprio) -> itens
+
+  bool get libraryVisible => libraryOn || libraryTeachers.isNotEmpty;
+
+  void _applyLibraryFlags(LinkReply r) {
+    final t = r.lbT.toSet();
+    if (r.lb == libraryOn && t.length == libraryTeachers.length && t.containsAll(libraryTeachers)) return;
+    libraryOn = r.lb;
+    libraryTeachers = t;
+    notifyListeners();
+  }
+
+  List<LibItem> libCached([String? teacher]) => _libCache[teacher ?? ''] ?? const [];
+
+  /// Busca os itens (do professor [teacher], ou os próprios). Devolve null se não deu (sem internet ou sem acesso).
+  Future<List<LibItem>?> libLoad({String? teacher}) async {
+    final r = await links.libList(profile.shareCode, profile.secret, teacher: teacher);
+    if (!r.ok) return null;
+    _libCache[teacher ?? ''] = r.libItems;
+    notifyListeners();
+    return r.libItems;
+  }
+
+  static String _libError(LinkReply r) => switch (r.error) {
+        'bad_url' => 'Use um link https do Google Drive, Dropbox, OneDrive, IMSLP, CPDL ou YouTube.',
+        'declaration' => 'Confirme que você tem o direito de compartilhar este material.',
+        'library_off' => 'O acervo não está liberado para você.',
+        _ => r.offline ? 'Sem conexão. Tente de novo.' : (r.error ?? 'Não foi possível salvar.'),
+      };
+
+  /// Salva (cria ou muda) um item. Devolve a mensagem de erro, ou null se deu certo.
+  Future<String?> libSave(LibItem it) async {
+    final r = await links.libPut(profile.shareCode, profile.secret, it);
+    if (!r.ok) return _libError(r);
+    await libLoad();
+    return null;
+  }
+
+  Future<String?> libRemove(String id) async {
+    final r = await links.libDel(profile.shareCode, profile.secret, id);
+    if (!r.ok) return _libError(r);
+    _libCache[''] = [for (final i in libCached()) if (i.id != id) i];
+    notifyListeners();
+    return null;
+  }
+
+  Future<bool> libReport(String teacher, String id) async =>
+      (await links.libReport(profile.shareCode, profile.secret, teacher: teacher, id: id)).ok;
+
   Future<void> syncLinks() async {
     if (_linkSyncing || linkUnavailable || !linkEnabled) return;
     _linkSyncing = true;
@@ -2246,6 +2301,7 @@ class AppState extends ChangeNotifier {
         }
       }
       _applyLinkLists(r);
+      _applyLibraryFlags(r);
       // Aulas: o aluno busca quando o servidor avisa que há novidade; o professor envia as pendentes.
       if (r.lr != lessonsRev && myTeachers.isNotEmpty) unawaited(pullLessons());
       // Marcações de tarefa: o aluno envia as pendentes; o professor busca as novas.

@@ -35,6 +35,7 @@ const profiles = require('./_lib/profiles');
 const { sweepEmpty } = require('./_lib/sweep');
 const { unlinkPair } = require('./_lib/unlink');
 const { serverError } = require('./_lib/error_store');
+const library = require('./_lib/library');
 
 const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const MAX_LINKS = 300;
@@ -54,7 +55,7 @@ const MAX_PICKS = 12; // aulas de um aluno com o mesmo professor
 const PICK_LEAD = 60 * 60 * 1000; // antecedência mínima para pegar
 const MAX_SLOTS = 400; // aulas marcadas por professor
 const MAX_DEVICES = 4; // aparelhos com notificação por perfil
-const TASK_KINDS = ['scale', 'method', 'repertoire', 'free'];
+const TASK_KINDS = ['scale', 'method', 'repertoire', 'free', 'material'];
 
 /** Código "XXXX-XXXX" válido (mesma verificação do app) ou null. */
 function normCode(s) {
@@ -145,7 +146,7 @@ function readBody(req) {
   }
   if (!b || typeof b !== 'object' || Array.isArray(b)) return null;
   // Só 'lesson' pode ser grande; os demais pedidos têm ~200 bytes.
-  const limit = b.action === 'lesson' ? MAX_LESSON_BODY : MAX_BODY;
+  const limit = b.action === 'lesson' ? MAX_LESSON_BODY : b.action === 'lib_put' ? 4096 : MAX_BODY;
   if (JSON.stringify(b).length > limit) return null;
   return b;
 }
@@ -160,7 +161,9 @@ const PS = (code) => `ps:${code}`; // aparelhos com notificação: hash do ender
 const AV = (code) => `av:${code}`; // horários disponíveis do professor: idHorário -> JSON
 const TK = (code) => `tk:${code}`; // horários já pegos (trava contra dois alunos): idHorário -> aluno
 const VD = (code) => `vd:${code}`; // decisões do professor sobre as tarefas deste aluno: "professor:idAula:idTarefa" -> JSON
-const DN = (code) => `dn:${code}`; // tarefas que os alunos deste professor marcaram: "aluno:idAula:idTarefa" -> JSON
+const DN = (code) => `dn:${code}`;
+const LB = (code) => `lb:${code}`; // acervo do professor: idItem -> JSON (só links)
+const LBREP = 'lbrep'; // denúncias do acervo: "professor:idItem" -> JSON { n, t } // tarefas que os alunos deste professor marcaram: "aluno:idAula:idTarefa" -> JSON
 
 function parseLinks(h) {
   const out = [];
@@ -196,6 +199,8 @@ function makeHandler(deps = {}) {
       return send(503, { error: 'sync_unavailable', message: 'O vínculo online ainda não está configurado.' });
     }
 
+    const testers = new Set((cfg.libraryTesters || []).map(normCode).filter(Boolean));
+    const isTester = (c) => testers.has(c);
     const b = readBody(req);
     if (!b) return send(400, { error: 'Corpo inválido.' });
     const me = normCode(b.code);
@@ -274,7 +279,8 @@ function makeHandler(deps = {}) {
         // Mudou o apelido: avisa quem está vinculado (o nome fica dentro de cada vínculo).
         if (nameChanged) await propagateName(store, me, name);
         const [asTeacher, asStudent] = await Promise.all([store.hgetall(T(me)), store.hgetall(S(me))]);
-        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: parseLinks(asStudent), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...noticeOf(prof) });
+        const stuList = parseLinks(asStudent);
+        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: stuList, lb: isTester(me) ? 1 : 0, lbT: stuList.map((x) => x.code).filter(isTester), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...noticeOf(prof) });
       }
 
       // Consulta barata: o perfil já foi lido na autenticação, então não custa nenhum comando a mais.
@@ -384,9 +390,67 @@ function makeHandler(deps = {}) {
         return send(200, { ok: true, lessons: lessons.slice(0, LESSONS_KEPT), lr: Number(prof.lr) || 0 });
       }
 
+      // ---- Acervo e Repertório (só links): leitura. O professor vê tudo; o aluno vê o que é para ele ----
+      if (action === 'lib_list') {
+        const pulls = await store.incr(`lnkpull:${me}:${hour}`, 3600);
+        if (pulls.n > PULLS_PER_HOUR) return send(429, { error: 'Muitas consultas. Tente mais tarde.' });
+        const other = b.other === undefined || b.other === '' ? me : normCode(b.other);
+        if (!other) return send(400, { error: 'Código inválido.' });
+        if (!isTester(other)) return send(403, { error: 'library_off' });
+        if (other !== me && (await store.hget(S(me), other)) === undefined) return send(403, { error: 'Este professor não está vinculado a você.' });
+        const raw = await store.hgetall(LB(other));
+        const items = [];
+        for (const json of Object.values(raw)) {
+          try {
+            const it = JSON.parse(json);
+            if (other === me || library.visibleTo(it, me)) items.push(it);
+          } catch (_) { /* linha ruim */ }
+        }
+        items.sort((x, y) => (y.m || 0) - (x.m || 0));
+        return send(200, { ok: true, items: items.slice(0, library.MAX_ITEMS), teacher: other });
+      }
+
       // As demais ações mudam dados: limite por hora para cada perfil.
       const mut = await store.incr(`lnkmut:${me}:${hour}`, 3600);
       if (mut.n > MUTATIONS_PER_HOUR) return send(429, { error: 'Muitas alterações. Tente mais tarde.' });
+
+      // ---- Acervo: o PROFESSOR liberado cadastra, muda ou apaga; o ALUNO denuncia ----
+      if (action === 'lib_put') {
+        if (!isTester(me)) return send(403, { error: 'library_off' });
+        const r = library.cleanItem(b.item, clock(), normCode);
+        if (r.error) return send(400, { error: r.error, message: r.message });
+        const it = r.item;
+        const old = await store.hget(LB(me), it.id);
+        if (old === undefined && (await store.hlen(LB(me))) >= library.MAX_ITEMS) return send(400, { error: 'Limite de itens atingido.' });
+        if (Array.isArray(it.to)) {
+          const mine = await store.hgetall(T(me));
+          it.to = it.to.filter((c) => mine[c] !== undefined); // só alunos vinculados
+          if (!it.to.length) it.to = 'all';
+        }
+        if (old !== undefined) { try { const o = JSON.parse(old); if (o.x) it.x = 1; if (o.c) it.c = o.c; } catch (_) { /* ok */ } }
+        await store.hset(LB(me), it.id, JSON.stringify(it));
+        return send(200, { ok: true, item: it });
+      }
+      if (action === 'lib_del') {
+        if (!isTester(me)) return send(403, { error: 'library_off' });
+        const id = String(b.id || '');
+        if (!/^[a-z0-9]{2,40}$/.test(id)) return send(400, { error: 'Item inválido.' });
+        await store.hdel(LB(me), id);
+        await store.hdel(LBREP, `${me}:${id}`);
+        return send(200, { ok: true });
+      }
+      if (action === 'lib_report') {
+        const teacher = normCode(b.other);
+        const id = String(b.id || '');
+        if (!teacher || teacher === me || !/^[a-z0-9]{2,40}$/.test(id) || !isTester(teacher)) return send(400, { error: 'Pedido inválido.' });
+        if ((await store.hget(S(me), teacher)) === undefined) return send(403, { error: 'Este professor não está vinculado a você.' });
+        const rawItem = await store.hget(LB(teacher), id);
+        if (rawItem === undefined) return send(404, { error: 'Item não encontrado.' });
+        let n = 0;
+        try { n = (JSON.parse((await store.hget(LBREP, `${teacher}:${id}`)) || '{}').n) || 0; } catch (_) { /* ok */ }
+        await store.hset(LBREP, `${teacher}:${id}`, JSON.stringify({ n: n + 1, t: clock() }));
+        return send(200, { ok: true });
+      }
 
       // ---- Notificações: inscrição do navegador deste aparelho ----
       if (action === 'push_sub') {

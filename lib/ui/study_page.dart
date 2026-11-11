@@ -5,6 +5,7 @@ import 'design_system.dart';
 import 'evolution_page.dart';
 import 'feedback_sheet.dart';
 import 'hub_section.dart';
+import 'library_page.dart';
 import 'perf.dart';
 import 'study_timers.dart';
 import 'theme.dart';
@@ -45,6 +46,40 @@ class StudyPage extends StatelessWidget {
       ],
     );
   }
+
+  /// Acervo e repertório (só para professores liberados e seus alunos).
+  Widget _materialCard(BuildContext context) {
+    final teachers = [for (final t in app.myTeachers) if (app.libraryTeachers.contains(t.code)) t];
+    final both = app.libraryOn && teachers.isNotEmpty;
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(children: [
+        if (app.libraryOn)
+          _row(Icons.library_books_rounded, 'Acervo e repertório', 'Seus métodos e peças, com link', () => openLibrary(context, app)),
+        if (both) const Divider(height: 1),
+        for (final t in teachers)
+          _row(Icons.folder_open_rounded, 'Material de ${t.name.isEmpty ? 'seu professor' : t.name}', 'Métodos e peças indicados', () => openLibrary(context, app, teacher: t.code, teacherName: t.name)),
+      ]),
+    );
+  }
+
+  Widget _row(IconData icon, String title, String sub, VoidCallback onTap) => InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: Ds.cardPad, vertical: Ds.s12),
+          child: Row(children: [
+            DsIconBadge(icon, size: 36),
+            const SizedBox(width: Ds.s12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title, style: const TextStyle(fontSize: Ds.fontBody, fontWeight: FontWeight.w700)),
+                Text(sub, style: Ds.support()),
+              ]),
+            ),
+            Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
+          ]),
+        ),
+      );
 
   Future<void> _confirmClear(BuildContext context) async {
     final ok = await showDialog<bool>(
@@ -89,6 +124,7 @@ class StudyPage extends StatelessWidget {
             // Agenda: próxima aula, as seguintes e os atalhos (marcar, horários livres, agenda completa).
             HubSection(app: app),
             const DsGap(Ds.gap),
+            if (app.libraryVisible) ...[_materialCard(context), const DsGap(Ds.gap)],
             // Estudo: resumo de hoje e cronômetro no MESMO bloco.
             AppCard(
               child: Column(

@@ -20,6 +20,7 @@
 | `GEMINI_MODEL` | config.js, providers.js |
 | `KV_REST_API_TOKEN` | config.js |
 | `KV_REST_API_URL` | config.js |
+| `LIBRARY_TESTERS` | config.js |
 | `QSTASH_CURRENT_SIGNING_KEY` | config.js |
 | `QSTASH_NEXT_SIGNING_KEY` | config.js |
 | `QSTASH_TOKEN` | config.js |
@@ -33,4 +34,4 @@
 | `VERCEL_GIT_COMMIT_SHA` | admin.js |
 | `VERCEL_REGION` | admin.js |
 
-Total: **27** variáveis. Para o que cada uma faz e quais são obrigatórias, veja `docs/08_OPERACAO.md`.
+Total: **28** variáveis. Para o que cada uma faz e quais são obrigatórias, veja `docs/08_OPERACAO.md`.

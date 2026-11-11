@@ -31,7 +31,8 @@ enum TaskKind {
   scale('Escala ou arpejo'),
   method('Método e lição'),
   repertoire('Repertório'),
-  free('Outra atividade');
+  free('Outra atividade'),
+  material('Material do professor');
 
   final String label;
   const TaskKind(this.label);

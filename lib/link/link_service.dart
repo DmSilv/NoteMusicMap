@@ -87,6 +87,11 @@ class LinkReply {
   final String snKind;
   final String snText;
 
+  /// Acervo: este perfil está liberado (lb), professores vinculados com acervo (lbT) e os itens (lib_list).
+  final bool lb;
+  final List<String> lbT;
+  final List<LibItem> libItems;
+
   /// Como ficou o lembrete da aula marcada: 'scheduled', 'off', 'none' ou 'error'.
   final String? reminder;
   const LinkReply({
@@ -117,6 +122,9 @@ class LinkReply {
     this.snAt = 0,
     this.snKind = '',
     this.snText = '',
+    this.lb = false,
+    this.lbT = const [],
+    this.libItems = const [],
   });
 }
 
@@ -160,6 +168,9 @@ class LinkService {
         asTeacher: list(j['asTeacher']),
         asStudent: list(j['asStudent']),
         created: j['created'] == true,
+        lb: j['lb'] == 1 || j['lb'] == true,
+        lbT: [for (final c in ((j['lbT'] as List?) ?? const []).take(60)) ?(c is String ? formatShareCode(c) : null)],
+        libItems: [for (final x in ((j['items'] as List?) ?? const []).take(kLibMaxItems)) ?LibItem.tryFrom(x)],
         lr: ((j['lr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
         dr: ((j['dr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
         sr: ((j['sr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
@@ -300,6 +311,19 @@ class LinkService {
 
   Future<LinkReply> pushUnsub(String code, String secret, String endpoint) =>
       _post({..._auth(code, secret, null), 'action': 'push_unsub', 'endpoint': endpoint});
+
+  /// ACERVO: itens do professor [teacher] (o aluno vê o que é para ele); sem [teacher], os do próprio professor.
+  Future<LinkReply> libList(String code, String secret, {String? teacher}) =>
+      _post({..._auth(code, secret, null), 'action': 'lib_list', 'other': ?teacher});
+
+  Future<LinkReply> libPut(String code, String secret, LibItem item) =>
+      _post({..._auth(code, secret, null), 'action': 'lib_put', 'item': item.toWire()});
+
+  Future<LinkReply> libDel(String code, String secret, String id) => _post({..._auth(code, secret, null), 'action': 'lib_del', 'id': id});
+
+  /// ALUNO: denuncia um item (o painel avalia e pode esconder).
+  Future<LinkReply> libReport(String code, String secret, {required String teacher, required String id}) =>
+      _post({..._auth(code, secret, null), 'action': 'lib_report', 'other': teacher, 'id': id});
 
   /// ALUNO: busca as aulas dos professores a que está vinculado.
   Future<LinkReply> lessons(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'lessons'});

@@ -29,6 +29,7 @@
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` (ou, pela integração da Vercel, `KV_REST_API_URL`, `KV_REST_API_TOKEN`) | **Sim** para vínculo, painel e erros | Banco |
 | `ADMIN_KEY` | Recomendada | Chave do painel (cai em `FEEDBACK_ADMIN_KEY` se faltar) |
 | `FEEDBACK_ADMIN_KEY` | Opcional | Leitura do painel de feedback (e fallback do painel) |
+| `LIBRARY_TESTERS` | Opcional | Códigos de perfil liberados para o acervo do professor (ex.: `DW4A-V974`, separados por vírgula). Vazio = ninguém. Precisa de redeploy ao mudar. |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Para lembretes e para os avisos de bug grave do admin | Web Push (gerar com `node scripts/gen_vapid.js`; a privada nunca vai ao chat) |
 | `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY`, `QSTASH_URL` | Para lembretes | Agendamento e verificação de assinatura |
 | `APP_BASE_URL` | Opcional | Endereço público (padrão `https://notemusicmap.vercel.app`) |

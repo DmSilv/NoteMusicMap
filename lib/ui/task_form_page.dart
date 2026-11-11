@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'dictation_button.dart';
+import 'design_system.dart';
 import 'methods_page.dart';
 import 'my_lessons_page.dart' show taskKindIcon;
 import 'note_widgets.dart';
@@ -72,6 +73,15 @@ class _TaskFormPageState extends State<TaskFormPage> {
   late final detail = TextEditingController(text: edit?.detail ?? '');
   late final note = TextEditingController(text: edit?.note ?? '');
   String? subjectErr;
+
+  /// Só o professor liberado vê "Material do professor" entre os tipos.
+  List<TaskKind> get _kinds => [for (final k in TaskKind.values) if (k != TaskKind.material || app.libraryOn || edit?.kind == TaskKind.material) k];
+
+  @override
+  void initState() {
+    super.initState();
+    if (app.libraryOn && app.libCached().isEmpty) app.libLoad().then((_) => mounted ? setState(() {}) : null);
+  }
   bool sendNow = true;
   final _scroll = ScrollController();
   final _subjectKey = GlobalKey();
@@ -102,7 +112,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
 
   void _submit(TuningConfig names) {
     if (kind != TaskKind.scale && subject.text.trim().isEmpty) {
-      setState(() => subjectErr = 'Escreva o que o aluno vai estudar');
+      setState(() => subjectErr = kind == TaskKind.material ? 'Escolha o material' : 'Escreva o que o aluno vai estudar');
       final c = _subjectKey.currentContext;
       if (c != null) Scrollable.ensureVisible(c, duration: const Duration(milliseconds: 250), alignment: 0.1);
       return;
@@ -161,19 +171,22 @@ class _TaskFormPageState extends State<TaskFormPage> {
                   ChipGrid(
                     columns: 2,
                     labels: [
-                      for (final k in TaskKind.values)
+                      for (final k in _kinds)
                         Row(mainAxisSize: MainAxisSize.min, children: [
                           Icon(taskKindIcon(k), size: 16),
                           const SizedBox(width: 6),
                           Text(k.label),
                         ]),
                     ],
-                    selected: TaskKind.values.indexOf(kind),
-                    onSelected: (i) => setState(() => kind = TaskKind.values[i]),
+                    selected: _kinds.indexOf(kind),
+                    onSelected: (i) => setState(() {
+                      kind = _kinds[i];
+                      subjectErr = null;
+                    }),
                   ),
                 ],
 
-                if (kind == TaskKind.scale) ..._scaleFields(names) else ..._textFields(),
+                if (kind == TaskKind.scale) ..._scaleFields(names) else if (kind == TaskKind.material) ..._materialFields() else ..._textFields(),
 
                 // ---- Observações ----
                 _label('Observações (opcional)', help: 'O que merece atenção ou estudar mais.'),
@@ -292,6 +305,75 @@ class _TaskFormPageState extends State<TaskFormPage> {
   }
 
   static const _goals = [0.6, 0.7, 0.8, 0.9];
+
+  /// "Material do professor": o aluno abre direto no acervo (item, pasta ou o acervo todo).
+  List<Widget> _materialFields() {
+    final items = app.libCached();
+    final picked = subject.text.trim().isEmpty ? '' : Assignment.titleFor(subject.text, detail.text);
+    return [
+      _label('Qual material', help: 'O aluno abre no acervo, já filtrado.'),
+      OutlinedButton.icon(
+        key: _subjectKey,
+        onPressed: () => _pickMaterial(items),
+        icon: const Icon(Icons.folder_open_rounded, size: 20),
+        label: Text(picked.isEmpty ? 'Escolher no acervo' : picked, maxLines: 1, overflow: TextOverflow.ellipsis),
+      ),
+      if (subjectErr != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text(subjectErr!, style: TextStyle(color: AppColors.sharp, fontSize: 12.5))),
+      if (items.isEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Text('Seu acervo está vazio. Dá para escolher "Acervo todo" ou cadastrar materiais em Meu espaço.', style: Ds.support())),
+    ];
+  }
+
+  Future<void> _pickMaterial(List<LibItem> items) async {
+    final folders = libraryFolders(items);
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(Ds.radiusCard))),
+      builder: (c) {
+        void choose(String sub, String det) {
+          setState(() {
+            subject.text = sub;
+            detail.text = det;
+            subjectErr = null;
+          });
+          Navigator.pop(c);
+        }
+
+        return ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.of(c).size.height * 0.85),
+          child: ListView(padding: const EdgeInsets.fromLTRB(Ds.screenPad, 0, Ds.screenPad, Ds.s24), shrinkWrap: true, children: [
+            Text('Escolher material', style: Ds.title()),
+            const DsGap(Ds.s12),
+            ListTile(
+              leading: const DsIconBadge(Icons.all_inbox_rounded, size: 36),
+              title: const Text('Acervo todo'),
+              subtitle: const Text('O aluno procura lá dentro'),
+              onTap: () => choose(kMaterialAll, ''),
+            ),
+            for (final f in folders) ...[
+              ListTile(
+                leading: const DsIconBadge(Icons.folder_rounded, size: 36),
+                title: Text('Pasta: $f'),
+                subtitle: Text('${items.where((i) => i.folder == f).length} material(is)'),
+                onTap: () => choose(f, ''),
+              ),
+              for (final i in items.where((x) => x.folder == f))
+                ListTile(
+                  contentPadding: const EdgeInsets.only(left: 56),
+                  leading: Icon(i.isRepertoire ? Icons.library_music_outlined : Icons.menu_book_outlined, size: 20),
+                  title: Text(i.title),
+                  subtitle: i.author.isEmpty ? null : Text(i.author),
+                  onTap: () => choose(i.title, i.folder),
+                ),
+            ],
+          ]),
+        );
+      },
+    );
+  }
 
   List<Widget> _textFields() {
     final methods = app.methodNames();

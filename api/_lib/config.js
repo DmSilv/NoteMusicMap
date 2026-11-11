@@ -73,6 +73,8 @@ function config(env = process.env) {
     redisToken: env.UPSTASH_REDIS_REST_TOKEN || env.KV_REST_API_TOKEN || '',
     geminiModel: env.GEMINI_MODEL || '',
     feedbackKey: env.FEEDBACK_ADMIN_KEY || '',
+    // Acervo e Repertório do professor: códigos de perfil liberados (LIBRARY_TESTERS, separados por vírgula). Vazio = ninguém.
+    libraryTesters: String(env.LIBRARY_TESTERS || '').toUpperCase().split(/[\s,;]+/).filter(Boolean),
     // Chave do painel de métricas (o mesmo segredo do painel de feedback, se não houver uma própria).
     adminKey: env.ADMIN_KEY || env.FEEDBACK_ADMIN_KEY || '',
     // Relatórios de erro do app: ERRORS_DISABLED=1 desliga tudo sem publicar; teto de eventos por dia.

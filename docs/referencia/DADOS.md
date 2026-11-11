@@ -21,7 +21,7 @@ Tudo guardado no servidor é anônimo: código de perfil, apelido, datas e o nec
 | `av:<code>` | horários disponíveis do professor: idHorário -> JSON |
 | `tk:<code>` | horários já pegos (trava contra dois alunos): idHorário -> aluno |
 | `vd:<code>` | decisões do professor sobre as tarefas deste aluno: "professor:idAula:idTarefa" -> JSON |
-| `dn:<code>` | tarefas que os alunos deste professor marcaram: "aluno:idAula:idTarefa" -> JSON |
+| `lb:<code>` | acervo do professor: idItem -> JSON (só links) |
 
 ### Índice de perfis para o painel (`api/_lib/profiles.js`)
 
@@ -64,6 +64,7 @@ Tudo guardado no servidor é anônimo: código de perfil, apelido, datas e o nec
 
 | Chave | Conteúdo |
 |---|---|
+| `lb:<c>` | acervo do professor (só links) |
 | `pf:bl` | conjunto dos perfis bloqueados (para contar sem varrer) |
 
 ## Armazenamento local do app (`SharedPreferences`)

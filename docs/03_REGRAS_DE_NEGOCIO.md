@@ -85,3 +85,12 @@ Tudo que a pessoa digita, cola ou lê de QR passa por `input_guard.dart` (`clean
 2. **O perfil nasce na primeira chamada do vínculo**, que só acontece com intenção: modo professor (exige apelido e confirmação), ler QR ou digitar código de professor (exige apelido), adicionar aluno com código, ou ligar o vínculo à mão.
 3. **Limite por origem:** 100 perfis novos por dia; acima de 30 o painel mostra o aviso "Origens com muitos cadastros" (escola ou igreja com um Wi-Fi só é normal). Barrar é a exceção.
 4. **Limpeza:** perfil sem vínculo, sem professor nem aluno, sem horários nem notificações e parado há 60 dias é apagado (`api/_lib/sweep.js`), aos poucos, quando nasce outro perfil, e sob pedido no painel (Saúde do uso › Limpar agora). Quem tem qualquer vínculo ou bloqueio nunca é apagado.
+
+## 11. Acervo e repertório do professor (só links, só teste)
+1. **Só links:** título, autor, pasta, endereço e para quem é. O app não guarda nem copia arquivo nenhum (Drive, Dropbox, OneDrive, IMSLP, CPDL e YouTube, só `https`; lista em `api/_lib/library.js` e `packages/afina_core/lib/library.dart`, mantenha as duas iguais).
+2. **Liberado por lista:** só os códigos em `LIBRARY_TESTERS` (variável da Vercel, separados por vírgula; vazio = ninguém). O servidor recusa todo o resto (`library_off`); esconder o botão no app não basta.
+3. **Quem vê:** o professor vê tudo; o aluno vinculado vê o que é para todos ou para ele. Vínculo encerrado = acesso encerrado.
+4. **Declaração:** cada item só salva se o professor marcar que tem o direito de compartilhar (domínio público, dele ou autorizado).
+5. **Denúncia e moderação:** o aluno pode denunciar; no painel (Pessoas › Acervo) o administrador esconde o item dos alunos. Remoção em até 48 h.
+6. **Tarefa "Material do professor":** a tarefa carrega só o texto (título e pasta) e o aluno abre o acervo já filtrado; não gasta nada além da própria tarefa.
+7. **Limites:** 200 itens por professor, link até 500 caracteres, 40 alunos por item.

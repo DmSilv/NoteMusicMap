@@ -230,6 +230,10 @@
         <div style="overflow:auto"><table><thead><tr><th>Código</th><th>Apelido</th><th>Papel</th><th>Entrou</th><th>Última atividade</th></tr></thead><tbody id="pRows"></tbody></table></div>
         <div class="toolbar" style="margin-top:10px"><button id="pPrev">‹ Anterior</button><button id="pNext">Próxima ›</button><span class="empty" id="pNote"></span></div>
       </div>
+      <h2>Acervo dos professores de teste <button class="help" data-def="library">?</button></h2>
+      <div class="card"><div id="libTesters" class="empty">Carregando…</div></div>
+      <h2>Denúncias do acervo</h2>
+      <div class="card"><div id="libReports" class="empty">Nenhuma denúncia.</div></div>
       <h2>Ações do administrador</h2>
       <div class="card"><div id="logRows" class="empty">Nada ainda.</div></div>
     </main>
@@ -383,6 +387,7 @@
     sysserver: ['Servidor', 'A versão publicada é o código (commit) que está no ar agora, informado pela própria Vercel. As funções do app contam para o limite do plano gratuito (12). Os erros do servidor vêm dos relatórios automáticos.'],
     syslimits: ['Limites e gasto', 'Cada barra mostra quanto de um limite já foi usado: verde até 70%, amarelo até 90%, vermelho acima. Redis do mês é ESTIMADO a partir dos contadores do app. Para o número exato, a Upstash precisa de uma chave de API (opcional).'],
     syschecks: ['Variáveis configuradas', 'Mostra se cada serviço tem as variáveis na Vercel. "Obrigatório" sem variável quebra o app; os opcionais só desligam o recurso (lembretes, notificações, IA).'],
+    library: ['Acervo dos professores de teste', 'Lista de professores liberados (variável LIBRARY_TESTERS na Vercel; vazio = ninguém) e quantos materiais cada um cadastrou. O acervo guarda só links (Drive, IMSLP, YouTube…), nenhum arquivo. Denúncias feitas por alunos aparecem abaixo: Esconder tira o item da vista dos alunos (o professor continua vendo).'],
     visitors: ['Visitantes', 'Quem abriu o app sem ter cadastro (professor ou aluno vinculado). Mostra quantos aparelhos acessaram hoje, quantos são novos, quantos voltaram, de qual divulgação vieram (YouTube, Instagram…) e o que usaram. É o painel para medir o efeito de cada vídeo postado.'],
     origin: ['De onde vieram', 'Cada link de divulgação leva uma marca no fim (ex.: ?o=yt para YouTube, ?o=ig Instagram, ?o=tt TikTok, ?o=zap WhatsApp, ?o=site página /sobre). O app guarda a do PRIMEIRO acesso do aparelho e avisa uma vez por dia; aqui aparecem os aparelhos de hoje por origem. Sem marca = acesso direto.'],
     bugs: ['Bugs', 'Erros do app e do servidor agrupados pelo mesmo problema. "Graves" derrubam algo importante; "de ação" falharam numa ação; "de conexão" são falhas de internet.'],
@@ -748,6 +753,23 @@
   $('pushTest').onclick = function () {
     post({ action: 'push', op: 'test' }).then(function (r) { if (r.status === 200) toast(r.j.sent ? 'Teste enviado. Deve chegar em instantes.' : 'Nenhum aparelho recebeu (inscrição expirada?). Desative e ative de novo.', r.j.sent ? 'ok' : 'bad'); else toast('Não foi possível enviar o teste: ' + why(r), 'bad'); }).catch(function () { toast('Sem conexão com o servidor.', 'bad'); });
   };
+  function loadLibrary() {
+    post({ action: 'library' }).then(function (r) {
+      if (r.status !== 200) return;
+      var t = $('libTesters'); t.innerHTML = ''; t.className = '';
+      if (!r.j.testers.length) { t.className = 'empty'; t.textContent = 'Ninguém liberado ainda. Defina LIBRARY_TESTERS na Vercel com o código do professor.'; }
+      r.j.testers.forEach(function (x) { var d = document.createElement('div'); d.textContent = x.code + ' · ' + (x.name || 'sem apelido') + ' · ' + fmt(x.items) + ' material(is)'; d.style.padding = '4px 0'; t.appendChild(d); });
+      var rp = $('libReports'); rp.innerHTML = ''; rp.className = '';
+      if (!r.j.reports.length) { rp.className = 'empty'; rp.textContent = 'Nenhuma denúncia.'; }
+      r.j.reports.forEach(function (x) {
+        var d = document.createElement('div'); d.style.padding = '6px 0';
+        var s = document.createElement('div'); s.textContent = x.title + ' (' + x.teacher + ') · ' + x.n + ' denúncia(s)' + (x.hidden ? ' · escondido' : ''); d.appendChild(s);
+        var b = document.createElement('button'); b.textContent = x.hidden ? 'Mostrar de novo' : 'Esconder dos alunos';
+        b.onclick = function () { post({ action: 'library_hide', teacher: x.teacher, id: x.id, hide: !x.hidden }).then(function () { loadLibrary(); loadLog(); }); };
+        d.appendChild(b); rp.appendChild(d);
+      });
+    }).catch(function () {});
+  }
   function loadPresence() {
     post({ action: 'presence' }).then(function (r) {
       if (r.status !== 200) return;
@@ -1243,7 +1265,7 @@
     window.scrollTo(0, 0);
   }
   function loadTab(name) {
-    if (name === 'people') { loadList(); loadLog(); loadPresence(); }
+    if (name === 'people') { loadList(); loadLog(); loadPresence(); loadLibrary(); }
     if (name === 'bugs') { loadBugs(); loadPush(); }
     if (name === 'costs') loadCosts();
     if (name === 'devices') loadDevices();

@@ -44,6 +44,8 @@ Custo: só quando o admin abre o painel (kpis ~35 comandos; lista de 25 = ~27; d
 | `block` | Bloquear / liberar |
 | `delete` | Excluir |
 | `indicators` | Indicadores de saúde do uso Custo: 3 comandos + 7 leituras (um hash por dia). Só quando o admin abre ou toca em Atualizar. |
+| `library` | Acervo e Repertório (professores de teste) |
+| `library_hide` | — |
 | `visitors` | Visitantes (quem usa sem cadastro): divulgação e engajamento Custo: ~35 comandos por abertura da aba (7 dias de contadores + abas de hoje + 4 contagens). |
 | `sweep` | Limpa agora os perfis abandonados (sem vínculo, sem dados e parados há 60 dias). Até 30 por toque. |
 | `push` | Avisos de bug grave neste navegador |
@@ -166,6 +168,10 @@ Precisa do Upstash Redis. Sem ele devolve 503 e o app segue só neste aparelho.
 | `push_key` | Lembretes: o app pergunta se o servidor está pronto para enviar notificações. |
 | `sched` | O ALUNO busca as aulas marcadas pelos professores a que ainda está vinculado. |
 | `lessons` | O aluno busca as aulas dos professores a que ainda está vinculado. |
+| `lib_list` | Acervo e Repertório (só links): leitura. O professor vê tudo; o aluno vê o que é para ele |
+| `lib_put` | Acervo: o PROFESSOR liberado cadastra, muda ou apaga; o ALUNO denuncia |
+| `lib_del` | — |
+| `lib_report` | — |
 | `push_sub` | Notificações: inscrição do navegador deste aparelho |
 | `push_unsub` | — |
 | `avail_put` | Horários disponíveis: o PROFESSOR cria, muda ou apaga |

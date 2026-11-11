@@ -2,6 +2,7 @@ import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import 'library_page.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -13,6 +14,7 @@ IconData taskKindIcon(TaskKind k) => switch (k) {
       TaskKind.method => Icons.menu_book_outlined,
       TaskKind.repertoire => Icons.library_music_outlined,
       TaskKind.free => Icons.edit_note,
+      TaskKind.material => Icons.folder_open_rounded,
     };
 
 void openMyLessons(BuildContext context, AppState app) => Navigator.of(context).push(
@@ -305,6 +307,12 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
     );
   }
 
+  /// Tarefa "Material do professor": abre o acervo dele já filtrado (item, pasta ou tudo).
+  void _openMaterial(SharedLesson l, Assignment t) {
+    final ref = MaterialRef.fromTask(t.subject, t.detail);
+    openLibrary(context, app, teacher: l.teacherCode, teacherName: l.teacherName, focusTitle: ref.title.isEmpty ? null : ref.title, folder: ref.folder.isEmpty ? null : ref.folder);
+  }
+
   Widget _taskTile(SharedLesson l, Assignment t, {bool today = false, bool overdue = false}) {
     final done = app.lessonTaskDone(l, t);
     final st = app.taskStateOf(l, t);
@@ -332,7 +340,11 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
           if (t.note.isNotEmpty) Text(t.note, style: const TextStyle(fontSize: 12.5, height: 1.3)),
         ],
       ),
-      trailing: t.isScale ? TextButton.icon(onPressed: () => _train(t), icon: const Icon(Icons.play_arrow, size: 18), label: const Text('Treinar')) : null,
+      trailing: t.isScale
+          ? TextButton.icon(onPressed: () => _train(t), icon: const Icon(Icons.play_arrow, size: 18), label: const Text('Treinar'))
+          : (t.kind == TaskKind.material
+              ? TextButton.icon(onPressed: () => _openMaterial(l, t), icon: const Icon(Icons.open_in_new_rounded, size: 18), label: const Text('Abrir'))
+              : null),
     );
   }
 
