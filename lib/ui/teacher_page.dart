@@ -276,7 +276,7 @@ class _HowItWorks extends StatelessWidget {
                 'entra na lista de professores dele. Qualquer um pode encerrar o vínculo quando quiser. '
                 'Funciona com o "Vínculo online" ligado (no perfil de cada um).\n\n'
                 'Aulas: na ficha do aluno, toque em "Começar a aula". Passe as tarefas e observações normalmente e, '
-                'ao tocar em "Encerrar", tudo o que você passou naquela aula vai para o aluno, em Meu perfil › Minhas aulas. '
+                'ao tocar em "Encerrar", tudo o que você passou naquela aula vai para o aluno, em Minha conta › Minhas aulas. '
                 'Dá para pausar. O histórico de exercícios do aluno continua só no aparelho dele e no seu.',
                 style: TextStyle(fontSize: 12.5, height: 1.35),
               ),
@@ -900,7 +900,7 @@ class StudentPage extends StatelessWidget {
     } else if (issue == 'not_ready') {
       title = '${s.name} ainda não recebeu';
       text = 'O app de ${s.name} ainda não ligou o "Vínculo online" (ele vem desligado). Sem isso o servidor não '
-          'entrega nada. Peça para abrir Perfil › Vínculo online e ligar, ou mande o convite abaixo: ao abrir o '
+          'entrega nada. Peça para abrir Minha conta › Vínculo online e ligar, ou mande o convite abaixo: ao abrir o '
           'link, o vínculo liga sozinho. Quando ele ligar, chega em até 30 segundos.';
       showInvite = true;
     } else if (issue == 'offline' || app.linkOnline == false) {
@@ -1411,7 +1411,7 @@ class _LessonCardState extends State<_LessonCard> {
       return 'Este aluno não tem código: a aula fica só neste aparelho. Para enviar, informe o código dele (menu ⋮ › Código do aluno).';
     }
     if (!app.linkEnabled) {
-      return 'O vínculo online está desligado: a aula fica guardada e é enviada quando você ligá-lo (Meu perfil).';
+      return 'O vínculo online está desligado: a aula fica guardada e é enviada quando você ligá-lo (Minha conta).';
     }
     if (app.linkUnavailable) return 'O servidor ainda não recebe aulas: ela fica guardada e vai quando ficar disponível.';
     if (s.linkState != 'active') {

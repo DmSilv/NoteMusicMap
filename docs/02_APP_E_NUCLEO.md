@@ -69,7 +69,7 @@ Pares `x.dart` (exporta) → `x_web.dart` (navegador) e `x_stub.dart` (celular/t
 | Agendas | `agenda_page.dart` (professor e aluno), `slot_form_page.dart` | Rótulos explícitos "do professor"/"do aluno" |
 | Horários | `open_slots_page.dart` | Publicar (professor) e pegar (aluno) |
 | Aluno | `my_lessons_page.dart` | Aulas, tarefas e status oficial |
-| Conta e ajustes | `profile_page.dart`, `settings_page.dart` | "Minha conta", vínculo, chave de recuperação, diagnóstico |
+| Conta e ajustes | `profile_page.dart`, `settings_page.dart` | "Minha conta" (lista curta com subtelas), vínculo, código e QR, chave de recuperação, diagnóstico |
 | Avisos e erros | `notifications_sheet.dart`, `error_ui.dart` | Sino; tela crítica; problemas recentes |
 
 ## Como acrescentar algo (resumo; receitas completas em [10_GUIA_DE_MANUTENCAO.md](10_GUIA_DE_MANUTENCAO.md))

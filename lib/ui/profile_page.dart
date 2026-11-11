@@ -16,12 +16,12 @@ import 'link_bar.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
-/// "Meu perfil": o código que identifica você (sem cadastro) e a chave de
+/// "Minha conta": lista curta com o código que identifica você (sem cadastro) e a chave de
 /// recuperação, que permite levar o histórico para outro aparelho.
 class ProfilePage extends StatefulWidget {
   final AppState app;
 
-  /// 0 = Meu perfil, 1 = Professor.
+  /// Mantido por compatibilidade: a tela agora é uma lista só (sem abas).
   final int initialTab;
   const ProfilePage({super.key, required this.app, this.initialTab = 0});
 
@@ -53,6 +53,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void dispose() {
     app.unwatchLinks(fast: _fast);
     _restore.dispose();
+    _tick.dispose();
     _name.dispose();
     super.dispose();
   }
@@ -86,7 +87,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (ok != true) return;
     if (app.restoreProfile(_restore.text)) {
       _restore.clear();
-      setState(() => _showKey = false);
+      _upd(() => _showKey = false);
       app.say('Perfil restaurado.');
     } else {
       app.say(
@@ -95,128 +96,252 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 2,
-      initialIndex: widget.initialTab,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Minha conta'),
-          bottom: const TabBar(
-            tabs: [
-              Tab(icon: Icon(Icons.badge_outlined), text: 'Perfil'),
-              Tab(icon: Icon(Icons.school_outlined), text: 'Professor'),
-            ],
+  /// Atualiza esta página e as subtelas abertas (elas leem o estado daqui).
+  final _tick = ValueNotifier<int>(0);
+  void _upd(VoidCallback fn) {
+    setState(fn);
+    _tick.value++;
+  }
+
+  /// 0 = QR para o meu professor, 1 = QR para os meus alunos (só com o modo professor).
+  int _qrMode = 0;
+
+  /// Abre uma subtela que se refaz quando o app ou esta página mudam.
+  void _open(String title, Widget Function(BuildContext) body) {
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: Text(title)),
+        body: SafeArea(
+          child: ListenableBuilder(
+            listenable: Listenable.merge([app, _tick]),
+            builder: (context, _) => ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              children: [body(context)],
+            ),
           ),
         ),
-        body: SafeArea(
-          child: TabBarView(children: [_profileTab(), _teacherTab()]),
-        ),
       ),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Minha conta')),
+      body: SafeArea(child: _mainList()),
     );
   }
 
-  /// Aba "Professor": liga/desliga a capacidade e leva à tela Alunos.
-  Widget _teacherTab() {
+  Widget _section(String t) => Padding(
+        padding: const EdgeInsets.fromLTRB(4, 12, 4, 6),
+        child: Text(t, style: TextStyle(color: AppColors.textDim, fontSize: 12.5, fontWeight: FontWeight.w700)),
+      );
+
+  Widget _row(IconData icon, String title, {String? sub, Widget? trailing, VoidCallback? onTap}) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: AppCard(
+          padding: EdgeInsets.zero,
+          child: ListTile(
+            leading: Icon(icon, color: AppColors.textDim),
+            title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: sub == null ? null : Text(sub, style: const TextStyle(fontSize: 12.5)),
+            trailing: trailing ?? (onTap == null ? null : const Icon(Icons.chevron_right)),
+            onTap: onTap,
+          ),
+        ),
+      );
+
+  Widget _pill(String text, Color color) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+        decoration: BoxDecoration(color: color.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(10)),
+        child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 12.5)),
+      );
+
+  void _push(Widget page) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
+
+  /// Tela principal: uma lista curta. Cada linha abre a sua tela.
+  Widget _mainList() {
     return ListenableBuilder(
       listenable: app,
-      builder: (context, _) => ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        children: [
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text(
-                    'Modo professor',
-                    style: TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                  subtitle: const Text(
-                    'Todos começam como aluno e usam o app inteiro. Ligue se quiser cadastrar alunos, '
-                    'passar tarefas, anotar observações e gerar relatórios. Os dados ficam neste aparelho.',
-                    style: TextStyle(fontSize: 12.5),
-                  ),
+      builder: (context, _) {
+        final p = app.profile;
+        final st = app.linkStatus;
+        final linkColor = switch (st.health) {
+          LinkHealth.online => AppColors.inTune,
+          LinkHealth.offline || LinkHealth.serverDown => AppColors.flat,
+          _ => AppColors.textDim,
+        };
+        final name = (p.name ?? '').trim();
+        final plan = buildWeekPlan(app.myLessons, app.lessonTasksDone, DateTime.now());
+        final waiting = app.awaitingTotal;
+        return ListView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+          children: [
+            for (final n in app.notices.where((n) => !n.seen)) ...[
+              _noticeCard(context, n),
+              const SizedBox(height: 12),
+            ],
+            AppCard(
+              padding: EdgeInsets.zero,
+              child: ListTile(
+                contentPadding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+                leading: CircleAvatar(
+                  backgroundColor: AppColors.accent.withValues(alpha: 0.2),
+                  child: Text(name.isEmpty ? '?' : name[0].toUpperCase(),
+                      style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800)),
+                ),
+                title: Text(name.isEmpty ? 'Defina o seu nome' : name,
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                subtitle: Text('Código ${p.shareCode}'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _open('Meu código e QR', (_) => _codeBody()),
+              ),
+            ),
+            _section('Vínculos'),
+            _row(Icons.cloud_outlined, 'Vínculo online',
+                trailing: _pill(st.title, linkColor), onTap: () => _open('Vínculo online', (_) => _linkOnlineCard())),
+            _row(Icons.school_outlined, 'Meus professores',
+                sub: app.myTeachers.isEmpty
+                    ? 'Nenhum ainda'
+                    : '${app.myTeachers.length} ${app.myTeachers.length == 1 ? 'vinculado' : 'vinculados'}',
+                onTap: () => _open('Meus professores', _myTeacherCard)),
+            if (app.hasTeacherSide)
+              _row(Icons.checklist_rtl, 'Minhas aulas',
+                  trailing: plan.open > 0 ? _pill('${plan.open} em aberto', AppColors.accent) : const Icon(Icons.chevron_right),
+                  onTap: () => _push(MyLessonsPage(app: app))),
+            _section('Professor'),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: AppCard(
+                padding: EdgeInsets.zero,
+                child: SwitchListTile(
+                  secondary: Icon(Icons.groups_outlined, color: AppColors.textDim),
+                  title: const Text('Modo professor', style: TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: const Text('Cadastre alunos, passe tarefas e gere relatórios.', style: TextStyle(fontSize: 12.5)),
                   value: app.teacherMode,
                   onChanged: (v) async {
                     if (v && !await requireNickname(context, app, reason: 'Para ser professor, seus alunos precisam ver o seu nome.')) return;
                     app.setTeacherMode(v);
                   },
                 ),
-                if (app.teacherMode) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    app.students.isEmpty
-                        ? 'Nenhum aluno cadastrado ainda.'
-                        : '${app.students.length} aluno${app.students.length > 1 ? 's' : ''} cadastrado${app.students.length > 1 ? 's' : ''}.',
-                    style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
-                  ),
-                  const SizedBox(height: 8),
-                  FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
-                    ),
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => TeacherPage(app: app),
-                      ),
-                    ),
-                    icon: const Icon(Icons.school_outlined),
-                    label: const Text('Abrir Alunos'),
-                  ),
-                ],
-              ],
+              ),
             ),
-          ),
-          if (app.teacherMode) ...[
-            const SizedBox(height: 16),
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Seu QR de professor',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Seus alunos leem este QR em Meu perfil › Meus professores. Eles também podem digitar o código. '
-                    'Quem se vincular aparece sozinho na sua lista de alunos.',
-                    style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
-                  ),
-                  if (!app.linkEnabled) ...[
-                    const SizedBox(height: 8),
-                    OutlinedButton.icon(
-                      onPressed: () => app.setLinkEnabled(true),
-                      icon: const Icon(Icons.cloud_outlined),
-                      label: const Text('Ligar o vínculo online'),
-                    ),
-                  ],
-                  const SizedBox(height: 12),
-                  Center(
-                    child: SelectableText(
-                      app.profile.shareCode,
-                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w800, letterSpacing: 3),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                      child: QrImageView(
-                        data: '${shareLink()}/?professor=${app.profile.shareCode}',
-                        size: 150,
-                        padding: EdgeInsets.zero,
-                      ),
-                    ),
-                  ),
-                ],
+            if (app.teacherMode)
+              _row(Icons.list_alt, 'Meus alunos',
+                  sub: app.students.isEmpty
+                      ? 'Nenhum aluno ainda'
+                      : '${app.students.length} ${app.students.length == 1 ? 'aluno' : 'alunos'}'
+                          '${waiting > 0 ? ' · $waiting para validar' : ''}',
+                  onTap: () => _push(TeacherPage(app: app))),
+            _section('Conta'),
+            _row(Icons.key, 'Chave de recuperação',
+                sub: p.recoveryShownAt == null ? 'Você ainda não guardou a sua chave' : null,
+                onTap: () => _open('Chave de recuperação', (_) => _keyBody())),
+            _row(Icons.settings_outlined, 'Ajustes', onTap: () {
+              app.markTab('settings');
+              _push(SettingsPage(app: app));
+            }),
+            _row(Icons.ios_share, 'Compartilhar o app', onTap: () => showShareSheet(context)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
+              child: Text(
+                'Sem cadastro: seus dados ficam neste aparelho. A chave guarda só a sua identidade, não o histórico.',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12),
               ),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  /// Seu código e o QR (um só): para o seu professor ou, no modo professor, para os seus alunos.
+  Widget _codeBody() {
+    final p = app.profile;
+    final mode = app.teacherMode ? _qrMode : 0;
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextField(
+            controller: _name,
+            inputFormatters: const [SafeText.name()],
+            textCapitalization: TextCapitalization.words,
+            maxLength: 40,
+            decoration: const InputDecoration(
+              labelText: 'Seu nome',
+              helperText: 'Aparece para o seu professor ou aluno quando você se vincula.',
+              helperMaxLines: 2,
+            ),
+            onChanged: app.setProfileName,
+          ),
+          const SizedBox(height: 12),
+          Center(
+            child: SelectableText(
+              p.shareCode,
+              style: const TextStyle(
+                fontSize: 34,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 3,
+                fontFeatures: [FontFeature.tabularFigures()],
+              ),
+            ),
+          ),
+          if (app.teacherMode) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<int>(
+                showSelectedIcon: false,
+                segments: const [
+                  ButtonSegment(value: 0, label: Text('Para meu professor')),
+                  ButtonSegment(value: 1, label: Text('Para meus alunos')),
+                ],
+                selected: {mode},
+                onSelectionChanged: (v) => _upd(() => _qrMode = v.first),
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+              child: QrImageView(
+                // Link, não só o código: a câmera comum do celular abre o app já com ele.
+                data: mode == 0 ? '${shareLink()}/?aluno=${p.shareCode}' : '${shareLink()}/?professor=${p.shareCode}',
+                size: 170,
+                padding: EdgeInsets.zero,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            mode == 0
+                ? 'Mostre ao seu professor: ele aponta a câmera e o Notemusic abre com o seu código. '
+                    'Ele só vê seus exercícios se você aceitar o convite.'
+                : 'Seus alunos leem este QR em Meus professores, ou digitam o código. Quem se vincular entra sozinho na sua lista.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+          ),
+          if (mode == 1 && !app.linkEnabled) ...[
+            const SizedBox(height: 8),
+            Center(
+              child: OutlinedButton.icon(
+                onPressed: () => app.setLinkEnabled(true),
+                icon: const Icon(Icons.cloud_outlined),
+                label: const Text('Ligar o vínculo online'),
+              ),
+            ),
+          ],
+          const SizedBox(height: 10),
+          Center(
+            child: OutlinedButton.icon(
+              onPressed: () => _copy(p.shareCode, 'Código'),
+              icon: const Icon(Icons.copy, size: 18),
+              label: const Text('Copiar código'),
+            ),
+          ),
         ],
       ),
     );
@@ -293,10 +418,10 @@ class _ProfilePageState extends State<ProfilePage> {
   bool _reconnecting = false;
 
   Future<void> _reconnect() async {
-    setState(() => _reconnecting = true);
+    _upd(() => _reconnecting = true);
     final msg = await app.reconnectLink();
     if (!mounted) return;
-    setState(() => _reconnecting = false);
+    _upd(() => _reconnecting = false);
     app.say(msg);
   }
 
@@ -427,253 +552,96 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  Widget _profileTab() {
-    return ListenableBuilder(
-      listenable: app,
-      builder: (context, _) {
-        final p = app.profile;
-        final key = recoveryKeyFor(p);
-        return ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-          children: [
-            for (final n in app.notices.where((n) => !n.seen)) ...[
-              _noticeCard(context, n),
-              const SizedBox(height: 16),
-            ],
-            Row(children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) {
-                    app.markTab('settings');
-                    return SettingsPage(app: app);
-                  })),
-                  icon: const Icon(Icons.settings_outlined, size: 18),
-                  label: const Text('Ajustes'),
+  /// Chave de recuperação e "usar um perfil que já tenho".
+  Widget _keyBody() {
+    final p = app.profile;
+    final key = recoveryKeyFor(p);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Guarde esta chave em lugar seguro. Com ela você leva seu perfil para outro aparelho '
+                'ou depois de reinstalar o app. Quem tiver a chave pode se passar por você: não envie a ninguém.',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+              ),
+              if (p.recoveryShownAt == null) ...[
+                const SizedBox(height: 8),
+                Text('Você ainda não guardou a sua chave.',
+                    style: TextStyle(color: AppColors.sharp, fontWeight: FontWeight.w700, fontSize: 13)),
+              ],
+              const SizedBox(height: 10),
+              if (!_showKey)
+                FilledButton.tonalIcon(
+                  onPressed: () => _upd(() => _showKey = true),
+                  icon: const Icon(Icons.visibility_outlined),
+                  label: const Text('Mostrar minha chave'),
+                )
+              else ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
+                  child: SelectableText(key, style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5, height: 1.4)),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () => showShareSheet(context),
-                  icon: const Icon(Icons.ios_share, size: 18),
-                  label: const Text('Compartilhar'),
-                ),
-              ),
-            ]),
-            const SizedBox(height: 16),
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Seu código',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Sem cadastro: o app criou este código para você. Um professor pode usá-lo para '
-                    'encontrar você, mas só consegue ver seus exercícios se você aceitar o convite dele.',
-                    style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
-                  ),
-                  const SizedBox(height: 14),
-                  Center(
-                    child: SelectableText(
-                      p.shareCode,
-                      style: const TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 3,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
+                const SizedBox(height: 8),
+                Row(children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () async {
+                        await _copy(key, 'Chave');
+                        app.markRecoveryShown();
+                      },
+                      icon: const Icon(Icons.copy, size: 18),
+                      label: const Text('Copiar'),
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: QrImageView(
-                        // Link, não só o código: a câmera comum do celular do professor abre o app já com ele.
-                        data: '${shareLink()}/?aluno=${p.shareCode}',
-                        size: 150,
-                        padding: EdgeInsets.zero,
-                      ),
-                    ),
+                  const SizedBox(width: 8),
+                  OutlinedButton(
+                    onPressed: () {
+                      app.markRecoveryShown();
+                      _upd(() => _showKey = false);
+                    },
+                    child: const Text('Já guardei'),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Mostre este QR ao seu professor: ele aponta a câmera do celular e o Notemusic '
-                    'abre já com o seu código.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
-                  ),
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    onPressed: () => _copy(p.shareCode, 'Código'),
-                    icon: const Icon(Icons.copy, size: 18),
-                    label: const Text('Copiar código'),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _name,
-                    inputFormatters: const [SafeText.name()],
-                    textCapitalization: TextCapitalization.words,
-                    maxLength: 40,
-                    decoration: const InputDecoration(
-                      labelText: 'Seu nome',
-                      helperText: 'Aparece para o seu professor ou aluno quando você se vincula.',
-                    ),
-                    onChanged: app.setProfileName,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            _linkOnlineCard(),
-            const SizedBox(height: 16),
-            _myTeacherCard(context),
-            if (app.myTeachers.isNotEmpty || app.myLessons.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              MyLessonsCard(app: app),
+                ]),
+              ],
             ],
-            const SizedBox(height: 16),
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.key, color: AppColors.accent),
-                      const SizedBox(width: 8),
-                      const Expanded(
-                        child: Text(
-                          'Chave de recuperação',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Guarde esta chave em lugar seguro (gerenciador de senhas ou anotação privada). '
-                    'Com ela você leva seu perfil para outro aparelho ou depois de reinstalar o app. '
-                    'Quem tiver a chave pode se passar por você: não envie a ninguém.',
-                    style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
-                  ),
-                  if (p.recoveryShownAt == null) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'Você ainda não guardou a sua chave.',
-                      style: TextStyle(
-                        color: AppColors.sharp,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 10),
-                  if (!_showKey)
-                    FilledButton.tonalIcon(
-                      onPressed: () => setState(() => _showKey = true),
-                      icon: const Icon(Icons.visibility_outlined),
-                      label: const Text('Mostrar minha chave'),
-                    )
-                  else ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface2,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: SelectableText(
-                        key,
-                        style: const TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 12.5,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () async {
-                              await _copy(key, 'Chave');
-                              app.markRecoveryShown();
-                            },
-                            icon: const Icon(Icons.copy, size: 18),
-                            label: const Text('Copiar'),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        OutlinedButton(
-                          onPressed: () {
-                            app.markRecoveryShown();
-                            setState(() => _showKey = false);
-                          },
-                          child: const Text('Já guardei'),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        AppCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Usar um perfil que já tenho', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 4),
+              Text('Cole a chave de recuperação do outro aparelho.',
+                  style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _restore,
+                inputFormatters: const [SafeText.paste(600)],
+                minLines: 2,
+                maxLines: 4,
+                autocorrect: false,
+                enableSuggestions: false,
+                decoration: const InputDecoration(hintText: 'NM1-…'),
+                onChanged: (_) => _upd(() {}),
               ),
-            ),
-            const SizedBox(height: 16),
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Usar um perfil que já tenho',
-                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Cole a chave de recuperação do outro aparelho.',
-                    style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _restore,
-                    inputFormatters: const [SafeText.paste(600)],
-                    minLines: 2,
-                    maxLines: 4,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    decoration: const InputDecoration(hintText: 'NM1-…'),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(
-                    onPressed: _restore.text.trim().isEmpty ? null : _doRestore,
-                    icon: const Icon(Icons.restore),
-                    label: const Text('Restaurar perfil'),
-                  ),
-                ],
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: _restore.text.trim().isEmpty ? null : _doRestore,
+                icon: const Icon(Icons.restore),
+                label: const Text('Restaurar perfil'),
               ),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                'Hoje seus dados ficam só neste aparelho. A chave guarda a sua identidade, não o histórico: '
-                'o envio do histórico entre aparelhos virá numa próxima etapa.',
-                style: TextStyle(color: AppColors.textDim, fontSize: 12),
-              ),
-            ),
-          ],
-        );
-      },
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

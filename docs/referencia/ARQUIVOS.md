@@ -57,7 +57,7 @@
 | `lib/ui/pedal_view.dart` | Modo "Pedal" do Afinador: escolha notas num teclado e elas soam juntas, sustentadas. Serve para tocar uma melodia por cima (bordão) e para treinar o ouvido com intervalos e acordes. Soa no sistema de afinação… |
 | `lib/ui/perf.dart` | Um [Listenable] que nunca avisa nada. Uma aba escondida escuta este em vez do app: assim ela não se reconstrói enquanto não está na tela, e volta a atualizar sozinha (o ListenableBuilder reassina) quando fica visível. |
 | `lib/ui/pomodoro_card.dart` | Timer de estudo (Pomodoro) com alarme sutil. |
-| `lib/ui/profile_page.dart` | "Meu perfil": o código que identifica você (sem cadastro) e a chave de recuperação, que permite levar o histórico para outro aparelho. |
+| `lib/ui/profile_page.dart` | "Minha conta": lista curta com o código que identifica você (sem cadastro) e a chave de recuperação, que permite levar o histórico para outro aparelho. |
 | `lib/ui/progress_cards.dart` | Evolução da taxa de acerto nos exercícios de escala. |
 | `lib/ui/qr_scan_page.dart` | Abre a câmera para ler o QR de um aluno ou de um professor. Também deixa digitar o código na mesma tela (se a câmera estiver sem permissão ou o QR não sair). Devolve o código lido, ou null se a pessoa voltar. [want]… |
 | `lib/ui/ref_a_dialog.dart` | Diálogo do Lá de referência (415 a 443 Hz e valor livre). |

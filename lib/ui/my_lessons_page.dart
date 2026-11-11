@@ -141,7 +141,7 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
                     AppCard(
                       child: Text(
                         app.myTeachers.isEmpty
-                            ? 'Você ainda não tem professor vinculado. Em Meu perfil › Meus professores, leia o QR dele.'
+                            ? 'Você ainda não tem professor vinculado. Em Minha conta › Meus professores, leia o QR dele.'
                             : 'Nenhuma aula recebida ainda. Quando seu professor encerrar uma aula, as tarefas '
                                 'dela aparecem aqui sozinhas. Para conferir agora, toque em ↻.',
                         style: TextStyle(color: AppColors.textDim),
@@ -175,7 +175,7 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
     IconData icon = Icons.cloud_off_outlined;
     Color color = AppColors.textDim;
     if (!app.linkEnabled) {
-      msg = 'O vínculo online está desligado: ligue em Meu perfil para receber as aulas.';
+      msg = 'O vínculo online está desligado: ligue em Minha conta › Vínculo online para receber as aulas.';
     } else if (app.linkUnavailable) {
       msg = 'O servidor ainda não está recebendo aulas. Quando ficar disponível, elas chegam aqui.';
       color = AppColors.flat;

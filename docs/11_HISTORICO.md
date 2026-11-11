@@ -69,5 +69,8 @@ Em tela deitada com 900 px ou mais de largura, o app mostra duas telas lado a la
 ## Escalas na barra de baixo (novembro/2026)
 A barra tem 5 itens: Afinador, Metrônomo, Grade, Escalas e Meu espaço. A Grade ficou com Grade e Ajustes; as escalas e arpejos guiados viraram a aba Escalas (os atalhos do Meu espaço levam a ela). No tablet deitado o seletor de cada lado também ganhou Escalas. O painel passa a contar a aba "scales".
 
+## Minha conta em lista (novembro/2026)
+A tela "Minha conta" deixou as abas Perfil e Professor e virou uma lista curta: nome e código no topo, grupos Vínculos (vínculo online, meus professores, minhas aulas), Professor (modo professor e meus alunos) e Conta (chave de recuperação, ajustes, compartilhar). Cada linha abre a sua tela. O código e o QR agora são um só, em "Meu código e QR", com seletor "Para meu professor / Para meus alunos" (o segundo só no modo professor). Nenhuma função foi removida e a API não mudou.
+
 ## Divulgação (novembro/2026)
 Site: página `/sobre` (texto indexável + perguntas frequentes), `robots.txt`, `sitemap.xml`, título/descrição e dados estruturados melhores, `<noscript>`. Medição de origem das visitas por marca no link (`?o=yt`, `?o=ig`, `?o=tt`, `?o=zap`, `?o=site`), guardada no primeiro acesso do aparelho e mostrada em `/admin` › Uso › "De onde vieram". O plano de divulgação e os textos prontos ficam fora do repositório, na pasta local `divulgacao/`.
