@@ -6,7 +6,10 @@
 // A API (/api/*) e o arquivo de versão nunca passam pelo cache.
 'use strict';
 
-const CACHE = 'notemusic-v1';
+// "dev" vira o código da versão publicada no build (scripts/vercel_build.sh). Cada publicação tem
+// um cache novo, então arquivos velhos (fontes de ícones, por exemplo) nunca se misturam com os novos.
+const BUILD = 'dev';
+const CACHE = 'notemusic-' + BUILD;
 
 self.addEventListener('install', () => self.skipWaiting());
 
@@ -38,7 +41,8 @@ async function guardar(cache, req, res) {
 async function redePrimeiro(req) {
   const cache = await caches.open(CACHE);
   try {
-    const res = await fetch(req);
+    // "no-cache": confere com o servidor antes de usar a cópia do navegador (nada de arquivo velho).
+    const res = await fetch(req, req.mode === 'navigate' ? undefined : { cache: 'no-cache' });
     await guardar(cache, req, res);
     return res;
   } catch (err) {
@@ -124,7 +128,7 @@ self.addEventListener('message', (event) => {
           const url = new URL(raw);
           if (!cacheable(url)) continue;
           if (await cache.match(url.href, { ignoreSearch: false })) continue;
-          const res = await fetch(url.href);
+          const res = await fetch(url.href, { cache: 'no-cache' });
           await guardar(cache, url.href, res);
         } catch (_) {
           /* esse arquivo fica para depois */

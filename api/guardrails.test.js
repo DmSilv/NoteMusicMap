@@ -219,3 +219,21 @@ test('links curtos de divulgação (/yt, /ig, /tt, /zap, /l) apontam para o app 
     assert.match(o, /^[a-z0-9]{1,8}$/); // mesma regra da origem aceita em api/stats.js
   }
 });
+
+test('cache do site: arquivos do app sempre conferem com o servidor e o service worker é carimbado por versão', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const root = path.join(__dirname, '..');
+  const v = JSON.parse(fs.readFileSync(path.join(root, 'vercel.json'), 'utf8'));
+  const h = v.headers.find((x) => x.source.includes('canvaskit|assets|icons'));
+  assert.ok(h, 'falta o cabeçalho de assets');
+  const cc = h.headers.find((x) => x.key === 'Cache-Control').value;
+  // A fonte de ícones muda a cada build com o mesmo nome: cache longo mistura versões (ícones sumindo).
+  assert.match(cc, /must-revalidate|no-cache/);
+  assert.doesNotMatch(cc, /max-age=[1-9]/);
+  const sw = fs.readFileSync(path.join(root, 'web', 'sw.js'), 'utf8');
+  assert.match(sw, /const BUILD = 'dev';/); // o build troca "dev" pela versão
+  assert.match(sw, /cache: 'no-cache'/);
+  const sh = fs.readFileSync(path.join(root, 'scripts', 'vercel_build.sh'), 'utf8');
+  assert.match(sh, /const BUILD = '/);
+});

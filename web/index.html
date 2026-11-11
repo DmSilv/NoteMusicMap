@@ -67,6 +67,20 @@
   <!-- Funcionar sem internet: service worker próprio. Depois de carregar, pede para guardar tudo o que a página já baixou. -->
   <script>
     if ('serviceWorker' in navigator) {
+      // Saiu versão nova do service worker logo ao abrir: recarrega uma vez, sozinho, para a página
+      // e os arquivos (ícones, fontes) ficarem todos da mesma versão. Nunca no meio do uso.
+      (function () {
+        var hadController = !!navigator.serviceWorker.controller;
+        var t0 = Date.now();
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
+          if (!hadController || Date.now() - t0 > 20000) return;
+          try {
+            if (sessionStorage.getItem('nm_sw_reload')) return;
+            sessionStorage.setItem('nm_sw_reload', '1');
+          } catch (e) { return; }
+          location.reload();
+        });
+      })();
       window.addEventListener('load', function () {
         navigator.serviceWorker.register('sw.js').then(function () {
           return navigator.serviceWorker.ready;

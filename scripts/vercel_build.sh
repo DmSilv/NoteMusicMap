@@ -26,6 +26,10 @@ echo ">> Compilando para a web (release)"
 BUILD_ID="${VERCEL_GIT_COMMIT_SHA:-local}"
 flutter build web --release --dart-define=BUILD_ID="$BUILD_ID" --dart-define=CONTACT_EMAIL="${CONTACT_EMAIL:-}"
 printf "%s" "$BUILD_ID" > build/web/build-id.txt
+# Carimba o service worker com a versão: cada publicação limpa o cache da anterior.
+SAFE_ID="$(printf "%s" "$BUILD_ID" | tr -cd 'A-Za-z0-9' | cut -c1-12)"
+sed -i "s/const BUILD = 'dev';/const BUILD = '${SAFE_ID:-x}';/" build/web/sw.js
+grep -q "const BUILD = '${SAFE_ID:-x}';" build/web/sw.js || { echo "ERRO: sw.js nao foi carimbado"; exit 1; }
 
 echo ">> Pronto: build/web"
 ls -la build/web | head -20
