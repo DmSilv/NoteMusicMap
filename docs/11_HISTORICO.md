@@ -107,3 +107,9 @@ Site: página `/sobre` (texto indexável + perguntas frequentes), `robots.txt`, 
 
 ## Grade mais limpa (novembro/2026)
 A grade da tela Grade ficou menor (4 oitavas por padrão, ~52 px por linha) e ganhou o botão "Ampliar a grade" para tocar em tela cheia. A legenda virou uma barra de cores com três rótulos (Grave: suba · Afinado · Agudo: desça). O seletor de oitavas é um trilho único com uma janela que desliza (números 0–8, ponto nas já tocadas, "Lá" na 4) e setas redondas. Quantidade de oitavas e "Seguir a nota que eu toco" foram para o modal "Ajustes da grade".
+
+## Modo desafio em três desafios (novembro/2026)
+O Modo desafio do metrônomo ganhou três desafios com nome: **Sumiço** (o metrônomo some e volta), **Elástico** (o andamento estica e encolhe) e **Surpresa total** (os dois), mais uma dificuldade Leve/Médio/Intenso. A tela diz exatamente o que vai acontecer ("A cada 4 a 8 compassos… de 100 para cerca de 122 ou 78"), mostra uma prévia de 16 compassos e, tocando, avisa na hora ("Sumiço! Segure o pulso…", "Mais rápido!"). O fim mostra quantas vezes o metrônomo sumiu ou mudou. O formato salvo (`l`, `t`, `s`) não mudou: quem já usava o desafio continua igual.
+
+## Grade em tela cheia legível (novembro/2026)
+Na tela cheia a grade ganhou margens laterais maiores e letras bem maiores; com o celular em pé, o nome da nota é escrito na vertical para usar a altura do quadrado.

@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
@@ -193,10 +194,14 @@ class _MetronomePageState extends State<MetronomePage>
                     Text(
                       running
                           ? (b.hidden
-                              ? 'Continue no seu andamento…'
+                              ? 'Sumiço! Segure o pulso…'
                               : (b.bar < 0
                                   ? 'Contagem inicial'
-                                  : (app.challengeOn ? 'Modo desafio' : 'Compasso ${b.bar + 1}')))
+                                  : switch (b.challenge) {
+                                      ChallengeKind.faster => 'Mais rápido! Acompanhe…',
+                                      ChallengeKind.slower => 'Mais lento! Acompanhe…',
+                                      _ => app.challengeOn ? 'No seu andamento' : 'Compasso ${b.bar + 1}',
+                                    }))
                           : 'Toque numa bolinha para mudar o acento',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
@@ -433,73 +438,91 @@ class _MetronomePageState extends State<MetronomePage>
         contentPadding: EdgeInsets.zero,
         secondary: Icon(Icons.psychology_alt_outlined, color: on ? AppColors.accent : AppColors.textDim),
         title: const Text('Modo desafio', style: TextStyle(fontWeight: FontWeight.w800)),
-        subtitle: const Text('De surpresa muda o ritmo ou silencia.', style: TextStyle(fontSize: Ds.fontLabel)),
+        subtitle: Text(
+            on
+                ? '${switch (app.challengeCfg.name) { ChallengeName.sumico => 'Sumiço', ChallengeName.elastico => 'Elástico', ChallengeName.total => 'Surpresa total' }} · ${switch (app.challengeCfg.level) { 1 => 'Leve', 3 => 'Intenso', _ => 'Médio' }}. Troque em Ajustes.'
+                : 'Treine o pulso: o ritmo some ou muda de surpresa.',
+            style: const TextStyle(fontSize: Ds.fontLabel)),
         value: on,
         onChanged: (v) => app.setChallenge(on: v),
       ),
     );
   }
 
-  /// Modo desafio ("sabotagem"): surpresas temporárias para treinar o pulso interno.
+  /// Modo desafio: escolha um dos 3 desafios e a dificuldade; a tela diz exatamente o que vai acontecer.
   Widget _challengeCard(MetronomeConfig m) {
     final on = app.challengeOn;
     final c = app.challengeCfg;
+    final bpm = m.bpm.round();
+    const names = [
+      (ChallengeName.sumico, Icons.volume_off_rounded, 'Sumiço', 'O metrônomo some e volta'),
+      (ChallengeName.elastico, Icons.swap_horiz_rounded, 'Elástico', 'O andamento estica e encolhe'),
+      (ChallengeName.total, Icons.casino_rounded, 'Surpresa total', 'Qualquer um dos dois'),
+    ];
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            secondary: Icon(Icons.psychology_alt_outlined, color: on ? AppColors.accent : AppColors.textDim),
+            secondary: DsIconBadge(Icons.psychology_alt_rounded, size: 36, color: on ? AppColors.accent : AppColors.textDim),
             title: const Text('Modo desafio', style: TextStyle(fontWeight: FontWeight.w800)),
-            subtitle: Text(
-              'De surpresa, acelera, desacelera ou silencia por alguns compassos e volta aos ${m.bpm.round()} BPM.',
-              style: const TextStyle(fontSize: 12.5),
-            ),
+            subtitle: Text('Treine o pulso por dentro. Sempre volta aos $bpm BPM.', style: const TextStyle(fontSize: Ds.fontLabel)),
             value: on,
             onChanged: (v) => app.setChallenge(on: v),
           ),
           if (on) ...[
-            const SizedBox(height: 4),
-            Text('Intensidade', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-            const SizedBox(height: 4),
-            Wrap(spacing: 6, children: [
-              for (final (lv, label) in const [(1, 'Leve'), (2, 'Médio'), (3, 'Intenso')])
-                ChoiceChip(
-                  label: Text(label),
-                  selected: c.level == lv,
-                  onSelected: (_) => app.setChallenge(cfg: c.copyWith(level: lv)),
+            const DsGap(Ds.s12),
+            for (final (n, icon, title, sub) in names)
+              Padding(
+                padding: const EdgeInsets.only(bottom: Ds.s8),
+                child: Material(
+                  color: c.name == n ? AppColors.accent.withValues(alpha: 0.14) : AppColors.surface2,
+                  borderRadius: BorderRadius.circular(Ds.radiusControl),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(Ds.radiusControl),
+                    onTap: () => app.setChallenge(cfg: ChallengeConfig.named(n, level: c.level)),
+                    child: Container(
+                      constraints: const BoxConstraints(minHeight: Ds.tap),
+                      padding: const EdgeInsets.symmetric(horizontal: Ds.s12, vertical: Ds.s8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(Ds.radiusControl),
+                        border: Border.all(color: c.name == n ? AppColors.accent : Colors.transparent, width: 1.5),
+                      ),
+                      child: Row(children: [
+                        Icon(icon, color: c.name == n ? AppColors.accent : AppColors.textDim),
+                        const SizedBox(width: Ds.s12),
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+                            Text(sub, style: Ds.support()),
+                          ]),
+                        ),
+                        if (c.name == n) Icon(Icons.check_circle_rounded, color: AppColors.accent),
+                      ]),
+                    ),
+                  ),
                 ),
-            ]),
-            const SizedBox(height: 4),
-            Text(
-              switch (c.level) {
-                1 => 'Mudanças pequenas (cerca de 10%), silêncios de 1 a 2 compassos, surpresas mais espaçadas.',
-                3 => 'Mudanças grandes (20 a 35%), silêncios de 2 a 4 compassos, surpresas frequentes.',
-                _ => 'Mudanças médias (12 a 22%), silêncios de 2 a 3 compassos.',
-              },
-              style: TextStyle(color: AppColors.textDim, fontSize: 12),
+              ),
+            const DsGap(Ds.s8),
+            Text('Dificuldade', style: Ds.section()),
+            const DsGap(Ds.s8),
+            SegmentedButton<int>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: 1, label: Text('Leve')),
+                ButtonSegment(value: 2, label: Text('Médio')),
+                ButtonSegment(value: 3, label: Text('Intenso')),
+              ],
+              selected: {c.level},
+              onSelectionChanged: (s) => app.setChallenge(cfg: c.copyWith(level: s.first)),
             ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              title: const Text('Mudar o andamento'),
-              subtitle: const Text('Acelera ou desacelera por alguns compassos', style: TextStyle(fontSize: 12)),
-              value: c.tempoChanges,
-              onChanged: (v) => app.setChallenge(cfg: c.copyWith(tempoChanges: v)),
-            ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              title: const Text('Ficar em silêncio'),
-              subtitle: const Text('Sem som e sem marcação na tela, depois volta de surpresa',
-                  style: TextStyle(fontSize: 12)),
-              value: c.silences,
-              onChanged: (v) => app.setChallenge(cfg: c.copyWith(silences: v)),
-            ),
-            if (!c.active)
-              Text('Ligue pelo menos uma surpresa para o desafio funcionar.',
-                  style: TextStyle(color: AppColors.sharp, fontSize: 12.5, fontWeight: FontWeight.w700)),
+            const DsGap(Ds.s16),
+            Text('Vai acontecer', style: Ds.section()),
+            const DsGap(Ds.s4),
+            Text(c.describe(bpm), style: const TextStyle(fontSize: Ds.fontBody, height: 1.35)),
+            const DsGap(Ds.s12),
+            _ChallengePreview(cfg: c),
           ],
         ],
       ),
@@ -666,4 +689,72 @@ class _BeatFlashState extends State<_BeatFlash> with SingleTickerProviderStateMi
         animation: _c,
         builder: (context, _) => ColoredBox(color: Colors.white.withValues(alpha: _peak * (1 - _c.value))),
       );
+}
+
+/// Prévia de 16 compassos de exemplo: o que o desafio escolhido pode fazer (a sequência real é sorteada).
+class _ChallengePreview extends StatelessWidget {
+  final ChallengeConfig cfg;
+  const _ChallengePreview({required this.cfg});
+
+  @override
+  Widget build(BuildContext context) {
+    final r = RhythmChallenge(cfg, random: Random(cfg.level * 7 + cfg.name.index));
+    final bars = [for (var i = 0; i < 16; i++) r.barFor(i)];
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      SizedBox(
+        height: 44,
+        child: Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+          for (final b in bars)
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 1.5),
+                child: Align(
+                  alignment: Alignment.bottomCenter,
+                  child: Container(
+                    height: switch (b.kind) {
+                      ChallengeKind.faster => 44.0,
+                      ChallengeKind.slower => 18.0,
+                      _ => 30.0,
+                    },
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(4),
+                      color: switch (b.kind) {
+                        ChallengeKind.faster => AppColors.sharp,
+                        ChallengeKind.slower => AppColors.flat,
+                        ChallengeKind.silence => Colors.transparent,
+                        _ => AppColors.surface2,
+                      },
+                      border: b.kind == ChallengeKind.silence ? Border.all(color: AppColors.textDim, width: 1.5) : null,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ]),
+      ),
+      const DsGap(Ds.s8),
+      Wrap(spacing: Ds.s16, runSpacing: Ds.s4, children: [
+        _key(AppColors.surface2, 'normal'),
+        if (cfg.tempoChanges) _key(AppColors.sharp, 'mais rápido'),
+        if (cfg.tempoChanges) _key(AppColors.flat, 'mais lento'),
+        if (cfg.silences) _key(null, 'sumiço'),
+      ]),
+      const DsGap(Ds.s4),
+      Text('Exemplo de 16 compassos. A ordem real é sorteada.', style: Ds.support()),
+    ]);
+  }
+
+  Widget _key(Color? c, String t) => Row(mainAxisSize: MainAxisSize.min, children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: c,
+            borderRadius: BorderRadius.circular(3),
+            border: c == null ? Border.all(color: AppColors.textDim, width: 1.5) : null,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(t, style: const TextStyle(fontSize: Ds.fontLabel)),
+      ]);
 }

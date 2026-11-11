@@ -23,6 +23,7 @@ class GridCell extends StatelessWidget {
   final Set<int> scale;
   final double labelSize;
   final double radius;
+  final bool vertical;
   final VoidCallback? onTap;
   const GridCell({
     super.key,
@@ -31,6 +32,7 @@ class GridCell extends StatelessWidget {
     required this.scale,
     this.labelSize = 17,
     this.radius = 6,
+    this.vertical = false,
     this.onTap,
   });
 
@@ -105,21 +107,7 @@ class GridCell extends StatelessWidget {
               fit: BoxFit.scaleDown,
               child: Padding(
                 padding: const EdgeInsets.all(3),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Nome da nota com ♯/♭ elevado e oitava pequena, alinhados.
-                    NoteLabel.midi(midi, app.cfg,
-                        size: labelSize, weight: weight, color: labelColor),
-                    if (v != null)
-                      Text('×${v.plays}',
-                          style: TextStyle(
-                              fontSize: 11,
-                              height: 1.1,
-                              fontWeight: FontWeight.w700,
-                              color: dark.withValues(alpha: 0.85))),
-                  ],
-                ),
+                child: _label(v, weight, labelColor, dark),
               ),
             ),
           ),
@@ -128,5 +116,25 @@ class GridCell extends StatelessWidget {
     );
     if (onTap == null) return cell;
     return GestureDetector(behavior: HitTestBehavior.opaque, onTap: onTap, child: cell);
+  }
+
+  /// Nome da nota (com ♯/♭ e oitava) e, embaixo, quantas vezes foi tocada. Na tela cheia em pé o
+  /// texto gira 90° para usar a altura do quadrado, que é muito maior que a largura.
+  Widget _label(dynamic v, FontWeight weight, Color labelColor, Color dark) {
+    final name = NoteLabel.midi(midi, app.cfg, size: labelSize, weight: weight, color: labelColor);
+    final count = v == null
+        ? null
+        : Text('×${v.plays}',
+            style: TextStyle(fontSize: 11, height: 1.1, fontWeight: FontWeight.w700, color: dark.withValues(alpha: 0.85)));
+    if (vertical) {
+      return RotatedBox(
+        quarterTurns: 3,
+        child: Row(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.center, children: [
+          name,
+          if (count != null) ...[const SizedBox(width: 8), count],
+        ]),
+      );
+    }
+    return Column(mainAxisSize: MainAxisSize.min, children: [name, ?count]);
   }
 }

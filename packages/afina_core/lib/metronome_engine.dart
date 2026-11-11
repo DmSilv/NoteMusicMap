@@ -142,8 +142,11 @@ class ClickEvent {
 
   /// Silêncio do modo desafio: nem som nem marcação na tela.
   final bool hidden;
+
+  /// O que o modo desafio está fazendo neste compasso (para a tela avisar).
+  final ChallengeKind challenge;
   const ClickEvent(this.sample, this.bar, this.beat, this.sub, this.accent,
-      this.audible, this.bpm, {this.hidden = false});
+      this.audible, this.bpm, {this.hidden = false, this.challenge = ChallengeKind.normal});
 }
 
 class _Voice {
@@ -337,7 +340,7 @@ class MetronomeEngine {
       final muted = _isMuted(_bar) || _cb.muted;
       final accent = _accentFor(_beat, _sub);
       final audible = !muted && accent != Accent.mute;
-      _events.add(ClickEvent(at, _bar, _beat, _sub, accent, audible, _bpm, hidden: _cb.muted));
+      _events.add(ClickEvent(at, _bar, _beat, _sub, accent, audible, _bpm, hidden: _cb.muted, challenge: _cb.kind));
       if (audible) {
         final gain = switch (accent) {
           Accent.strong => 1.0,

@@ -41,6 +41,38 @@ class ChallengeConfig {
 
   const ChallengeConfig({this.level = 2, this.tempoChanges = true, this.silences = true});
 
+  /// Os três desafios com nome: "Sumiço" (só silêncio), "Elástico" (só andamento), "Surpresa total" (os dois).
+  factory ChallengeConfig.named(ChallengeName n, {int level = 2}) => ChallengeConfig(
+        level: level.clamp(1, 3),
+        tempoChanges: n != ChallengeName.sumico,
+        silences: n != ChallengeName.elastico,
+      );
+
+  /// Qual dos três desafios esta configuração representa.
+  ChallengeName get name => (tempoChanges && silences)
+      ? ChallengeName.total
+      : (silences ? ChallengeName.sumico : ChallengeName.elastico);
+
+  /// Números reais da dificuldade (os mesmos que o sorteio usa).
+  ChallengeNumbers get numbers => switch (level) {
+        1 => const ChallengeNumbers(6, 10, 6, 12, 1, 2),
+        3 => const ChallengeNumbers(2, 5, 20, 35, 2, 4),
+        _ => const ChallengeNumbers(4, 8, 12, 22, 2, 3),
+      };
+
+  /// Frase objetiva do que vai acontecer, com o andamento da pessoa.
+  String describe(int bpm) {
+    final n = numbers;
+    final tempo = 'o andamento muda de ${n.pctMin} a ${n.pctMax}% (de $bpm para cerca de ${(bpm * (1 + n.pctMax / 100)).round()} ou ${(bpm * (1 - n.pctMax / 100)).round()}) e volta';
+    final sil = 'o metrônomo some por ${n.silMin} a ${n.silMax} compassos e volta';
+    final every = 'A cada ${n.normalMin} a ${n.normalMax} compassos';
+    return switch (name) {
+      ChallengeName.sumico => '$every, $sil. Segure o pulso sozinho.',
+      ChallengeName.elastico => '$every, $tempo. Acompanhe a mudança.',
+      ChallengeName.total => '$every, uma surpresa: $tempo, ou $sil.',
+    };
+  }
+
   /// Sem nada habilitado o desafio não faz nada.
   bool get active => tempoChanges || silences;
 
@@ -73,6 +105,15 @@ class ChallengeConfig {
 
   @override
   int get hashCode => Object.hash(level, tempoChanges, silences);
+}
+
+/// Os três desafios com nome.
+enum ChallengeName { sumico, elastico, total }
+
+/// Faixas de uma dificuldade: compassos normais entre surpresas, % de mudança e compassos de silêncio.
+class ChallengeNumbers {
+  final int normalMin, normalMax, pctMin, pctMax, silMin, silMax;
+  const ChallengeNumbers(this.normalMin, this.normalMax, this.pctMin, this.pctMax, this.silMin, this.silMax);
 }
 
 /// Resumo do que o desafio fez (para mostrar no fim).

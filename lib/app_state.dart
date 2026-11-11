@@ -41,7 +41,10 @@ class MetroBeat {
 
   /// Silêncio do modo desafio: a tela não mostra nada.
   final bool hidden;
-  const MetroBeat(this.beat, this.bar, this.accent, {this.hidden = false});
+
+  /// O que o modo desafio faz neste compasso.
+  final ChallengeKind challenge;
+  const MetroBeat(this.beat, this.bar, this.accent, {this.hidden = false, this.challenge = ChallengeKind.normal});
   static const idle = MetroBeat(-1, -1, Accent.weak);
 }
 
@@ -3798,7 +3801,7 @@ class AppState extends ChangeNotifier {
       if (ev.sub == 0) last = ev;
     }
     if (last == null) return;
-    metroBeat.value = MetroBeat(last.beat, last.bar, last.accent, hidden: last.hidden);
+    metroBeat.value = MetroBeat(last.beat, last.bar, last.accent, hidden: last.hidden, challenge: last.challenge);
     // Várias de uma vez (o app ficou parado um instante): vibra uma vez só, no tempo mais recente.
     if (hapticEnabled && last.audible && !last.hidden) {
       buzz(ms: last.accent == Accent.strong ? 70 : 45);
@@ -3815,10 +3818,10 @@ class AppState extends ChangeNotifier {
       _wake(listening);
       if (metro.challenge != null && (st.tempoChanges + st.silences) > 0) {
         final partes = [
-          if (st.tempoChanges > 0) '${st.tempoChanges} mudança${st.tempoChanges > 1 ? 's' : ''} de andamento',
-          if (st.silences > 0) '${st.silences} silêncio${st.silences > 1 ? 's' : ''}',
+          if (st.silences > 0) 'o metrônomo sumiu ${st.silences} vez${st.silences > 1 ? 'es' : ''}',
+          if (st.tempoChanges > 0) 'o andamento mudou ${st.tempoChanges} vez${st.tempoChanges > 1 ? 'es' : ''}',
         ];
-        say('Desafio concluído: ${partes.join(' e ')}.');
+        say('Desafio concluído: ${partes.join(' e ')}. Você segurou o pulso!');
       }
     } else {
       await metroPlayer.start(metro);

@@ -72,7 +72,7 @@ class _GridFullscreenState extends State<GridFullscreen> {
                   ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(6, 2, 6, 4),
+                    padding: const EdgeInsets.fromLTRB(12, 2, 12, 6),
                     child: Stack(children: [
                       // Troca suave ao mudar de oitava ou de orientação.
                       AnimatedSwitcher(
@@ -89,7 +89,7 @@ class _GridFullscreenState extends State<GridFullscreen> {
                         ),
                         child: KeyedSubtree(
                           key: ValueKey('${app.gridOctaves}-$landscape'),
-                          child: GridBoard(app: app),
+                          child: GridBoard(app: app, big: true, vertical: !landscape),
                         ),
                       ),
                       if (!_showControls) _revealButton(),
@@ -98,7 +98,7 @@ class _GridFullscreenState extends State<GridFullscreen> {
                 ),
                 if (_showControls)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(10, 0, 10, 6),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [

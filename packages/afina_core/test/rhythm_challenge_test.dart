@@ -227,4 +227,45 @@ void main() {
       expect(ev.every((x) => x.bpm >= 300 && x.bpm <= 320), isTrue);
     });
   });
+
+  group('desafios com nome', () {
+    test('Sumiço só silencia, Elástico só muda o andamento, Surpresa total faz os dois', () {
+      final s = ChallengeConfig.named(ChallengeName.sumico);
+      final e = ChallengeConfig.named(ChallengeName.elastico);
+      final t = ChallengeConfig.named(ChallengeName.total);
+      expect([s.tempoChanges, s.silences], [false, true]);
+      expect([e.tempoChanges, e.silences], [true, false]);
+      expect([t.tempoChanges, t.silences], [true, true]);
+      expect([s.name, e.name, t.name], ChallengeName.values);
+    });
+
+    test('a frase usa os números reais da dificuldade e o andamento da pessoa', () {
+      final c = ChallengeConfig.named(ChallengeName.total, level: 3);
+      final n = c.numbers;
+      final txt = c.describe(100);
+      expect(txt, contains('${n.pctMin} a ${n.pctMax}%'));
+      expect(txt, contains('${n.silMin} a ${n.silMax} compassos'));
+      expect(txt, contains('de 100 para'));
+      expect(ChallengeConfig.named(ChallengeName.sumico).describe(90), isNot(contains('%')));
+    });
+
+    test('os números anunciados valem para o sorteio de verdade', () {
+      for (final lv in [1, 2, 3]) {
+        final c = ChallengeConfig.named(ChallengeName.total, level: lv);
+        final n = c.numbers;
+        final bars = run(c, lv, 400);
+        var sil = 0;
+        for (final b in bars) {
+          if (b.kind == ChallengeKind.silence) {
+            sil++;
+          } else if (sil > 0) {
+            expect(sil, inInclusiveRange(n.silMin, n.silMax));
+            sil = 0;
+          }
+          if (b.kind == ChallengeKind.faster) expect(b.factor - 1, lessThanOrEqualTo(n.pctMax / 100 + 1e-9));
+          if (b.kind == ChallengeKind.slower) expect(1 - b.factor, lessThanOrEqualTo(n.pctMax / 100 + 1e-9));
+        }
+      }
+    });
+  });
 }
