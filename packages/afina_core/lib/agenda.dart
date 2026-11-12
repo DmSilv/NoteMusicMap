@@ -276,6 +276,19 @@ SlotOccurrence? findConflict(ClassSlot candidate, Iterable<ClassSlot> existing, 
 }
 
 /// Novo id de aula marcada.
+const _kDiasSemana = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
+
+/// 'Terça, 12/11 às 15:00 · 60 min' (aula avulsa) ou 'Toda terça às 15:00 · 60 min' (toda semana).
+/// Usado nas telas e no aviso de sucesso, para dizerem sempre a mesma coisa.
+String describeSlot(ClassSlot s) {
+  String two(int n) => n.toString().padLeft(2, '0');
+  final d = DateTime.fromMillisecondsSinceEpoch(s.startMs);
+  final hm = '${two(d.hour)}:${two(d.minute)}';
+  final day = _kDiasSemana[d.weekday - 1];
+  final head = s.weekly ? 'Toda $day às $hm' : '${day[0].toUpperCase()}${day.substring(1)}, ${two(d.day)}/${two(d.month)} às $hm';
+  return '$head · ${s.durationMin} min';
+}
+
 String newSlotId(DateTime now) => 's${now.microsecondsSinceEpoch.toRadixString(36)}';
 
 /// "terça, 15:00" / "hoje, 15:00" / "amanhã, 09:30".

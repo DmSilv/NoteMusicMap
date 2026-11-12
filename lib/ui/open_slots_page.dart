@@ -10,13 +10,7 @@ const _days = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'dom
 String _two(int n) => n.toString().padLeft(2, '0');
 
 /// "Terça, 12/11 às 15:00 · 60 min" ou "Toda terça às 15:00 · 60 min".
-String describeOpenSlot(ClassSlot s) {
-  final d = DateTime.fromMillisecondsSinceEpoch(s.startMs);
-  final hm = '${_two(d.hour)}:${_two(d.minute)}';
-  final day = _days[d.weekday - 1];
-  final head = s.weekly ? 'Toda $day às $hm' : '${day[0].toUpperCase()}${day.substring(1)}, ${_two(d.day)}/${_two(d.month)} às $hm';
-  return '$head · ${s.durationMin} min';
-}
+String describeOpenSlot(ClassSlot s) => describeSlot(s);
 
 /// PROFESSOR: horários que deixa livres para os alunos pegarem.
 class OpenSlotsPage extends StatefulWidget {

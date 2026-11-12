@@ -160,4 +160,21 @@ void main() {
     expect(fmtSlotWhen(DateTime(2026, 11, 10, 9, 30), now), 'amanhã, 09:30');
     expect(fmtSlotWhen(DateTime(2026, 11, 12, 15), now), 'quinta, 12/11, 15:00');
   });
+
+  group('texto do horário (aviso de sucesso)', () {
+    // 18/11/2026 é quarta-feira.
+    final quarta = DateTime(2026, 11, 18, 15).millisecondsSinceEpoch;
+    test('toda semana diz "Toda quarta"', () {
+      final s = ClassSlot(id: 'a1', startMs: quarta, durationMin: 45, weekly: true, updatedMs: 1);
+      expect(describeSlot(s), 'Toda quarta às 15:00 · 45 min');
+    });
+    test('avulso diz o dia e a data, sem "Toda"', () {
+      final s = ClassSlot(id: 'a2', startMs: quarta, durationMin: 45, updatedMs: 1);
+      expect(describeSlot(s), 'Quarta, 18/11 às 15:00 · 45 min');
+    });
+    test('zero à esquerda em hora, dia e mês', () {
+      final s = ClassSlot(id: 'a3', startMs: DateTime(2027, 3, 5, 8, 5).millisecondsSinceEpoch, durationMin: 30, updatedMs: 1);
+      expect(describeSlot(s), 'Sexta, 05/03 às 08:05 · 30 min');
+    });
+  });
 }

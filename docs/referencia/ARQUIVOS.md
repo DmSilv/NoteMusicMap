@@ -135,7 +135,7 @@
 
 | Arquivo | O que faz |
 |---|---|
-| `packages/afina_core/test/agenda_test.dart` | Testes do módulo `agenda`. |
+| `packages/afina_core/test/agenda_test.dart` | 18/11/2026 é quarta-feira. |
 | `packages/afina_core/test/arpeggio_test.dart` | Testes do módulo `arpeggio`. |
 | `packages/afina_core/test/class_rules_test.dart` | Testes do módulo `class_rules`. |
 | `packages/afina_core/test/device_tags_test.dart` | Testes do módulo `device_tags`. |
