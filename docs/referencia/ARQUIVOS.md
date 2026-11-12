@@ -30,6 +30,7 @@
 | `lib/platform/web_vibrate_web.dart` | Vibração na web: o plugin `vibration` só funciona em Android/iOS nativos, então aqui chamamos `navigator.vibrate` direto. Funciona no Chrome, Edge e Firefox do Android (depois de a pessoa tocar na tela uma vez). O… |
 | `lib/stats/error_service.dart` | Envia um relatório de erro (anônimo e já higienizado) para o servidor. Falha em silêncio: relatar um erro nunca pode causar outro. Em teste local (localhost) não envia. |
 | `lib/stats/stats_service.dart` | Estatísticas ANÔNIMAS de uso (para o painel do administrador). Manda um aviso ao abrir o app e uma batida a cada ~5 minutos enquanto ele está à frente. Vai só: um código aleatório do aparelho (que NÃO é o código de… |
+| `lib/ui/agenda_actions.dart` | Controle da agenda do professor: remarcar só uma aula, trocar horários entre dois alunos e pausar um período. Toda mudança mostra antes o que vai acontecer e quem é avisado, e só vale se couber na agenda (sem choque). |
 | `lib/ui/agenda_page.dart` | Agenda do PROFESSOR: as aulas marcadas, por semana ou por mês. Marcar, mudar, cancelar uma aula (ou só um dia de uma aula semanal) e ligar o lembrete de 15 minutos. |
 | `lib/ui/app_logo.dart` | Logo do Notemusic: um mostrador de afinador (arco verde, a cor do app) com uma nota musical branca no centro. Mesma geometria de tools/make_icons.mjs. |
 | `lib/ui/design_system.dart` | Design system do Notemusic. REGRA: toda tela nova ou alterada usa estes valores e estes componentes (ver docs/12_DESIGN_SYSTEM.md). Números soltos de espaçamento, raio ou altura de botão não entram em tela nova.… |
@@ -222,6 +223,7 @@
 | `api/admin.test.js` | Testes do painel do administrador (indicadores e gestão de perfis), sem rede: `node --test api/admin.test.js` |
 | `api/admin_push.test.js` | Aviso de bug grave ao admin (Web Push), precisão dos bugs e busca por nome, sem rede: `node --test api/admin_push.test.js` |
 | `api/agenda.test.js` | Testes da agenda e dos lembretes, sem rede: `node --test api/agenda.test.js` |
+| `api/agenda_control.test.js` | Testes do controle da agenda (trocar o aluno de uma aula, remarcar uma data, pausar): `node --test api/agenda_control.test.js` |
 | `api/avail.test.js` | Testes dos horários disponíveis (professor) e de "pegar horário" (aluno), sem rede: `node --test api/avail.test.js` |
 | `api/coach.test.js` | Testes da IA (vários serviços + fila) sem rede e sem chaves reais: `node --test api/` |
 | `api/errors.test.js` | Relatórios de erro do app e a aba "Bugs" do painel, sem rede: `node --test api/errors.test.js` |
@@ -263,4 +265,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **220** arquivos mapeados.
+Total: **222** arquivos mapeados.

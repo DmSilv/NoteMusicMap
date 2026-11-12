@@ -2,6 +2,7 @@ import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import 'agenda_actions.dart';
 import 'meeting_link.dart';
 import 'reminder_card.dart';
 import 'slot_form_page.dart';
@@ -72,6 +73,11 @@ class _AgendaPageState extends State<AgendaPage> {
           appBar: AppBar(
             title: const Text('Agenda do professor'),
             actions: [
+              IconButton(
+                tooltip: 'Pausar aulas (férias, viagem)',
+                icon: const Icon(Icons.pause_circle_outline),
+                onPressed: () => pauseFlow(context, app),
+              ),
               TextButton(
                 onPressed: () => setState(() {
                   _anchor = _day0(DateTime.now());
@@ -285,6 +291,8 @@ class _AgendaPageState extends State<AgendaPage> {
               if (perm.edit && s.online) PopupMenuItem(value: 'link', child: Text(s.hasLink ? 'Editar link da aula' : 'Adicionar link da aula')),
               if (s.hasLink) const PopupMenuItem(value: 'join', child: Text('Abrir a sala')),
               if (st != null) const PopupMenuItem(value: 'open', child: Text('Abrir ficha do aluno')),
+              if (perm.edit && s.weekly) const PopupMenuItem(value: 'move', child: Text('Remarcar só esta aula')),
+              if (perm.edit) const PopupMenuItem(value: 'swap', child: Text('Trocar horário com outro aluno')),
               if (perm.cancel && s.weekly) const PopupMenuItem(value: 'skip', child: Text('Cancelar só esta aula')),
               if (perm.cancel) PopupMenuItem(value: 'cancel', child: Text(s.weekly ? 'Cancelar todas as aulas' : 'Cancelar aula')),
             ],
@@ -307,6 +315,10 @@ class _AgendaPageState extends State<AgendaPage> {
         }
       case 'join':
         await openMeetingLink(context, app, s.link);
+      case 'move':
+        await moveOccurrenceFlow(context, app, o);
+      case 'swap':
+        await swapFlow(context, app, o);
       case 'open':
         final st = app.studentByCode(s.studentCode);
         if (st != null && mounted) {

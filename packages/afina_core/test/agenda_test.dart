@@ -238,4 +238,112 @@ void main() {
       expect(s.copyWith(link: '').hasLink, isFalse);
     });
   });
+
+  group('controle da agenda: remarcar, trocar, pausar', () {
+    final agora = DateTime(2026, 11, 12, 8).millisecondsSinceEpoch;
+    int d(int dia, int h, [int m = 0]) => DateTime(2026, 11, dia, h, m).millisecondsSinceEpoch;
+    ClassSlot sem(String id, String aluno, int ini, {int dur = 60, List<int> x = const []}) =>
+        ClassSlot(id: id, studentCode: aluno, startMs: ini, durationMin: dur, weekly: true, skipped: x, updatedMs: 1);
+    ClassSlot avulsa(String id, String aluno, int ini, {int dur = 60}) =>
+        ClassSlot(id: id, studentCode: aluno, startMs: ini, durationMin: dur, updatedMs: 1);
+
+    test('datas canceladas acompanham a regra quando ela muda de dia ou de hora', () {
+      final x = [d(23, 17)];
+      expect(remapSkipped(d(16, 17), d(16, 18), x), [d(23, 18)]); // só a hora mudou
+      expect(remapSkipped(d(16, 17), d(17, 17), x), [d(24, 17)]); // mudou para o dia seguinte
+      expect(remapSkipped(d(16, 17), d(15, 17), x), [d(22, 17)]); // mudou para o dia anterior (6 dias não: -1)
+      expect(remapSkipped(d(16, 17), d(16, 17), x), x);
+      expect(remapSkipped(d(16, 17), d(30, 17), x), x); // primeira data andou duas semanas: datas canceladas ficam
+      expect(remapSkipped(d(16, 17), d(16, 18), const []), isEmpty);
+    });
+
+    test('as datas canceladas continuam caindo em dias de aula da regra nova', () {
+      final velha = sem('r1', 'A', d(16, 17), x: [d(23, 17)]);
+      final nova = velha.copyWith(startMs: d(17, 9), skipped: remapSkipped(velha.startMs, d(17, 9), velha.skipped));
+      expect(nova.skipped.single, d(24, 9));
+      expect(nova.occurrencesBetween(d(16, 0), DateTime(2026, 12, 3).millisecondsSinceEpoch), [d(17, 9), DateTime(2026, 12, 1, 9).millisecondsSinceEpoch]); // a de 24/11 continua cancelada
+    });
+
+    test('remarcar só uma aula semanal: cancela aquela data e cria uma avulsa', () {
+      final r = sem('r1', 'A', d(16, 17));
+      final p = planMoveOccurrence(r, d(23, 17), d(24, 10), newId: 'n1');
+      expect(p.ok, isTrue);
+      expect(p.changed.length, 2);
+      expect(p.changed[0].skipped, [d(23, 17)]);
+      expect(p.changed[0].weekly, isTrue);
+      expect(p.changed[1].id, 'n1');
+      expect(p.changed[1].weekly, isFalse);
+      expect(p.changed[1].startMs, d(24, 10));
+      expect(p.changed[1].studentCode, 'A');
+      expect(validatePlan(p, [r], agora), isNull);
+    });
+
+    test('remarcar uma aula avulsa só muda o horário; data que não é da regra é recusada', () {
+      final u = avulsa('u1', 'A', d(18, 15));
+      final p = planMoveOccurrence(u, d(18, 15), d(19, 16), newId: 'n2');
+      expect(p.changed.single.startMs, d(19, 16));
+      expect(p.changed.single.id, 'u1');
+      final r = sem('r1', 'A', d(16, 17));
+      expect(planMoveOccurrence(r, d(24, 17), d(25, 10), newId: 'n3').ok, isFalse); // 24 é terça: não é aula
+      expect(planMoveOccurrence(r.copyWith(canceled: true), d(23, 17), d(25, 10), newId: 'n4').ok, isFalse);
+    });
+
+    test('remarcar não pode bater com outra aula nem ir para o passado', () {
+      final a = sem('a', 'A', d(16, 17));
+      final b = sem('b', 'B', d(16, 18));
+      final bate = planMoveOccurrence(a, d(23, 17), d(23, 18, 30), newId: 'n'); // dentro da aula do B
+      expect(validatePlan(bate, [a, b], agora, nameOf: (c) => c == 'B' ? 'Bruno' : c), contains('Bruno'));
+      final passado = planMoveOccurrence(avulsa('u', 'A', d(18, 15)), d(18, 15), d(10, 9), newId: 'n');
+      expect(validatePlan(passado, [], agora), 'Esse horário já passou.');
+      // mover a aula para um horário que se sobrepõe à PRÓPRIA data cancelada é permitido
+      final perto = planMoveOccurrence(a, d(23, 17), d(23, 16, 30), newId: 'n');
+      expect(validatePlan(perto, [a], agora), isNull);
+    });
+
+    test('trocar horários: cada aula vai para o horário da outra, sem conflito entre as duas', () {
+      final a = sem('a', 'A', d(16, 17));
+      final b = sem('b', 'B', d(16, 18, 30), dur: 45);
+      final p = planSwap(SlotOccurrence(a, d(23, 17)), SlotOccurrence(b, d(23, 18, 30)), newIdA: 'na', newIdB: 'nb');
+      expect(p.ok, isTrue);
+      expect(p.changed.length, 4);
+      final na = p.changed.firstWhere((s) => s.id == 'na');
+      final nb = p.changed.firstWhere((s) => s.id == 'nb');
+      expect(na.startMs, d(23, 18, 30));
+      expect(na.studentCode, 'A');
+      expect(na.durationMin, 60);
+      expect(nb.startMs, d(23, 17));
+      expect(nb.studentCode, 'B');
+      expect(nb.durationMin, 45);
+      expect(validatePlan(p, [a, b], agora), isNull);
+    });
+
+    test('trocar: mesma aula ou mesmo aluno é recusado; troca que bate com uma terceira aula é recusada', () {
+      final a = sem('a', 'A', d(16, 17));
+      final a2 = avulsa('a2', 'A', d(18, 15));
+      final c = sem('c', 'C', d(16, 17, 30)); // sobrepõe o horário das 17:00 de A (e vai bater com quem for para lá)
+      expect(planSwap(SlotOccurrence(a, d(23, 17)), SlotOccurrence(a, d(23, 17)), newIdA: 'x', newIdB: 'y').ok, isFalse);
+      expect(planSwap(SlotOccurrence(a, d(23, 17)), SlotOccurrence(a2, d(18, 15)), newIdA: 'x', newIdB: 'y').ok, isFalse);
+      final b = avulsa('b', 'B', d(19, 17, 15)); // B no meio da aula do C (que só existe de 16/11 em diante, toda semana)
+      final p = planSwap(SlotOccurrence(a, d(23, 17)), SlotOccurrence(b, d(19, 17, 15)), newIdA: 'x', newIdB: 'y');
+      expect(validatePlan(p, [a, b, c], agora), isNotNull);
+    });
+
+    test('pausar: regra semanal ganha datas canceladas, avulsa do período é cancelada, o resto fica', () {
+      final r = sem('r', 'A', d(16, 17));
+      final u = avulsa('u', 'B', d(25, 10));
+      final fora = avulsa('f', 'C', d(2, 10) + 40 * kMsDay);
+      final p = planPause([r, u, fora], d(20, 0), d(27, 23));
+      expect(p.ok, isTrue);
+      expect(p.changed.length, 2);
+      expect(p.changed.firstWhere((s) => s.id == 'r').skipped, [d(23, 17)]);
+      expect(p.changed.firstWhere((s) => s.id == 'u').canceled, isTrue);
+      expect(planPause([r], d(20, 0), d(10, 0)).ok, isFalse);
+      expect(planPause([r], d(20, 0), d(20, 0) + 130 * kMsDay).ok, isFalse);
+    });
+
+    test('pausar respeita o limite de datas canceladas por regra', () {
+      final muitas = sem('r', 'A', d(16, 17), x: [for (var k = 1; k <= kMaxSlotSkips; k++) d(16, 17) - k * kMsWeek]);
+      expect(planPause([muitas], d(20, 0), d(27, 23)).ok, isFalse);
+    });
+  });
 }

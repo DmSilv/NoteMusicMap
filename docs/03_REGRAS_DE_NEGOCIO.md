@@ -102,3 +102,11 @@ Recurso `aula_online` (aba Recursos do painel; nasce desligado). Com ele ligado 
 3. **Link padrão do professor** ("Guardar como link padrão" no formulário): aulas online novas já vêm com ele preenchido; um horário livre online publicado sem link usa o link padrão do professor no momento em que o aluno pega.
 4. O aluno vê "Aula online", o botão **Entrar** na agenda e **Entrar na aula online** em Meu espaço. O app não cria a sala: o atalho "Criar sala no Meet" abre meet.new.
 5. **Compatibilidade:** o modo (`m`: `p` ou `o`) e o link (`l`) são campos novos do horário. App antigo ignora; se um app antigo (ou o recurso desligado) editar uma aula online, o servidor **mantém** o modo e o link que já estavam guardados. O painel de suporte **não mostra** o link da aula.
+
+## 13. Controle da agenda do professor (remarcar, trocar, pausar)
+Tudo no menu de cada aula da agenda e no botão de pausa da barra, sempre com confirmação que diz quem é avisado. As regras ficam em `packages/afina_core/lib/agenda.dart` (`planMoveOccurrence`, `planSwap`, `planPause`, `validatePlan`) e valem **de uma vez só**: se uma das mudanças não couber (choque com outra aula, horário no passado, limite de datas canceladas), **nada muda**.
+1. **Remarcar só esta aula** (regra semanal): aquela data é cancelada e nasce uma aula avulsa no horário novo, com o mesmo aluno, duração, observação, modo e link. Numa aula avulsa, "Editar" já muda o horário.
+2. **Trocar horário com outro aluno:** cada aula vai para o horário da outra (a duração de cada uma continua a sua); aulas de regra semanal viram avulsas só naquela data. Mesma aula ou mesmo aluno é recusado. Vale para as aulas das próximas 3 semanas.
+3. **Pausar** (férias, viagem): as datas do período são canceladas nas regras semanais (que voltam depois) e as aulas avulsas do período são canceladas. No máximo 120 dias por vez e até 30 datas canceladas por regra.
+4. **Trocar o aluno de uma aula:** em Editar, com 2 ou mais alunos, o campo Aluno pode ser trocado; o servidor tira a aula do aluno anterior e ele é avisado.
+5. **Correção:** ao mudar o dia ou a hora de uma regra semanal, as datas já canceladas acompanham a mudança (antes guardavam o horário antigo e a aula cancelada podia voltar a aparecer).

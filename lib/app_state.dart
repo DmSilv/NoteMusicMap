@@ -939,6 +939,8 @@ class AppState extends ChangeNotifier {
     if (st == null) return 'Escolha o aluno.';
     final now = DateTime.now().millisecondsSinceEpoch;
     final old = agenda.where((x) => x.id == s.id).firstOrNull;
+    // Mudou o dia ou a hora de uma regra semanal: as datas já canceladas acompanham (senão a aula cancelada voltaria).
+    if (old != null && s.weekly && old.startMs != s.startMs) s = s.copyWith(skipped: remapSkipped(old.startMs, s.startMs, s.skipped));
     if (!s.weekly && s.startMs < now - 5 * kMsMinute && (old == null || old.startMs != s.startMs)) {
       return 'Esse horário já passou. Escolha uma data de hoje em diante.';
     }
@@ -2219,6 +2221,32 @@ class AppState extends ChangeNotifier {
       final r = await links.meetSet(profile.shareCode, profile.secret, link);
       if (!r.ok && !r.offline) return 'O link ficou neste aparelho, mas não foi guardado no servidor agora.';
     }
+    return null;
+  }
+
+  /// Aplica DE UMA VEZ as mudanças de um plano (remarcar, trocar, pausar): se algo não couber na agenda,
+  /// nada muda. Cada aluno afetado é avisado. Devolve o motivo se não der; null se aplicou.
+  String? commitPlan(SlotPlan plan, {String crumbName = 'Mudar agenda'}) {
+    crumb(crumbName);
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final err = validatePlan(plan, agenda, now, nameOf: (c) => studentByCode(c)?.name ?? 'outro aluno');
+    if (err != null) return err;
+    final novas = plan.changed.where((c) => !agenda.any((x) => x.id == c.id)).length;
+    if (agenda.length + novas > kMaxSlotsPerTeacher) return 'Limite de aulas marcadas atingido. Cancele algumas antigas.';
+    for (final c in plan.changed) {
+      final st = studentByCode(c.studentCode);
+      final i = agenda.indexWhere((x) => x.id == c.id);
+      final u = i < 0 ? now : (now > agenda[i].updatedMs ? now : agenda[i].updatedMs + 1);
+      final saved = c.copyWith(updatedMs: u, pending: st != null && _canSendTo(st) ? true : null);
+      if (i >= 0) {
+        agenda[i] = saved;
+      } else {
+        agenda.add(saved);
+      }
+    }
+    _saveAgenda();
+    notifyListeners();
+    unawaited(flushAgenda());
     return null;
   }
 

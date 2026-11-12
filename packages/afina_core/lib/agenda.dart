@@ -325,6 +325,120 @@ SlotOccurrence? findConflict(ClassSlot candidate, Iterable<ClassSlot> existing, 
   return null;
 }
 
+// ---------------- Controle da agenda do professor: remarcar, trocar, pausar ----------------
+
+/// Aulas canceladas de uma regra semanal guardam o início de cada data cancelada. Quando a regra muda de dia ou
+/// de hora, essas datas precisam acompanhar a mudança (senão a aula cancelada "ressuscita"). Se só a primeira data
+/// andou um número exato de semanas, as datas canceladas continuam as mesmas.
+List<int> remapSkipped(int oldStartMs, int newStartMs, List<int> skipped) {
+  if (skipped.isEmpty || oldStartMs == newStartMs) return skipped;
+  var d = (newStartMs - oldStartMs) % kMsWeek; // sempre 0..semana
+  if (d == 0) return skipped;
+  if (d > kMsWeek ~/ 2) d -= kMsWeek;
+  return [for (final x in skipped) x + d];
+}
+
+/// Resultado de um plano de mudanças na agenda: as aulas que mudam (ou nascem) e, se der errado, o motivo.
+class SlotPlan {
+  final List<ClassSlot> changed;
+  final String? error;
+  const SlotPlan(this.changed, {this.error});
+  const SlotPlan.fail(String message)
+      : changed = const [],
+        error = message;
+  bool get ok => error == null;
+}
+
+/// Remarca SÓ uma aula. Numa regra semanal, cancela aquela data e cria uma aula avulsa no horário novo; numa aula
+/// avulsa, só muda o horário. [newId] é o id da aula avulsa criada.
+SlotPlan planMoveOccurrence(ClassSlot slot, int occurrenceMs, int newStartMs, {required String newId, int? newDurationMin}) {
+  if (slot.canceled) return const SlotPlan.fail('Esta aula já foi cancelada.');
+  final dur = (newDurationMin ?? slot.durationMin).clamp(kMinSlotMinutes, kMaxSlotMinutes);
+  if (!slot.weekly) {
+    return SlotPlan([slot.copyWith(startMs: newStartMs, durationMin: dur, skipped: const [])]);
+  }
+  if (!slot.occurrencesBetween(occurrenceMs, occurrenceMs + 1).contains(occurrenceMs)) {
+    return const SlotPlan.fail('Essa data não é uma aula desta regra.');
+  }
+  if (slot.skipped.length >= kMaxSlotSkips) return const SlotPlan.fail('Esta aula já tem muitas datas canceladas. Edite a regra.');
+  return SlotPlan([
+    slot.copyWith(skipped: [...slot.skipped, occurrenceMs]),
+    ClassSlot(
+      id: newId,
+      studentCode: slot.studentCode,
+      startMs: newStartMs,
+      durationMin: dur,
+      note: slot.note,
+      updatedMs: 0,
+      mode: slot.mode,
+      link: slot.link,
+    ),
+  ]);
+}
+
+/// Troca os horários de duas aulas (cada uma vai para o horário da outra; a duração de cada uma continua a sua).
+/// Aulas de regra semanal viram avulsas só naquela data.
+SlotPlan planSwap(SlotOccurrence a, SlotOccurrence b, {required String newIdA, required String newIdB}) {
+  if (a.slot.id == b.slot.id) return const SlotPlan.fail('Escolha duas aulas diferentes.');
+  if (a.slot.studentCode == b.slot.studentCode) return const SlotPlan.fail('As duas aulas são do mesmo aluno.');
+  final pa = planMoveOccurrence(a.slot, a.startMs, b.startMs, newId: newIdA);
+  final pb = planMoveOccurrence(b.slot, b.startMs, a.startMs, newId: newIdB);
+  if (!pa.ok) return pa;
+  if (!pb.ok) return pb;
+  return SlotPlan([...pa.changed, ...pb.changed]);
+}
+
+/// Pausa as aulas que começam entre [fromMs] e [toMs] (férias, viagem): datas de regras semanais viram canceladas e
+/// aulas avulsas do período são canceladas.
+SlotPlan planPause(Iterable<ClassSlot> slots, int fromMs, int toMs) {
+  if (toMs <= fromMs) return const SlotPlan.fail('A data final precisa ser depois da inicial.');
+  if (toMs - fromMs > 120 * kMsDay) return const SlotPlan.fail('Pause no máximo 120 dias por vez.');
+  final out = <ClassSlot>[];
+  for (final s in slots) {
+    if (s.canceled) continue;
+    final hit = s.occurrencesBetween(fromMs, toMs);
+    if (hit.isEmpty) continue;
+    if (!s.weekly) {
+      out.add(s.copyWith(canceled: true));
+    } else {
+      if (s.skipped.length + hit.length > kMaxSlotSkips) {
+        return const SlotPlan.fail('Algumas aulas já têm muitas datas canceladas. Use um período menor.');
+      }
+      out.add(s.copyWith(skipped: [...s.skipped, ...hit]));
+    }
+  }
+  return SlotPlan(out);
+}
+
+/// Confere se as mudanças de [plan] cabem na agenda [current] (ninguém sobrepõe ninguém e nada fica no passado).
+/// Devolve o motivo ou null se pode aplicar. A conferência vale para o conjunto todo, de uma vez.
+String? validatePlan(SlotPlan plan, List<ClassSlot> current, int nowMs, {String Function(String code)? nameOf}) {
+  if (!plan.ok) return plan.error;
+  if (plan.changed.isEmpty) return 'Nada para mudar.';
+  final merged = <ClassSlot>[...current];
+  for (final c in plan.changed) {
+    final i = merged.indexWhere((x) => x.id == c.id);
+    if (i >= 0) {
+      merged[i] = c;
+    } else {
+      merged.add(c);
+    }
+  }
+  for (final c in plan.changed) {
+    if (c.canceled) continue;
+    final old = current.where((x) => x.id == c.id).firstOrNull;
+    if (!c.weekly && c.startMs < nowMs - 5 * kMsMinute && (old == null || old.startMs != c.startMs)) {
+      return 'Esse horário já passou.';
+    }
+    final clash = findConflict(c, merged, nowMs);
+    if (clash != null) {
+      final who = nameOf?.call(clash.slot.studentCode) ?? 'outro aluno';
+      return 'Choca com a aula de $who (${fmtSlotWhen(clash.start, DateTime.fromMillisecondsSinceEpoch(nowMs))}).';
+    }
+  }
+  return null;
+}
+
 /// Novo id de aula marcada.
 const _kDiasSemana = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
 

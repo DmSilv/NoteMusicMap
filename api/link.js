@@ -591,6 +591,13 @@ function makeHandler(deps = {}) {
         }
         await store.hset(SL(me), slot.id, JSON.stringify({ ...slot, sc: student }));
         await store.hset(SS(student), `${me}:${slot.id}`, JSON.stringify({ ...slot, tn: prof.n || '' }));
+        // Trocou o aluno da aula: o aluno anterior deixa de ver a aula e é avisado.
+        let oldStudent = '';
+        try { oldStudent = oldRaw ? String(JSON.parse(oldRaw).sc || '') : ''; } catch (_) { oldStudent = ''; }
+        if (oldStudent && oldStudent !== student && /^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(oldStudent)) {
+          await store.hdel(SS(oldStudent), `${me}:${slot.id}`);
+          await store.hset(U(oldStudent), 'sr', String(clock()));
+        }
         await store.hset(U(student), 'sr', String(clock())); // o aluno vê que a agenda mudou
         const reminder = await scheduleNext(cfg, fetchImpl, me, student, slot, clock());
         await metric('slot');
