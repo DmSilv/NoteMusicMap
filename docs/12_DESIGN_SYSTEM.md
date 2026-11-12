@@ -30,6 +30,10 @@
 - `DsGap`: espaço vertical padrão (`DsGap(Ds.s12)`, `DsGap.section()`).
 - `AppCard`: cartão (18 px por dentro).
 - `DsIconBadge`: ícone num quadradinho arredondado de fundo suave (usado no Meu espaço).
+- `DsPickTile`: campo tocável de dia ou hora (rótulo pequeno em cima, valor em destaque).
+- **Avisos curtos** (`showToast`, `lib/ui/toast.dart` e `toast_kind.dart`): três tipos pelo texto, **sucesso** (verde, ✓ em círculo), **atenção** (laranja) e **informação** (azul); fundo colorido, borda forte, barra de tempo e duração proporcional ao tamanho da frase (3 s ou mais; 4,2 s ou mais na atenção). Para o que é importante, use o **momento de sucesso** (`celebrate`).
+- **Modais da agenda** (`lib/ui/agenda_sheets.dart`): remarcar, trocar e confirmar são **um modal só**, com o que muda (de → para), a conferência de choque ao vivo e o botão que só liga quando cabe. Confirmar uma ação destrutiva usa o botão laranja.
+- `AgendaMonthGrid` (`lib/ui/agenda_calendar.dart`): calendário do mês, com pontinhos nos dias com aula; usado nas duas agendas.
 - `SuggestionTiles`: cartões de sugestão do sino.
 
 ## Como aplicar numa tela nova (checklist)

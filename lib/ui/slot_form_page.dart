@@ -178,7 +178,7 @@ class _SlotFormPageState extends State<SlotFormPage> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
                     Expanded(
-                      child: _PickTile(
+                      child: DsPickTile(
                         icon: Icons.event,
                         label: weekly ? 'Primeira aula' : 'Dia',
                         value: '${_dow[date.weekday - 1].substring(0, 3)}, ${_two(date.day)}/${_two(date.month)}/${date.year}',
@@ -186,7 +186,7 @@ class _SlotFormPageState extends State<SlotFormPage> {
                       ),
                     ),
                     const SizedBox(width: Ds.s12),
-                    SizedBox(width: 112, child: _PickTile(icon: Icons.schedule, label: 'Hora', value: '${_two(date.hour)}:${_two(date.minute)}', onTap: _pickTime)),
+                    SizedBox(width: 112, child: DsPickTile(icon: Icons.schedule, label: 'Hora', value: '${_two(date.hour)}:${_two(date.minute)}', onTap: _pickTime)),
                   ]),
                   const SizedBox(height: Ds.s16),
                   Text('Duração', style: Ds.section()),
@@ -320,44 +320,5 @@ class _SlotFormPageState extends State<SlotFormPage> {
             ? 'Esta aula fica sem lembrete.'
             : 'Os dois recebem um lembrete ${remindLabel(remind).toLowerCase()} (se ativarem as notificações).');
     return ('${st.name} vê a aula na agenda dele. $aviso', AppColors.accent);
-  }
-}
-
-/// Campo tocável de dia ou hora: o rótulo pequeno em cima e o valor em destaque.
-class _PickTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final VoidCallback onTap;
-  const _PickTile({required this.icon, required this.label, required this.value, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: '$label: $value. Toque para mudar.',
-      child: InkWell(
-        borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: Ds.primaryHeight + 4),
-          padding: const EdgeInsets.symmetric(horizontal: Ds.s12, vertical: Ds.s8),
-          decoration: BoxDecoration(
-            color: AppColors.surface2,
-            borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
-            border: Border.all(color: AppColors.outline),
-          ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
-            Text(label, style: TextStyle(fontSize: 12, color: AppColors.textDim)),
-            const SizedBox(height: 2),
-            Row(children: [
-              Icon(icon, size: 18, color: AppColors.accent),
-              const SizedBox(width: Ds.s8),
-              Expanded(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)))),
-            ]),
-          ]),
-        ),
-      ),
-    );
   }
 }

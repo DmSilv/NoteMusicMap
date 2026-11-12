@@ -265,12 +265,9 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
           showToast(
             context,
             msg,
-            icon: micOn
-                ? Icons.mic
-                : (micOff ? Icons.mic_off : Icons.info_outline),
-            color: micOn
-                ? AppColors.inTune
-                : (micOff ? AppColors.textDim : null),
+            // Microfone tem ícone próprio; os demais avisos ganham tipo (sucesso, atenção, informação) pelo texto.
+            icon: micOn ? Icons.mic : (micOff ? Icons.mic_off : null),
+            color: micOn ? AppColors.inTune : (micOff ? AppColors.textDim : null),
           );
         })
         ..scheduleFrame();

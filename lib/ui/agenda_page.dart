@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'agenda_actions.dart';
+import 'agenda_calendar.dart';
+import 'agenda_sheets.dart';
+import 'design_system.dart';
 import 'meeting_link.dart';
 import 'reminder_card.dart';
 import 'tour/tour.dart';
@@ -13,7 +16,6 @@ import 'widgets.dart';
 
 String _two(int n) => n.toString().padLeft(2, '0');
 const _dow = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
-const _dowShort = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const _months = [
   'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
 ];
@@ -33,7 +35,7 @@ class AgendaPage extends StatefulWidget {
 
 class _AgendaPageState extends State<AgendaPage> {
   AppState get app => widget.app;
-  bool _month = false;
+  bool _month = true; // a agenda abre em calendário
   DateTime _anchor = _day0(DateTime.now()); // semana/mês mostrado
   DateTime _picked = _day0(DateTime.now()); // dia escolhido na visão mensal
 
@@ -110,14 +112,10 @@ class _AgendaPageState extends State<AgendaPage> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(14, 6, 14, 96),
               children: [
-                const AgendaBanner(teacher: true),
-                const SizedBox(height: 10),
-                ReminderCard(app: app),
-                const SizedBox(height: 12),
                 ChipGrid(
-                  labels: const [Text('Semana'), Text('Mês')],
-                  selected: _month ? 1 : 0,
-                  onSelected: (i) => setState(() => _month = i == 1),
+                  labels: const [Text('Mês'), Text('Semana')],
+                  selected: _month ? 0 : 1,
+                  onSelected: (i) => setState(() => _month = i == 0),
                 ),
                 const SizedBox(height: 6),
                 Row(children: [
@@ -129,6 +127,11 @@ class _AgendaPageState extends State<AgendaPage> {
                   IconButton(onPressed: () => _shift(1), icon: const Icon(Icons.chevron_right), tooltip: 'Próximo'),
                 ]),
                 if (_month) ..._monthView() else ..._weekView(),
+                // O que explica e configura fica no fim: o calendário é a primeira coisa que se vê.
+                const SizedBox(height: Ds.sectionGap),
+                const AgendaBanner(teacher: true),
+                const SizedBox(height: 10),
+                ReminderCard(app: app),
               ],
             ),
           ),
@@ -175,65 +178,30 @@ class _AgendaPageState extends State<AgendaPage> {
   // ---------------- Mês ----------------
   List<Widget> _monthView() {
     final first = DateTime(_anchor.year, _anchor.month, 1);
-    final days = DateTime(_anchor.year, _anchor.month + 1, 0).day;
-    final lead = first.weekday - 1; // células vazias antes do dia 1 (semana começa na segunda)
     final counts = agendaMonthCounts(app.visibleAgenda, first);
     final today = _day0(DateTime.now());
-    final cells = <Widget>[
-      for (final w in _dowShort)
-        Center(child: Text(w, style: TextStyle(color: AppColors.textDim, fontSize: 11.5, fontWeight: FontWeight.w700))),
-      for (var i = 0; i < lead; i++) const SizedBox.shrink(),
-      for (var d = 1; d <= days; d++) _dayCell(DateTime(first.year, first.month, d), counts[d] ?? 0, today),
-    ];
     final list = agendaDay(app.visibleAgenda, _picked);
     return [
-      GridView.count(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        crossAxisCount: 7,
-        childAspectRatio: 1.05,
-        mainAxisSpacing: 4,
-        crossAxisSpacing: 4,
-        children: cells,
-      ),
+      const SizedBox(height: Ds.s8),
+      AgendaMonthGrid(month: first, counts: counts, picked: _picked, today: today, onPick: (d) => setState(() => _picked = d)),
       Padding(
-        padding: const EdgeInsets.only(top: 16, bottom: 4),
-        child: Text('${_dow[_picked.weekday - 1]}, ${_two(_picked.day)}/${_two(_picked.month)}',
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+        padding: const EdgeInsets.only(top: Ds.s20, bottom: Ds.s4),
+        child: Row(children: [
+          Expanded(
+            child: Text('${_dow[_picked.weekday - 1]}, ${_two(_picked.day)}/${_two(_picked.month)}',
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          ),
+          if (list.isNotEmpty) Text('${list.length} aula${list.length == 1 ? '' : 's'}', style: Ds.support()),
+        ]),
       ),
       if (list.isEmpty)
-        Text('Sem aulas neste dia', style: TextStyle(color: AppColors.textDim, fontSize: 12.5))
+        Padding(
+          padding: const EdgeInsets.only(top: Ds.s4),
+          child: Text('Sem aulas neste dia. Toque em "Marcar aula" para criar uma.', style: Ds.support()),
+        )
       else
         for (final o in list) _tile(o),
     ];
-  }
-
-  Widget _dayCell(DateTime d, int n, DateTime today) {
-    final sel = d == _picked;
-    final isToday = d == today;
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: () => setState(() => _picked = d),
-      child: Container(
-        decoration: BoxDecoration(
-          color: sel ? AppColors.accent.withValues(alpha: 0.22) : AppColors.surface2,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: isToday ? AppColors.accent : AppColors.outline, width: isToday ? 1.6 : 1),
-        ),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Text('${d.day}', style: TextStyle(fontWeight: sel || isToday ? FontWeight.w800 : FontWeight.w600)),
-          const SizedBox(height: 2),
-          if (n > 0)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-              decoration: BoxDecoration(color: AppColors.accent, borderRadius: BorderRadius.circular(8)),
-              child: Text('$n', style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppColors.onAccent)),
-            )
-          else
-            const SizedBox(height: 14),
-        ]),
-      ),
-    );
   }
 
   // ---------------- Uma aula ----------------
@@ -353,27 +321,11 @@ class _AgendaPageState extends State<AgendaPage> {
     }
   }
 
-  Future<bool> _confirm(String title, String text) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: Text(title),
-        content: Text(text),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Voltar')),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.sharp, foregroundColor: readableOn(AppColors.sharp)),
-            onPressed: () => Navigator.pop(c, true),
-            icon: const Icon(Icons.event_busy, size: 18), label: const Text('Cancelar aula'),
-          ),
-        ],
-      ),
-    );
-    return ok == true;
-  }
+  Future<bool> _confirm(String title, String text) =>
+      showConfirmSheet(context, title: title, body: text, ok: 'Cancelar aula', danger: true, icon: Icons.event_busy_rounded);
 }
 
-/// Agenda do ALUNO: as próximas aulas marcadas pelos professores (30 dias) e o lembrete.
+/// Agenda do ALUNO: o calendário do mês com as aulas marcadas pelos professores e a lista do dia escolhido.
 class MyAgendaPage extends StatefulWidget {
   final AppState app;
   const MyAgendaPage({super.key, required this.app});
@@ -384,6 +336,8 @@ class MyAgendaPage extends StatefulWidget {
 
 class _MyAgendaPageState extends State<MyAgendaPage> {
   AppState get app => widget.app;
+  DateTime _anchor = _day0(DateTime.now());
+  DateTime? _picked; // null = ainda não escolheu: abre no dia de hoje se tem aula, senão na próxima aula
 
   @override
   void initState() {
@@ -398,39 +352,79 @@ class _MyAgendaPageState extends State<MyAgendaPage> {
     super.dispose();
   }
 
+  /// Dia mostrado: o que a pessoa tocou, ou hoje (se tem aula) ou o dia da próxima aula.
+  DateTime _shown(DateTime today) {
+    final p = _picked;
+    if (p != null) return p;
+    if (agendaDay(app.myAgenda, today).isNotEmpty) return today;
+    final next = agendaBetween(app.myAgenda, today.millisecondsSinceEpoch, today.millisecondsSinceEpoch + 60 * kMsDay);
+    return next.isEmpty ? today : _day0(next.first.start);
+  }
+
+  void _shift(int dir) => setState(() => _anchor = DateTime(_anchor.year, _anchor.month + dir, 1));
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: app,
       builder: (context, _) {
         final now = DateTime.now();
-        final list = agendaBetween(app.myAgenda, now.millisecondsSinceEpoch - 60 * kMsMinute,
-            now.millisecondsSinceEpoch + 30 * kMsDay)
-            .where((o) => o.end.isAfter(now))
-            .toList();
+        final today = _day0(now);
+        final shown = _shown(today);
+        final first = DateTime(_anchor.year, _anchor.month, 1);
+        final counts = agendaMonthCounts(app.myAgenda, first);
+        final list = agendaDay(app.myAgenda, shown);
         return Scaffold(
-          appBar: AppBar(title: const Text('Agenda do aluno')),
+          appBar: AppBar(
+            title: const Text('Agenda do aluno'),
+            actions: [
+              TextButton(
+                onPressed: () => setState(() {
+                  _anchor = today;
+                  _picked = today;
+                }),
+                child: const Text('Hoje'),
+              ),
+            ],
+          ),
           body: SafeArea(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(14, 8, 14, 24),
+              padding: const EdgeInsets.fromLTRB(14, 6, 14, 24),
               children: [
-                const AgendaBanner(teacher: false),
-                const SizedBox(height: 10),
-                ReminderCard(app: app),
-                const SizedBox(height: 14),
-                Text('Próximas aulas (30 dias)',
-                    style: TextStyle(color: AppColors.textDim, fontSize: 12.5, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 6),
+                Row(children: [
+                  IconButton(onPressed: () => _shift(-1), icon: const Icon(Icons.chevron_left), tooltip: 'Anterior'),
+                  Expanded(
+                    child: Text('${_months[_anchor.month - 1]} de ${_anchor.year}',
+                        textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                  ),
+                  IconButton(onPressed: () => _shift(1), icon: const Icon(Icons.chevron_right), tooltip: 'Próximo'),
+                ]),
+                const SizedBox(height: Ds.s8),
+                AgendaMonthGrid(month: first, counts: counts, picked: shown, today: today, onPick: (d) => setState(() => _picked = d)),
+                Padding(
+                  padding: const EdgeInsets.only(top: Ds.s20, bottom: Ds.s8),
+                  child: Row(children: [
+                    Expanded(
+                      child: Text('${_dow[shown.weekday - 1]}, ${_two(shown.day)}/${_two(shown.month)}',
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                    ),
+                    if (list.isNotEmpty) Text('${list.length} aula${list.length == 1 ? '' : 's'}', style: Ds.support()),
+                  ]),
+                ),
                 if (list.isEmpty)
                   AppCard(
                     child: Text(
                       app.myTeachers.isEmpty
                           ? 'Vincule-se a um professor para ver aqui as aulas que ele marcar.'
-                          : 'Nenhuma aula marcada por enquanto. Quando seu professor marcar, ela aparece aqui.',
+                          : 'Sem aulas neste dia. Os dias com pontinhos têm aula marcada.',
                       style: TextStyle(color: AppColors.textDim),
                     ),
                   ),
                 for (final o in list) _row(o, now),
+                const SizedBox(height: Ds.sectionGap),
+                const AgendaBanner(teacher: false),
+                const SizedBox(height: 10),
+                ReminderCard(app: app),
               ],
             ),
           ),

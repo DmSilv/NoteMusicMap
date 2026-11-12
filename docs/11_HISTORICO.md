@@ -191,3 +191,9 @@ O aviso deixou de ser fixo em 15 minutos: o professor escolhe por aula (sem lemb
 - **Voltar do celular**: a pergunta de sair virou uma folha (`lib/ui/exit_sheet.dart`) com **Continuar no app** em destaque e **Sair do app** discreto; não empilha perguntas se o voltar for apertado várias vezes. Um teste achou e corrigiu um estouro de 18 px em tela baixa.
 - **Formulário de aula** (`lib/ui/slot_form_page.dart`) em três blocos (Aluno, Quando, Detalhes), com dia e hora em campos com rótulo, e o resumo da aula e "como chega ao aluno" num bloco só.
 - **Acervo** (`lib/ui/library_page.dart`): cartões com ícone, autor e site do link; pastas numa linha que rola; "Adicionar material" virou botão flutuante; no formulário só o essencial fica à vista (tipo, título, link, pasta) e autor e observação ficam em "Mais detalhes".
+
+## Agenda em calendário, modais de remarcar/trocar e avisos mais visíveis (novembro/2026)
+- **Agenda do professor e do aluno abrem em calendário** (mês, com pontinhos nos dias com aula; o dia escolhido lista as aulas). A visão de semana continua na troca "Mês / Semana". O aluno abre no dia da próxima aula. O que explica e configura (faixa da agenda, lembretes) foi para o fim da tela.
+- **Remarcar e trocar horário** viraram um modal só cada (`lib/ui/agenda_sheets.dart`): dia e hora (ou a lista de aulas), o que muda de → para, conferência de choque ao vivo e botão que só liga quando cabe. Cancelar e pausar usam a mesma folha de confirmação, com botão laranja.
+- **Avisos curtos** por tipo (sucesso, atenção, informação) com ícone em círculo, fundo colorido, barra de tempo e duração proporcional ao texto.
+- Um teste achou e corrigiu a leitura duplicada do número do dia para leitores de tela.

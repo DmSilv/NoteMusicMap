@@ -31,7 +31,9 @@
 | `lib/stats/error_service.dart` | Envia um relatório de erro (anônimo e já higienizado) para o servidor. Falha em silêncio: relatar um erro nunca pode causar outro. Em teste local (localhost) não envia. |
 | `lib/stats/stats_service.dart` | Estatísticas ANÔNIMAS de uso (para o painel do administrador). Manda um aviso ao abrir o app e uma batida a cada ~5 minutos enquanto ele está à frente. Vai só: um código aleatório do aparelho (que NÃO é o código de… |
 | `lib/ui/agenda_actions.dart` | Controle da agenda do professor: remarcar só uma aula, trocar horários entre dois alunos e pausar um período. Toda mudança mostra antes o que vai acontecer e quem é avisado, e só vale se couber na agenda (sem choque). |
+| `lib/ui/agenda_calendar.dart` | Calendário do mês para as agendas (professor e aluno): a semana começa na segunda, cada dia com aula leva pontinhos (um por aula, até 3), o dia de hoje tem um anel e o dia escolhido fica preenchido. |
 | `lib/ui/agenda_page.dart` | Agenda do PROFESSOR: as aulas marcadas, por semana ou por mês. Marcar, mudar, cancelar uma aula (ou só um dia de uma aula semanal) e ligar o lembrete de 15 minutos. |
+| `lib/ui/agenda_sheets.dart` | Modais da agenda do professor (remarcar uma aula, trocar horários, confirmar). Cada ação é UM modal só: o que vai mudar aparece antes (de → para), a conferência de choque é feita ao vivo e o botão só liga quando cabe… |
 | `lib/ui/app_locale.dart` | O app é só em português do Brasil: os textos do próprio Flutter (seletor de data e hora, "OK"/"Cancelar", copiar/colar, nomes de mês e dia) seguem o mesmo idioma. Custo conhecido: o Flutter embute os textos de todos… |
 | `lib/ui/app_logo.dart` | Logo do Notemusic: um mostrador de afinador (arco verde, a cor do app) com uma nota musical branca no centro. Mesma geometria de tools/make_icons.mjs. |
 | `lib/ui/design_system.dart` | Design system do Notemusic. REGRA: toda tela nova ou alterada usa estes valores e estes componentes (ver docs/12_DESIGN_SYSTEM.md). Números soltos de espaçamento, raio ou altura de botão não entram em tela nova.… |
@@ -87,7 +89,8 @@
 | `lib/ui/task_form_page.dart` | Formulário de tarefa (escala, arpejo, método e lição, repertório ou outra) com observações. |
 | `lib/ui/teacher_page.dart` | Tela Alunos do professor (lista, novo aluno, QR, importar, métodos, senha) e a ficha do aluno (aula, tarefas, validação, observações, relatórios). |
 | `lib/ui/theme.dart` | Paleta do app, com tema escuro e claro. As cores que mudam com o tema são `getters` lidos a cada construção de tela. [AppColors.dark] é definido uma vez por troca de tema em `main.dart` (que recria a árvore de… |
-| `lib/ui/toast.dart` | Aviso curto no TOPO da tela: aparece deslizando, some sozinho e pode ser arrastado para dispensar. Não cobre os botões de baixo nem exige toque. Altura extra (px) que a faixa de status ocupa; os alertas descem esse… |
+| `lib/ui/toast.dart` | Aviso curto no TOPO da tela: aparece deslizando, some sozinho e pode ser arrastado para dispensar. Não cobre os botões de baixo nem exige toque. O tipo (sucesso, atenção, informação) vem do texto, ou de [kind]; muda… |
+| `lib/ui/toast_kind.dart` | Tipos de aviso curto: o tipo define cor, ícone e quanto tempo fica na tela. |
 | `lib/ui/tour/start_card.dart` | "Comece por aqui": três passos para o professor novo (vincular, marcar aula, passar tarefa), com o progresso, um atalho para cada passo e o tutorial "Ver como funciona". Some sozinho quando tudo foi feito e dá para… |
 | `lib/ui/tour/tour.dart` | Tutorial guiado: escurece a tela, deixa um buraco redondo no botão e mostra uma caixinha com o que ele faz. Nunca é obrigatório (sempre tem "Pular") e nunca trava: se um botão não estiver na tela, o passo é pulado. O… |
 | `lib/ui/transitions.dart` | Troca "sai e depois entra" para usar no `AnimatedSwitcher`. O padrão (fade cruzado) deixa os dois textos um em cima do outro por um instante, o que parece bagunçado. Aqui quem sai some depressa (e encolhe um pouco) e… |
@@ -278,4 +281,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **235** arquivos mapeados.
+Total: **238** arquivos mapeados.

@@ -36,7 +36,7 @@ Legenda: ✅ conferido em tela e funcionou · ⬜ ainda não conferido · ❌ de
 | Ferramenta "Metrônomo" | muda para a aba Metrônomo | ✅ |
 | Ferramenta "Escalas" | abre a aba Grade na seção Escala | ✅ |
 | Ferramenta "Ajustes" | abre Configurações | ✅ |
-| Agenda: Semana / Mês | alterna as visões; o dia com aula mostra a marca | ✅ |
+| Agenda: Mês / Semana | abre em **Mês** (calendário com pontinhos); alterna para a lista da semana | ✅ |
 | Agenda: "Marcar aula" | abre o formulário (aluno, dia, hora, duração, repetir, observação) | ✅ |
 | Formulário: horário no passado | mostra o aviso "Esse horário já passou…" | ✅ |
 | Formulário: microfone (ditado) | abre o aviso "Escrever falando" | ✅ |

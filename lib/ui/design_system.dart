@@ -215,3 +215,44 @@ class DsNavRow extends StatelessWidget {
         ),
       );
 }
+
+/// Campo tocável de dia ou hora: o rótulo pequeno em cima e o valor em destaque.
+class DsPickTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+  const DsPickTile({super.key, required this.icon, required this.label, required this.value, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      excludeSemantics: true,
+      onTap: onTap,
+      label: '$label: $value. Toque para mudar.',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: Ds.primaryHeight + 4),
+          padding: const EdgeInsets.symmetric(horizontal: Ds.s12, vertical: Ds.s8),
+          decoration: BoxDecoration(
+            color: AppColors.surface2,
+            borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
+            border: Border.all(color: AppColors.outline),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+            Text(label, style: TextStyle(fontSize: 12, color: AppColors.textDim)),
+            const SizedBox(height: 2),
+            Row(children: [
+              Icon(icon, size: 18, color: AppColors.accent),
+              const SizedBox(width: Ds.s8),
+              Expanded(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)))),
+            ]),
+          ]),
+        ),
+      ),
+    );
+  }
+}
