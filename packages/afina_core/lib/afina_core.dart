@@ -12,6 +12,7 @@ export 'open_slots.dart';
 export 'class_rules.dart';
 export 'markdown_lite.dart';
 export 'hub_view.dart';
+export 'start_checklist.dart';
 export 'errors.dart';
 export 'error_report.dart';
 export 'methods.dart';

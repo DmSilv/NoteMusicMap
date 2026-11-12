@@ -167,3 +167,6 @@ Novas ações no menu da aula: **Remarcar só esta aula** (aula semanal), **Troc
 
 ## Painel: ativação, comparar agendas e acabamento (novembro/2026)
 Novo cartão **Ativação** na Visão geral (primeira vez de cada perfil em cada etapa), botão **Comparar agendas** em cada vínculo (professor × aluno: igual, falta, diferente ou sobra), "agora há X s" no topo e acabamento visual (transições, estados de foco e clique, esqueleto de carregamento). O intervalo do "agora" ficou em 30 s de propósito (custo). O funil só conta a partir da publicação desta versão.
+
+## Tutoriais e Comece por aqui (novembro/2026)
+Novo cartão **Comece por aqui** no Meu espaço do professor (vincular um aluno, marcar uma aula, passar uma tarefa, com progresso) e tutorial com tela escura e destaque nos botões (**Ver como funciona**, e o "?" da agenda). Opcional, só no aparelho, com "Rever tutoriais" em Ajustes. O tutorial do aluno ainda não existe.

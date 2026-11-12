@@ -44,6 +44,7 @@ Nada de Flutter nem `dart:io` (assim roda no navegador e nos testes de linha de 
 | Professor/aluno | `teacher`, `lesson`, `lesson_week`, `methods`, `task_status` | Alunos, tarefas, aulas, "esta semana", métodos, **status oficial** (resumo, decisão, `VerdictEntry`) |
 | Agenda e horários | `agenda`, `class_rules`, `open_slots` | `ClassSlot`, ocorrências, conflito, **fase e permissões da aula**, regras do horário livre |
 | Hub | `hub`, `hub_view` | Destaque e blocos do Meu espaço; **visões Aluno/Professor** sem destino repetido |
+| Comece por aqui | `start_checklist` | Os 3 passos do professor novo (vincular, marcar aula, passar tarefa) e o próximo que falta |
 | Vínculo | `link_status` | Estado do vínculo em linguagem simples |
 | Erros e texto | `errors`, `error_report`, `markdown_lite` | Catálogo, classificação, higienização, relatório, trilha, markdown da IA |
 | Saudação | `greeting` | "Bom dia / Boa tarde / Boa noite, Nome" pela hora local (faixa no Afinador e no Meu espaço, com convite para o apelido) |

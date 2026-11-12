@@ -18,6 +18,8 @@ import 'teacher_page.dart';
 import 'open_slots_page.dart';
 import 'hello_bar.dart';
 import 'meeting_link.dart';
+import 'tour/start_card.dart';
+import 'tour/tour.dart';
 import 'design_system.dart';
 import 'theme.dart';
 
@@ -58,6 +60,7 @@ class HubSection extends StatelessWidget {
       _statusChip(context),
       ..._news(context, view),
       _heroCard(context, hero, nc, view, extra: _agendaExtra(context, view, nc, layout.tools, now)),
+      if (isT && StartCard.visibleFor(app)) StartCard(app: app),
       const SizedBox(height: 12),
       if (tiles.length == 2) _pair(tiles[0], tiles[1]) else if (tiles.length == 1) tiles.first,
       if (tiles.isNotEmpty) const SizedBox(height: 12),
@@ -87,7 +90,9 @@ class HubSection extends StatelessWidget {
       case HubDest.validate:
         return _tile(context, validateTile(app.awaitingTotal), Icons.fact_check_rounded, () => _openValidation(context));
       case HubDest.students:
-        return _tile(context, studentsTile(app.students.length), Icons.groups_rounded, () => _push(context, TeacherPage(app: app)));
+        return KeyedSubtree(
+            key: TourKeys.hubStudents,
+            child: _tile(context, studentsTile(app.students.length), Icons.groups_rounded, () => _push(context, TeacherPage(app: app))));
       case HubDest.myTasks:
         final plan = buildWeekPlan(app.myLessons, app.lessonTasksDone, now);
         return _tile(context, tasksTile(open: plan.open, total: plan.total), Icons.checklist_rounded, () => openMyLessons(context, app));
@@ -275,10 +280,12 @@ class HubSection extends StatelessWidget {
           label: Text(isT ? 'Abrir a sala da aula online' : 'Entrar na aula online'),
         ),
       if (isT || app.hasTeacherSide)
-        act(Icons.calendar_month_outlined, 'Agenda completa',
-            () => _push(context, isT ? AgendaPage(app: app) : MyAgendaPage(app: app))),
+        KeyedSubtree(
+            key: isT ? TourKeys.hubAgenda : null,
+            child: act(Icons.calendar_month_outlined, 'Agenda completa',
+                () => _push(context, isT ? AgendaPage(app: app) : MyAgendaPage(app: app)))),
       if (tools.contains(HubDest.openSlots))
-        act(Icons.event_available_outlined, 'Horários livres', () => _push(context, OpenSlotsPage(app: app))),
+        KeyedSubtree(key: TourKeys.hubOpenSlots, child: act(Icons.event_available_outlined, 'Horários livres', () => _push(context, OpenSlotsPage(app: app)))),
       if (tools.contains(HubDest.pickSlot))
         act(Icons.event_available_outlined, 'Pegar horário', () => _push(context, PickSlotPage(app: app))),
     ];

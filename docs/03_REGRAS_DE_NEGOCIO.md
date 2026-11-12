@@ -110,3 +110,9 @@ Tudo no menu de cada aula da agenda e no botão de pausa da barra, sempre com co
 3. **Pausar** (férias, viagem): as datas do período são canceladas nas regras semanais (que voltam depois) e as aulas avulsas do período são canceladas. No máximo 120 dias por vez e até 30 datas canceladas por regra.
 4. **Trocar o aluno de uma aula:** em Editar, com 2 ou mais alunos, o campo Aluno pode ser trocado; o servidor tira a aula do aluno anterior e ele é avisado.
 5. **Correção:** ao mudar o dia ou a hora de uma regra semanal, as datas já canceladas acompanham a mudança (antes guardavam o horário antigo e a aula cancelada podia voltar a aparecer).
+
+## 14. Tutoriais e "Comece por aqui"
+1. **Nunca obrigatórios.** Nada abre sozinho na primeira vez e tudo tem "Pular". Só aparecem para o professor (o aluno não vê o cartão).
+2. **Comece por aqui** (Meu espaço, visão de professor): três passos, calculados do que já existe no aparelho: vincular um aluno (vínculo ativo), marcar uma aula, passar uma tarefa. Mostra o progresso, leva a cada passo, some sozinho quando tudo foi feito e pode ser escondido ("Esconder"). Lógica pura em `packages/afina_core/lib/start_checklist.dart`.
+3. **Ver como funciona:** tutorial com a tela escura e um buraco no botão (`lib/ui/tour/tour.dart`): Comece por aqui, Agenda completa, Horários livres, Seus alunos. Na agenda do professor, o "?" da barra mostra Marcar aula e Pausar aulas. Se um botão não estiver na tela, o passo é pulado.
+4. **Só no aparelho:** o que foi visto/escondido fica em `tours_seen` e `start_hidden` (nada vai ao servidor, custo zero). Ajustes › Sobre o app › **Rever tutoriais** zera os dois.

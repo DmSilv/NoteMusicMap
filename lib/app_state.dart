@@ -2203,6 +2203,32 @@ class AppState extends ChangeNotifier {
   /// O recurso [id] está liberado para este perfil?
   bool hasFeature(String id) => features.contains(id);
 
+  // ---------------- Tutoriais ("Comece por aqui" e tours) ----------------
+  /// O cartão "Comece por aqui" foi escondido pelo professor.
+  bool startCardHidden = false;
+  Set<String> _toursSeen = {};
+
+  void hideStartCard() {
+    startCardHidden = true;
+    _prefs?.setBool('start_hidden', true);
+    notifyListeners();
+  }
+
+  bool tourSeen(String id) => _toursSeen.contains(id);
+
+  void markTourSeen(String id) {
+    if (_toursSeen.add(id)) _prefs?.setStringList('tours_seen', _toursSeen.toList());
+  }
+
+  /// "Rever tutoriais": o cartão volta e os tutoriais contam como não vistos.
+  void resetTutorials() {
+    startCardHidden = false;
+    _toursSeen = {};
+    _prefs?.setBool('start_hidden', false);
+    _prefs?.remove('tours_seen');
+    notifyListeners();
+  }
+
   /// Aula online (modo e link da aula) está liberada para este perfil?
   bool get onlineClassesOn => hasFeature('aula_online');
 
@@ -3595,6 +3621,8 @@ class AppState extends ChangeNotifier {
     hapticEnabled = p.getBool('haptic') ?? false;
     successHaptic = p.getBool('ok_haptic') ?? true;
     meetDefault = p.getString('meet_default') ?? '';
+    startCardHidden = p.getBool('start_hidden') ?? false;
+    _toursSeen = (p.getStringList('tours_seen') ?? const []).toSet();
     keepAwake = p.getBool('keepAwake') ?? true;
     showFreq = p.getBool('showFreq') ?? true;
     final bpm = p.getDouble('bpm') ?? 100;

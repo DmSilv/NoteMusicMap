@@ -5,6 +5,7 @@ import '../app_state.dart';
 import 'agenda_actions.dart';
 import 'meeting_link.dart';
 import 'reminder_card.dart';
+import 'tour/tour.dart';
 import 'slot_form_page.dart';
 import 'teacher_page.dart' show StudentPage;
 import 'theme.dart';
@@ -74,6 +75,18 @@ class _AgendaPageState extends State<AgendaPage> {
             title: const Text('Agenda do professor'),
             actions: [
               IconButton(
+                tooltip: 'Como funciona',
+                icon: const Icon(Icons.help_outline),
+                onPressed: () async {
+                  final ok = await runTour(context, [
+                    TourStep(TourKeys.agendaFab, 'Marcar aula', 'Escolha o aluno, o dia e a hora. Marque "toda semana" para ela se repetir sozinha. O aluno é avisado.'),
+                    TourStep(TourKeys.agendaPause, 'Pausar aulas', 'Vai viajar? Escolha o período e as aulas dele são canceladas só naquelas datas. Os alunos são avisados.'),
+                  ]);
+                  if (ok) app.markTourSeen('agenda_teacher');
+                },
+              ),
+              IconButton(
+                key: TourKeys.agendaPause,
                 tooltip: 'Pausar aulas (férias, viagem)',
                 icon: const Icon(Icons.pause_circle_outline),
                 onPressed: () => pauseFlow(context, app),
@@ -88,6 +101,7 @@ class _AgendaPageState extends State<AgendaPage> {
             ],
           ),
           floatingActionButton: FloatingActionButton.extended(
+            key: TourKeys.agendaFab,
             onPressed: () => openSlotForm(context, app, day: _month ? _picked : null),
             icon: const Icon(Icons.add),
             label: const Text('Marcar aula'),

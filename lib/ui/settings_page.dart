@@ -515,6 +515,10 @@ class SettingsPage extends StatelessWidget {
         Text('Versão $kAppVersion', style: Ds.support()),
         const DsGap(Ds.s8),
         if (kIsWeb && !webIsStandalone()) tile(Icons.install_mobile, 'Instalar no celular', () => runInstall(context, app), sub: 'Abre em tela cheia e funciona sem internet.'),
+        tile(Icons.school_outlined, 'Rever tutoriais', () {
+          app.resetTutorials();
+          app.say('Pronto: o "Comece por aqui" volta ao Meu espaço e os tutoriais podem ser vistos de novo.');
+        }, sub: 'Mostra de novo os guias de como usar.'),
         tile(app.feedback.rating > 0 ? Icons.star_rounded : Icons.star_outline_rounded, app.feedback.rating > 0 ? 'Sua nota: ${app.feedback.rating}/5' : 'Avaliar o app', () => showRatingSheet(context, app)),
         if (!app.feedback.surveyAnswered) tile(Icons.poll_outlined, 'Pesquisa rápida', () => showSurveySheet(context, app)),
         tile(Icons.qr_code_2, 'Compartilhar o app', () => showShareSheet(context), sub: 'Link e QR code.'),

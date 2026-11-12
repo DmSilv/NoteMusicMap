@@ -67,3 +67,6 @@ Arquivos, API, chaves, erros e ambiente saem de `scripts/gen_docs.js`; `--check`
 
 ## D21. Recursos novos saem aos poucos, por chaves no painel
 Cada novidade nasce desligada e é liberada por código de perfil, depois por porcentagem e, por fim, para todos; dá para desligar na hora sem publicar. O servidor é quem decide (o app só esconde). Substitui a variável `LIBRARY_TESTERS`, que vira o ponto de partida do recurso `acervo`. Plano em `docs/PLANO_AULA_ONLINE_AGENDA_ADMIN.md`.
+
+## D22. Tutorial nunca é obrigatório
+O guia de uso é sempre opcional (convite no cartão "Comece por aqui" e botão "?"), com "Pular" em todo passo, e só vive no aparelho. Um mecanismo único (`runTour`) serve a todos os tutoriais; cada tutorial é só uma lista de passos.

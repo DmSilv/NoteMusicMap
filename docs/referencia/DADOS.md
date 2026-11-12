@@ -150,6 +150,7 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `spellAuto` | app_state.dart |
 | `split_l2` | app_state.dart |
 | `split_r2` | app_state.dart |
+| `start_hidden` | app_state.dart |
 | `stats_dims_day` | stats_service.dart |
 | `stats_id` | stats_service.dart |
 | `stats_on` | stats_service.dart |
@@ -165,6 +166,7 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `timbre` | app_state.dart |
 | `toneVol` | app_state.dart |
 | `tonicPc` | app_state.dart |
+| `tours_seen` | app_state.dart |
 | `transpose` | app_state.dart |
 | `tunerMode` | app_state.dart |
 | `unlink_students` | app_state.dart |
@@ -174,4 +176,4 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `verdict_rev` | app_state.dart |
 | `verdicts` | app_state.dart |
 
-Total: **100** chaves locais.
+Total: **102** chaves locais.

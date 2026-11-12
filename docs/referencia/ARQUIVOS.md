@@ -84,6 +84,8 @@
 | `lib/ui/teacher_page.dart` | Tela Alunos do professor (lista, novo aluno, QR, importar, métodos, senha) e a ficha do aluno (aula, tarefas, validação, observações, relatórios). |
 | `lib/ui/theme.dart` | Paleta do app, com tema escuro e claro. As cores que mudam com o tema são `getters` lidos a cada construção de tela. [AppColors.dark] é definido uma vez por troca de tema em `main.dart` (que recria a árvore de… |
 | `lib/ui/toast.dart` | Aviso curto no TOPO da tela: aparece deslizando, some sozinho e pode ser arrastado para dispensar. Não cobre os botões de baixo nem exige toque. Altura extra (px) que a faixa de status ocupa; os alertas descem esse… |
+| `lib/ui/tour/start_card.dart` | "Comece por aqui": três passos para o professor novo (vincular, marcar aula, passar tarefa), com o progresso, um atalho para cada passo e o tutorial "Ver como funciona". Some sozinho quando tudo foi feito e dá para… |
+| `lib/ui/tour/tour.dart` | Tutorial guiado: escurece a tela, deixa um buraco redondo no botão e mostra uma caixinha com o que ele faz. Nunca é obrigatório (sempre tem "Pular") e nunca trava: se um botão não estiver na tela, o passo é pulado. O… |
 | `lib/ui/transitions.dart` | Troca "sai e depois entra" para usar no `AnimatedSwitcher`. O padrão (fade cruzado) deixa os dois textos um em cima do outro por um instante, o que parece bagunçado. Aqui quem sai some depressa (e encolhe um pouco) e… |
 | `lib/ui/tuner_page.dart` | Aba Afinador: cordas soltas, cromático e Pedal; ponteiro, desvio, frequência, Lá de referência e tônica. |
 | `lib/ui/tuning_guide.dart` | Explicação didática do sistema de afinação escolhido, com a tabela de alvos da tônica (em Hz, contra a afinação igual) e botões para OUVIR cada nota. Aparece no Afinador (modo Cromático) e nas Configurações. |
@@ -126,6 +128,7 @@
 | `packages/afina_core/lib/practice_coach.dart` | Treinador: analisa o histórico de escalas e devolve orientações em português, como "Suas notas Mi estão ficando baixas: tente colocá-las um pouco mais altas". É uma análise por regras (estatística sobre as suas… |
 | `packages/afina_core/lib/rhythm_challenge.dart` | Modo desafio do metrônomo ("sabotagem"): de vez em quando, de surpresa, o andamento muda por alguns compassos ou o metrônomo fica mudo, e depois volta sempre ao andamento que a pessoa configurou. Serve para treinar a… |
 | `packages/afina_core/lib/scale_exercise.dart` | Exercício de escalas guiado (estilo "sistema de escalas" de Carl Flesch): o músico toca a escala subindo e descendo, em 1, 2 ou 3 oitavas, e o app acompanha nota por nota, medindo a afinação de cada uma. Dois jeitos… |
+| `packages/afina_core/lib/start_checklist.dart` | "Comece por aqui": o que o professor novo precisa fazer para o app render (vincular, marcar aula, passar tarefa). Dart puro: o app diz o que já aconteceu e esta lógica diz o que falta e qual é o próximo passo. |
 | `packages/afina_core/lib/study_clock.dart` | Relógios de estudo: CRONÔMETRO (conta para cima) e MINUTERIA (conta para baixo até um tempo escolhido). Dart puro: o relógio de parede é passado de fora (ms), então dá para testar e para retomar depois de fechar o app. |
 | `packages/afina_core/lib/system_guide.dart` | Dados para explicar o "Sistema de afinação" na tela: para a tônica escolhida, qual é o ALVO de cada nota no sistema (igual, pitagórico ou justo) e quanto ele difere do temperamento igual, em Hz. Dart puro e testável. |
 | `packages/afina_core/lib/task_status.dart` | Decisão oficial do professor sobre uma tarefa que o aluno marcou como feita. |
@@ -171,6 +174,7 @@
 | `packages/afina_core/test/rhythm_challenge_test.dart` | Sorteia [n] compassos e devolve a decisão de cada um. |
 | `packages/afina_core/test/scale_coach_test.dart` | Passos de uma escala em que cada nota (pitch class) tem um viés fixo. |
 | `packages/afina_core/test/scale_flow_test.dart` | Sol maior, 1 oitava. |
+| `packages/afina_core/test/start_checklist_test.dart` | Testes do módulo `start_checklist`. |
 | `packages/afina_core/test/study_clock_test.dart` | Testes do módulo `study_clock`. |
 | `packages/afina_core/test/system_guide_test.dart` | em Hz, na oitava 4: Mi justo (5/4 de 261,626) = 327,03 Hz contra 329,63 do igual |
 | `packages/afina_core/test/task_status_test.dart` | Testes do módulo `task_status`. |
@@ -266,4 +270,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **223** arquivos mapeados.
+Total: **227** arquivos mapeados.
