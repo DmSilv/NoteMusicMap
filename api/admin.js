@@ -20,6 +20,8 @@
 //   indicators                 saúde do uso: notificações negadas, versões antigas, cota de IA, bloqueados, online
 //   push {op}                  avisos de bug grave neste navegador: status | sub {sub} | unsub {endpoint} | test
 //   presence                   quem está online agora (sinal nos últimos 12 min) e quem esteve há pouco
+//  costs                      comandos do Redis no mês (estimativa) e o que foi medido nos últimos 30 dias (measured)
+//  cost_report {users,fx,basis,commercial,m}  quanto custa manter a plataforma hoje e para N usuários (conta pura, 0 comandos no Redis)
 //  funnel                     ativação: quantos perfis fizeram cada coisa pela primeira vez (vincular, marcar aula, enviar tarefa…)
 //  agenda_pair {code, other}  compara a agenda do professor (code) com a que o aluno (other) recebeu: o que falta ou sobra
 //  Recursos liberados aos poucos (docs/PLANO_AULA_ONLINE_AGENDA_ADMIN.md, seção 6):
@@ -46,6 +48,7 @@ const adminPush = require('./_lib/admin_push');
 const { validSubscription } = require('./_lib/webpush');
 const { K: EK, day: errDay, hour: errHour, sanitize } = require('./_lib/errors_lib');
 const features = require('./_lib/features');
+const costModel = require('./_lib/cost_model');
 
 const { Z } = profiles;
 const sha = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
@@ -429,6 +432,19 @@ function makeHandler(deps = {}) {
       }
 
       // Limpa agora os perfis abandonados (sem vínculo, sem dados e parados há 60 dias). Até 30 por toque.
+      // ---------------- Quanto custa manter a plataforma (conta pura: não consulta o Redis) ----------------
+      if (action === 'cost_report') {
+        const m = b.m && typeof b.m === 'object' ? b.m : {};
+        const n = (v, max) => { const x = Number(v); return Number.isFinite(x) ? Math.min(max, Math.max(0, x)) : 0; };
+        const users = n(b.users, 10000000);
+        if (users < 1) return send(400, { error: 'Informe quantos usuários ativos por mês.' });
+        const rep = costModel.report({
+          measured: { users30: n(m.users30, 1e8), commands: n(m.commands, 1e12), calls: n(m.calls, 1e12), reminders: n(m.reminders, 1e12) },
+          users, fx: Number(b.fx) || 5.5, basis: b.basis === 'real' ? 'real' : 'sim', commercial: b.commercial === true,
+        });
+        return send(200, { ok: true, ...rep });
+      }
+
       // ---------------- Funil de ativação (primeira vez de cada perfil) ----------------
       if (action === 'funnel') {
         const [flat, created, teachers, students] = await cmd.pipeline([['HGETALL', 'fn:ms'], ['ZCARD', Z.last], ['ZCARD', Z.teach], ['ZCARD', Z.stud]]);
@@ -843,13 +859,17 @@ function makeHandler(deps = {}) {
       if (action === 'costs') {
         const dayKeys = [];
         for (let i = 29; i >= 0; i--) dayKeys.push(errDay(now - i * DAY));
-        const res = await cmd.pipeline([...dayKeys.map((d2) => ['HGETALL', K.ct(d2)]), ...dayKeys.map((d2) => ['HGETALL', EK.daily(d2)]), ...dayKeys.map((d2) => ['PFCOUNT', K.day(d2)])]);
+        const res = await cmd.pipeline([...dayKeys.map((d2) => ['HGETALL', K.ct(d2)]), ...dayKeys.map((d2) => ['HGETALL', EK.daily(d2)]), ...dayKeys.map((d2) => ['PFCOUNT', K.day(d2)]), ['ZCOUNT', Z.last, String(now - 30 * DAY), '+inf']]);
         const parse = (flat) => { const o = {}; for (let j = 0; j + 1 < (flat || []).length; j += 2) o[flat[j]] = Number(flat[j + 1]) || 0; return o; };
         const kinds = {};
+        const tot = { open: 0, news: 0, rev: 0, lesson: 0, slot: 0, remind: 0, link: 0, verdict: 0, pick: 0, errors: 0, beatUsers: 0, remindDayMax: 0 };
         const daysOut = dayKeys.map((d2, i) => {
           const ct = parse(res[i]);
           const er = parse(res[30 + i]);
           const users = Number(res[60 + i]) || 0;
+          tot.open += ct.open || 0; tot.news += ct.new || 0; tot.rev += (ct.rev10 || 0) * 10; tot.lesson += ct.lesson || 0; tot.slot += ct.slot || 0;
+          tot.remind += ct.remind || 0; tot.link += ct.link || 0; tot.verdict += ct.verdict || 0; tot.pick += ct.pick || 0; tot.errors += er.total || 0; tot.beatUsers += users;
+          tot.remindDayMax = Math.max(tot.remindDayMax, ct.remind || 0);
           const parts = {
             'Aberturas': (ct.open || 0) * COST.open + (ct.new || 0) * COST.new,
             'Consultas de vínculo': (ct.rev10 || 0) * 10 * COST.rev,
@@ -871,6 +891,14 @@ function makeHandler(deps = {}) {
         return send(200, {
           ok: true, budget: BUDGET, month, pct: Math.round((month / BUDGET) * 1000) / 10,
           projection: Math.round((last7 / 7) * 30), perDay: daysOut,
+          // O que foi medido (para a conta de custos): chamadas de função estimadas = abrir (stats + sincronizar) + consultas + ações + 2 batidas por usuário/dia.
+          measured: {
+            users30: Number(res[90]) || 0,
+            commands: month,
+            calls: Math.round(tot.open * 2 + tot.rev + tot.lesson + tot.slot + tot.link + tot.verdict + tot.pick * 2 + tot.errors + tot.beatUsers * 2 + tot.remind),
+            reminders: tot.remind,
+            remindDayMax: tot.remindDayMax,
+          },
           kinds: Object.entries(kinds).map(([name, n]) => ({ name, n })).sort((a, b) => b.n - a.n),
           note: 'Estimativa: contadores do app × custo por ação (ver docs/CUSTOS_E_REGRESSAO.md). A consulta de vínculo é amostrada (1 em 10).',
         });

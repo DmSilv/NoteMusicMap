@@ -26,6 +26,31 @@ Valores abaixo são aproximados e contam só o que o servidor faz por pedido.
 | Painel: `presence` | admin | ~4 + até 55 | só quando o admin abre Pessoas ou toca em Atualizar |
 | Painel: `kpis` / `list` / `detail` | admin | ~35 / ~27 / ~12 | só quando o admin abre ou toca em Atualizar |
 
+## Projeção de custo e simulação de carga
+A aba Custos › Contas projeta o gasto para 100 a 10.000 usuários (`api/_lib/cost_model.js`). O consumo por usuário vem da simulação `node scripts/simulate_load.js 300` (handlers de verdade, usuários fictícios, 30 dias; só conta comandos e chamadas, não mede velocidade). Última execução (12/11/2026):
+
+```
+Simulação: 300 usuários (45 professores), 30 dias, DAU/MAU 35%
+Por usuário no mês: 387 comandos do Redis, 136 chamadas de função, 3.4 lembretes
+
+Ação                                        chamadas  comandos  cmd/chamada
+abrir app (stats open)                          3138     34818         11.1
+sincronizar (sync)                              3138     27911          8.9
+consulta barata (rev)                          25104     27622          1.1
+batida (stats beat)                             6276      6276            1
+buscar aulas (lessons)                           705      4230            6
+lembrete (remind, QStash)                       1020      4080            4
+marcar tarefa feita (done)                       393      3747          9.5
+buscar agenda (sched)                            511      2921          5.7
+marcar aula (sched_put)                          152      1956         12.9
+enviar aula/tarefa (lesson)                      120      1295         10.8
+ver horários livres (avail)                      107       597          5.6
+buscar pegos/tarefas feitas (picks)               66       396            6
+ver o que os alunos fizeram (dones)               38       224          5.9
+publicar horário livre (avail_put)                17       130          7.6
+```
+Se uma mudança aumentar os comandos por usuário em mais de 20%, investigar antes de publicar e atualizar `SIM` em `cost_model.js`.
+
 ## Limites (anti-abuso)
 - Consultas: 240/h por perfil; alterações: 60/h por perfil; perfis novos por origem: limite diário.
 - Horários livres: 100 por professor; aulas de um aluno com o mesmo professor: 12; tarefas marcadas guardadas: 1500 por professor.

@@ -33,6 +33,9 @@ Aba **Recursos**: um cartão por novidade (`api/_lib/features.js`). Estados: **D
 - **Idade do "agora"**: o topo mostra "agora há X s" (um relógio na tela, sem consultar o servidor). O "agora" continua atualizando a cada 30 s só com a aba à frente: 15 s dobraria o custo no Upstash.
 - Visual: abas com transição, cartões que reagem ao passar o mouse, botões com estados de foco e clique, esqueleto de carregamento (`.skel`); tudo respeita "reduzir movimento".
 
+## Contas: quanto custa manter a plataforma (aba Custos)
+Seção **Contas** na aba Custos: o gasto de hoje (últimos 30 dias), uma tabela de cenários (100, 1.000, 5.000, 10.000 e o número que você digitar), a cotação do dólar editável e uma opção "O app gera receita" (o plano Hobby da Vercel é só para uso não comercial). O consumo por usuário ativo pode ser o **simulado** (`node scripts/simulate_load.js`) ou o **real** dos contadores, que só aparece com 30 ou mais usuários ativos. Preços de tabela em `api/_lib/cost_model.js` (`PRICES`, com a data da consulta): atualize quando os serviços mudarem. A conta é pura: não gasta comando do Redis. Ações: `costs` (devolve `measured`) e `cost_report`. Mostra também custos que não são mensais (Google Play, Apple, domínio) e avisos de limite (banco, lembretes, funções da Vercel).
+
 ## Números: como são calculados
 - **Aparelhos** (HyperLogLog, erro ≈ 1%): distintos por janela. Um aparelho que abre 10 vezes conta 1. Quem limpa os dados ou reinstala conta como novo.
 - **Perfis**: quem ligou o vínculo online (índice `pf:*`); menos que os aparelhos.

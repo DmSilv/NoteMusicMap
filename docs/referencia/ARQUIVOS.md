@@ -203,6 +203,7 @@
 | `api/_lib/admin_push.js` | Aviso (Web Push) para o administrador quando aparece um bug GRAVE novo (ou um grave reaberto). As inscrições do navegador do admin ficam em `adm:ps` (feitas no painel, com a chave de admin). Custo: zero quando não há… |
 | `api/_lib/agenda.js` | Agenda de aulas no servidor: limpeza do que chega, cálculo da próxima aula e agendamento do lembrete (QStash), uma mensagem por vez (a aula semanal agenda a próxima ao disparar). |
 | `api/_lib/config.js` | Configuração lida das variáveis de ambiente da Vercel. NENHUMA chave fica no código. |
+| `api/_lib/cost_model.js` | Quanto custa manter a plataforma: projeção de gastos por número de usuários. Função pura (sem rede, sem Redis), usada pelo painel (aba Custos › Contas) e testada em api/cost_model.test.js. De onde vêm os números: -… |
 | `api/_lib/error_store.js` | Gravação dos relatórios de erro no Redis (usada pelo endpoint do app e pelos erros do próprio servidor). Limites, agrupamento por impressão digital, reabertura e modo leve num só lugar. |
 | `api/_lib/errors_lib.js` | Regras dos relatórios de erro (iguais às do app, em `afina_core/errors.dart`): higienização, impressão digital do bug, validação do pacote e nomes das chaves no Redis. |
 | `api/_lib/features.js` | Recursos liberados aos poucos ("chaves"): cada novidade nasce desligada, é liberada por código de perfil, depois por porcentagem e, por fim, para todos. O SERVIDOR decide; o app só esconde o que não está ligado.… |
@@ -230,6 +231,7 @@
 | `api/agenda_control.test.js` | Testes do controle da agenda (trocar o aluno de uma aula, remarcar uma data, pausar): `node --test api/agenda_control.test.js` |
 | `api/avail.test.js` | Testes dos horários disponíveis (professor) e de "pegar horário" (aluno), sem rede: `node --test api/avail.test.js` |
 | `api/coach.test.js` | Testes da IA (vários serviços + fila) sem rede e sem chaves reais: `node --test api/` |
+| `api/cost_model.test.js` | Testes da conta de custos (quanto custa manter a plataforma): `node --test api/cost_model.test.js` |
 | `api/errors.test.js` | Relatórios de erro do app e a aba "Bugs" do painel, sem rede: `node --test api/errors.test.js` |
 | `api/features.test.js` | Testes das chaves de recursos (liberação aos poucos): `node --test api/features.test.js` |
 | `api/feedback.test.js` | Testes da nota do app e das pesquisas rápidas, sem rede: `node --test api/feedback.test.js` |
@@ -270,4 +272,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **227** arquivos mapeados.
+Total: **229** arquivos mapeados.

@@ -90,6 +90,19 @@
     .journey .b { height: 8px; background: var(--card2); border-radius: 6px; margin-top: 5px; overflow: hidden; } .journey .b i { display: block; height: 100%; background: var(--accent); transition: width .6s; }
     .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--card2); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 14px; padding: 12px 18px; font-weight: 700; z-index: 99; max-width: 90vw; box-shadow: 0 8px 30px rgba(0,0,0,.4); }
     .toast.bad { border-left-color: var(--bad); }
+    /* contas (quanto custa manter) */
+    .bill .tw { overflow-x: auto; margin-top: 10px; }
+    .bill table { min-width: 640px; }
+    .bill td.n, .bill th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    .bill tr.me td { background: rgba(34,229,143,.08); font-weight: 700; }
+    .bill tr.now td { background: rgba(90,169,255,.10); }
+    .bill .big { font-size: 26px; font-weight: 800; letter-spacing: -.4px; font-variant-numeric: tabular-nums; }
+    .bill .al { margin: 6px 0 0; padding: 8px 12px; border-radius: 12px; background: rgba(255,177,74,.12); border: 1px solid rgba(255,177,74,.4); font-size: 13px; }
+    .bill .ln { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+    .bill .ln:first-child { border-top: 0; }
+    .bill .ln small { color: var(--dim); display: block; }
+    .bill label.f { display: inline-flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--dim); }
+    .bill label.f input, .bill label.f select { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card2); color: var(--text); font: inherit; width: 130px; }
     /* movimento e estados (respeita "reduzir movimento") */
     main { animation: tabIn .28s ease both; }
     @keyframes tabIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -427,6 +440,23 @@
         <div class="card"><div class="k">Por dia (estimativa)</div><div class="bars" id="cDays"></div><div class="axis"><span id="cAxA"></span><span id="cAxB"></span></div></div>
       </div>
       <p class="note" id="cNote"></p>
+
+      <h2>Contas: quanto custa manter a plataforma <button class="help" data-def="bill">?</button></h2>
+      <div class="card bill" id="bill">
+        <div class="toolbar">
+          <label class="f">Usuários ativos por mês<input id="bUsers" type="number" min="1" max="10000000" value="1000"></label>
+          <label class="f">Dólar (R$)<input id="bFx" type="number" min="1" max="20" step="0.05" value="5.5"></label>
+          <label class="f">Consumo por usuário<select id="bBasis"><option value="sim">Simulado</option><option value="real">Real (últimos 30 dias)</option></select></label>
+          <label class="f" style="flex-direction:row;align-items:center;gap:6px;align-self:flex-end;padding-bottom:10px"><input id="bComm" type="checkbox" style="width:auto"> O app gera receita</label>
+          <button id="bGo" class="primary" style="align-self:flex-end">Calcular</button>
+        </div>
+        <div id="billNow" class="empty">Carregando…</div>
+        <div class="tw" id="billTbl"></div>
+        <div id="billAl"></div>
+        <h2 style="margin-top:16px">Custos que não são mensais</h2>
+        <div id="billOne"></div>
+        <p class="note" id="billNote"></p>
+      </div>
     </main>
   </div>
 
@@ -467,6 +497,7 @@
     origin: ['De onde vieram', 'Cada link de divulgação leva uma marca no fim (ex.: ?o=yt para YouTube, ?o=ig Instagram, ?o=tt TikTok, ?o=zap WhatsApp, ?o=site página /sobre). O app guarda a do PRIMEIRO acesso do aparelho e avisa uma vez por dia; aqui aparecem os aparelhos de hoje por origem. Sem marca = acesso direto.'],
     bugs: ['Bugs', 'Erros do app e do servidor agrupados pelo mesmo problema. "Graves" derrubam algo importante; "de ação" falharam numa ação; "de conexão" são falhas de internet.'],
     rate100: ['Erros por 100 aberturas', 'Erros de hoje divididos pelas aberturas de hoje, vezes 100. Acima de 5 o painel fica em atenção. Só aparece com pelo menos 20 aberturas.'],
+    bill: ['Contas', 'Quanto custa manter o app no ar. HOJE usa os contadores dos últimos 30 dias. Os cenários (100, 1.000, 5.000, 10.000 e o número que você escolher) multiplicam o consumo de um usuário ativo: pode ser o SIMULADO (um teste com usuários fictícios, `node scripts/simulate_load.js`) ou o REAL medido aqui. Preços de tabela dos serviços, em dólar, convertidos pela cotação que você digitar. Não inclui impostos, picos de acesso nem o custo da IA acima das cotas gratuitas.'],
     cost: ['Custo (comandos do Redis)', 'O plano gratuito do Upstash permite 500 mil comandos por mês. Aqui é uma ESTIMATIVA: contadores do app × custo médio de cada ação. Se ficar perto do limite, o app pode parar de salvar vínculos.']
   };
   function openDef(k) {
@@ -1248,7 +1279,74 @@
   }
 
   // ---------------- Custos ----------------
+  // ---------------- Contas: quanto custa manter a plataforma ----------------
+  var costsMeasured = null;
+  function usd(v) { return 'US$ ' + (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function brl(v) { return 'R$ ' + (Number(v) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function billPrefs(save) {
+    try {
+      if (save) localStorage.setItem('nm_bill', JSON.stringify({ u: $('bUsers').value, f: $('bFx').value, b: $('bBasis').value, c: $('bComm').checked }));
+      else { var p = JSON.parse(localStorage.getItem('nm_bill') || 'null'); if (p) { $('bUsers').value = p.u || 1000; $('bFx').value = p.f || 5.5; $('bBasis').value = p.b || 'sim'; $('bComm').checked = !!p.c; } }
+    } catch (e) { /* sem armazenamento: usa os padrões */ }
+  }
+  function calcBill() {
+    if (!costsMeasured) return;
+    var users = parseInt($('bUsers').value, 10), fx = parseFloat($('bFx').value);
+    if (!(users >= 1)) { toast('Digite quantos usuários ativos por mês.', 'bad'); return; }
+    billPrefs(true);
+    post({ action: 'cost_report', users: users, fx: fx, basis: $('bBasis').value, commercial: $('bComm').checked, m: costsMeasured }).then(function (r) {
+      if (r.status !== 200) { $('billNow').textContent = 'Não foi possível calcular: ' + why(r); return; }
+      renderBill(r.j);
+    }).catch(function () { $('billNow').textContent = 'Sem conexão com o servidor.'; });
+  }
+  function renderBill(j) {
+    var now = $('billNow'); now.innerHTML = ''; now.className = '';
+    var tbl = $('billTbl'); tbl.innerHTML = '';
+    var al = $('billAl'); al.innerHTML = '';
+    if (j.now) {
+      var h = document.createElement('div'); h.innerHTML = '';
+      var big = document.createElement('div'); big.className = 'big'; big.textContent = usd(j.now.totalUsd) + ' · ' + brl(j.now.totalBrl) + ' por mês';
+      var sub = document.createElement('div'); sub.className = 's'; sub.style.color = 'var(--dim)'; sub.textContent = 'Hoje (últimos 30 dias, ' + fmt(j.now.users30) + ' usuário(s) ativo(s))';
+      now.appendChild(big); now.appendChild(sub);
+      j.now.items.forEach(function (x) {
+        var ln = document.createElement('div'); ln.className = 'ln';
+        var l = document.createElement('div'); l.textContent = x.name + ' · ' + x.plan; var sm = document.createElement('small'); sm.textContent = x.detail; l.appendChild(sm);
+        var r = document.createElement('div'); r.textContent = usd(x.usd);
+        ln.appendChild(l); ln.appendChild(r); now.appendChild(ln);
+      });
+      j.now.alerts.forEach(function (a) { var d = document.createElement('div'); d.className = 'al'; d.textContent = '⚠ Hoje: ' + a; al.appendChild(d); });
+    } else { now.className = 'empty'; now.textContent = 'Ainda não há dados dos últimos 30 dias.'; }
+    var src = document.createElement('div'); src.className = 'empty'; src.style.marginTop = '10px';
+    src.textContent = 'Consumo por usuário ativo usado nos cenários (' + (j.basis === 'real' ? 'real' : 'simulado') + '): ' + fmt(Math.round(j.perUser.used.commandsPerUser)) + ' comandos, ' + fmt(Math.round(j.perUser.used.callsPerUser)) + ' chamadas de função e ' + String(j.perUser.used.remindersPerUser).replace('.', ',') + ' lembretes por mês.' + (!j.realAvailable ? ' (O consumo real só aparece com 30 ou mais usuários ativos.)' : '');
+    now.appendChild(src);
+
+    var t = document.createElement('table');
+    var hd = '<tr><th>Cenário</th><th class="n">Comandos</th><th class="n">Chamadas</th><th class="n">Banco</th><th class="n">Lembretes</th><th class="n">Vercel</th><th class="n">Total (US$)</th><th class="n">Total (R$)</th></tr>';
+    t.innerHTML = hd;
+    j.scenarios.forEach(function (sc) {
+      var tr = document.createElement('tr'); if (sc.users === j.custom) tr.className = 'me';
+      function td(txt, cls) { var c = document.createElement('td'); if (cls) c.className = cls; c.textContent = txt; tr.appendChild(c); }
+      var it = function (k) { return sc.items.filter(function (x) { return x.key === k; })[0]; };
+      td(fmt(sc.users) + ' usuários'); td(fmt(sc.commands), 'n'); td(fmt(sc.calls), 'n'); td(usd(it('redis').usd), 'n'); td(usd(it('qstash').usd), 'n'); td(it('vercel').plan === 'Pro' ? 'Pro ' + usd(it('vercel').usd) : 'Hobby', 'n'); td(usd(sc.totalUsd), 'n'); td(brl(sc.totalBrl), 'n');
+      t.appendChild(tr);
+    });
+    tbl.appendChild(t);
+    var mine = j.scenarios.filter(function (x) { return x.users === j.custom; })[0];
+    if (mine) {
+      var per = document.createElement('div'); per.className = 'empty'; per.style.marginTop = '6px';
+      per.textContent = 'Com ' + fmt(mine.users) + ' usuários ativos: ' + usd(mine.totalUsd) + ' (' + brl(mine.totalBrl) + ') por mês, cerca de ' + brl(mine.perUserBrl) + ' por usuário.';
+      tbl.appendChild(per);
+      mine.alerts.forEach(function (a) { var d = document.createElement('div'); d.className = 'al'; d.textContent = '⚠ ' + fmt(mine.users) + ' usuários: ' + a; al.appendChild(d); });
+    }
+    var one = $('billOne'); one.innerHTML = '';
+    j.prices.oneOff.forEach(function (x) { var ln = document.createElement('div'); ln.className = 'ln'; var l = document.createElement('div'); l.textContent = x.name; var sm = document.createElement('small'); sm.textContent = x.when; l.appendChild(sm); var r = document.createElement('div'); r.textContent = usd(x.usd) + ' · ' + brl(x.usd * j.fx); ln.appendChild(l); ln.appendChild(r); one.appendChild(ln); });
+    $('billNote').textContent = j.notes.join(' ') + ' ' + j.prices.source + ' (preços de ' + j.prices.asOf + ').';
+  }
+  $('bGo').onclick = calcBill;
+  billPrefs(false);
+
   function renderCosts(j) {
+    costsMeasured = j.measured || null; calcBill();
     setNum('cMonth', j.month); $('cPct').textContent = j.pct.toLocaleString('pt-BR') + '% do plano'; $('cBudget').textContent = fmt(j.budget); $('cProj').textContent = fmt(j.projection);
     var m = $('cMeter'); m.className = 'meter' + (j.pct >= 80 ? ' bad' : j.pct >= 50 ? ' warn' : ''); m.firstChild.style.width = Math.min(100, j.pct) + '%';
     var obj = {}; j.kinds.forEach(function (k) { obj[k.name] = k.n; }); dist($('cKinds'), obj);

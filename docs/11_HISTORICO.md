@@ -170,3 +170,6 @@ Novo cartão **Ativação** na Visão geral (primeira vez de cada perfil em cada
 
 ## Tutoriais e Comece por aqui (novembro/2026)
 Novo cartão **Comece por aqui** no Meu espaço do professor (vincular um aluno, marcar uma aula, passar uma tarefa, com progresso) e tutorial com tela escura e destaque nos botões (**Ver como funciona**, e o "?" da agenda). Opcional, só no aparelho, com "Rever tutoriais" em Ajustes. O tutorial do aluno ainda não existe.
+
+## Relatório de contas no painel e plano de testes (novembro/2026)
+Aba Custos ganhou **Contas**: quanto custa manter a plataforma hoje e para 100, 1.000, 5.000, 10.000 ou N usuários (em dólar e reais, com avisos de limite). Novo script `scripts/simulate_load.js` (carga lógica) e `docs/PLANO_DE_TESTES.md`. Conclusão da simulação: com ~1.000 usuários ativos o banco ainda cabe no grátis; o primeiro limite a apertar é o de chamadas de função da Vercel (Hobby), e uso comercial exige o plano Pro (US$ 20/mês).
