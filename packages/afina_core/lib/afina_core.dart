@@ -1,5 +1,6 @@
 library;
 
+export 'absence.dart';
 export 'agenda.dart';
 export 'hub.dart';
 export 'identity.dart';

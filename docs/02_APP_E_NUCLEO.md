@@ -43,6 +43,7 @@ Nada de Flutter nem `dart:io` (assim roda no navegador e nos testes de linha de 
 | Identidade e entrada | `identity`, `input_guard` | Perfil, código com dígito verificador, limpeza de tudo que se digita/cola/lê de QR |
 | Professor/aluno | `teacher`, `lesson`, `lesson_week`, `methods`, `task_status` | Alunos, tarefas, aulas, "esta semana", métodos, **status oficial** (resumo, decisão, `VerdictEntry`) |
 | Agenda e horários | `agenda`, `class_rules`, `open_slots` | `ClassSlot`, ocorrências, conflito, **fase e permissões da aula**, regras do horário livre |
+| Faltas do aluno | `absence` | `Absence`, `addAbsence`, `lessonForAbsence` (a aula que o aluno está perdendo agora) |
 | Hub | `hub`, `hub_view` | Destaque e blocos do Meu espaço; **visões Aluno/Professor** sem destino repetido |
 | Comece por aqui | `start_checklist` | Os 3 passos do professor novo (vincular, marcar aula, passar tarefa) e o próximo que falta |
 | Vínculo | `link_status` | Estado do vínculo em linguagem simples |

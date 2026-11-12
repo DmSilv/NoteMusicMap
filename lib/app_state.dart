@@ -434,6 +434,24 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Registra que o aluno não veio à aula que começaria em [lessonMs] (só neste aparelho, na ficha do aluno).
+  /// Registrar de novo a mesma aula troca o registro (de "faltou" para "avisou", por exemplo).
+  void recordAbsence(Student s, {required int lessonMs, required AbsenceKind kind}) {
+    s.absences = addAbsence(s.absences, Absence(lessonMs: lessonMs, kind: kind, recordedMs: DateTime.now().millisecondsSinceEpoch));
+    _saveTeacher();
+    notifyListeners();
+  }
+
+  /// Desfaz o último registro de falta feito (para um engano). Devolve true se havia algo para desfazer.
+  bool undoLastAbsence(Student s) {
+    if (s.absences.isEmpty) return false;
+    final last = s.absences.reduce((a, b) => b.recordedMs > a.recordedMs ? b : a);
+    s.absences = [for (final a in s.absences) if (!identical(a, last)) a];
+    _saveTeacher();
+    notifyListeners();
+    return true;
+  }
+
   void addTeacherNote(Student s, String text) {
     if (text.trim().isEmpty) return;
     s.notes.insert(0, TeacherNote(DateTime.now(), text.trim()));

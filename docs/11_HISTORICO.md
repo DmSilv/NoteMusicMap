@@ -197,3 +197,8 @@ O aviso deixou de ser fixo em 15 minutos: o professor escolhe por aula (sem lemb
 - **Remarcar e trocar horário** viraram um modal só cada (`lib/ui/agenda_sheets.dart`): dia e hora (ou a lista de aulas), o que muda de → para, conferência de choque ao vivo e botão que só liga quando cabe. Cancelar e pausar usam a mesma folha de confirmação, com botão laranja.
 - **Avisos curtos** por tipo (sucesso, atenção, informação) com ícone em círculo, fundo colorido, barra de tempo e duração proporcional ao texto.
 - Um teste achou e corrigiu a leitura duplicada do número do dia para leitores de tela.
+
+## Ações da agenda à vista, "Aluno faltou" e tela de Alunos (novembro/2026)
+- **Agenda:** **Remarcar**, **Trocar** e **Cancelar** ficam à vista em cada aula (antes eram itens do menu de três pontos); cancelar uma aula semanal pergunta se é só esta ou todas.
+- **Aluno faltou** (`lib/ui/agenda_actions.dart`, `absenceFlow`; modelo em `afina_core/lib/absence.dart`): segunda rota ao lado de "Começar a aula", com faltou sem avisar, avisou que não vem e quer remarcar. 9 testes no núcleo e 7 de tela.
+- **Alunos:** lista agrupada (Aula hoje, Para validar, Todos os outros), cartões com aula do dia em destaque e marca de faltas, botão flutuante "Novo aluno" e extras no menu do topo.

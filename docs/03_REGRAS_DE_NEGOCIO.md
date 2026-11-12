@@ -126,3 +126,14 @@ Recurso `lembrete_escolha` (aba Recursos; nasce desligado). Com ele ligado para 
 5. **Texto da notificação:** montado no aparelho (`web/sw.js`) pelo tempo que realmente falta: "Aula em 30 minutos", "Aula em 2 horas", "Aula amanhã" (um aviso agendado para já, porque a aula está perto, não mente o tempo).
 6. **Compatibilidade:** campo novo `r` (minutos) no horário. Sem `r` vale 15, como sempre. Sem a chave, o servidor ignora o `r` que chegar e **mantém** o que já estava guardado; app antigo editando uma aula também mantém. Voltar a 15 com o recurso ligado grava `r=15` (não ressuscita um valor antigo). Mudar a escolha troca o `u` da aula, então o aviso antigo já agendado é ignorado quando disparar.
 7. **Custo:** zero comandos a mais no Redis; no máximo uma mensagem no QStash por aula e ocorrência, como antes (menos, se for "sem lembrete").
+
+## 16. Aluno faltou (falta registrada pelo professor)
+Só neste aparelho, na ficha do aluno (`Student.absences`, `packages/afina_core/lib/absence.dart`; arquivo antigo sem faltas continua abrindo). O botão **Aluno faltou** fica ao lado de **Começar a aula** na ficha; na agenda aparece **Aluno não veio** no cartão da aula perto da hora (a partir de 15 min antes) e depois dela começar.
+1. **Qual aula:** a de hoje mais perto de agora (entre 3 h atrás e 12 h à frente). Sem aula marcada, só registra (no início do dia).
+2. **Três caminhos:** *Faltou, sem avisar* (só registra; a aula continua na agenda), *Avisou que não vem* (registra e cancela só a aula de hoje, e o aluno é avisado como em qualquer cancelamento) e *Quer remarcar* (abre o remarcar e só registra se a aula foi mesmo remarcada).
+3. **Sem duplicar:** registrar de novo a mesma aula troca o registro. Guarda as 200 mais recentes.
+4. **Onde aparece:** "N faltas registradas · última em dd/mm" no cartão **Aula** da ficha, com **Desfazer última** (engano), e uma marca "N faltas" (últimos 60 dias) no cartão do aluno na lista.
+5. **Fora do escopo por enquanto:** o aluno não vê as faltas; reposição ainda é remarcar à mão.
+
+## 17. Tela de Alunos
+Lista agrupada do mais urgente ao resto: **Aula hoje**, **Para validar** e **Todos os outros** (cada aluno aparece uma vez; sem os dois primeiros grupos, a lista vem sem título). O botão **Novo aluno** é flutuante e sempre visível; **Ler QR**, **Importar**, **Meus métodos e lições** e **Senha desta tela** ficam no menu do topo.

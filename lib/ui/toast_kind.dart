@@ -10,7 +10,7 @@ final _warning = RegExp(
   caseSensitive: false,
 );
 final _success = RegExp(
-  r'copiad|salv|atualizad|cancelad|descartad|adicionad|vinculad|enviad|passada|concluíd|conclu|restaurad|liberad|escolhida|confirmad|apagad|removid|excluíd|ligado\.|instalado|definida|pronto|marcad|criad|remarcad|pausad|trocad|publicad|bom trabalho',
+  r'copiad|registrad|desfeit|salv|atualizad|cancelad|descartad|adicionad|vinculad|enviad|passada|concluíd|conclu|restaurad|liberad|escolhida|confirmad|apagad|removid|excluíd|ligado\.|instalado|definida|pronto|marcad|criad|remarcad|pausad|trocad|publicad|bom trabalho',
   caseSensitive: false,
 );
 

@@ -105,6 +105,7 @@
 
 | Arquivo | O que faz |
 |---|---|
+| `packages/afina_core/lib/absence.dart` | Falta do aluno a uma aula, registrada pelo professor (só neste aparelho; faz parte da ficha do aluno). [noShow]: faltou sem avisar. [notified]: avisou que não vem. |
 | `packages/afina_core/lib/afina_core.dart` | Ponto de entrada do núcleo: reexporta todos os módulos de `packages/afina_core/lib`. |
 | `packages/afina_core/lib/agenda.dart` | Agenda de aulas: o professor marca aulas com os alunos (uma vez ou toda semana) e o aluno vê as suas. Dart puro e testável: o relógio é sempre passado de fora. A aula que se repete toda semana é UMA regra só (não uma… |
 | `packages/afina_core/lib/class_rules.dart` | Regra única das aulas: em que fase está cada aula, o que dá para mudar nela e quais aulas entram na agenda mostrada. Hub (Meu espaço), agenda e lembretes usam estas mesmas funções, para nunca mostrarem números ou… |
@@ -147,6 +148,7 @@
 
 | Arquivo | O que faz |
 |---|---|
+| `packages/afina_core/test/absence_test.dart` | Testes do módulo `absence`. |
 | `packages/afina_core/test/agenda_test.dart` | 18/11/2026 é quarta-feira. |
 | `packages/afina_core/test/arpeggio_test.dart` | Testes do módulo `arpeggio`. |
 | `packages/afina_core/test/class_rules_test.dart` | Testes do módulo `class_rules`. |
@@ -281,4 +283,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **238** arquivos mapeados.
+Total: **240** arquivos mapeados.

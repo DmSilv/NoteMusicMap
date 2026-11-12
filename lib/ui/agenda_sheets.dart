@@ -364,3 +364,184 @@ Future<bool> showConfirmSheet(
   );
   return r == true;
 }
+
+// -------------------------------------------------------- Escolha de uma opção
+
+/// Uma opção grande e tocável, com ícone, título e explicação do que acontece (usada em "não veio" e em "cancelar").
+class _ChoiceTile extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool selected;
+  final Color color;
+  final VoidCallback onTap;
+  const _ChoiceTile({required this.icon, required this.title, required this.subtitle, required this.selected, required this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: Ds.s8),
+        child: Semantics(
+          button: true,
+          selected: selected,
+          excludeSemantics: true,
+          label: '$title. $subtitle',
+          onTap: onTap,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.all(Ds.s12),
+              decoration: BoxDecoration(
+                color: selected ? color.withValues(alpha: 0.12) : AppColors.surface2,
+                borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
+                border: Border.all(color: selected ? color : AppColors.outline, width: selected ? 1.6 : 1),
+              ),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                DsIconBadge(icon, size: 40, color: color),
+                const SizedBox(width: Ds.s12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: Ds.support()),
+                  ]),
+                ),
+                const SizedBox(width: Ds.s8),
+                Icon(selected ? Icons.check_circle_rounded : Icons.radio_button_unchecked, color: selected ? color : AppColors.textDim),
+              ]),
+            ),
+          ),
+        ),
+      );
+}
+
+// ---------------------------------------------------------------- Não veio
+
+/// O que fazer quando o aluno não veio à aula.
+enum AbsenceChoice { noShow, notified, reschedule }
+
+/// "Aluno não veio": três caminhos claros (faltou sem avisar, avisou que não vem, quer remarcar). Sem aula marcada para
+/// agora ([hasLesson] falso) só há o que registrar. Devolve a escolha, ou null se voltou.
+Future<AbsenceChoice?> showAbsenceSheet(
+  BuildContext context, {
+  required String who,
+  String? lessonLabel,
+  required bool hasLesson,
+  required bool weekly,
+}) {
+  return _sheet<AbsenceChoice>(context, (c) => _AbsenceBody(who: who, lessonLabel: lessonLabel, hasLesson: hasLesson, weekly: weekly));
+}
+
+class _AbsenceBody extends StatefulWidget {
+  final String who;
+  final String? lessonLabel;
+  final bool hasLesson;
+  final bool weekly;
+  const _AbsenceBody({required this.who, required this.lessonLabel, required this.hasLesson, required this.weekly});
+
+  @override
+  State<_AbsenceBody> createState() => _AbsenceBodyState();
+}
+
+class _AbsenceBodyState extends State<_AbsenceBody> {
+  AbsenceChoice? picked;
+
+  @override
+  Widget build(BuildContext context) {
+    final who = widget.who;
+    final p = picked;
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(Ds.screenPad, Ds.s4, Ds.screenPad, Ds.s16 + MediaQuery.of(context).viewInsets.bottom),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _header(Icons.person_off_outlined, '$who não veio?', widget.lessonLabel, color: AppColors.sharp),
+        const SizedBox(height: Ds.s20),
+        _ChoiceTile(
+          icon: Icons.person_off_outlined,
+          title: 'Faltou, sem avisar',
+          subtitle: widget.hasLesson ? 'Fica registrado na ficha. A aula continua na agenda.' : 'Fica registrado na ficha de $who.',
+          selected: p == AbsenceChoice.noShow,
+          color: AppColors.sharp,
+          onTap: () => setState(() => picked = AbsenceChoice.noShow),
+        ),
+        _ChoiceTile(
+          icon: Icons.mark_chat_read_outlined,
+          title: 'Avisou que não vem',
+          subtitle: !widget.hasLesson
+              ? 'Fica registrado na ficha de $who.'
+              : (widget.weekly ? 'Fica registrado e só a aula de hoje é cancelada. $who é avisado.' : 'Fica registrado e a aula é cancelada. $who é avisado.'),
+          selected: p == AbsenceChoice.notified,
+          color: AppColors.flat,
+          onTap: () => setState(() => picked = AbsenceChoice.notified),
+        ),
+        if (widget.hasLesson)
+          _ChoiceTile(
+            icon: Icons.event_repeat_rounded,
+            title: 'Quer remarcar',
+            subtitle: 'Fica registrado e você escolhe o novo horário.',
+            selected: p == AbsenceChoice.reschedule,
+            color: AppColors.accent,
+            onTap: () => setState(() => picked = AbsenceChoice.reschedule),
+          ),
+        const SizedBox(height: Ds.s8),
+        _buttons(
+          context,
+          ok: p == AbsenceChoice.reschedule ? 'Registrar e remarcar' : 'Registrar falta',
+          enabled: p != null,
+          onOk: () => Navigator.pop(context, p),
+          icon: p == AbsenceChoice.reschedule ? Icons.event_repeat_rounded : Icons.check_rounded,
+        ),
+      ]),
+    );
+  }
+}
+
+// ---------------------------------------------------------------- Cancelar
+
+/// Cancelar uma aula semanal: só a desta data ou todas.
+enum CancelChoice { one, all }
+
+Future<CancelChoice?> showCancelSheet(BuildContext context, {required String who, required String dateLabel}) {
+  return _sheet<CancelChoice>(context, (c) => _CancelBody(who: who, dateLabel: dateLabel));
+}
+
+class _CancelBody extends StatefulWidget {
+  final String who;
+  final String dateLabel;
+  const _CancelBody({required this.who, required this.dateLabel});
+
+  @override
+  State<_CancelBody> createState() => _CancelBodyState();
+}
+
+class _CancelBodyState extends State<_CancelBody> {
+  CancelChoice? picked;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(Ds.screenPad, Ds.s4, Ds.screenPad, Ds.s16),
+      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        _header(Icons.event_busy_rounded, 'Cancelar a aula', '${widget.who} · ${widget.dateLabel}', color: AppColors.sharp),
+        const SizedBox(height: Ds.s20),
+        _ChoiceTile(
+          icon: Icons.today_rounded,
+          title: 'Só esta aula',
+          subtitle: 'As outras semanas continuam. ${widget.who} é avisado.',
+          selected: picked == CancelChoice.one,
+          color: AppColors.sharp,
+          onTap: () => setState(() => picked = CancelChoice.one),
+        ),
+        _ChoiceTile(
+          icon: Icons.event_repeat_rounded,
+          title: 'Todas as aulas',
+          subtitle: 'A aula semanal deixa de existir daqui para a frente. ${widget.who} é avisado.',
+          selected: picked == CancelChoice.all,
+          color: AppColors.sharp,
+          onTap: () => setState(() => picked = CancelChoice.all),
+        ),
+        const SizedBox(height: Ds.s8),
+        _buttons(context, ok: 'Cancelar aula', enabled: picked != null, danger: true, onOk: () => Navigator.pop(context, picked), icon: Icons.event_busy),
+      ]),
+    );
+  }
+}

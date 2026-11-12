@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app_state.dart';
+import 'agenda_actions.dart' show absenceFlow;
 import 'agenda_page.dart';
 import 'hub_section.dart' show shareTeacherInvite;
 import 'safe_input.dart';
 import '../ai/coach_ai.dart';
+import 'design_system.dart';
 import 'dictation_button.dart';
 import 'dart:async';
 import 'markdown_lite.dart';
@@ -371,7 +373,53 @@ class _TeacherPageState extends State<TeacherPage> {
                     label: Text(_manage ? 'Concluir' : 'Gerenciar'),
                   ),
           ),
+          // O que não é do dia a dia fica num menu: ler QR, importar, métodos e a senha da tela.
+          ListenableBuilder(
+            listenable: app,
+            builder: (context, _) => app.teacherLocked
+                ? const SizedBox.shrink()
+                : PopupMenuButton<String>(
+                    tooltip: 'Mais opções',
+                    onSelected: (v) {
+                      switch (v) {
+                        case 'qr':
+                          _scanQr(context);
+                        case 'import':
+                          _importStudent(context);
+                        case 'methods':
+                          Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => MethodsPage(app: app)));
+                        case 'pin':
+                          _setPin(context);
+                      }
+                    },
+                    itemBuilder: (c) => [
+                      const PopupMenuItem(value: 'qr', child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.qr_code_scanner), title: Text('Ler QR do aluno'))),
+                      const PopupMenuItem(value: 'import', child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.download), title: Text('Importar aluno'))),
+                      PopupMenuItem(
+                        value: 'methods',
+                        child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: const Icon(Icons.library_books_outlined), title: Text(app.methodLibrary.isEmpty ? 'Meus métodos e lições' : 'Meus métodos e lições (${app.methodLibrary.length})')),
+                      ),
+                      PopupMenuItem(
+                        value: 'pin',
+                        child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(app.teacherPinHash == null ? Icons.lock_open : Icons.lock_outline), title: Text(app.teacherPinHash == null ? 'Senha desta tela' : 'Trocar ou remover a senha')),
+                      ),
+                    ],
+                  ),
+          ),
         ],
+      ),
+      floatingActionButton: ListenableBuilder(
+        listenable: app,
+        builder: (context, _) => app.teacherLocked || _manage
+            ? const SizedBox.shrink()
+            : FloatingActionButton.extended(
+                onPressed: () async {
+                  final r = await _newStudentDialog(context, app);
+                  if (r != null) app.addStudent(r.$1, code: r.$2);
+                },
+                icon: const Icon(Icons.person_add_alt_1),
+                label: const Text('Novo aluno', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
       ),
       body: SafeArea(
         child: ListenableBuilder(
@@ -384,7 +432,7 @@ class _TeacherPageState extends State<TeacherPage> {
 
   Widget _home(BuildContext context) {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(14, 8, 14, 24),
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 96),
       children: [
         _LessonBanner(app: app),
         const SizedBox(height: 10),
@@ -437,7 +485,7 @@ class _TeacherPageState extends State<TeacherPage> {
               ],
             ),
           ),
-        for (final s in app.students.where(_matches)) _studentCard(context, s),
+        ..._groupedList(context),
         if (app.students.isNotEmpty && !app.students.any(_matches))
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 18),
@@ -450,85 +498,76 @@ class _TeacherPageState extends State<TeacherPage> {
             child: Text('Nenhum aluno ainda. Toque em "Novo aluno" ou no "?" para ver como funciona.',
                 textAlign: TextAlign.center, style: TextStyle(color: AppColors.textDim)),
           ),
-        const SizedBox(height: 4),
-        FilledButton.icon(
-          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-          onPressed: () async {
-            final r = await _newStudentDialog(context, app);
-            if (r != null) app.addStudent(r.$1, code: r.$2);
-          },
-          icon: const Icon(Icons.person_add_alt_1),
-          label: const Text('Novo aluno', style: TextStyle(fontWeight: FontWeight.w700)),
-        ),
-        const SizedBox(height: 8),
-        Row(children: [
-          Expanded(
-            child: FilledButton.tonalIcon(
-              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(46)),
-              onPressed: () async {
-                final s = await scanShareCode(context,
-                    title: 'Ler QR do aluno', want: 'aluno', check: (code) => app.checkStudent('aluno', code).code,
-                    onCamera: app.setCameraStatus);
-                if (s == null || !context.mounted) return;
-                final r = await _newStudentDialog(context, app, code0: s.code);
-                if (r != null) app.addStudent(r.$1, code: r.$2);
-              },
-              icon: const Icon(Icons.qr_code_scanner, size: 20),
-              label: const Text('Ler QR'),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: FilledButton.tonalIcon(
-              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(46)),
-              onPressed: () async {
-                final t = await _askText(context, 'Importar aluno',
-                    'Cole aqui os dados copiados do outro aparelho',
-                    multiline: true, action: 'Importar');
-                if (t != null && t.trim().isNotEmpty) app.say(app.importStudentText(t));
-              },
-              icon: const Icon(Icons.download, size: 20),
-              label: const Text('Importar'),
-            ),
-          ),
-        ]),
-        const SizedBox(height: 16),
-        AppCard(
-          padding: EdgeInsets.zero,
-          child: Column(children: [
-            ListTile(
-              leading: const Icon(Icons.library_books_outlined),
-              title: Text(app.methodLibrary.isEmpty ? 'Meus métodos e lições' : 'Meus métodos e lições (${app.methodLibrary.length})'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => MethodsPage(app: app))),
-            ),
-            Divider(height: 1, color: AppColors.outline),
-            ListTile(
-              leading: Icon(app.teacherPinHash == null ? Icons.lock_open : Icons.lock_outline),
-              title: Text(app.teacherPinHash == null ? 'Senha desta tela' : 'Trocar ou remover a senha'),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () async {
-                final pin = await _askText(context, 'Trava com senha (opcional)',
-                    'Senha de 4 números (vazio remove)',
-                    action: 'Definir');
-                if (pin != null) {
-                  final p = pin.trim();
-                  if (p.isEmpty) {
-                    app.setTeacherPin(null);
-                    app.say('Trava removida');
-                  } else if (RegExp(r'^\d{4}$').hasMatch(p)) {
-                    app.setTeacherPin(p);
-                    app.say('Trava definida: peça a senha ao abrir esta área');
-                  } else {
-                    app.say('Use exatamente 4 números');
-                  }
-                }
-              },
-            ),
-          ]),
-        ),
       ],
     );
+  }
+
+  Future<void> _scanQr(BuildContext context) async {
+    final s = await scanShareCode(context,
+        title: 'Ler QR do aluno', want: 'aluno', check: (code) => app.checkStudent('aluno', code).code, onCamera: app.setCameraStatus);
+    if (s == null || !context.mounted) return;
+    final r = await _newStudentDialog(context, app, code0: s.code);
+    if (r != null) app.addStudent(r.$1, code: r.$2);
+  }
+
+  Future<void> _importStudent(BuildContext context) async {
+    final t = await _askText(context, 'Importar aluno', 'Cole aqui os dados copiados do outro aparelho', multiline: true, action: 'Importar');
+    if (t != null && t.trim().isNotEmpty) app.say(app.importStudentText(t));
+  }
+
+  Future<void> _setPin(BuildContext context) async {
+    final pin = await _askText(context, 'Trava com senha (opcional)', 'Senha de 4 números (vazio remove)', action: 'Definir');
+    if (pin == null) return;
+    final p = pin.trim();
+    if (p.isEmpty) {
+      app.setTeacherPin(null);
+      app.say('Trava removida');
+    } else if (RegExp(r'^\d{4}$').hasMatch(p)) {
+      app.setTeacherPin(p);
+      app.say('Trava definida: peça a senha ao abrir esta área');
+    } else {
+      app.say('Use exatamente 4 números');
+    }
+  }
+
+  /// Os alunos em grupos, do mais urgente ao resto: aula hoje, tarefas para validar e os demais. Cada aluno aparece uma vez.
+  List<Widget> _groupedList(BuildContext context) {
+    final now = DateTime.now();
+    bool hasClassToday(Student s) {
+      final o = s.code == null ? null : nextOccurrence(app.slotsOf(s.code!), now.millisecondsSinceEpoch);
+      return o != null && o.start.year == now.year && o.start.month == now.month && o.start.day == now.day;
+    }
+
+    final all = app.students.where(_matches).toList();
+    final today = <Student>[], waiting = <Student>[], rest = <Student>[];
+    for (final s in all) {
+      if (hasClassToday(s)) {
+        today.add(s);
+      } else if (app.awaitingOf(s).isNotEmpty) {
+        waiting.add(s);
+      } else {
+        rest.add(s);
+      }
+    }
+    final groups = <(String, IconData, List<Student>)>[
+      ('Aula hoje', Icons.event_available_outlined, today),
+      ('Para validar', Icons.fact_check_outlined, waiting),
+      (today.isEmpty && waiting.isEmpty ? '' : 'Todos os outros', Icons.groups_outlined, rest),
+    ].where((g) => g.$3.isNotEmpty).toList();
+    return [
+      for (final g in groups) ...[
+        if (g.$1.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 12, 0, 8),
+            child: Row(children: [
+              Icon(g.$2, size: 16, color: AppColors.textDim),
+              const SizedBox(width: 6),
+              Text('${g.$1} · ${g.$3.length}', style: Ds.section()),
+            ]),
+          ),
+        for (final s in g.$3) _studentCard(context, s),
+      ],
+    ];
   }
 
   /// Faixa de números do topo: quantos alunos, quantas tarefas esperam validação e aulas de hoje.
@@ -575,17 +614,22 @@ class _TeacherPageState extends State<TeacherPage> {
     final awaiting = app.awaitingOf(s).length;
     final nowD = DateTime.now();
     final nextOcc = s.code == null ? null : nextOccurrence(app.slotsOf(s.code!), nowD.millisecondsSinceEpoch);
-    final nextClassText = nextOcc == null ? null : 'Próxima aula: ${fmtSlotWhen(nextOcc.start, nowD)}';
+    final classToday = nextOcc != null && nextOcc.start.year == nowD.year && nextOcc.start.month == nowD.month && nextOcc.start.day == nowD.day;
+    final absences = absencesSince(s.absences, sinceMs: nowD.millisecondsSinceEpoch - 60 * kMsDay);
+    final hm = nextOcc == null ? '' : '${nextOcc.start.hour.toString().padLeft(2, '0')}:${nextOcc.start.minute.toString().padLeft(2, '0')}';
+    final subtitle = nextOcc != null
+        ? (classToday ? 'Aula hoje às $hm' : 'Próxima aula: ${fmtSlotWhen(nextOcc.start, nowD)}')
+        : (sum.sessions == 0 ? 'Sem aula marcada' : '${sum.sessions} sessões · média ${(sum.recentAverage! * 100).round()}%');
+    final ring = classToday ? AppColors.accent : (awaiting > 0 ? AppColors.accent : Colors.transparent);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: AppCard(
-        padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+        padding: const EdgeInsets.fromLTRB(14, 12, 6, 12),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: _manage
               ? () => setState(() => _selected.contains(s.id) ? _selected.remove(s.id) : _selected.add(s.id))
-              : () => Navigator.of(context)
-                  .push(MaterialPageRoute<void>(builder: (_) => StudentPage(app: app, studentId: s.id))),
+              : () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => StudentPage(app: app, studentId: s.id))),
           child: Row(
             children: [
               if (_manage)
@@ -594,10 +638,16 @@ class _TeacherPageState extends State<TeacherPage> {
                   onChanged: (v) => setState(() => v == true ? _selected.add(s.id) : _selected.remove(s.id)),
                 )
               else
-                CircleAvatar(
-                  backgroundColor: AppColors.accent.withValues(alpha: 0.2),
-                  child: Text(s.name.isEmpty ? '?' : s.name[0].toUpperCase(),
-                      style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800)),
+                Container(
+                  width: 46,
+                  height: 46,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.accent.withValues(alpha: 0.18),
+                    border: Border.all(color: ring, width: 2),
+                  ),
+                  child: Text(s.name.isEmpty ? '?' : s.name[0].toUpperCase(), style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800, fontSize: 18)),
                 ),
               const SizedBox(width: 12),
               Expanded(
@@ -605,26 +655,29 @@ class _TeacherPageState extends State<TeacherPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      Flexible(
-                        child: Text(s.name,
-                            maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                      ),
+                      Flexible(child: Text(s.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16.5))),
                       const SizedBox(width: 8),
                       linkBadge(s),
                     ]),
                     const SizedBox(height: 3),
-                    Text(
-                      nextClassText ??
-                          (sum.sessions == 0
-                              ? 'Sem exercícios ainda'
-                              : '${sum.sessions} sessões · média ${(sum.recentAverage! * 100).round()}%'),
-                      style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
-                    ),
-                    if (awaiting > 0 || open > 0) ...[
-                      const SizedBox(height: 6),
+                    Row(children: [
+                      if (nextOcc != null) ...[
+                        Icon(Icons.event_outlined, size: 14, color: classToday ? AppColors.accent : AppColors.textDim),
+                        const SizedBox(width: 4),
+                      ],
+                      Expanded(
+                        child: Text(subtitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: classToday ? AppColors.accent : AppColors.textDim, fontSize: 13, fontWeight: classToday ? FontWeight.w700 : FontWeight.w400)),
+                      ),
+                    ]),
+                    if (awaiting > 0 || open > 0 || absences > 0) ...[
+                      const SizedBox(height: 7),
                       Wrap(spacing: 6, runSpacing: 4, children: [
                         if (awaiting > 0) _tag('$awaiting para validar', AppColors.accent),
                         if (open > 0) _tag('$open em aberto', AppColors.flat),
+                        if (absences > 0) _tag('$absences falta${absences == 1 ? '' : 's'}', AppColors.sharp),
                       ]),
                     ],
                   ],
@@ -1465,6 +1518,24 @@ class _LessonCardState extends State<_LessonCard> {
         : 'Aula encerrada e guardada neste aparelho.');
   }
 
+  /// "Aula de hoje às 17:00" quando há uma aula deste aluno por perto (a que ele pode estar perdendo); senão null.
+  String? _momentLesson() {
+    final code = s.code;
+    if (code == null) return null;
+    final now = DateTime.now();
+    final o = lessonForAbsence(app.slotsOf(code), now.millisecondsSinceEpoch);
+    if (o == null) return null;
+    final hm = '${o.start.hour.toString().padLeft(2, '0')}:${o.start.minute.toString().padLeft(2, '0')}';
+    final today = o.start.year == now.year && o.start.month == now.month && o.start.day == now.day;
+    return today ? 'Aula de hoje às $hm' : 'Aula às $hm';
+  }
+
+  String _absenceSummary() {
+    final n = s.absences.length;
+    final d = DateTime.fromMillisecondsSinceEpoch(s.absences.first.lessonMs);
+    return '$n falta${n == 1 ? '' : 's'} registrada${n == 1 ? '' : 's'} · última em ${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -1500,18 +1571,60 @@ class _LessonCardState extends State<_LessonCard> {
                     icon: const Icon(Icons.arrow_forward),
                     label: Text('Ir para a aula de ${other.name}'),
                   )
-                else
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
-                  onPressed: () async {
-                    // Primeiro confere o que o aluno marcou como feito desde a última aula.
-                    await showValidationDialog(context, app, s);
-                    final err = app.startLesson(s);
-                    app.say(err ?? 'Aula começou. As tarefas e observações que você passar agora vão para ${s.name} ao encerrar.');
-                  },
-                  icon: const Icon(Icons.play_arrow),
-                  label: const Text('Começar a aula'),
-                ),
+                else ...[
+                  // Duas rotas claras para quando o aluno chega ou não: começar a aula ou registrar que não veio.
+                  if (_momentLesson() != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(children: [
+                        Icon(Icons.schedule, size: 16, color: AppColors.accent),
+                        const SizedBox(width: 6),
+                        Text(_momentLesson()!, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.accent)),
+                      ]),
+                    ),
+                  Row(children: [
+                    Expanded(
+                      flex: 3,
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                        onPressed: () async {
+                          // Primeiro confere o que o aluno marcou como feito desde a última aula.
+                          await showValidationDialog(context, app, s);
+                          final err = app.startLesson(s);
+                          app.say(err ?? 'Aula começou. As tarefas e observações que você passar agora vão para ${s.name} ao encerrar.');
+                        },
+                        icon: const Icon(Icons.play_arrow),
+                        label: const FittedBox(fit: BoxFit.scaleDown, child: Text('Começar a aula', style: TextStyle(fontWeight: FontWeight.w800))),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                        onPressed: () => absenceFlow(context, app, s),
+                        icon: const Icon(Icons.person_off_outlined, size: 19),
+                        label: const FittedBox(fit: BoxFit.scaleDown, child: Text('Aluno faltou', style: TextStyle(fontWeight: FontWeight.w700))),
+                      ),
+                    ),
+                  ]),
+                  if (s.absences.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(children: [
+                        Icon(Icons.person_off_outlined, size: 16, color: AppColors.textDim),
+                        const SizedBox(width: 6),
+                        Expanded(child: Text(_absenceSummary(), style: TextStyle(fontSize: 12.5, color: AppColors.textDim))),
+                        TextButton(
+                          style: TextButton.styleFrom(minimumSize: const Size(0, 36), padding: const EdgeInsets.symmetric(horizontal: 8)),
+                          onPressed: () {
+                            if (app.undoLastAbsence(s)) app.say('Registro desfeito.');
+                          },
+                          child: const Text('Desfazer última'),
+                        ),
+                      ]),
+                    ),
+                ],
               ],
             ),
           );

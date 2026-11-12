@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import 'agenda_actions.dart';
 import 'agenda_calendar.dart';
-import 'agenda_sheets.dart';
 import 'design_system.dart';
 import 'meeting_link.dart';
 import 'reminder_card.dart';
@@ -224,7 +223,8 @@ class _AgendaPageState extends State<AgendaPage> {
       ),
       child: Opacity(
         opacity: past ? 0.55 : 1,
-        child: Row(children: [
+        child: Column(children: [
+          Row(children: [
           SizedBox(
             width: 52,
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -273,14 +273,55 @@ class _AgendaPageState extends State<AgendaPage> {
               if (perm.edit && s.online) PopupMenuItem(value: 'link', child: Text(s.hasLink ? 'Editar link da aula' : 'Adicionar link da aula')),
               if (s.hasLink) const PopupMenuItem(value: 'join', child: Text('Abrir a sala')),
               if (st != null) const PopupMenuItem(value: 'open', child: Text('Abrir ficha do aluno')),
-              if (perm.edit && s.weekly) const PopupMenuItem(value: 'move', child: Text('Remarcar só esta aula')),
-              if (perm.edit) const PopupMenuItem(value: 'swap', child: Text('Trocar horário com outro aluno')),
-              if (perm.cancel && s.weekly) const PopupMenuItem(value: 'skip', child: Text('Cancelar só esta aula')),
-              if (perm.cancel) PopupMenuItem(value: 'cancel', child: Text(s.weekly ? 'Cancelar todas as aulas' : 'Cancelar aula')),
             ],
           ),
+          ]),
+          // As ações principais ficam à vista (antes ficavam escondidas no menu de três pontos).
+          if (!past) _actions(o, st, perm, phase),
         ]),
       ),
+    );
+  }
+
+  /// Remarcar, trocar e cancelar sempre visíveis; "Aluno não veio" aparece perto da hora da aula e depois dela começar.
+  Widget _actions(SlotOccurrence o, Student? st, ClassPermissions perm, ClassPhase phase) {
+    final started = phase == ClassPhase.soon || phase == ClassPhase.ongoing;
+    Widget btn(IconData icon, String label, VoidCallback onTap, {Color? color}) => Expanded(
+          child: OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(0, 42),
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              foregroundColor: color,
+              side: color == null ? null : BorderSide(color: color.withValues(alpha: 0.6)),
+            ),
+            onPressed: onTap,
+            icon: Icon(icon, size: 17),
+            label: FittedBox(fit: BoxFit.scaleDown, child: Text(label, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700))),
+          ),
+        );
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(0, Ds.s8, Ds.s8, Ds.s4),
+      child: Column(children: [
+        if (started && st != null) ...[
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.tonalIcon(
+              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(44)),
+              onPressed: () => absenceFlow(context, app, st, occ: o),
+              icon: const Icon(Icons.person_off_outlined, size: 18),
+              label: const Text('Aluno não veio', style: TextStyle(fontWeight: FontWeight.w700)),
+            ),
+          ),
+          const SizedBox(height: Ds.s8),
+        ],
+        Row(children: [
+          if (perm.edit) btn(Icons.event_repeat_rounded, 'Remarcar', () => moveOccurrenceFlow(context, app, o)),
+          if (perm.edit) const SizedBox(width: Ds.s8),
+          if (perm.edit) btn(Icons.swap_horiz_rounded, 'Trocar', () => swapFlow(context, app, o)),
+          if (perm.edit && perm.cancel) const SizedBox(width: Ds.s8),
+          if (perm.cancel) btn(Icons.event_busy_rounded, 'Cancelar', () => cancelOccurrenceFlow(context, app, o), color: AppColors.sharp),
+        ]),
+      ]),
     );
   }
 
@@ -297,32 +338,13 @@ class _AgendaPageState extends State<AgendaPage> {
         }
       case 'join':
         await openMeetingLink(context, app, s.link);
-      case 'move':
-        await moveOccurrenceFlow(context, app, o);
-      case 'swap':
-        await swapFlow(context, app, o);
       case 'open':
         final st = app.studentByCode(s.studentCode);
         if (st != null && mounted) {
           await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => StudentPage(app: app, studentId: st.id)));
         }
-      case 'skip':
-        if (await _confirm('Cancelar só esta aula?', 'A aula de ${_dow[o.start.weekday - 1]}, ${_two(o.start.day)}/${_two(o.start.month)} '
-            'é cancelada. As outras semanas continuam. O aluno é avisado.')) {
-          app.skipOccurrence(s.id, o.startMs);
-          app.say('Aula cancelada.');
-        }
-      case 'cancel':
-        if (await _confirm(s.weekly ? 'Cancelar todas as aulas?' : 'Cancelar a aula?',
-            s.weekly ? 'A aula semanal deixa de existir daqui para a frente. O aluno é avisado.' : 'O aluno é avisado.')) {
-          app.cancelSlot(s.id);
-          app.say('Aula cancelada.');
-        }
     }
   }
-
-  Future<bool> _confirm(String title, String text) =>
-      showConfirmSheet(context, title: title, body: text, ok: 'Cancelar aula', danger: true, icon: Icons.event_busy_rounded);
 }
 
 /// Agenda do ALUNO: o calendário do mês com as aulas marcadas pelos professores e a lista do dia escolhido.

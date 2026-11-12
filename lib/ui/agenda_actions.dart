@@ -17,7 +17,8 @@ Future<bool> _ask(BuildContext context, String title, String body, String ok, {b
     showConfirmSheet(context, title: title, body: body, ok: ok, danger: danger, icon: danger ? Icons.event_busy_rounded : Icons.help_outline_rounded);
 
 /// Remarcar SÓ esta aula (numa regra semanal, as outras semanas continuam). Um modal só: dia, hora, conferência ao vivo e confirmação.
-Future<void> moveOccurrenceFlow(BuildContext context, AppState app, SlotOccurrence o) async {
+/// Devolve true se a aula foi remarcada.
+Future<bool> moveOccurrenceFlow(BuildContext context, AppState app, SlotOccurrence o) async {
   final newId = newSlotId(DateTime.now());
   SlotPlan planFor(DateTime to) => planMoveOccurrence(o.slot, o.startMs, to.millisecondsSinceEpoch, newId: newId);
   String? check(DateTime to) =>
@@ -32,6 +33,7 @@ Future<void> moveOccurrenceFlow(BuildContext context, AppState app, SlotOccurren
     commit: (to) => app.commitPlan(planFor(to), crumbName: 'Remarcar aula'),
   );
   if (to != null) app.celebrate('Aula remarcada', detail: '$who · ${_when(to)}');
+  return to != null;
 }
 
 /// Trocar o horário desta aula com o de outro aluno (os dois são avisados). Um modal só: escolher, ver o que muda e confirmar.
@@ -56,6 +58,56 @@ Future<void> swapFlow(BuildContext context, AppState app, SlotOccurrence o) asyn
     commit: (i) => app.commitPlan(planFor(i), crumbName: 'Trocar horários'),
   );
   if (i != null) app.celebrate('Horários trocados', detail: '$a ↔ ${_nameOf(app, others[i].slot)}');
+}
+
+/// Cancelar uma aula: a semanal pergunta se é só esta data ou todas; a avulsa só confirma. O aluno é avisado.
+Future<void> cancelOccurrenceFlow(BuildContext context, AppState app, SlotOccurrence o) async {
+  final s = o.slot;
+  final who = _nameOf(app, s);
+  if (s.weekly) {
+    final c = await showCancelSheet(context, who: who, dateLabel: _when(o.start));
+    if (c == null) return;
+    if (c == CancelChoice.one) {
+      app.skipOccurrence(s.id, o.startMs);
+    } else {
+      app.cancelSlot(s.id);
+    }
+  } else {
+    final ok = await _ask(context, 'Cancelar a aula?', '$who é avisado.', 'Cancelar aula', danger: true);
+    if (!ok) return;
+    app.cancelSlot(s.id);
+  }
+  app.say('Aula cancelada.');
+}
+
+/// "Aluno não veio": registra a falta na ficha e, conforme a escolha, cancela só a aula de hoje ou abre o remarcar.
+/// [occ] é a aula em questão; sem ela, usa a aula mais perto de agora (ou só registra, se não há aula marcada).
+Future<void> absenceFlow(BuildContext context, AppState app, Student s, {SlotOccurrence? occ}) async {
+  final now = DateTime.now();
+  occ ??= s.code == null ? null : lessonForAbsence(app.slotsOf(s.code!), now.millisecondsSinceEpoch);
+  final sameDay = occ != null && occ.start.year == now.year && occ.start.month == now.month && occ.start.day == now.day;
+  final label = occ == null ? null : '${sameDay ? 'Aula de hoje' : 'Aula'} · ${_when(occ.start)}';
+  final choice = await showAbsenceSheet(context, who: s.name, lessonLabel: label, hasLesson: occ != null, weekly: occ?.slot.weekly ?? false);
+  if (choice == null || !context.mounted) return;
+  final lessonMs = occ?.startMs ?? DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
+  switch (choice) {
+    case AbsenceChoice.noShow:
+      app.recordAbsence(s, lessonMs: lessonMs, kind: AbsenceKind.noShow);
+      app.say('Falta registrada na ficha de ${s.name}.');
+    case AbsenceChoice.notified:
+      app.recordAbsence(s, lessonMs: lessonMs, kind: AbsenceKind.notified);
+      if (occ != null) {
+        app.skipOccurrence(occ.slot.id, occ.startMs);
+        app.say('Falta registrada. A aula foi cancelada e ${s.name} foi avisado.');
+      } else {
+        app.say('Falta registrada na ficha de ${s.name}.');
+      }
+    case AbsenceChoice.reschedule:
+      // Só registra se a aula foi mesmo remarcada (se voltou do modal, nada mudou).
+      if (occ != null && await moveOccurrenceFlow(context, app, occ)) {
+        app.recordAbsence(s, lessonMs: lessonMs, kind: AbsenceKind.notified);
+      }
+  }
 }
 
 /// Pausar todas as aulas de um período (férias, viagem): cancela só aquelas datas.

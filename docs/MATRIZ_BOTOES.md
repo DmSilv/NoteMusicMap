@@ -36,6 +36,9 @@ Legenda: ✅ conferido em tela e funcionou · ⬜ ainda não conferido · ❌ de
 | Ferramenta "Metrônomo" | muda para a aba Metrônomo | ✅ |
 | Ferramenta "Escalas" | abre a aba Grade na seção Escala | ✅ |
 | Ferramenta "Ajustes" | abre Configurações | ✅ |
+| Agenda: cartão da aula | **Remarcar**, **Trocar** e **Cancelar** sempre à vista; "Aluno não veio" aparece perto da hora e depois dela começar | ✅ |
+| Ficha do aluno: Aluno faltou | abre o modal com 3 caminhos (faltou, avisou, quer remarcar) e registra a falta | ✅ |
+| Alunos: Novo aluno | botão flutuante sempre à vista; Ler QR, Importar, Métodos e Senha ficam no menu ⋮ do topo | ✅ |
 | Agenda: Mês / Semana | abre em **Mês** (calendário com pontinhos); alterna para a lista da semana | ✅ |
 | Agenda: "Marcar aula" | abre o formulário (aluno, dia, hora, duração, repetir, observação) | ✅ |
 | Formulário: horário no passado | mostra o aviso "Esse horário já passou…" | ✅ |

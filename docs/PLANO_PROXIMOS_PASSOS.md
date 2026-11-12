@@ -31,7 +31,7 @@ Objetivo: publicar sem medo. Hoje só o núcleo e a API têm teste automático f
 Ordem por valor para quem dá aula, cada item atrás de uma chave em `Recursos`:
 1. **Pedido de troca do aluno:** o aluno pede para trocar uma aula, o professor aceita ou recusa, e a agenda dos dois muda sozinha. Tira a
    conversa do WhatsApp. Reaproveita remarcar/trocar (já existem e são aplicados de uma vez).
-2. **Falta e reposição:** marcar "aluno faltou", gerar uma reposição (horário livre dedicado) e manter o histórico por aluno.
+2. **Falta e reposição (parte feita):** o botão **Aluno faltou** (na ficha, ao começar a aula, e na agenda perto da hora) registra a falta na ficha do aluno, com os caminhos "faltou sem avisar", "avisou que não vem" (cancela só a aula de hoje) e "quer remarcar" (abre o remarcar). Falta: reposição como horário livre dedicado e o aluno ver as próprias faltas.
 3. **Visão de semana em grade** na agenda (hoje é lista) com toque longo para mover uma aula.
 4. **Lembrete com o link:** o aviso da aula online leva o botão "Entrar". Depende da Fase 0 (lembretes ativos). O **tempo do aviso já é escolhido pelo professor** (feito, chave `lembrete_escolha`).
 5. **Tutorial do aluno** e dicas de primeiro uso (código, vincular, pegar horário), no mesmo mecanismo do tutorial do professor.

@@ -185,4 +185,64 @@ void main() {
       expect((um.dx - dom.dx).abs() < 5, isTrue, reason: 'o dia 1 fica embaixo de "dom"');
     });
   });
+
+  group('aluno não veio', () {
+    testWidgets('com aula marcada: três caminhos, o botão só liga depois de escolher e muda o texto ao remarcar', (tester) async {
+      AbsenceChoice? r;
+      await _abre(tester, (c) async => r = await showAbsenceSheet(c, who: 'Ana', lessonLabel: 'Aula de hoje · seg 16/11 · 17:00', hasLesson: true, weekly: true));
+      expect(find.text('Ana não veio?'), findsOneWidget);
+      expect(find.text('Aula de hoje · seg 16/11 · 17:00'), findsOneWidget);
+      expect(find.text('Faltou, sem avisar'), findsOneWidget);
+      expect(find.text('Avisou que não vem'), findsOneWidget);
+      expect(find.text('Quer remarcar'), findsOneWidget);
+      expect(find.textContaining('só a aula de hoje é cancelada'), findsOneWidget, reason: 'aula semanal: cancela só a de hoje');
+      expect(_botao(tester, 'Registrar falta').onPressed, isNull);
+
+      await tester.tap(find.text('Quer remarcar'));
+      await tester.pumpAndSettle();
+      expect(find.text('Registrar e remarcar'), findsOneWidget);
+      expect(_botao(tester, 'Registrar e remarcar').onPressed, isNotNull);
+
+      await tester.tap(find.text('Faltou, sem avisar'));
+      await tester.pumpAndSettle();
+      expect(find.text('Registrar falta'), findsOneWidget);
+      await tester.tap(find.text('Registrar falta'));
+      await tester.pumpAndSettle();
+      expect(r, AbsenceChoice.noShow);
+    });
+
+    testWidgets('sem aula marcada: só registrar (não oferece cancelar nem remarcar)', (tester) async {
+      await _abre(tester, (c) async => showAbsenceSheet(c, who: 'Ana', hasLesson: false, weekly: false));
+      expect(find.text('Faltou, sem avisar'), findsOneWidget);
+      expect(find.text('Avisou que não vem'), findsOneWidget);
+      expect(find.text('Quer remarcar'), findsNothing);
+      expect(find.textContaining('é cancelada'), findsNothing);
+    });
+
+    testWidgets('voltar fecha sem escolher', (tester) async {
+      AbsenceChoice? r = AbsenceChoice.noShow;
+      await _abre(tester, (c) async => r = await showAbsenceSheet(c, who: 'Ana', hasLesson: true, weekly: false));
+      await tester.tap(find.text('Voltar'));
+      await tester.pumpAndSettle();
+      expect(r, isNull);
+    });
+  });
+
+  group('cancelar aula semanal', () {
+    testWidgets('escolher entre só esta e todas, com o botão laranja só depois de escolher', (tester) async {
+      CancelChoice? r;
+      await _abre(tester, (c) async => r = await showCancelSheet(c, who: 'Ana', dateLabel: 'seg 16/11 · 17:00'));
+      expect(find.text('Só esta aula'), findsOneWidget);
+      expect(find.text('Todas as aulas'), findsOneWidget);
+      expect(_botao(tester, 'Cancelar aula').onPressed, isNull);
+      await tester.tap(find.text('Todas as aulas'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Só esta aula'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancelar aula'));
+      await tester.pumpAndSettle();
+      expect(r, CancelChoice.one, reason: 'vale a última escolha');
+    });
+  });
+
 }

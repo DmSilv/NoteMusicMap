@@ -17,6 +17,8 @@ void main() {
       'Perfil restaurado.',
       'Trava removida',
       'Histórico apagado',
+      'Falta registrada na ficha de Ana.',
+      'Falta registrada. A aula foi cancelada e Ana foi avisado.',
     ]) {
       expect(toastKindOf(m), ToastKind.success, reason: m);
     }

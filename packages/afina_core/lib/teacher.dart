@@ -4,6 +4,7 @@ library;
 
 import 'dart:convert';
 
+import 'absence.dart';
 import 'identity.dart';
 import 'input_guard.dart';
 import 'lesson.dart';
@@ -211,6 +212,9 @@ class Student {
   /// Aulas dadas a este aluno, mais recente primeiro.
   final List<LessonRecord> lessons;
 
+  /// Faltas registradas pelo professor, da aula mais recente para a mais antiga.
+  List<Absence> absences;
+
   Student({
     required this.id,
     required this.name,
@@ -222,7 +226,9 @@ class Student {
     List<Assignment>? tasks,
     List<SessionRecord>? sessions,
     List<LessonRecord>? lessons,
+    List<Absence>? absences,
   })  : created = created ?? DateTime.now(),
+        absences = absences ?? [],
         lessons = lessons ?? [],
         notes = notes ?? [],
         tasks = tasks ?? [],
@@ -240,6 +246,7 @@ class Student {
         'tasks': [for (final t in tasks) t.toJson()],
         'sessions': [for (final s in sessions) s.toJson()],
         if (lessons.isNotEmpty) 'lessons': [for (final l in lessons) l.toJson()],
+        if (absences.isNotEmpty) 'abs': [for (final a in absences) a.toJson()],
       };
 
   static Student? tryFrom(Map<String, dynamic> j) {
@@ -264,6 +271,7 @@ class Student {
             ?SessionRecord.tryFromJson((s as Map).cast<String, dynamic>())
         ],
         lessons: [for (final l in (j['lessons'] as List? ?? const []).take(200)) ?LessonRecord.tryFrom(l)],
+        absences: [for (final a in (j['abs'] as List? ?? const []).take(kMaxAbsences)) ?Absence.tryFrom(a)],
       );
     } catch (_) {
       return null;
