@@ -137,8 +137,7 @@ O GitHub já roda um CI a cada envio (análise, testes do núcleo e build web). 
 - **Dependabot:** abre pull request semanal quando sai versão nova de pacote ou ação, inclusive correção de segurança.
 - **Do seu lado, em GitHub › Settings** (o repositório é público, então é grátis): ligar **Secret scanning** e **Push protection**
   (barra o envio de senha ou chave por engano), e **proteger o ramo `main`** exigindo o CI verde antes de juntar um pull request.
-- **Teste de fumaça (próximo):** reaproveitar o app de demonstração e o Chrome sem tela para repetir "marcar aula, pegar horário,
-  passar tarefa" a cada envio.
+- **Teste de fumaça (feito):** `node scripts/smoke.js --web` roda no CI a cada envio (fluxos da agenda, aula online, painel e abertura do app no Chrome).
 Observação: o CI **não bloqueia** a Vercel (ela publica ao receber o envio). Por isso a regra de só publicar após o "Sim" continua.
 
 ## 8. Ordem de execução (atualizada)

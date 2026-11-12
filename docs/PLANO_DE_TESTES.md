@@ -11,7 +11,7 @@ Legenda de situação: **feito** (já roda), **fazer** (planejado), **você** (p
 | Análise do Flutter, conferência de documentação e de texto | Código sem avisos, docs em dia | **feito** (CI) |
 | Varredura de segurança (CodeQL) e Dependabot | Falhas comuns e pacotes com correção de segurança | **feito** (GitHub) |
 | Simulação de carga lógica (`node scripts/simulate_load.js`) | Quantos comandos do Redis e chamadas de função cada usuário gasta | **feito** (manual; ver seção 3) |
-| Teste de fumaça no navegador | Os fluxos principais abrem, clicam e terminam certo | **fazer** (seção 4) |
+| Teste de fumaça (`node scripts/smoke.js --web`) | Os fluxos principais terminam certo e o app abre no Chrome | **feito** (CI; seção 4) |
 | Teste de carga real em ambiente de teste | Velocidade e erros com centenas de usuários ao mesmo tempo | **fazer** (seção 3) |
 | Celulares de verdade | Vibração, microfone, abrir link da sala, instalar, notificações | **você** (seção 5) |
 | Teste com professores e alunos reais | Se entendem e conseguem usar sem ajuda | **você** (seção 6) |
@@ -50,10 +50,11 @@ de limite (banco, lembretes, funções da Vercel, uso comercial). Resultado da s
 | 10.000 | 3,9 milhões | 1,36 milhão | ~US$ 27 (Vercel Pro US$ 20 + banco ~US$ 7) |
 **Atenção:** se o app gerar receita (anúncios ou assinatura), o plano Hobby da Vercel não vale (só uso não comercial): passa a ser Pro (US$ 20/mês) já com poucos usuários.
 
-## 4. Teste de fumaça (fazer)
-Reaproveitar o app de demonstração usado nos vídeos (`video8_work/agenda_demo.js`) e o Chrome sem tela, a cada envio ao GitHub:
-marcar aula e conferir na agenda; pegar horário (aluno) e ver na agenda do professor; passar tarefa e ver "Enviada ao aluno"; aula online (chave ligada) com link e botão Entrar;
-remarcar só uma aula; trocar horários; Comece por aqui. **Pronto quando** falha sozinho se um deles quebrar. Obs.: gravar com `SC=1` (modo sem atraso do Chrome).
+## 4. Teste de fumaça (feito)
+`scripts/smoke.js` roda no CI depois do build, a cada envio (`node scripts/smoke.js --web`; sem `--web` só os fluxos). Usa as funções do servidor de verdade (sem rede e sem Redis real) e para no primeiro passo que quebrar, dizendo qual foi.
+Fluxos: vincular; marcar aula toda semana; horário livre com **dois alunos pegando ao mesmo tempo** (só um leva); passar tarefa; aula online (sem a chave recusa, com a chave o link chega ao aluno, só https); remarcar só uma data; trocar o aluno; pausar; painel (custos, contas, funil); proteções (chave errada, entrada inválida); no máximo 12 funções e `vercel.json` válido.
+Com `--web` também confere os arquivos do build e **abre o app num Chrome sem janela** (protocolo de depuração) esperando o Flutter desenhar a tela, sem erros no console.
+Comprovado: quebrar de propósito a trava "o primeiro leva" faz o teste falhar. **Limite:** não clica nos botões do Flutter (a tela é um desenho só) — o que a tela faz continua nos testes do Flutter e na conferência manual no navegador.
 
 ## 5. Celulares de verdade (você, 30 minutos)
 | Aparelho | Verificar |
@@ -78,6 +79,6 @@ Contraste, tamanho de fonte com o texto do sistema grande, toque mínimo de 44 p
 | Semana | Testes |
 |---|---|
 | 1 | Seção 2 em toda publicação; celulares reais (seção 5); liberar aula online para o Vinícius |
-| 2 | Teste de fumaça no CI (seção 4); roteiro com pessoas reais (seção 6) |
+| 2 | Roteiro com pessoas reais (seção 6); testes de tela do Flutter no CI |
 | 3 | Carga real em ambiente de teste (seção 3.2); ajustar o que aparecer |
 | 4 | Acessibilidade (seção 8); revisar custo com dados reais (Contas com "Real") |

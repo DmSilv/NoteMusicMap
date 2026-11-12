@@ -49,3 +49,6 @@ jobs:
 
       - name: Build web (release)
         run: flutter build web --release
+
+      - name: Teste de fumaça (fluxos principais + o app abre no Chrome)
+        run: node scripts/smoke.js --web

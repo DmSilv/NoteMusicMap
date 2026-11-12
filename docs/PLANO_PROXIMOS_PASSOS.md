@@ -17,8 +17,8 @@ recurso novo atrás de chave e só publicar com o "Sim, publicar".
 
 ## Fase 1: confiança e qualidade (2 a 3 semanas)
 Objetivo: publicar sem medo. Hoje só o núcleo e a API têm teste automático forte.
-1. **Teste de fumaça no CI:** subir o app de demonstração (o que usei para gravar os vídeos) e repetir no Chrome sem tela: marcar aula, pegar
-   horário, passar tarefa, aula online, remarcar. Roda a cada envio. *Pronto quando* falhar sozinho se um desses fluxos quebrar.
+1. **Teste de fumaça no CI (feito):** `scripts/smoke.js --web` repete marcar aula, pegar horário (dois ao mesmo tempo), passar tarefa, aula online, remarcar, trocar e pausar,
+   e abre o app num Chrome sem janela. Roda a cada envio. Não clica nos botões do Flutter: isso fica para o item 2.
 2. **Teste de tela do Flutter no CI** (no GitHub o compilador existe): trazer o `flutter test` para o CI e cobrir o formulário de aula, o modal de
    sucesso e o cartão Comece por aqui. *Pronto quando* roda verde no GitHub.
 3. **Textos do Flutter em português** (`flutter_localizations`): seletores de data e hora hoje aparecem em inglês. Cuidado: mexe no app inteiro,

@@ -173,3 +173,6 @@ Novo cartão **Comece por aqui** no Meu espaço do professor (vincular um aluno,
 
 ## Relatório de contas no painel e plano de testes (novembro/2026)
 Aba Custos ganhou **Contas**: quanto custa manter a plataforma hoje e para 100, 1.000, 5.000, 10.000 ou N usuários (em dólar e reais, com avisos de limite). Novo script `scripts/simulate_load.js` (carga lógica) e `docs/PLANO_DE_TESTES.md`. Conclusão da simulação: com ~1.000 usuários ativos o banco ainda cabe no grátis; o primeiro limite a apertar é o de chamadas de função da Vercel (Hobby), e uso comercial exige o plano Pro (US$ 20/mês).
+
+## Teste de fumaça no CI (novembro/2026)
+Novo `scripts/smoke.js`, executado no CI depois do build: repete os fluxos principais (marcar, pegar horário com dois alunos ao mesmo tempo, tarefa, aula online, remarcar, trocar, pausar, painel) e abre o app num Chrome sem janela. Falha sozinho se um fluxo quebrar; comprovado quebrando a trava "o primeiro leva" de propósito.
