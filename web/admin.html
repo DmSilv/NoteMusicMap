@@ -90,6 +90,27 @@
     .journey .b { height: 8px; background: var(--card2); border-radius: 6px; margin-top: 5px; overflow: hidden; } .journey .b i { display: block; height: 100%; background: var(--accent); transition: width .6s; }
     .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--card2); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 14px; padding: 12px 18px; font-weight: 700; z-index: 99; max-width: 90vw; box-shadow: 0 8px 30px rgba(0,0,0,.4); }
     .toast.bad { border-left-color: var(--bad); }
+    /* recursos liberados aos poucos */
+    .ffc { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; margin-bottom: 14px; animation: rise .3s ease both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .ffc h3 { margin: 0; font-size: 17px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .ffc .d { color: var(--dim); font-size: 13.5px; margin: 4px 0 12px; }
+    .ffc .badge { font-size: 11.5px; font-weight: 800; padding: 3px 9px; border-radius: 20px; background: var(--card2); color: var(--dim); border: 1px solid var(--line); }
+    .ffc .badge.all { color: var(--accent); border-color: rgba(34,229,143,.5); }
+    .ffc .badge.off { color: var(--bad); border-color: rgba(255,107,107,.5); }
+    .ffc .badge.pct { color: var(--warn); border-color: rgba(255,177,74,.5); }
+    .seg { display: inline-flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+    .seg button { padding: 9px 14px; border-radius: 12px; font-weight: 700; transition: background .15s, transform .1s; }
+    .seg button.on { background: var(--accent); color: #062116; border-color: transparent; }
+    .seg button.on.off { background: var(--bad); color: #2a0a0a; }
+    .seg button:active { transform: scale(.97); }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 12px; }
+    .chip { display: inline-flex; align-items: center; gap: 6px; background: var(--card2); border: 1px solid var(--line); border-radius: 20px; padding: 4px 6px 4px 11px; font-size: 13px; font-variant-numeric: tabular-nums; }
+    .chip button { border: 0; background: transparent; color: var(--dim); padding: 0 6px; font-size: 15px; line-height: 1; border-radius: 10px; }
+    .chip button:hover { color: var(--bad); }
+    .ffc .add { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .ffc .add input[type=text], .ffc input[type=number] { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card2); color: var(--text); font: inherit; width: 150px; }
+    .ffc label.ck { font-size: 13px; color: var(--dim); display: inline-flex; gap: 6px; align-items: center; }
     /* confirmação de ações: sobe de baixo, nunca é um clique só */
     .cfm-back { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200; display: flex; align-items: flex-end; justify-content: center; opacity: 0; transition: opacity .2s; }
     .cfm-back.on { opacity: 1; }
@@ -166,6 +187,7 @@
       <button data-tab="devices">Aparelhos</button>
       <button data-tab="people">Pessoas</button>
       <button data-tab="bugs">Bugs <span id="bugBadge" class="tag x" hidden></span></button>
+      <button data-tab="features">Recursos</button>
       <button data-tab="costs">Custos</button>
       <button data-tab="system">Sistema</button>
     </nav>
@@ -336,6 +358,13 @@
         <div><h2>De que região (hoje)</h2><div class="card" id="vGeo"></div></div>
       </div>
       <p class="note">Cada aparelho conta uma vez por dia (a mesma pessoa em dois aparelhos conta duas vezes). As visualizações do YouTube e do Instagram não chegam aqui: só quem tocou no link e abriu o app. "Sem cadastro" é uma estimativa: aparelhos de hoje menos perfis com vínculo ativos hoje. Aparelhos antigos, que ainda não atualizaram o app, podem ficar fora de alguns números.</p>
+    </main>
+
+    <!-- ===== Recursos (liberação aos poucos) ===== -->
+    <main id="tab-features" hidden>
+      <p class="note" style="margin-top:0">Cada novidade nasce desligada. Libere para alguns códigos, depois para uma parte dos usuários e, por fim, para todos.
+        <b>Desligado</b> vale para todos (inclusive quem está na lista) e chega aos aparelhos em até 1 minuto. O servidor é quem decide; esconder no app não basta.</p>
+      <div id="ffBox"><div class="empty">Carregando…</div></div>
     </main>
 
     <!-- ===== Sistema ===== -->
@@ -523,6 +552,91 @@
       }
       document.body.appendChild(back);
       requestAnimationFrame(function () { back.classList.add('on'); no.focus(); });
+    });
+  }
+  // ---------------- Recursos liberados aos poucos ----------------
+  var FF_MODE = { off: 'Desligado', list: 'Só liberados', pct: 'Parte dos usuários', all: 'Todos' };
+  function loadFeatures() {
+    var box = $('ffBox');
+    post({ action: 'features' }).then(function (r) {
+      if (r.status !== 200) { box.textContent = 'Não foi possível carregar os recursos: ' + why(r); return; }
+      box.innerHTML = '';
+      r.j.items.forEach(function (f) { box.appendChild(ffCard(f)); });
+    }).catch(function () { box.textContent = 'Sem conexão com o servidor.'; });
+  }
+  function ffDo(body, okMsg) {
+    return post(body).then(function (r) {
+      if (r.status === 200) { toast(okMsg, 'ok'); loadFeatures(); loadLog(); } else toast('Não foi possível: ' + why(r), 'bad');
+    }).catch(function () { toast('Sem conexão com o servidor. Nada foi alterado.', 'bad'); });
+  }
+  function ffCard(f) {
+    var c = document.createElement('div'); c.className = 'ffc';
+    var h = document.createElement('h3'); h.appendChild(document.createTextNode(f.name));
+    var bd = document.createElement('span'); bd.className = 'badge ' + f.mode; bd.textContent = FF_MODE[f.mode] + (f.mode === 'pct' ? ' · ' + f.pct + '%' : ''); h.appendChild(bd);
+    c.appendChild(h);
+    var d = document.createElement('div'); d.className = 'd'; d.textContent = f.desc + ' (vale para o ' + f.scope + (f.students ? ' e para os alunos vinculados a ele' : '') + ')'; c.appendChild(d);
+
+    var seg = document.createElement('div'); seg.className = 'seg';
+    var pctInp = document.createElement('input'); pctInp.type = 'number'; pctInp.min = '1'; pctInp.max = '99'; pctInp.value = String(f.pct || 10); pctInp.style.width = '70px'; pctInp.setAttribute('aria-label', 'Porcentagem de usuários');
+    ['off', 'list', 'pct', 'all'].forEach(function (m) {
+      var b = document.createElement('button'); b.textContent = FF_MODE[m]; b.className = (f.mode === m ? 'on ' : '') + m;
+      b.onclick = function () { if (f.mode !== m || m === 'pct') ffChange(f, m, parseInt(pctInp.value, 10)); };
+      seg.appendChild(b);
+      if (m === 'pct') { seg.appendChild(pctInp); var pl = document.createElement('span'); pl.textContent = '%'; pl.style.alignSelf = 'center'; pl.style.color = 'var(--dim)'; seg.appendChild(pl); }
+    });
+    c.appendChild(seg);
+
+    var cnt = document.createElement('div'); cnt.className = 'sub'; cnt.style.padding = '0'; cnt.textContent = 'Liberados por código: ' + f.count + (f.count > f.members.length ? ' (mostrando ' + f.members.length + ')' : ''); c.appendChild(cnt);
+    var chips = document.createElement('div'); chips.className = 'chips';
+    if (!f.members.length) { var e = document.createElement('span'); e.className = 'empty'; e.textContent = 'Ninguém na lista.'; chips.appendChild(e); }
+    f.members.forEach(function (code) {
+      var ch = document.createElement('span'); ch.className = 'chip'; ch.appendChild(document.createTextNode(code));
+      var x = document.createElement('button'); x.textContent = '×'; x.title = 'Tirar da lista'; x.setAttribute('aria-label', 'Tirar ' + code + ' da lista');
+      x.onclick = function () {
+        askConfirm({ title: 'Tirar da lista?', body: code + ' deixa de ter "' + f.name + '".', facts: ['Dá para liberar de novo depois.'], ok: 'Tirar', danger: true }).then(function (y) {
+          if (y) ffDo({ action: 'feature_revoke', id: f.id, code: code }, code + ' saiu da lista.');
+        });
+      };
+      ch.appendChild(x); chips.appendChild(ch);
+    });
+    c.appendChild(chips);
+    if (f.legacy && f.legacy.length) { var lg = document.createElement('div'); lg.className = 'sub'; lg.style.padding = '0 0 10px'; lg.textContent = 'Também liberados pela variável LIBRARY_TESTERS da Vercel: ' + f.legacy.join(', '); c.appendChild(lg); }
+
+    var add = document.createElement('div'); add.className = 'add';
+    var inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Código do perfil'; inp.maxLength = 9; inp.setAttribute('aria-label', 'Código do perfil para liberar ' + f.name);
+    add.appendChild(inp);
+    var ck = null;
+    if (f.students) { var lab = document.createElement('label'); lab.className = 'ck'; ck = document.createElement('input'); ck.type = 'checkbox'; lab.appendChild(ck); lab.appendChild(document.createTextNode('Incluir os alunos vinculados')); add.appendChild(lab); }
+    var go = document.createElement('button'); go.className = 'primary'; go.textContent = 'Liberar';
+    go.onclick = function () {
+      var code = inp.value.trim().toUpperCase();
+      if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) { toast('Digite o código completo, como ABCD-1234.', 'bad'); return; }
+      var withSt = !!(ck && ck.checked);
+      askConfirm({ title: 'Liberar "' + f.name + '"?', body: code, facts: ['Ele passa a ver o recurso na próxima sincronização.'].concat(withSt ? ['Os alunos vinculados a ele também recebem.'] : []).concat(['Dá para tirar da lista depois.']), ok: 'Liberar' }).then(function (y) {
+        if (y) ffDo({ action: 'feature_grant', id: f.id, code: code, students: withSt }, code + ' liberado.');
+      });
+    };
+    add.appendChild(go); c.appendChild(add);
+    return c;
+  }
+  function ffChange(f, m, pct) {
+    if (m === 'pct') {
+      if (!(pct >= 1 && pct <= 99)) { toast('Escolha uma porcentagem de 1 a 99.', 'bad'); return; }
+      askConfirm({ title: 'Liberar para ' + pct + '% dos usuários?', body: f.name, facts: ['São sempre os mesmos usuários (sorteio fixo pelo código).', 'Quem está na lista continua vendo.', 'Dá para mudar ou desligar depois.'], ok: 'Aplicar ' + pct + '%' }).then(function (y) {
+        if (y) ffDo({ action: 'feature_set', id: f.id, mode: 'pct', pct: pct }, f.name + ': ' + pct + '% dos usuários.');
+      });
+      return;
+    }
+    var all = m === 'all', off = m === 'off';
+    askConfirm({
+      title: all ? 'Liberar para TODOS?' : off ? 'Desligar para todos?' : 'Voltar para "Só liberados"?',
+      body: f.name,
+      facts: all ? ['Todos os usuários passam a ver o recurso.', 'Dá para desligar de novo na hora.'] : off ? ['Ninguém vê o recurso, nem quem está na lista.', 'Chega aos aparelhos em até 1 minuto.', 'Dá para ligar de novo.'] : ['Só quem está na lista (e a variável da Vercel, no acervo) continua vendo.'],
+      ok: all ? 'Liberar para todos' : off ? 'Desligar' : 'Voltar',
+      danger: all || off,
+      typed: all || off ? f.id : undefined
+    }).then(function (y) {
+      if (y) ffDo({ action: 'feature_set', id: f.id, mode: m }, f.name + ': ' + FF_MODE[m] + '.');
     });
   }
   var toastT = null;
@@ -1358,7 +1472,7 @@
   var current = 'overview', loaded = {};
   function showTab(name) {
     current = name;
-    ['overview', 'visitors', 'usage', 'devices', 'people', 'bugs', 'costs', 'system'].forEach(function (t) { $('tab-' + t).hidden = t !== name; });
+    ['overview', 'visitors', 'usage', 'devices', 'people', 'bugs', 'features', 'costs', 'system'].forEach(function (t) { $('tab-' + t).hidden = t !== name; });
     var bs = $('tabs').querySelectorAll('button'); for (var i = 0; i < bs.length; i++) bs[i].className = bs[i].getAttribute('data-tab') === name ? 'on' : '';
     if (!loaded[name]) { loaded[name] = true; loadTab(name); }
     window.scrollTo(0, 0);
@@ -1367,6 +1481,7 @@
     if (name === 'people') { loadList(); loadLog(); loadPresence(); loadLibrary(); }
     if (name === 'bugs') { loadBugs(); loadPush(); }
     if (name === 'costs') loadCosts();
+    if (name === 'features') loadFeatures();
     if (name === 'devices') loadDevices();
     if (name === 'visitors') loadVisitors();
     if (name === 'system') loadSystem();

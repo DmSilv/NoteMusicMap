@@ -20,6 +20,11 @@
 //   indicators                 saúde do uso: notificações negadas, versões antigas, cota de IA, bloqueados, online
 //   push {op}                  avisos de bug grave neste navegador: status | sub {sub} | unsub {endpoint} | test
 //   presence                   quem está online agora (sinal nos últimos 12 min) e quem esteve há pouco
+//  Recursos liberados aos poucos (docs/PLANO_AULA_ONLINE_AGENDA_ADMIN.md, seção 6):
+//   features                   um cartão por recurso: estado, % e quem está na lista
+//   feature_set {id, mode, pct?}        off | list | pct | all
+//   feature_grant {id, code, students?} libera um código (e, se students, os alunos vinculados a ele)
+//   feature_revoke {id, code, students?} tira da lista
 //
 // Não há cadastro nem login no app: "usuário" = perfil anônimo (código + apelido). O apelido pertence
 // ao usuário (volta a cada sincronização), por isso o painel não o edita.
@@ -38,6 +43,7 @@ const { unlinkPair } = require('./_lib/unlink');
 const adminPush = require('./_lib/admin_push');
 const { validSubscription } = require('./_lib/webpush');
 const { K: EK, day: errDay, hour: errHour, sanitize } = require('./_lib/errors_lib');
+const features = require('./_lib/features');
 
 const { Z } = profiles;
 const sha = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
@@ -421,6 +427,39 @@ function makeHandler(deps = {}) {
       }
 
       // Limpa agora os perfis abandonados (sem vínculo, sem dados e parados há 60 dias). Até 30 por toque.
+      // ---------------- Recursos liberados aos poucos ----------------
+      if (action === 'features') {
+        const legacy = new Set((cfg.libraryTesters || []).map((c) => String(c).toUpperCase()));
+        return send(200, { ok: true, items: await features.overview(store, cmd, legacy, now), modes: features.MODES });
+      }
+      if (action === 'feature_set') {
+        const id = String(b.id || '');
+        const mode = String(b.mode || '');
+        if (!features.known(id)) return send(400, { error: 'Recurso desconhecido.' });
+        if (!features.MODES.includes(mode)) return send(400, { error: 'Estado inválido.' });
+        const pct = Math.round(Number(b.pct));
+        if (mode === 'pct' && !(pct >= 1 && pct <= 99)) return send(400, { error: 'Escolha de 1% a 99%.' });
+        const before = (await features.loadCfg(store, 0))[id];
+        await features.setMode(store, id, mode, mode === 'pct' ? pct : 0, now);
+        await log('feature_set', id, `${before.m}${before.m === 'pct' ? ':' + before.p : ''} -> ${mode}${mode === 'pct' ? ':' + pct : ''}`);
+        return send(200, { ok: true });
+      }
+      if (action === 'feature_grant' || action === 'feature_revoke') {
+        const id = String(b.id || '');
+        if (!features.known(id)) return send(400, { error: 'Recurso desconhecido.' });
+        if (needCode()) return;
+        if ((await store.hget(U(code), 'h')) === undefined) return send(404, { error: 'Perfil não encontrado.' });
+        const on = action === 'feature_grant';
+        const targets = [code];
+        if (b.students === true && features.FEATURES[id].students) {
+          const mine = Object.keys(await store.hgetall(T(code))).filter((c) => CODE_RE.test(c)).slice(0, features.MAX_GRANT);
+          targets.push(...mine);
+        }
+        for (const c of targets) await (on ? features.grant : features.revoke)(store, cmd, id, c);
+        await log(action, code, `${id}${targets.length > 1 ? ' +' + (targets.length - 1) + ' alunos' : ''}`);
+        return send(200, { ok: true, changed: targets.length });
+      }
+
       if (action === 'sweep') {
         let removed = 0;
         for (let i = 0; i < 3; i++) {

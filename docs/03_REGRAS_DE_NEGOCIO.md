@@ -88,7 +88,7 @@ Tudo que a pessoa digita, cola ou lê de QR passa por `input_guard.dart` (`clean
 
 ## 11. Acervo e repertório do professor (só links, só teste)
 1. **Só links:** título, autor, pasta, endereço e para quem é. O app não guarda nem copia arquivo nenhum (Drive, Dropbox, OneDrive, IMSLP, CPDL e YouTube, só `https`; lista em `api/_lib/library.js` e `packages/afina_core/lib/library.dart`, mantenha as duas iguais).
-2. **Liberado por lista:** só os códigos em `LIBRARY_TESTERS` (variável da Vercel, separados por vírgula; vazio = ninguém). O servidor recusa todo o resto (`library_off`); esconder o botão no app não basta.
+2. **Liberado por chave:** a aba Recursos do painel (lista de códigos, parte dos usuários ou todos) e, como ponto de partida, os códigos em `LIBRARY_TESTERS` (variável da Vercel; vazio = ninguém). O servidor recusa todo o resto (`library_off`); esconder o botão no app não basta.
 3. **Quem vê:** o professor vê tudo; o aluno vinculado vê o que é para todos ou para ele. Vínculo encerrado = acesso encerrado.
 4. **Declaração:** cada item só salva se o professor marcar que tem o direito de compartilhar (domínio público, dele ou autorizado).
 5. **Denúncia e moderação:** o aluno pode denunciar; no painel (Pessoas › Acervo) o administrador esconde o item dos alunos. Remoção em até 48 h.

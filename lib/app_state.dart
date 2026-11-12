@@ -2195,6 +2195,19 @@ class AppState extends ChangeNotifier {
 
   bool get libraryVisible => libraryOn || libraryTeachers.isNotEmpty;
 
+  /// Recursos liberados para este perfil pelas chaves do painel (o servidor decide; nunca ligam sozinhos).
+  Set<String> features = {};
+
+  /// O recurso [id] está liberado para este perfil?
+  bool hasFeature(String id) => features.contains(id);
+
+  void _applyFeatures(LinkReply r) {
+    final f = r.ff.toSet();
+    if (f.length == features.length && f.containsAll(features)) return;
+    features = f;
+    notifyListeners();
+  }
+
   void _applyLibraryFlags(LinkReply r) {
     final t = r.lbT.toSet();
     if (r.lb == libraryOn && t.length == libraryTeachers.length && t.containsAll(libraryTeachers)) return;
@@ -2307,6 +2320,7 @@ class AppState extends ChangeNotifier {
       }
       _applyLinkLists(r);
       _applyLibraryFlags(r);
+      _applyFeatures(r);
       // Aulas: o aluno busca quando o servidor avisa que há novidade; o professor envia as pendentes.
       if (r.lr != lessonsRev && myTeachers.isNotEmpty) unawaited(pullLessons());
       // Marcações de tarefa: o aluno envia as pendentes; o professor busca as novas.

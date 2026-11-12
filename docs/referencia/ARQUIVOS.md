@@ -199,6 +199,7 @@
 | `api/_lib/config.js` | Configuração lida das variáveis de ambiente da Vercel. NENHUMA chave fica no código. |
 | `api/_lib/error_store.js` | Gravação dos relatórios de erro no Redis (usada pelo endpoint do app e pelos erros do próprio servidor). Limites, agrupamento por impressão digital, reabertura e modo leve num só lugar. |
 | `api/_lib/errors_lib.js` | Regras dos relatórios de erro (iguais às do app, em `afina_core/errors.dart`): higienização, impressão digital do bug, validação do pacote e nomes das chaves no Redis. |
+| `api/_lib/features.js` | Recursos liberados aos poucos ("chaves"): cada novidade nasce desligada, é liberada por código de perfil, depois por porcentagem e, por fim, para todos. O SERVIDOR decide; o app só esconde o que não está ligado.… |
 | `api/_lib/library.js` | Acervo e Repertório do professor (só LINKS, nenhum arquivo é guardado aqui). O professor cadastra título, autor e o endereço do material (Google Drive, IMSLP, YouTube…); o aluno vinculado abre o endereço. Liberado só… |
 | `api/_lib/metrics.js` | Métricas anônimas de uso: nomes das chaves, o dia (fuso de Brasília) e o contador que o servidor soma sozinho quando algo acontece (aula enviada, vínculo criado...). Falhar aqui NUNCA pode derrubar o que o usuário… |
 | `api/_lib/profiles.js` | Índice dos perfis anônimos (código + apelido) para o painel do administrador: quando entrou, última atividade, papel (professor / aluno) e bloqueio. NÃO há cadastro nem login. Custo: 3 comandos quando o perfil nasce;… |
@@ -223,6 +224,7 @@
 | `api/avail.test.js` | Testes dos horários disponíveis (professor) e de "pegar horário" (aluno), sem rede: `node --test api/avail.test.js` |
 | `api/coach.test.js` | Testes da IA (vários serviços + fila) sem rede e sem chaves reais: `node --test api/` |
 | `api/errors.test.js` | Relatórios de erro do app e a aba "Bugs" do painel, sem rede: `node --test api/errors.test.js` |
+| `api/features.test.js` | Testes das chaves de recursos (liberação aos poucos): `node --test api/features.test.js` |
 | `api/feedback.test.js` | Testes da nota do app e das pesquisas rápidas, sem rede: `node --test api/feedback.test.js` |
 | `api/guardrails.test.js` | Guardrails de segurança da API: entradas malformadas, gigantes e hostis. Nada pode quebrar, vazar segredo ou gravar lixo. `node --test api/guardrails.test.js` |
 | `api/indicators.test.js` | Testes dos indicadores de saúde do uso no painel, sem rede: `node --test api/indicators.test.js` |
@@ -259,4 +261,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **216** arquivos mapeados.
+Total: **218** arquivos mapeados.

@@ -36,6 +36,7 @@ const { sweepEmpty } = require('./_lib/sweep');
 const { unlinkPair } = require('./_lib/unlink');
 const { serverError } = require('./_lib/error_store');
 const library = require('./_lib/library');
+const features = require('./_lib/features');
 
 const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const MAX_LINKS = 300;
@@ -199,8 +200,9 @@ function makeHandler(deps = {}) {
       return send(503, { error: 'sync_unavailable', message: 'O vínculo online ainda não está configurado.' });
     }
 
-    const testers = new Set((cfg.libraryTesters || []).map(normCode).filter(Boolean));
-    const isTester = (c) => testers.has(c);
+    // Recursos liberados aos poucos (chaves no painel). LIBRARY_TESTERS continua valendo como ponto de partida do acervo.
+    const legacy = new Set((cfg.libraryTesters || []).map(normCode).filter(Boolean));
+    const canLib = async (c) => (await features.many(cmd, store, 'acervo', [c], legacy, clock())).has(c);
     const b = readBody(req);
     if (!b) return send(400, { error: 'Corpo inválido.' });
     const me = normCode(b.code);
@@ -280,7 +282,9 @@ function makeHandler(deps = {}) {
         if (nameChanged) await propagateName(store, me, name);
         const [asTeacher, asStudent] = await Promise.all([store.hgetall(T(me)), store.hgetall(S(me))]);
         const stuList = parseLinks(asStudent);
-        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: stuList, lb: isTester(me) ? 1 : 0, lbT: stuList.map((x) => x.code).filter(isTester), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...noticeOf(prof) });
+        const feats = await features.forProfile(store, me, prof, legacy, clock());
+        const libT = stuList.length ? await features.many(cmd, store, 'acervo', stuList.map((x) => x.code), legacy, clock()) : new Set();
+        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: stuList, ff: feats, lb: feats.includes('acervo') ? 1 : 0, lbT: stuList.map((x) => x.code).filter((c) => libT.has(c)), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...noticeOf(prof) });
       }
 
       // Consulta barata: o perfil já foi lido na autenticação, então não custa nenhum comando a mais.
@@ -396,7 +400,7 @@ function makeHandler(deps = {}) {
         if (pulls.n > PULLS_PER_HOUR) return send(429, { error: 'Muitas consultas. Tente mais tarde.' });
         const other = b.other === undefined || b.other === '' ? me : normCode(b.other);
         if (!other) return send(400, { error: 'Código inválido.' });
-        if (!isTester(other)) return send(403, { error: 'library_off' });
+        if (!(await canLib(other))) return send(403, { error: 'library_off' });
         if (other !== me && (await store.hget(S(me), other)) === undefined) return send(403, { error: 'Este professor não está vinculado a você.' });
         const raw = await store.hgetall(LB(other));
         const items = [];
@@ -416,7 +420,7 @@ function makeHandler(deps = {}) {
 
       // ---- Acervo: o PROFESSOR liberado cadastra, muda ou apaga; o ALUNO denuncia ----
       if (action === 'lib_put') {
-        if (!isTester(me)) return send(403, { error: 'library_off' });
+        if (!(await canLib(me))) return send(403, { error: 'library_off' });
         const r = library.cleanItem(b.item, clock(), normCode);
         if (r.error) return send(400, { error: r.error, message: r.message });
         const it = r.item;
@@ -432,7 +436,7 @@ function makeHandler(deps = {}) {
         return send(200, { ok: true, item: it });
       }
       if (action === 'lib_del') {
-        if (!isTester(me)) return send(403, { error: 'library_off' });
+        if (!(await canLib(me))) return send(403, { error: 'library_off' });
         const id = String(b.id || '');
         if (!/^[a-z0-9]{2,40}$/.test(id)) return send(400, { error: 'Item inválido.' });
         await store.hdel(LB(me), id);
@@ -442,7 +446,7 @@ function makeHandler(deps = {}) {
       if (action === 'lib_report') {
         const teacher = normCode(b.other);
         const id = String(b.id || '');
-        if (!teacher || teacher === me || !/^[a-z0-9]{2,40}$/.test(id) || !isTester(teacher)) return send(400, { error: 'Pedido inválido.' });
+        if (!teacher || teacher === me || !/^[a-z0-9]{2,40}$/.test(id) || !(await canLib(teacher))) return send(400, { error: 'Pedido inválido.' });
         if ((await store.hget(S(me), teacher)) === undefined) return send(403, { error: 'Este professor não está vinculado a você.' });
         const rawItem = await store.hget(LB(teacher), id);
         if (rawItem === undefined) return send(404, { error: 'Item não encontrado.' });

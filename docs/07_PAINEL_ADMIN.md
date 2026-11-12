@@ -24,6 +24,9 @@ Página estática (`web/admin.html`, JavaScript puro, sem bibliotecas) que fala 
 ## Confirmação de ações (modal)
 Toda ação que altera algo abre um modal que sobe de baixo (função `askConfirm` em `web/admin.html`): diz o que vai acontecer, quem é afetado e se dá para desfazer. O botão de confirmar só libera depois de ~0,7 s. As ações sem volta pedem **segurar o botão por 1,5 s** (encerrar vínculo, gerar código de liberação, apagar item de agenda) ou **digitar o código** do perfil (excluir dados). Esc ou toque fora cancela. Cobre: limpar perfis, avisos de bug grave (ativar, desativar, teste), esconder item do acervo, encerrar vínculo, código de liberação (gerar e cancelar), apagar item de agenda, bloquear e liberar, excluir dados e mudar o status de um bug. Um teste de proteção (`api/guardrails.test.js`) falha se voltar `confirm()`/`prompt()` ou se uma dessas ações perder o modal.
 
+## Recursos (liberação aos poucos)
+Aba **Recursos**: um cartão por novidade (`api/_lib/features.js`). Estados: **Desligado** (vale para todos, inclusive quem está na lista, e chega em até 1 minuto), **Só liberados** (lista de códigos; no acervo, também os de `LIBRARY_TESTERS`), **Parte dos usuários** (1 a 99%, sempre os mesmos usuários, pelo código; a lista continua valendo) e **Todos**. Dá para liberar um código e, se o recurso vale para os alunos, **os alunos vinculados a ele** (até 200). Todas as mudanças passam pelo modal de confirmação (Todos e Desligado pedem digitar o nome do recurso) e entram no registro. Ações da API: `features`, `feature_set`, `feature_grant`, `feature_revoke`.
+
 ## Números: como são calculados
 - **Aparelhos** (HyperLogLog, erro ≈ 1%): distintos por janela. Um aparelho que abre 10 vezes conta 1. Quem limpa os dados ou reinstala conta como novo.
 - **Perfis**: quem ligou o vínculo online (índice `pf:*`); menos que os aparelhos.

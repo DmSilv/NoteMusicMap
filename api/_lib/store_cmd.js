@@ -42,6 +42,9 @@ function memCmd(a) {
       return removed;
     }
     case 'SCARD': return (sets.get(key) || new Set()).size;
+    case 'SMEMBERS': return [...(sets.get(key) || [])];
+    case 'SISMEMBER': return (sets.get(key) || new Set()).has(String(a[2])) ? 1 : 0;
+    case 'SMISMEMBER': return a.slice(2).map((m) => ((sets.get(key) || new Set()).has(String(m)) ? 1 : 0));
     case 'GET': return strs.has(key) ? strs.get(key) : null;
     case 'SET': strs.set(key, String(a[2])); return 'OK';
     case 'PFCOUNT': {

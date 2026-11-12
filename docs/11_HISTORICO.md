@@ -155,3 +155,6 @@ Quando algo importante dá certo, em vez de só o aviso pequeno no topo, sobe um
 
 ## Painel: confirmação de ações em modal (novembro/2026)
 O painel deixou de usar o `confirm()`/`prompt()` do navegador. Toda ação que altera algo abre um modal que sobe de baixo, com o motivo, quem é afetado e se desfaz; o botão de confirmar só libera depois de 0,7 s, as ações sem volta pedem para segurar 1,5 s e excluir dados pede digitar o código. Ações que antes não confirmavam (limpar perfis, esconder item do acervo, cancelar código, mudar status de bug, avisos de bug grave) agora confirmam. Só mudou o `web/admin.html`; a API não mudou.
+
+## Recursos liberados aos poucos (novembro/2026)
+Nova aba **Recursos** no painel: cada novidade (hoje o Acervo e a Aula online, que ainda não existe) nasce desligada e é liberada por código (com ou sem os alunos vinculados), por parte dos usuários (1 a 99%) ou para todos; **Desligado** corta para todos na hora. O servidor decide e a sincronização do app passa a trazer `ff` (lista de recursos ligados), que apps antigos ignoram. O acervo passou a usar as chaves (LIBRARY_TESTERS continua valendo como ponto de partida). Custo: nenhum comando a mais por sincronização para o próprio perfil (campo `ff` do perfil) e 1 comando por sincronização de aluno com professor (consulta em lote); a configuração geral fica 60 s na memória da função.

@@ -266,7 +266,7 @@ test('painel: toda ação que altera algo passa pela confirmação em modal (nad
   const html = fs.readFileSync(path.join(root, 'web', 'admin.html'), 'utf8');
   assert.doesNotMatch(html, /[^.\w]confirm\(|[^.\w]prompt\(/, 'use askConfirm(...) em vez de confirm()/prompt()');
   // cada ação que muda dados tem uma chamada de askConfirm antes do post correspondente
-  const acoes = ['sweep', 'library_hide', 'unlink', 'support_code', 'support_cancel', 'agenda_del', 'unblock', 'delete', 'bug_status'];
+  const acoes = ['sweep', 'library_hide', 'unlink', 'support_code', 'support_cancel', 'agenda_del', 'unblock', 'delete', 'bug_status', 'feature_set', 'feature_grant', 'feature_revoke'];
   for (const a of acoes) {
     const i = html.indexOf(`action: '${a}'`) >= 0 ? html.indexOf(`action: '${a}'`) : html.indexOf(`'${a}'`);
     assert.ok(i > 0, `ação ${a} não encontrada no painel`);
