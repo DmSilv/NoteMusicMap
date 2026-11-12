@@ -64,3 +64,6 @@ Há usuários reais. Cada pacote: testes + conferência na tela + custo + impact
 
 ## D20. Documentação gerada do código onde possível
 Arquivos, API, chaves, erros e ambiente saem de `scripts/gen_docs.js`; `--check` falha se estiverem velhos. A parte escrita à mão explica o **porquê**.
+
+## D21. Recursos novos saem aos poucos, por chaves no painel
+Cada novidade nasce desligada e é liberada por código de perfil, depois por porcentagem e, por fim, para todos; dá para desligar na hora sem publicar. O servidor é quem decide (o app só esconde). Substitui a variável `LIBRARY_TESTERS`, que vira o ponto de partida do recurso `acervo`. Plano em `docs/PLANO_AULA_ONLINE_AGENDA_ADMIN.md`.

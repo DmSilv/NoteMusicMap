@@ -101,16 +101,59 @@ Proposta: aba/ficha **"Acompanhar"** por pessoa com:
 | Apps abertos | cache antigo | já temos service worker por versão; avisar ao atualizar |
 | Docs/testes | regras novas | docs/03, 04, 07, 11 e referência; testes de API e núcleo a cada etapa |
 
-## 6. Ordem de execução sugerida
-1. Publicar o **momento de sucesso** (já pronto, depende do "Sim, publicar").
-2. **Admin: confirmação em modal** nas ações (evita acidente já) + registro de ações.
-3. **Aula online** (campos `m`/`l`, formulário, horário livre, "Entrar na aula", menu "Adicionar link", testes de compatibilidade).
-4. **Controle da agenda do professor** (remarcar só esta aula, trocar horários, pausa, corrigir a suspeita de cancelados antigos).
-5. **Admin: Acompanhar** (uso, agendas lado a lado, ações de suporte) + tempo real + design.
-6. **Tutoriais** cobrindo o que existe depois das etapas 3 e 4.
+## 6. Recursos liberados aos poucos (chaves por professor) — NOVO
+Objetivo: lançar cada novidade primeiro para quem você escolher e só depois para todos, sem afetar quem já usa.
+Hoje isso é a variável `LIBRARY_TESTERS` da Vercel (só o acervo, precisa de redeploy). Passa a ser uma **aba "Recursos" no painel**.
+
+### Como funciona
+- **Lista de recursos no código** (`api/_lib/features.js`): id, nome, descrição, para quem vale (professor, aluno ou os dois).
+  Só recursos que existem na lista aparecem no painel (sem erro de digitação). Novo recurso = uma linha nova.
+- **Estados por recurso:** Desligado → Só os liberados (lista de códigos) → Parte dos usuários (% fixo, por código) → Todos.
+- **Desligar na hora** (chave geral): vale para todos sem publicar nada.
+- **Liberar um professor** pode liberar junto os alunos vinculados a ele, quando o recurso é de professor e aluno (ex.: aula online).
+- **Quem decide é o servidor.** O app só recebe a lista de recursos ligados para o perfil dele (`ff`, junto da sincronização que já existe)
+  e esconde o que não está ligado; mas o servidor também recusa (como o acervo faz hoje com `library_off`).
+- **App antigo** ignora `ff` e continua como está; recursos novos nunca ligam sozinhos num app que não os conhece.
+- **Acervo** vira o primeiro recurso da lista (`acervo`), importando os códigos de `LIBRARY_TESTERS` (a variável continua valendo como ponto de partida).
+
+### Custo e armazenamento
+- Por perfil: um campo a mais (`ff`) no hash que a sincronização **já lê** → 0 comando novo por sincronização.
+- Estado geral dos recursos: 1 chave pequena, guardada em memória da função por 60 s → ~1 comando por minuto por instância.
+- Lista de liberados por recurso: um conjunto no Redis só para o painel listar e contar (escrita só quando você libera).
+
+### No painel (aba Recursos)
+Cartão por recurso com estado, quantos liberados, botões **Liberar para um código**, **Liberar parte (%)**, **Liberar para todos**, **Desligar**.
+Todas as ações passam pela confirmação em modal; "Todos" e "Desligar" exigem digitar o nome do recurso. Cada mudança entra no registro
+(quem, quando, antes/depois). Cada cartão mostra também o uso: quantos liberados abriram o recurso nos últimos 7 dias (só contagem).
+
+### Funil de liberação sugerido
+1. Você (teste) → 2. professor de teste (Vinícius) → 3. 5 a 10% → 4. 50% → 5. todos. Em cada passo olhar bugs e erros do painel antes de subir.
+
+## 7. Verificação automática e segurança no GitHub — NOVO
+O GitHub já roda um CI a cada envio (análise, testes do núcleo e build web). Mudanças feitas agora:
+- **CI completo:** passa a rodar também **todos os testes da API (236)** e as conferências de documentação e de texto
+  (antes só rodava os da IA).
+- **Varredura de segurança (CodeQL):** a cada pull request, a cada envio e uma vez por semana; resultado em GitHub › Security.
+- **Dependabot:** abre pull request semanal quando sai versão nova de pacote ou ação, inclusive correção de segurança.
+- **Do seu lado, em GitHub › Settings** (o repositório é público, então é grátis): ligar **Secret scanning** e **Push protection**
+  (barra o envio de senha ou chave por engano), e **proteger o ramo `main`** exigindo o CI verde antes de juntar um pull request.
+- **Teste de fumaça (próximo):** reaproveitar o app de demonstração e o Chrome sem tela para repetir "marcar aula, pegar horário,
+  passar tarefa" a cada envio.
+Observação: o CI **não bloqueia** a Vercel (ela publica ao receber o envio). Por isso a regra de só publicar após o "Sim" continua.
+
+## 8. Ordem de execução (atualizada)
+1. Publicar o **momento de sucesso** — feito.
+2. **Verificação no GitHub** (CI completo, CodeQL, Dependabot) — pronto para envio.
+3. **Admin: confirmação em modal** nas ações + registro de ações.
+4. **Recursos por professor** (chaves no painel) — antes da aula online, para ela já nascer atrás de uma chave.
+5. **Aula online** com **link padrão do professor** ("Meu link de aula online", cada aula já nasce com ele) e link por aula editável; liberada por chave.
+6. **Controle da agenda** (remarcar só esta aula, trocar horários, pausa/férias, corrigir a suspeita dos cancelados antigos); depois falta/reposição e pedido de troca do aluno.
+7. **Admin: Acompanhar** — começa pelo **funil de ativação** (gerou código → vinculou → 1ª aula → 1ª tarefa), agendas lado a lado, ações de
+   suporte com motivo escrito, **alertas** (erro crítico, pico de cadastros, lembrete falhando) e tempo real + design.
+8. **Tutoriais** como checklist "Comece por aqui" (vincular aluno, marcar aula, passar tarefa) mais os destaques com tela escura.
 Cada etapa: testar, mostrar no navegador, documentar, e só então pedir o "Sim, publicar".
 
-## 7. Decisões abertas
+## 9. Decisões abertas
 1. Link da aula: lista de sites (Meet, Zoom, Teams, Whereby, Jitsi) ou aceitar qualquer https? (recomendado: lista + "Outro site")
 2. Horário livre: o professor define online/presencial no horário, ou o aluno escolhe ao pegar? (recomendado: o professor define)
 3. Suporte do admin: pode remarcar/cancelar aula em nome do usuário, ou só ver? (recomendado: pode, com confirmação e aviso ao usuário)

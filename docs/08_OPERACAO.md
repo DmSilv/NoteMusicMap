@@ -16,6 +16,12 @@
 - **Depois do push não se espera o deploy** (regra do dono): segue-se para a próxima tarefa; só se confere se houver problema.
 - Se o `git push` ficar lento, rode-o em segundo plano e confira depois (`git status -sb` deve mostrar `main...origin/main` sem `ahead`).
 
+## Verificação automática e segurança no GitHub
+- **CI** (`.github/workflows/ci.yml`): a cada envio e pull request roda análise do Flutter, testes do núcleo, **todos os testes da API**, conferência de documentação e de texto, e o build web. Ele **não bloqueia** a Vercel: a regra de só publicar após o "Sim" continua valendo.
+- **CodeQL** (`seguranca.yml`): varredura de segurança do JavaScript (API e painel) a cada pull request, envio e toda segunda-feira; resultado em GitHub › Security.
+- **Dependabot** (`dependabot.yml`): pull request semanal quando sai versão nova de pacote ou ação.
+- **No GitHub (manual, uma vez):** Settings › Code security: ligar *Secret scanning* e *Push protection*; Settings › Branches: proteger o `main` exigindo o CI verde.
+
 ## Limites que mordem
 1. **12 funções na Vercel Hobby.** Cada arquivo em `api/` (fora de `_lib/`) conta, **inclusive `*.test.js`**. Os testes ficam fora do deploy via `.vercelignore`. Hoje: 8 funções (`admin`, `ai-status`, `coach`, `errors`, `feedback`, `link`, `remind`, `stats`). Antes de criar um endpoint: `ls api/*.js | grep -v test | wc -l`. Se encostar em 12, **dobre ações dentro de um endpoint existente** (como `kpis`/`bugs` dentro de `admin`).
 2. **500 mil comandos/mês no Upstash (gratuito).** Veja a aba Custos. Regras: nada de polling de lista, ações novas medem custo, tetos e limites por perfil.

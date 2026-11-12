@@ -32,8 +32,17 @@ jobs:
           dart pub get
           dart test
 
-      - name: Testes da API de IA (sem rede)
-        run: node --test api/coach.test.js
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Testes da API (todos, sem rede)
+        run: node --test api/*.test.js
+
+      - name: Documentação em dia e dieta de texto
+        run: |
+          node scripts/check_docs.js
+          node scripts/check_text.js
 
       - name: Análise estática
         run: flutter analyze

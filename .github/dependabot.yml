@@ -1,0 +1,17 @@
+# Atualizações automáticas: o GitHub abre um pull request quando sai versão nova (e correção de segurança).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: pub
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: pub
+    directory: /packages/afina_core
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
