@@ -463,6 +463,7 @@ class SettingsPage extends StatelessWidget {
           ),
         const Divider(height: Ds.sectionGap),
         _switch('Vibrar na batida e nas escalas', 'Metrônomo e exercícios.', app.hapticEnabled, (x) => app.setTuning(hapticEnabled: x)),
+        _switch('Batida leve ao dar certo', 'Ao pegar horário, marcar aula e enviar tarefa.', app.successHaptic, app.setSuccessHaptic),
         Row(children: [
           Expanded(
             child: _switch('Estatísticas anônimas', 'Sem identificar você.', app.statsEnabled, app.setStatsEnabled),

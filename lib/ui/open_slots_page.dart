@@ -247,7 +247,11 @@ class _PickSlotPageState extends State<PickSlotPage> {
     if (ok != true || !mounted) return;
     setState(() => taking = true);
     final err = await app.takeOpenSlot(teacher!, s);
-    app.say(err ?? 'Pronto! A aula entrou na sua agenda.');
+    if (err == null) {
+      app.celebrate('Horário garantido!', detail: describeOpenSlot(s));
+    } else {
+      app.say(err);
+    }
     if (mounted) {
       setState(() => taking = false);
       _load();

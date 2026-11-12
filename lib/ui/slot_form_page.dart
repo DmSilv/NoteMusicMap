@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'dictation_button.dart';
+import 'open_slots_page.dart' show describeOpenSlot;
 import 'safe_input.dart';
 import 'student_identity.dart';
 import 'theme.dart';
@@ -108,7 +109,11 @@ class _SlotFormPageState extends State<SlotFormPage> {
       return;
     }
     final st = app.studentByCode(c);
-    app.say(isEdit ? 'Aula atualizada.' : 'Aula marcada com ${st?.name ?? 'o aluno'}.');
+    if (isEdit) {
+      app.say('Aula atualizada.');
+    } else {
+      app.celebrate('Aula marcada!', detail: '${st?.name ?? 'O aluno'} · ${describeOpenSlot(slot)}');
+    }
     Navigator.pop(context, true);
   }
 

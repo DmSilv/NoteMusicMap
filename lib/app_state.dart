@@ -1922,7 +1922,12 @@ class AppState extends ChangeNotifier {
             r.wire = null;
             changed = true;
             deliveryIssue.remove(c);
-            say('Enviado para ${s.name}.');
+            if (_celebrateDeliveryFor == c && _celebrateAt != null && DateTime.now().difference(_celebrateAt!) < const Duration(seconds: 90)) {
+              _celebrateDeliveryFor = null;
+              celebrate('Tarefa enviada', detail: 'Para ${s.name}');
+            } else {
+              say('Enviado para ${s.name}.');
+            }
           } else if (rep.unavailable) {
             _markLinkUnavailable();
             break outer;
@@ -2743,6 +2748,37 @@ class AppState extends ChangeNotifier {
   /// Mostra um aviso curto ao usuário quando uma função é ligada/desligada.
   void say(String message) => onMessage?.call(message);
 
+  /// Quem mostra o momento de sucesso (a tela principal liga isto).
+  void Function(String title, String detail)? onSuccess;
+
+  /// Batida bem leve ao dar certo (pegar horário, marcar aula, enviar tarefa).
+  bool successHaptic = true;
+  void setSuccessHaptic(bool v) {
+    successHaptic = v;
+    _prefs?.setBool('ok_haptic', v);
+    if (v) buzz(ms: 22);
+    notifyListeners();
+  }
+
+  /// Estudante cuja entrega de tarefa deve ser comemorada quando chegar de verdade ao servidor.
+  String? _celebrateDeliveryFor;
+  DateTime? _celebrateAt;
+  void celebrateNextDelivery(String? code) {
+    _celebrateDeliveryFor = code;
+    _celebrateAt = DateTime.now();
+  }
+
+  /// Algo importante deu certo: mostra o momento de sucesso (e uma batida leve, se ligada).
+  void celebrate(String title, {String detail = ''}) {
+    if (successHaptic) buzz(ms: 22);
+    final f = onSuccess;
+    if (f == null) {
+      say(detail.isEmpty ? title : '$title $detail');
+    } else {
+      f(title, detail);
+    }
+  }
+
   // ---------------- Problemas e avisos de erro ----------------
   /// Histórico dos últimos problemas (guardado no aparelho, sem dados pessoais).
   ErrorLog errorLog = ErrorLog();
@@ -3097,6 +3133,7 @@ class AppState extends ChangeNotifier {
     dailyGoalMinutes = 20;
     flashEnabled = false;
     hapticEnabled = false;
+    successHaptic = true;
     keepAwake = true;
     showFreq = true;
     sensitivity = MicSensitivity.normal;
@@ -3475,6 +3512,7 @@ class AppState extends ChangeNotifier {
     micGain = p.getDouble('gain') ?? 1.0;
     flashEnabled = p.getBool('flash') ?? false;
     hapticEnabled = p.getBool('haptic') ?? false;
+    successHaptic = p.getBool('ok_haptic') ?? true;
     keepAwake = p.getBool('keepAwake') ?? true;
     showFreq = p.getBool('showFreq') ?? true;
     final bpm = p.getDouble('bpm') ?? 100;

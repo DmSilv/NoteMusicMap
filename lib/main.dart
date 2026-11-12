@@ -24,6 +24,7 @@ import 'ui/profile_page.dart' show ProfilePage, handleIncomingTeacherCode;
 import 'ui/metronome_page.dart';
 import 'ui/study_page.dart';
 import 'ui/theme.dart';
+import 'ui/success_moment.dart';
 import 'ui/toast.dart';
 import 'ui/tuner_page.dart';
 
@@ -230,6 +231,18 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
           if (!mounted) return;
           showToast(context, '${e.title}. Código ${e.shortId}.',
               icon: errorIcon(e.severity), color: errorTint(e.severity), duration: const Duration(seconds: 4));
+        })
+        ..scheduleFrame();
+    };
+    // Momento de sucesso: folha que sobe de baixo e some sozinha.
+    widget.app.onSuccess = (title, detail) {
+      if (!mounted) return;
+      WidgetsBinding.instance
+        ..addPostFrameCallback((_) {
+          final ctx = _navKey.currentContext;
+          if (!mounted || ctx == null) return;
+          // ignore: use_build_context_synchronously
+          showSuccessMoment(ctx, title, detail: detail);
         })
         ..scheduleFrame();
     };

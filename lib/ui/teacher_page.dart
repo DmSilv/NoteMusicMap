@@ -1256,6 +1256,7 @@ class StudentPage extends StatelessWidget {
     if (rule.mode == DeliveryMode.inLesson) {
       app.say('Tarefa passada. Vai para ${s.name} quando você encerrar a aula.');
     } else if (d.sendNow && rule.canSend) {
+      if (rule.mode == DeliveryMode.now) app.celebrateNextDelivery(s.code);
       app.say(app.sendPendingTasks(s));
     } else if (rule.mode == DeliveryMode.localOnly) {
       app.say('Tarefa passada. Fica só na sua ficha: ${s.name} ainda não pode receber.');
