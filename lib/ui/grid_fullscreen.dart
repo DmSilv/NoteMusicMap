@@ -59,7 +59,7 @@ class _GridFullscreenState extends State<GridFullscreen> {
           listenable: app.live,
           builder: (context, _) {
             final landscape = MediaQuery.orientationOf(context) == Orientation.landscape;
-            final zone = app.zoneCents;
+            final zone = app.gridZoneCents;
             return Column(
               children: [
                 if (_showControls) _topBar(landscape),
@@ -121,7 +121,7 @@ class _GridFullscreenState extends State<GridFullscreen> {
 
   Widget _topBar(bool landscape) {
     final cur = app.shown;
-    final zone = app.zoneCents;
+    final zone = app.gridZoneCents;
     final col = cur == null ? AppColors.textDim : intonationColor(cur.cents, zone);
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 4, 8, 2),

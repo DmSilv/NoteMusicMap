@@ -175,6 +175,11 @@ enum HistoryMode {
 /// ou apertem a régua.
 const double kInTuneCents = 10;
 
+/// Faixa "afinada" da grade (±cents). A cor de cada quadrado é a MÉDIA das leituras (ataque, vibrato, oscilação
+/// natural), então a régua é um pouco mais folgada que a das escalas e do afinador. Fora dela as cores seguem
+/// pedindo correção de verdade: não vira desculpa para ficar desafinado.
+const double kGridInTuneCents = 14;
+
 class CellView {
   final double avgCents;
 
@@ -255,7 +260,8 @@ class PitchGrid {
       c.sum *= f;
       c.w *= f;
     }
-    final weight = clarity * dt;
+    // Leituras limpas pesam mais que as sujas (ataque da nota, ruído): a média fica mais estável.
+    final weight = clarity * clarity * dt;
     c.sum += cents.clamp(-100.0, 100.0) * weight;
     c.w += weight;
     c.seconds += dt;

@@ -460,7 +460,7 @@ class SessionChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final s = app.grid.summary(app.zoneCents);
+    final s = app.grid.summary(app.gridZoneCents);
     final pct = (s.accuracy * 100).round();
     Widget chip(String big, String small, {Color? color}) => Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -512,7 +512,7 @@ class SessionChips extends StatelessWidget {
 /// Resumo leve da sessão: uma linha por nota tocada (da mais grave à mais aguda),
 /// com a cor, quantas vezes foi tocada e o desvio médio em Hz.
 void showSessionSheet(BuildContext context, AppState app) {
-  final zone = app.zoneCents;
+  final zone = app.gridZoneCents;
   final s = app.grid.summary(zone);
   // Ignora a retenção: a folha mostra tudo que foi tocado na sessão.
   final saved = app.grid.holdSeconds;

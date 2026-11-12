@@ -223,3 +223,8 @@ O painel foi redesenhado com o design system do app: cores iguais (testadas cont
 - **Lógica que dependia de texto** passou a depender de tipo: `ScaleType.isMinor`, `isDefaultStudentName`.
 - **Teste e CI**: `node scripts/check_i18n.js` (cobertura das traduções), `i18n_test.dart` (núcleo), `toast_kind_en_test.dart` e um teste de `/api/coach` com `lang`. A "dieta de texto" (`check_text.js`) passou a contar também `Text(tr('...'))`.
 - **Limites conhecidos**: páginas estáticas (`index.html`, `sobre.html`) e painel do administrador seguem em português; fora da web a troca de idioma só vale por completo ao reiniciar o app (na web a página recarrega sozinha).
+
+## Grade: faixa mais folgada e botão de ampliar (novembro/2026)
+- **Faixa "afinada" da grade** passou de ±10 para **±14 cents** (`kGridInTuneCents`): a cor do quadrado é a média das leituras (ataque, vibrato), então acertar e ver o verde estava difícil demais. Escalas, exercícios guiados e afinador seguem em ±10 (`kInTuneCents`). Fora da faixa as cores continuam pedindo correção.
+- **Média mais estável**: cada leitura pesa pela clareza ao quadrado (leitura suja do ataque pesa menos).
+- **Botão "Ampliar a grade"** saiu do link solto embaixo e virou botão de ícone no topo, junto do microfone e do zerar; o "?" das cores foi para o lado da legenda.

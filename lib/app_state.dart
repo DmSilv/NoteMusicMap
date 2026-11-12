@@ -133,6 +133,9 @@ class AppState extends ChangeNotifier {
   TunerMode tunerMode = TunerMode.strings;
   /// Faixa "afinada" (±cents): padrão único do app, sem níveis.
   double get zoneCents => kInTuneCents;
+  /// Faixa "afinada" da GRADE: um pouco mais folgada (a cor é a média de várias leituras, com ataque e vibrato),
+  /// para acertar a nota e ver o verde sem ter que ficar parado no centro exato.
+  double get gridZoneCents => kGridInTuneCents;
   HistoryMode history = HistoryMode.medium;
   double holdSeconds = 0; // 0 = a cor fica até zerar a grade (histórico das notas tocadas)
 

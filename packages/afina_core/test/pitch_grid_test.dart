@@ -6,6 +6,7 @@ import 'package:test/test.dart';
 PitchResult pr(double f, [double clarity = 0.97]) => PitchResult(f, clarity, 0.1);
 
 void main() {
+  gridZoneTests();
   const eq = TuningConfig();
 
   group('PitchTracker', () {
@@ -211,6 +212,31 @@ void main() {
       final r = buildScaleReport(g, [55], eq, kInTuneCents, 100);
       expect(r.notes.first.status, NoteStatus.inTune);
       expect(g.holdSeconds, 1);
+    });
+  });
+}
+
+void gridZoneTests() {
+  group('faixa da grade', () {
+    test('a grade aceita um pouco mais que as escalas, mas continua exigente', () {
+      expect(kGridInTuneCents, greaterThan(kInTuneCents));
+      expect(kGridInTuneCents, lessThanOrEqualTo(15));
+      final g = PitchGrid(holdSeconds: null);
+      g.add(69, 12, 1.0, 1.0, 1.0); // 12 cents acima: verde na grade, ainda fora na escala
+      final avg = g.view(69, 1.0)!.avgCents;
+      expect(avg.abs() <= kGridInTuneCents, isTrue);
+      expect(avg.abs() <= kInTuneCents, isFalse);
+      // 20 cents continua desafinado
+      final h = PitchGrid(holdSeconds: null)..add(69, 20, 1.0, 1.0, 1.0);
+      expect(h.view(69, 1.0)!.avgCents.abs() <= kGridInTuneCents, isFalse);
+    });
+
+    test('leitura suja (baixa clareza) pesa menos que a limpa', () {
+      final g = PitchGrid(holdSeconds: null);
+      g.add(60, 0, 1.0, 1.0, 1.0); // limpa, afinada
+      g.add(60, 30, 0.4, 1.0, 2.0); // suja (ataque), 30 cents
+      // com peso linear a média seria ~8,6; com peso pela clareza ao quadrado fica ~4,1
+      expect(g.view(60, 2.0)!.avgCents, lessThan(6));
     });
   });
 }

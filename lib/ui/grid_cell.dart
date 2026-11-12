@@ -37,7 +37,7 @@ class GridCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final zone = app.zoneCents;
+    final zone = app.gridZoneCents;
     final v = app.grid.view(midi, app.now);
     final cur = app.shown;
     final playing = cur?.midi == midi;

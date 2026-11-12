@@ -79,7 +79,7 @@ class _GridPageState extends State<GridPage> {
   // =====================================================================
   Widget _gridSection() {
     final cur = app.shown;
-    final zone = app.zoneCents;
+    final zone = app.gridZoneCents;
     final rows = app.gridOctaves.$2 - app.gridOctaves.$1 + 1;
     return Column(
       children: [
@@ -125,10 +125,17 @@ class _GridPageState extends State<GridPage> {
               icon: const Icon(Icons.restart_alt),
               onPressed: () => confirmResetGrid(context, app),
             ),
-            IconButton(
-              tooltip: tr('Como ler as cores'),
-              icon: const Icon(Icons.help_outline),
-              onPressed: _explainColors,
+            const SizedBox(width: 6),
+            // Ampliar a grade: ação da grade, junto dos outros botões de cima (antes era um link solto embaixo).
+            IconButton.outlined(
+              tooltip: tr('Ampliar a grade'),
+              style: IconButton.styleFrom(
+                minimumSize: const Size(44, 44),
+                foregroundColor: AppColors.accent,
+                side: BorderSide(color: AppColors.accent.withValues(alpha: 0.7), width: 1.5),
+              ),
+              icon: const Icon(Icons.open_in_full_rounded, size: 20),
+              onPressed: _openFullscreen,
             ),
           ],
         ),
@@ -165,9 +172,17 @@ class _GridPageState extends State<GridPage> {
         // A grade em si: 12 colunas (Dó a Si) x oitavas, agudos em cima.
         // Grade pequena (visão geral); "Ampliar" abre em tela cheia para tocar com mais conforto.
         SizedBox(height: rows * 52.0, child: GridBoard(app: app)),
-        Align(alignment: Alignment.centerRight, child: _expandChip()),
         const DsGap(Ds.s12),
-        IntonationLegend(zone: zone, compact: true),
+        // A ajuda das cores fica junto da legenda das cores.
+        Row(children: [
+          Expanded(child: IntonationLegend(zone: zone, compact: true)),
+          IconButton(
+            tooltip: tr('Como ler as cores'),
+            visualDensity: VisualDensity.compact,
+            icon: const Icon(Icons.help_outline),
+            onPressed: _explainColors,
+          ),
+        ]),
         const DsGap(Ds.s16),
         OctaveNav(app: app),
         const DsGap(Ds.s16),
@@ -232,13 +247,6 @@ class _GridPageState extends State<GridPage> {
         fullscreenDialog: true,
         builder: (_) => GridFullscreen(app: app),
       ));
-
-  /// Botão "Ampliar" no canto da grade.
-  Widget _expandChip() => TextButton.icon(
-        onPressed: _openFullscreen,
-        icon: const Icon(Icons.open_in_full_rounded, size: 18),
-        label: Text(tr('Ampliar a grade')),
-      );
 
   // =====================================================================
   // Seção 2: Escala
@@ -656,7 +664,7 @@ class _GridPageState extends State<GridPage> {
               Text(tr('Como ler as cores'),
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
               const SizedBox(height: 12),
-              IntonationLegend(zone: app.zoneCents),
+              IntonationLegend(zone: app.gridZoneCents),
               const SizedBox(height: 12),
               Text(
                 tr('Cada quadrado é uma nota. Ele ganha cor conforme você toca: azul quando a nota está grave, verde quando está afinada e laranja ou vermelho quando está aguda. Quanto mais forte a cor, mais longe do ideal: corrija e veja o quadrado virar verde. O "×3" diz quantas vezes você tocou aquela nota.\n\nA nota que está soando agora ganha uma borda forte, e o topo mostra quantos Hz ela está acima (+) ou abaixo (−) do ideal. No placar, toque em "notas / afinadas" para ver o resumo por nota. O destaque troca de nota com calma, para dar tempo de ler; ajuste em Ajustes › Troca de nota.'),
