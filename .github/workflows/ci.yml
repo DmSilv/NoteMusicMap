@@ -52,3 +52,6 @@ jobs:
 
       - name: Teste de fumaça (fluxos principais + o app abre no Chrome)
         run: node scripts/smoke.js --web
+
+      - name: Testes de tela do Flutter (modal de sucesso, tutorial guiado)
+        run: node scripts/ui_tests.js

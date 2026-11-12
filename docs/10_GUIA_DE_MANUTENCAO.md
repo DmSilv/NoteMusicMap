@@ -58,7 +58,7 @@ Inclua o nome em `EVENTS` (`api/_lib/metrics.js`), chame `metric('nome')` onde a
 | Armadilha | Como evitar |
 |---|---|
 | **12 funções na Vercel**: arquivo de teste em `api/` conta | Manter `.vercelignore`; conferir `ls api/*.js | grep -v test | wc -l` |
-| `flutter test` não roda aqui | Lógica no núcleo (`dart test`); interface por `flutter analyze` + tela |
+| `flutter test` não roda aqui (áudio nativo) | Lógica no núcleo (`dart test`); peças de tela puras em `test/ui/` com `node scripts/ui_tests.js`; o resto por `flutter analyze` + tela |
 | `notifyListeners()` dentro de `build` | Usar `Future.microtask(notifyListeners)` (como em `reportError`) |
 | Nome colidindo no `afina_core.dart` | Prefixar/renomear (ex.: `buildErrorReport`, `summarizeTasks`) |
 | App antigo em cache (PWA) | API sempre retrocompatível; o painel só reabre bug por versão **nova** |

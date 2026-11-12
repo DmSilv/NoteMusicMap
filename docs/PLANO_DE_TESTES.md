@@ -11,6 +11,7 @@ Legenda de situação: **feito** (já roda), **fazer** (planejado), **você** (p
 | Análise do Flutter, conferência de documentação e de texto | Código sem avisos, docs em dia | **feito** (CI) |
 | Varredura de segurança (CodeQL) e Dependabot | Falhas comuns e pacotes com correção de segurança | **feito** (GitHub) |
 | Simulação de carga lógica (`node scripts/simulate_load.js`) | Quantos comandos do Redis e chamadas de função cada usuário gasta | **feito** (manual; ver seção 3) |
+| Testes de tela do Flutter (`node scripts/ui_tests.js`) | Modal de sucesso e tutorial guiado: abrem, fecham sozinhos, "Pular", passo fora da tela, fundo escuro (11 testes; só peças sem áudio) | **feito** (CI; parcial) |
 | Teste de fumaça (`node scripts/smoke.js --web`) | Os fluxos principais terminam certo e o app abre no Chrome | **feito** (CI; seção 4) |
 | Teste de carga real em ambiente de teste | Velocidade e erros com centenas de usuários ao mesmo tempo | **fazer** (seção 3) |
 | Celulares de verdade | Vibração, microfone, abrir link da sala, instalar, notificações | **você** (seção 5) |
@@ -79,6 +80,6 @@ Contraste, tamanho de fonte com o texto do sistema grande, toque mínimo de 44 p
 | Semana | Testes |
 |---|---|
 | 1 | Seção 2 em toda publicação; celulares reais (seção 5); liberar aula online para o Vinícius |
-| 2 | Roteiro com pessoas reais (seção 6); testes de tela do Flutter no CI |
+| 2 | Roteiro com pessoas reais (seção 6); testes de tela do formulário de aula e do Comece por aqui |
 | 3 | Carga real em ambiente de teste (seção 3.2); ajustar o que aparecer |
 | 4 | Acessibilidade (seção 8); revisar custo com dados reais (Contas com "Real") |

@@ -176,3 +176,6 @@ Aba Custos ganhou **Contas**: quanto custa manter a plataforma hoje e para 100, 
 
 ## Teste de fumaça no CI (novembro/2026)
 Novo `scripts/smoke.js`, executado no CI depois do build: repete os fluxos principais (marcar, pegar horário com dois alunos ao mesmo tempo, tarefa, aula online, remarcar, trocar, pausar, painel) e abre o app num Chrome sem janela. Falha sozinho se um fluxo quebrar; comprovado quebrando a trava "o primeiro leva" de propósito.
+
+## Testes de tela do Flutter no CI (novembro/2026)
+Novo `scripts/ui_tests.js`: monta um pacote isolado só com as peças de tela sem áudio e roda `flutter test` nele (funciona neste computador e no CI). Cobre o modal de sucesso e o tutorial guiado (`test/ui/`, 11 testes). Comprovado quebrando o tempo de fechar e o botão Pular de propósito. Telas que dependem do `AppState` ainda não têm teste de tela.

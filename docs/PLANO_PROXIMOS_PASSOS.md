@@ -19,8 +19,8 @@ recurso novo atrás de chave e só publicar com o "Sim, publicar".
 Objetivo: publicar sem medo. Hoje só o núcleo e a API têm teste automático forte.
 1. **Teste de fumaça no CI (feito):** `scripts/smoke.js --web` repete marcar aula, pegar horário (dois ao mesmo tempo), passar tarefa, aula online, remarcar, trocar e pausar,
    e abre o app num Chrome sem janela. Roda a cada envio. Não clica nos botões do Flutter: isso fica para o item 2.
-2. **Teste de tela do Flutter no CI** (no GitHub o compilador existe): trazer o `flutter test` para o CI e cobrir o formulário de aula, o modal de
-   sucesso e o cartão Comece por aqui. *Pronto quando* roda verde no GitHub.
+2. **Teste de tela do Flutter no CI (parcial, feito):** `node scripts/ui_tests.js` testa o modal de sucesso e o tutorial guiado (11 testes) e roda no CI. Falta o formulário de aula
+   e o cartão Comece por aqui: dependem do `AppState` (áudio nativo). Caminho: separar o que a tela precisa do `AppState` por uma interface pequena. *Pronto quando* essas telas tiverem teste.
 3. **Textos do Flutter em português** (`flutter_localizations`): seletores de data e hora hoje aparecem em inglês. Cuidado: mexe no app inteiro,
    então vai com conferência de todas as telas que usam data e hora.
 4. **Alerta no painel e no celular do admin:** aviso (push) para erro crítico, pico de cadastros e lembrete falhando, para você não precisar
