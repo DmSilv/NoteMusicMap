@@ -2201,11 +2201,50 @@ class AppState extends ChangeNotifier {
   /// O recurso [id] está liberado para este perfil?
   bool hasFeature(String id) => features.contains(id);
 
+  /// Aula online (modo e link da aula) está liberada para este perfil?
+  bool get onlineClassesOn => hasFeature('aula_online');
+
+  /// Link padrão da aula online do professor: fica no aparelho (e no servidor, para horários livres sem link).
+  String meetDefault = '';
+
+  /// Guarda (ou limpa, com texto vazio) o link padrão. Devolve o motivo se não der; null se guardou.
+  Future<String?> setMeetDefault(String raw) async {
+    final t = raw.trim();
+    final link = t.isEmpty ? '' : meetingUrl(t);
+    if (link == null) return 'Use um link https de uma sala (Meet, Zoom, Teams…).';
+    meetDefault = link;
+    _prefs?.setString('meet_default', link);
+    notifyListeners();
+    if (linkEnabled && !linkUnavailable) {
+      final r = await links.meetSet(profile.shareCode, profile.secret, link);
+      if (!r.ok && !r.offline) return 'O link ficou neste aparelho, mas não foi guardado no servidor agora.';
+    }
+    return null;
+  }
+
+  /// Troca só o link de uma aula online já marcada (professor). Devolve o motivo se não der; null se salvou.
+  String? setSlotLink(String id, String raw) {
+    final s = agenda.where((x) => x.id == id).firstOrNull;
+    if (s == null) return 'Aula não encontrada.';
+    final t = raw.trim();
+    final l = t.isEmpty ? '' : meetingUrl(t);
+    if (l == null) return 'Use um link https de uma sala (Meet, Zoom, Teams…).';
+    return saveSlot(s.copyWith(mode: kModeOnline, link: l));
+  }
+
   void _applyFeatures(LinkReply r) {
     final f = r.ff.toSet();
-    if (f.length == features.length && f.containsAll(features)) return;
-    features = f;
-    notifyListeners();
+    var changed = false;
+    if (r.ml.isNotEmpty && meetDefault.isEmpty) {
+      meetDefault = r.ml; // outro aparelho do mesmo professor já guardou o link padrão
+      _prefs?.setString('meet_default', r.ml);
+      changed = true;
+    }
+    if (!(f.length == features.length && f.containsAll(features))) {
+      features = f;
+      changed = true;
+    }
+    if (changed) notifyListeners();
   }
 
   void _applyLibraryFlags(LinkReply r) {
@@ -3527,6 +3566,7 @@ class AppState extends ChangeNotifier {
     flashEnabled = p.getBool('flash') ?? false;
     hapticEnabled = p.getBool('haptic') ?? false;
     successHaptic = p.getBool('ok_haptic') ?? true;
+    meetDefault = p.getString('meet_default') ?? '';
     keepAwake = p.getBool('keepAwake') ?? true;
     showFreq = p.getBool('showFreq') ?? true;
     final bpm = p.getDouble('bpm') ?? 100;

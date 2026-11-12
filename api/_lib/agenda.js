@@ -19,6 +19,17 @@ const clean = (v, max) =>
   String(v == null ? '' : v).replace(INVISIBLE, '').replace(CONTROL, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 
 /** Valida e limpa uma aula marcada vinda do app; null se não for válida. */
+const MEET_MAX = 300;
+/** Link de sala online: só https, sem usuário/senha, com domínio de verdade. Normalizado, ou null. */
+function cleanMeetUrl(raw) {
+  const s = String(raw === undefined || raw === null ? '' : raw).trim();
+  if (!s || s.length > MEET_MAX || /[\s<>"'`\\]/.test(s)) return null;
+  let u;
+  try { u = new URL(s); } catch (_) { return null; }
+  if (u.protocol !== 'https:' || u.username || u.password || !u.hostname.includes('.')) return null;
+  return u.toString();
+}
+
 function cleanSlot(s, now) {
   if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
   const id = String(s.id || '');
@@ -38,6 +49,9 @@ function cleanSlot(s, now) {
   if (x.length) out.x = x;
   const n = clean(s.n, 200);
   if (n) out.n = n;
+  // Aula online (recurso liberado por chave): m = 'o' online | 'p' presencial; sem a chave = app antigo (o servidor mantém o que já havia).
+  if (s.m === 'o' || s.m === 'p') out.m = s.m;
+  if (out.m === 'o') { const l = cleanMeetUrl(s.l); if (l) out.l = l; }
   if (s.c === 1 || s.c === true) out.c = 1;
   return out;
 }
@@ -166,5 +180,5 @@ function verifyQstashJwt(cfg, token, nowSec) {
 
 module.exports = {
   MIN, DAY, WEEK, REMINDER_MIN, MAX_SLOTS,
-  cleanSlot, nextStart, occurrences, slotsOverlap, remindSig, validRemindSig, remindersEnabled, scheduleNext, verifyQstashJwt,
+  cleanSlot, cleanMeetUrl, nextStart, occurrences, slotsOverlap, remindSig, validRemindSig, remindersEnabled, scheduleNext, verifyQstashJwt,
 };

@@ -2,6 +2,7 @@ import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import 'meeting_link.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -40,7 +41,7 @@ class _OpenSlotsPageState extends State<OpenSlotsPage> {
   }
 
   Future<void> _add() async {
-    final slot = await showDialog<ClassSlot>(context: context, builder: (_) => const _NewOpenSlotDialog());
+    final slot = await showDialog<ClassSlot>(context: context, builder: (_) => _NewOpenSlotDialog(app: app));
     if (slot == null || !mounted) return;
     final err = app.saveOpenSlot(slot);
     app.say(err ?? 'Horário publicado. Seus alunos já podem pegá-lo.');
@@ -96,7 +97,8 @@ class _OpenSlotsPageState extends State<OpenSlotsPage> {
 }
 
 class _NewOpenSlotDialog extends StatefulWidget {
-  const _NewOpenSlotDialog();
+  final AppState app;
+  const _NewOpenSlotDialog({required this.app});
 
   @override
   State<_NewOpenSlotDialog> createState() => _NewOpenSlotDialogState();
@@ -109,6 +111,9 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
   }();
   int duration = 60;
   bool weekly = false;
+  String mode = kModeNone;
+  String link = '';
+  String? error;
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
@@ -159,6 +164,17 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
             value: weekly,
             onChanged: (v) => setState(() => weekly = v),
           ),
+          if (widget.app.onlineClassesOn)
+            MeetingEditor(
+              app: widget.app,
+              mode: kModeInPerson,
+              link: '',
+              onChanged: (m, l) {
+                mode = m;
+                link = l;
+              },
+            ),
+          if (error != null) Padding(padding: const EdgeInsets.only(top: 8), child: Text(error!, style: TextStyle(color: AppColors.sharp))),
         ]),
       ),
       actions: [
@@ -166,6 +182,11 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
         FilledButton.icon(
           onPressed: () {
             final now = DateTime.now();
+            final online = widget.app.onlineClassesOn;
+            if (online && mode == kModeOnline && link.isNotEmpty && meetingUrl(link) == null) {
+              setState(() => error = 'O link da aula não é válido.');
+              return;
+            }
             Navigator.pop(
               context,
               ClassSlot(
@@ -174,6 +195,8 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
                 durationMin: duration,
                 weekly: weekly,
                 updatedMs: now.millisecondsSinceEpoch,
+                mode: online ? (mode == kModeNone ? kModeInPerson : mode) : kModeNone,
+                link: online && mode == kModeOnline ? (meetingUrl(link) ?? '') : '',
               ),
             );
           },

@@ -95,6 +95,9 @@ class LinkReply {
   /// Recursos liberados para este perfil pelas chaves do painel (ex.: 'aula_online'). Vazio = nenhum.
   final List<String> ff;
 
+  /// Link padrão da aula online do professor (volta na sincronização, só com o recurso ligado).
+  final String ml;
+
   /// Como ficou o lembrete da aula marcada: 'scheduled', 'off', 'none' ou 'error'.
   final String? reminder;
   const LinkReply({
@@ -129,6 +132,7 @@ class LinkReply {
     this.lbT = const [],
     this.libItems = const [],
     this.ff = const [],
+    this.ml = '',
   });
 }
 
@@ -175,6 +179,7 @@ class LinkService {
         lb: j['lb'] == 1 || j['lb'] == true,
         lbT: [for (final c in ((j['lbT'] as List?) ?? const []).take(60)) ?(c is String ? formatShareCode(c) : null)],
         ff: [for (final f in ((j['ff'] as List?) ?? const []).take(30)) if (f is String && RegExp(r'^[a-z][a-z0-9_]{1,30}$').hasMatch(f)) f],
+        ml: meetingUrl(j['ml'] as String?) ?? '',
         libItems: [for (final x in ((j['items'] as List?) ?? const []).take(kLibMaxItems)) ?LibItem.tryFrom(x)],
         lr: ((j['lr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
         dr: ((j['dr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
@@ -329,6 +334,10 @@ class LinkService {
   /// ALUNO: denuncia um item (o painel avalia e pode esconder).
   Future<LinkReply> libReport(String code, String secret, {required String teacher, required String id}) =>
       _post({..._auth(code, secret, null), 'action': 'lib_report', 'other': teacher, 'id': id});
+
+  /// PROFESSOR: guarda (ou limpa, com '') o link padrão da aula online.
+  Future<LinkReply> meetSet(String code, String secret, String link) =>
+      _post({..._auth(code, secret, null), 'action': 'meet_set', 'link': link});
 
   /// ALUNO: busca as aulas dos professores a que está vinculado.
   Future<LinkReply> lessons(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'lessons'});

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'dictation_button.dart';
+import 'meeting_link.dart';
 import 'open_slots_page.dart' show describeOpenSlot;
 import 'safe_input.dart';
 import 'student_identity.dart';
@@ -48,6 +49,8 @@ class _SlotFormPageState extends State<SlotFormPage> {
   late int duration = widget.edit?.durationMin ?? 60;
   late bool weekly = widget.edit?.weekly ?? false;
   late final note = TextEditingController(text: widget.edit?.note ?? '');
+  late String mode = widget.edit?.mode ?? kModeNone;
+  late String link = widget.edit?.link ?? '';
   String? error;
 
   List<Student> get _choices => [for (final s in app.students) if (s.code != null) s];
@@ -93,6 +96,11 @@ class _SlotFormPageState extends State<SlotFormPage> {
     }
     final now = DateTime.now();
     final e = widget.edit;
+    final online = app.onlineClassesOn;
+    if (online && mode == kModeOnline && link.isNotEmpty && meetingUrl(link) == null) {
+      setState(() => error = 'O link da aula não é válido. Use um endereço https, como o do Meet ou do Zoom.');
+      return;
+    }
     final slot = ClassSlot(
       id: e?.id ?? newSlotId(now),
       studentCode: c,
@@ -102,6 +110,8 @@ class _SlotFormPageState extends State<SlotFormPage> {
       skipped: e?.skipped ?? const [],
       note: note.text.trim(),
       updatedMs: e?.updatedMs ?? now.millisecondsSinceEpoch,
+      mode: online ? (mode == kModeNone ? kModeInPerson : mode) : (e?.mode ?? kModeNone),
+      link: online ? (mode == kModeOnline ? (meetingUrl(link) ?? '') : '') : (e?.link ?? ''),
     );
     final err = app.saveSlot(slot);
     if (err != null) {
@@ -192,6 +202,16 @@ class _SlotFormPageState extends State<SlotFormPage> {
                 value: weekly,
                 onChanged: (v) => setState(() => weekly = v),
               ),
+              if (app.onlineClassesOn)
+                MeetingEditor(
+                  app: app,
+                  mode: widget.edit?.mode ?? kModeInPerson,
+                  link: widget.edit?.link ?? '',
+                  onChanged: (m, l) {
+                    mode = m;
+                    link = l;
+                  },
+                ),
               _label('Observação (opcional)'),
               TextField(
                 controller: note,

@@ -94,3 +94,11 @@ Tudo que a pessoa digita, cola ou lê de QR passa por `input_guard.dart` (`clean
 5. **Denúncia e moderação:** o aluno pode denunciar; no painel (Pessoas › Acervo) o administrador esconde o item dos alunos. Remoção em até 48 h.
 6. **Tarefa "Material do professor":** a tarefa carrega só o texto (título e pasta) e o aluno abre o acervo já filtrado; não gasta nada além da própria tarefa.
 7. **Limites:** 200 itens por professor, link até 500 caracteres, 40 alunos por item.
+
+## 12. Aula online (link da aula) — liberada por chave
+Recurso `aula_online` (aba Recursos do painel; nasce desligado). Com ele ligado para o professor:
+1. Cada aula e cada horário livre tem um modo: **Presencial** (padrão) ou **Online**. Online pode ficar **sem link** e o professor põe depois (menu da aula › Adicionar/Editar link da aula); o aluno é avisado da mudança como em qualquer alteração de aula.
+2. **Link da sala:** só `https`, sem usuário e senha, sem espaços, com domínio de verdade, até 300 caracteres (mesma regra no app e no servidor). Sites conhecidos (Meet, Zoom, Teams, Whereby, Jitsi) abrem direto; qualquer outro mostra o endereço antes de abrir.
+3. **Link padrão do professor** ("Guardar como link padrão" no formulário): aulas online novas já vêm com ele preenchido; um horário livre online publicado sem link usa o link padrão do professor no momento em que o aluno pega.
+4. O aluno vê "Aula online", o botão **Entrar** na agenda e **Entrar na aula online** em Meu espaço. O app não cria a sala: o atalho "Criar sala no Meet" abre meet.new.
+5. **Compatibilidade:** o modo (`m`: `p` ou `o`) e o link (`l`) são campos novos do horário. App antigo ignora; se um app antigo (ou o recurso desligado) editar uma aula online, o servidor **mantém** o modo e o link que já estavam guardados. O painel de suporte **não mostra** o link da aula.

@@ -12,6 +12,37 @@ const int kMsMinute = 60 * 1000;
 const int kMsDay = 24 * 60 * kMsMinute;
 const int kMsWeek = 7 * kMsDay;
 
+/// Aula online (recurso liberado por chave): '' = não definido (app antigo ou recurso desligado), 'p' = presencial, 'o' = online.
+const String kModeNone = '';
+const String kModeInPerson = 'p';
+const String kModeOnline = 'o';
+const int kMaxMeetLink = 300;
+
+/// Link de sala online aceito (mesma regra do servidor): só https, sem usuário e senha, sem espaços nem
+/// aspas, com um domínio de verdade. Devolve o endereço normalizado ou null.
+String? meetingUrl(String? raw) {
+  final s = (raw ?? '').trim();
+  if (s.isEmpty || s.length > kMaxMeetLink || RegExp(r'[\s<>"\x27`\\]').hasMatch(s)) return null;
+  final u = Uri.tryParse(s);
+  if (u == null || u.scheme != 'https' || u.userInfo.isNotEmpty || !u.hasAuthority || !u.host.contains('.')) return null;
+  return u.toString();
+}
+
+/// Sites de aula online conhecidos (abrem direto; os outros mostram o endereço antes de abrir).
+const List<String> kKnownMeetHosts = ['meet.google.com', 'zoom.us', 'teams.microsoft.com', 'teams.live.com', 'whereby.com', 'meet.jit.si'];
+
+/// Domínio do link (para mostrar ao usuário), ou '' se o link não vale.
+String meetingHost(String? url) {
+  final ok = meetingUrl(url);
+  return ok == null ? '' : Uri.parse(ok).host.toLowerCase();
+}
+
+/// O link é de um site de aula online conhecido?
+bool isKnownMeetingLink(String? url) {
+  final h = meetingHost(url);
+  return h.isNotEmpty && kKnownMeetHosts.any((k) => h == k || h.endsWith('.$k'));
+}
+
 /// Quanto tempo antes da aula chega o lembrete.
 const int kReminderMinutes = 15;
 
@@ -50,6 +81,12 @@ class ClassSlot {
   /// A regra toda foi cancelada (fica como marca para o outro lado saber).
   final bool canceled;
 
+  /// Aula online: [kModeNone], [kModeInPerson] ou [kModeOnline].
+  final String mode;
+
+  /// Link da sala (só com [mode] online; pode ficar vazio e ser posto depois).
+  final String link;
+
   /// PROFESSOR: ainda precisa ser enviada ao servidor (false = já foi, null = não se aplica).
   final bool? pending;
 
@@ -66,7 +103,12 @@ class ClassSlot {
     required this.updatedMs,
     this.canceled = false,
     this.pending,
+    this.mode = kModeNone,
+    this.link = '',
   });
+
+  bool get online => mode == kModeOnline;
+  bool get hasLink => online && link.isNotEmpty;
 
   int get endOffsetMs => durationMin * kMsMinute;
 
@@ -80,6 +122,8 @@ class ClassSlot {
     int? updatedMs,
     bool? canceled,
     Object? pending = _keep,
+    String? mode,
+    String? link,
   }) =>
       ClassSlot(
         id: id,
@@ -94,6 +138,8 @@ class ClassSlot {
         updatedMs: updatedMs ?? this.updatedMs,
         canceled: canceled ?? this.canceled,
         pending: identical(pending, _keep) ? this.pending : pending as bool?,
+        mode: mode ?? this.mode,
+        link: link ?? this.link,
       );
 
   /// Início da primeira ocorrência que começa em [afterMs] ou depois e não foi cancelada.
@@ -156,6 +202,8 @@ class ClassSlot {
         if (note.isNotEmpty) 'n': note,
         'u': updatedMs,
         if (canceled) 'c': 1,
+        if (mode != kModeNone) 'm': mode,
+        if (mode == kModeOnline && link.isNotEmpty) 'l': link,
       };
 
   Map<String, dynamic> toJson() => {
@@ -194,6 +242,8 @@ class ClassSlot {
         updatedMs: ((m['u'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
         canceled: m['c'] == 1 || m['c'] == true,
         pending: m['p'] is bool ? m['p'] as bool : null,
+        mode: m['m'] == kModeOnline ? kModeOnline : (m['m'] == kModeInPerson ? kModeInPerson : kModeNone),
+        link: m['m'] == kModeOnline ? (meetingUrl(m['l'] as String?) ?? '') : '',
       );
     } catch (_) {
       return null;
@@ -286,7 +336,7 @@ String describeSlot(ClassSlot s) {
   final hm = '${two(d.hour)}:${two(d.minute)}';
   final day = _kDiasSemana[d.weekday - 1];
   final head = s.weekly ? 'Toda $day às $hm' : '${day[0].toUpperCase()}${day.substring(1)}, ${two(d.day)}/${two(d.month)} às $hm';
-  return '$head · ${s.durationMin} min';
+  return '$head · ${s.durationMin} min${s.online ? ' · online' : ''}';
 }
 
 String newSlotId(DateTime now) => 's${now.microsecondsSinceEpoch.toRadixString(36)}';

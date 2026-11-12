@@ -61,6 +61,11 @@ Formato e descrição de cada uma em [referencia/DADOS.md](referencia/DADOS.md).
 
 Tudo é **anônimo**; o código de perfil é a única identificação.
 
+## Recursos por chave e aula online
+- A sincronização (`sync`) devolve `ff` (lista de recursos ligados para o perfil) e, com a aula online ligada, `ml` (link padrão do professor). Apps antigos ignoram os dois. `lb`/`lbT` continuam existindo para o acervo.
+- Campos novos do horário (aula marcada e horário livre): `m` (`p`|`o`) e `l` (link, só com `m=o`). Nova ação `meet_set {link}` guarda ou limpa (`""`) o link padrão (campo `ml` do perfil); exige o recurso ligado (`403 feature_off`) e recusa link inválido (`400 link_invalid`).
+- Redis: `ff:cfg` (estado de cada recurso), `ff:l:<recurso>` (códigos liberados) e o campo `ff` do perfil.
+
 ## Armazenamento local (aparelho)
 `SharedPreferences` (no navegador: `localStorage` com prefixo `flutter.`). Lista completa em [referencia/DADOS.md](referencia/DADOS.md). Grupos: ajustes, perfil, alunos e tarefas do professor, sessões, estudo, agenda (`agenda`, `agenda_in`, `open_slots`), vínculo e filas (`done_outbox`, `verdict_outbox`), avisos (`notices`), erros (`error_log`, `report_mode`), estatísticas (`stats_*`), visão do hub (`hub_view`).
 

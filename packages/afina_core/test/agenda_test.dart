@@ -177,4 +177,65 @@ void main() {
       expect(describeSlot(s), 'Sexta, 05/03 às 08:05 · 30 min');
     });
   });
+
+  test('o texto do horário diz "online" só quando for online', () {
+    final on = ClassSlot(id: 'b1', startMs: DateTime(2026, 11, 18, 15).millisecondsSinceEpoch, durationMin: 45, weekly: true, updatedMs: 1, mode: kModeOnline);
+    expect(describeSlot(on), 'Toda quarta às 15:00 · 45 min · online');
+    expect(describeSlot(on.copyWith(mode: kModeInPerson)), 'Toda quarta às 15:00 · 45 min');
+  });
+
+  group('aula online (modo e link)', () {
+    test('link: só https de verdade, sem usuário e sem enfeites', () {
+      expect(meetingUrl('https://meet.google.com/abc-defg-hij'), 'https://meet.google.com/abc-defg-hij');
+      expect(meetingUrl('  https://zoom.us/j/123?pwd=abc  '), isNotNull);
+      expect(meetingUrl('http://meet.google.com/abc'), isNull);
+      expect(meetingUrl('javascript:alert(1)'), isNull);
+      expect(meetingUrl('https://user:pw@meet.google.com/abc'), isNull);
+      expect(meetingUrl('https://meet.google.com/abc def'), isNull);
+      expect(meetingUrl('https://localhost/sala'), isNull);
+      expect(meetingUrl(''), isNull);
+      expect(meetingUrl(null), isNull);
+      expect(meetingUrl('https://${'a' * 310}.com'), isNull);
+    });
+    test('sites conhecidos e o domínio mostrado ao usuário', () {
+      expect(isKnownMeetingLink('https://meet.google.com/abc'), isTrue);
+      expect(isKnownMeetingLink('https://us02web.zoom.us/j/1'), isTrue);
+      expect(isKnownMeetingLink('https://meet.google.com.golpe.com/abc'), isFalse);
+      expect(isKnownMeetingLink('https://minha-sala.exemplo.com/x'), isFalse);
+      expect(meetingHost('https://Minha-Sala.Exemplo.com/x'), 'minha-sala.exemplo.com');
+      expect(meetingHost('http://x.com'), '');
+    });
+    ClassSlot base({String mode = kModeNone, String link = ''}) => ClassSlot(id: 'a1', startMs: 1800000000000, updatedMs: 5, mode: mode, link: link);
+    test('aula antiga (sem modo) segue igual no formato do servidor', () {
+      final w = base().toWire();
+      expect(w.containsKey('m'), isFalse);
+      expect(w.containsKey('l'), isFalse);
+      expect(ClassSlot.tryFrom(w)!.mode, kModeNone);
+    });
+    test('online com link vai e volta; presencial não leva link', () {
+      final o = ClassSlot.tryFrom(base(mode: kModeOnline, link: 'https://meet.google.com/abc').toWire())!;
+      expect(o.online, isTrue);
+      expect(o.hasLink, isTrue);
+      expect(o.link, 'https://meet.google.com/abc');
+      final p = base(mode: kModeInPerson, link: 'https://meet.google.com/abc');
+      expect(p.toWire()['m'], 'p');
+      expect(p.toWire().containsKey('l'), isFalse);
+    });
+    test('online sem link é aula online; link ruim vindo de fora é descartado', () {
+      final o = ClassSlot.tryFrom(base(mode: kModeOnline).toWire())!;
+      expect(o.online, isTrue);
+      expect(o.hasLink, isFalse);
+      final ruim = ClassSlot.tryFrom({...base(mode: kModeOnline).toWire(), 'l': 'javascript:alert(1)'})!;
+      expect(ruim.online, isTrue);
+      expect(ruim.link, '');
+      final solto = ClassSlot.tryFrom({...base().toWire(), 'l': 'https://meet.google.com/abc'})!; // link sem modo online
+      expect(solto.link, '');
+    });
+    test('copyWith mantém modo e link', () {
+      final s = base(mode: kModeOnline, link: 'https://meet.google.com/abc').copyWith(durationMin: 30);
+      expect(s.mode, kModeOnline);
+      expect(s.link, 'https://meet.google.com/abc');
+      expect(s.copyWith(link: '').hasLink, isFalse);
+    });
+  });
 }

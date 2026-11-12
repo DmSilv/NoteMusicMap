@@ -2,6 +2,7 @@ import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import 'meeting_link.dart';
 import 'reminder_card.dart';
 import 'slot_form_page.dart';
 import 'teacher_page.dart' show StudentPage;
@@ -255,7 +256,16 @@ class _AgendaPageState extends State<AgendaPage> {
                   const SizedBox(width: 6),
                   Icon(Icons.repeat, size: 14, color: AppColors.textDim),
                 ],
+                if (s.online) ...[
+                  const SizedBox(width: 6),
+                  Icon(Icons.videocam_outlined, size: 15, color: AppColors.accent),
+                ],
               ]),
+              if (s.online)
+                Text(s.hasLink ? 'Online · ${meetingHost(s.link)}' : 'Online · falta o link',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: s.hasLink ? AppColors.textDim : AppColors.flat, fontSize: 12, fontWeight: s.hasLink ? FontWeight.w400 : FontWeight.w700)),
               if (s.note.isNotEmpty)
                 Text(s.note, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.textDim, fontSize: 12)),
               if (phase == ClassPhase.ongoing || phase == ClassPhase.soon)
@@ -272,6 +282,8 @@ class _AgendaPageState extends State<AgendaPage> {
             onSelected: (v) => _menu(v, o),
             itemBuilder: (c) => [
               if (perm.edit) const PopupMenuItem(value: 'edit', child: Text('Editar')),
+              if (perm.edit && s.online) PopupMenuItem(value: 'link', child: Text(s.hasLink ? 'Editar link da aula' : 'Adicionar link da aula')),
+              if (s.hasLink) const PopupMenuItem(value: 'join', child: Text('Abrir a sala')),
               if (st != null) const PopupMenuItem(value: 'open', child: Text('Abrir ficha do aluno')),
               if (perm.cancel && s.weekly) const PopupMenuItem(value: 'skip', child: Text('Cancelar só esta aula')),
               if (perm.cancel) PopupMenuItem(value: 'cancel', child: Text(s.weekly ? 'Cancelar todas as aulas' : 'Cancelar aula')),
@@ -287,6 +299,14 @@ class _AgendaPageState extends State<AgendaPage> {
     switch (v) {
       case 'edit':
         await openSlotForm(context, app, edit: s);
+      case 'link':
+        final r = await showMeetLinkSheet(context, app, initial: s.link);
+        if (r != null) {
+          final e = app.setSlotLink(s.id, r);
+          app.say(e ?? (r.isEmpty ? 'Link removido.' : 'Link da aula salvo. O aluno recebe na hora.'));
+        }
+      case 'join':
+        await openMeetingLink(context, app, s.link);
       case 'open':
         final st = app.studentByCode(s.studentCode);
         if (st != null && mounted) {
@@ -413,9 +433,21 @@ class _MyAgendaPageState extends State<MyAgendaPage> {
             Text('${fmtSlotWhen(o.start, now)} – ${_hm(o.end)}', style: const TextStyle(fontWeight: FontWeight.w800)),
             Text(who, style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
             if (s.note.isNotEmpty) Text(s.note, style: const TextStyle(fontSize: 12.5, height: 1.3)),
+            if (s.online)
+              Text(s.hasLink ? 'Aula online' : 'Aula online · o professor ainda vai enviar o link',
+                  style: TextStyle(color: s.hasLink ? AppColors.accent : AppColors.flat, fontSize: 12.5, fontWeight: FontWeight.w700)),
           ]),
         ),
-        if (ongoing)
+        if (s.hasLink)
+          Padding(
+            padding: const EdgeInsets.only(left: 8),
+            child: FilledButton.icon(
+              onPressed: () => openMeetingLink(context, app, s.link),
+              icon: const Icon(Icons.videocam, size: 18),
+              label: const Text('Entrar'),
+            ),
+          )
+        else if (ongoing)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),

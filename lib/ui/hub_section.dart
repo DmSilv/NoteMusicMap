@@ -17,6 +17,7 @@ import 'slot_form_page.dart';
 import 'teacher_page.dart';
 import 'open_slots_page.dart';
 import 'hello_bar.dart';
+import 'meeting_link.dart';
 import 'design_system.dart';
 import 'theme.dart';
 
@@ -267,6 +268,12 @@ class HubSection extends StatelessWidget {
         .toList();
     Widget act(IconData i, String t, VoidCallback f) => OutlinedButton.icon(onPressed: f, icon: Icon(i, size: 18), label: Text(t));
     final actions = <Widget>[
+      if (nc != null && nc.slot.hasLink)
+        FilledButton.icon(
+          onPressed: () => openMeetingLink(context, app, nc.slot.link),
+          icon: const Icon(Icons.videocam, size: 18),
+          label: Text(isT ? 'Abrir a sala da aula online' : 'Entrar na aula online'),
+        ),
       if (isT || app.hasTeacherSide)
         act(Icons.calendar_month_outlined, 'Agenda completa',
             () => _push(context, isT ? AgendaPage(app: app) : MyAgendaPage(app: app))),

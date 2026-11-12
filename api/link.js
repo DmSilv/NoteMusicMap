@@ -27,7 +27,7 @@
 const crypto = require('node:crypto');
 const { config } = require('./_lib/config');
 const { createStore } = require('./_lib/store');
-const { cleanSlot, nextStart, slotsOverlap, scheduleNext, remindersEnabled } = require('./_lib/agenda');
+const { cleanSlot, cleanMeetUrl, nextStart, slotsOverlap, scheduleNext, remindersEnabled } = require('./_lib/agenda');
 const { validSubscription } = require('./_lib/webpush');
 const { bump } = require('./_lib/metrics');
 const { createCmd } = require('./_lib/store_cmd');
@@ -202,6 +202,16 @@ function makeHandler(deps = {}) {
 
     // Recursos liberados aos poucos (chaves no painel). LIBRARY_TESTERS continua valendo como ponto de partida do acervo.
     const legacy = new Set((cfg.libraryTesters || []).map(normCode).filter(Boolean));
+    // Aula online: recurso liberado por chave (aba Recursos). Sem a chave o servidor ignora modo e link novos.
+    const canOnline = async (c, p) => features.isOn(await features.loadCfg(store, clock()), 'aula_online', c, p, null);
+    // Mantém modo e link já guardados quando o pedido veio de um app antigo (sem a chave m) ou sem o recurso ligado.
+    const keepOnline = (slot, oldRaw, on) => {
+      let old = null;
+      try { old = oldRaw ? JSON.parse(oldRaw) : null; } catch (_) { old = null; }
+      if (!on) { delete slot.m; delete slot.l; }
+      if (old && (!on || slot.m === undefined)) { if (old.m) slot.m = old.m; if (old.l) slot.l = old.l; }
+      return slot;
+    };
     const canLib = async (c) => (await features.many(cmd, store, 'acervo', [c], legacy, clock())).has(c);
     const b = readBody(req);
     if (!b) return send(400, { error: 'Corpo inválido.' });
@@ -284,7 +294,7 @@ function makeHandler(deps = {}) {
         const stuList = parseLinks(asStudent);
         const feats = await features.forProfile(store, me, prof, legacy, clock());
         const libT = stuList.length ? await features.many(cmd, store, 'acervo', stuList.map((x) => x.code), legacy, clock()) : new Set();
-        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: stuList, ff: feats, lb: feats.includes('acervo') ? 1 : 0, lbT: stuList.map((x) => x.code).filter((c) => libT.has(c)), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...noticeOf(prof) });
+        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: stuList, ff: feats, ...(feats.includes('aula_online') && prof.ml ? { ml: prof.ml } : {}), lb: feats.includes('acervo') ? 1 : 0, lbT: stuList.map((x) => x.code).filter((c) => libT.has(c)), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...noticeOf(prof) });
       }
 
       // Consulta barata: o perfil já foi lido na autenticação, então não custa nenhum comando a mais.
@@ -486,6 +496,7 @@ function makeHandler(deps = {}) {
           return send(200, { ok: true });
         }
         const oldRaw = await store.hget(AV(me), slot.id);
+        keepOnline(slot, oldRaw, await canOnline(me, prof));
         if (oldRaw === undefined) {
           if ((await store.hlen(AV(me))) >= MAX_AVAIL) return send(400, { error: 'Limite de horários disponíveis atingido.' });
           if ((await store.hget(TK(me), slot.id)) !== undefined) return send(409, { error: 'slot_taken', message: 'Este horário já foi pego.' });
@@ -529,6 +540,12 @@ function makeHandler(deps = {}) {
         const cls = { id: cid, s: open.s, d: open.d, u: now };
         if (open.w) cls.w = 1;
         if (open.n) cls.n = open.n;
+        if (open.m) cls.m = open.m;
+        if (open.m === 'o') {
+          // sem link no horário: usa o link padrão do professor, se ele tiver
+          const dl = open.l ? open.l : cleanMeetUrl(await store.hget(U(teacher), 'ml'));
+          if (dl) cls.l = dl;
+        }
         await store.hset(SL(teacher), cid, JSON.stringify({ ...cls, sc: me, pk: 1 }));
         const tp = await store.hgetall(U(teacher));
         await store.hset(SS(me), `${teacher}:${cid}`, JSON.stringify({ ...cls, tn: tp.n || '' }));
@@ -538,6 +555,16 @@ function makeHandler(deps = {}) {
         const reminder = await scheduleNext(cfg, fetchImpl, teacher, me, cls, now);
         await metric('slot');
         return send(200, { ok: true, slot: cls, reminder });
+      }
+
+      // ---- Link padrão da aula online do professor (vale para os horários livres sem link) ----
+      if (action === 'meet_set') {
+        if (!(await canOnline(me, prof))) return send(403, { error: 'feature_off' });
+        const raw = String(b.link === undefined || b.link === null ? '' : b.link).trim();
+        const link = raw ? cleanMeetUrl(raw) : '';
+        if (raw && !link) return send(400, { error: 'link_invalid', message: 'Use um link https de uma sala (Meet, Zoom, Teams…).' });
+        await store.hset(U(me), 'ml', link);
+        return send(200, { ok: true, ml: link });
       }
 
       // ---- Agenda: o PROFESSOR marca, muda ou cancela uma aula (e agenda o lembrete) ----
@@ -553,6 +580,7 @@ function makeHandler(deps = {}) {
         const slot = cleanSlot(b.slot, clock());
         if (!slot) return send(400, { error: 'Aula marcada inválida.' });
         const oldRaw = await store.hget(SL(me), slot.id);
+        keepOnline(slot, oldRaw, await canOnline(me, prof));
         if (oldRaw !== undefined) {
           let old = null;
           try { old = JSON.parse(oldRaw); } catch (_) { /* ruim */ }

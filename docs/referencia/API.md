@@ -184,6 +184,7 @@ Precisa do Upstash Redis. Sem ele devolve 503 e o app segue só neste aparelho.
 | `push_unsub` | — |
 | `avail_put` | Horários disponíveis: o PROFESSOR cria, muda ou apaga |
 | `avail_take` | O ALUNO pega um horário disponível: o primeiro que pega leva |
+| `meet_set` | Link padrão da aula online do professor (vale para os horários livres sem link) |
 | `sched_put` | Agenda: o PROFESSOR marca, muda ou cancela uma aula (e agenda o lembrete) |
 | `done` | O ALUNO marca (ou desmarca) como feita uma tarefa que recebeu de um professor vinculado. |
 | `verdict` | O PROFESSOR decide sobre uma tarefa de um aluno vinculado: 'ok' valida, 'back' devolve, vazio apaga a decisão. O aluno vê isso como o status oficial. |

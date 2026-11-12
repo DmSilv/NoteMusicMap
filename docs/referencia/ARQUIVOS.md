@@ -49,6 +49,7 @@
 | `lib/ui/library_page.dart` | Abre o acervo. Sem [teacher]: o próprio professor (edita). Com [teacher]: o aluno (só abre e denuncia). [focusTitle] e [folder] vêm de uma tarefa "Material do professor": filtram e destacam o item. |
 | `lib/ui/link_bar.dart` | Aviso do alto da tela quando o vínculo online está DESLIGADO mas há quem dependa dele (modo professor, professor ou aluno vinculado): sem ele, nada chega ao aparelho. |
 | `lib/ui/markdown_lite.dart` | Mostra um texto em Markdown simples (o que a IA devolve): títulos com `##`, tópicos com `-`, listas numeradas, **negrito** e *itálico*. A leitura dos trechos mora no núcleo (`parseInline`), com testes; aqui só se… |
+| `lib/ui/meeting_link.dart` | Abre o link da aula online no navegador do aparelho. Sites conhecidos (Meet, Zoom, Teams…) abrem direto; qualquer outro mostra antes o endereço, para a pessoa saber para onde está indo. |
 | `lib/ui/methods_page.dart` | "Meus métodos e lições": a biblioteca do professor. Cadastrar, editar, copiar a lista. Ela também cresce sozinha com o que é digitado nas tarefas. |
 | `lib/ui/metronome_page.dart` | Aba Metrônomo: andamento, compasso, subdivisão, som, tap tempo e modo desafio. |
 | `lib/ui/mic_pill.dart` | Aviso fixo na barra superior enquanto o microfone está captando: ponto pulsante + "Ouvindo". Visível em qualquer aba; tocar desliga. |
@@ -230,6 +231,7 @@
 | `api/indicators.test.js` | Testes dos indicadores de saúde do uso no painel, sem rede: `node --test api/indicators.test.js` |
 | `api/library.test.js` | Testes do Acervo e Repertório do professor (só links): `node --test api/library.test.js` |
 | `api/link.test.js` | Testes do vínculo professor-aluno, sem rede: `node --test api/link.test.js` |
+| `api/online.test.js` | Testes da aula online (link da aula, modo online/presencial, link padrão): `node --test api/online.test.js` |
 | `api/painel_precisao.test.js` | Painel mais preciso: saúde, custos, coortes, período anterior, horas, limpeza e erros do servidor. `node --test api/painel_precisao.test.js` |
 | `api/presence.test.js` | Testes da presença (quem está online agora) no painel, sem rede: `node --test api/presence.test.js` |
 | `api/stats.test.js` | Testes das métricas anônimas e do painel de admin, sem rede: `node --test api/stats.test.js` |
@@ -261,4 +263,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **218** arquivos mapeados.
+Total: **220** arquivos mapeados.
