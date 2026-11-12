@@ -34,8 +34,7 @@ medido, testes automáticos, conferência no navegador em 390×844 e documentaç
 ## O que **não** foi possível testar neste computador
 - Teste de tela do Flutter (`flutter test` do projeto inteiro): falta o compilador do Windows. Hoje há `node scripts/ui_tests.js`, que testa num pacote
   isolado só as peças sem áudio (modal de sucesso e tutorial guiado) e roda no CI; telas que usam o `AppState` (formulário de aula, Comece por aqui) ainda não têm teste de tela.
-- Vibração e abrir o link da sala num celular de verdade; o seletor de datas do Flutter aparece em inglês (o app não tem os textos do Flutter
-  em português: pendência antiga, não piorou).
+- Vibração e abrir o link da sala num celular de verdade. (Os seletores de data e hora já saem em português: `flutter_localizations`, ver `lib/ui/app_locale.dart`.)
 - Lembretes (QStash e VAPID): continuam dependendo das chaves da Vercel; nada nesta entrega muda isso.
 
 ## Pendências conhecidas (não bloqueiam)

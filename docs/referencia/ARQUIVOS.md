@@ -32,6 +32,7 @@
 | `lib/stats/stats_service.dart` | Estatísticas ANÔNIMAS de uso (para o painel do administrador). Manda um aviso ao abrir o app e uma batida a cada ~5 minutos enquanto ele está à frente. Vai só: um código aleatório do aparelho (que NÃO é o código de… |
 | `lib/ui/agenda_actions.dart` | Controle da agenda do professor: remarcar só uma aula, trocar horários entre dois alunos e pausar um período. Toda mudança mostra antes o que vai acontecer e quem é avisado, e só vale se couber na agenda (sem choque). |
 | `lib/ui/agenda_page.dart` | Agenda do PROFESSOR: as aulas marcadas, por semana ou por mês. Marcar, mudar, cancelar uma aula (ou só um dia de uma aula semanal) e ligar o lembrete de 15 minutos. |
+| `lib/ui/app_locale.dart` | O app é só em português do Brasil: os textos do próprio Flutter (seletor de data e hora, "OK"/"Cancelar", copiar/colar, nomes de mês e dia) seguem o mesmo idioma. Custo conhecido: o Flutter embute os textos de todos… |
 | `lib/ui/app_logo.dart` | Logo do Notemusic: um mostrador de afinador (arco verde, a cor do app) com uma nota musical branca no centro. Mesma geometria de tools/make_icons.mjs. |
 | `lib/ui/design_system.dart` | Design system do Notemusic. REGRA: toda tela nova ou alterada usa estes valores e estes componentes (ver docs/12_DESIGN_SYSTEM.md). Números soltos de espaçamento, raio ou altura de botão não entram em tela nova.… |
 | `lib/ui/dictation_button.dart` | Botão de microfone para ditar num campo de texto. Use como `suffixIcon` do `InputDecoration`. Pisca em vermelho enquanto ouve; tocar de novo para. |
@@ -272,4 +273,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **229** arquivos mapeados.
+Total: **230** arquivos mapeados.

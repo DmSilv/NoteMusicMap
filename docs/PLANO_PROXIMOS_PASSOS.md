@@ -21,8 +21,8 @@ Objetivo: publicar sem medo. Hoje só o núcleo e a API têm teste automático f
    e abre o app num Chrome sem janela. Roda a cada envio. Não clica nos botões do Flutter: isso fica para o item 2.
 2. **Teste de tela do Flutter no CI (parcial, feito):** `node scripts/ui_tests.js` testa o modal de sucesso e o tutorial guiado (11 testes) e roda no CI. Falta o formulário de aula
    e o cartão Comece por aqui: dependem do `AppState` (áudio nativo). Caminho: separar o que a tela precisa do `AppState` por uma interface pequena. *Pronto quando* essas telas tiverem teste.
-3. **Textos do Flutter em português** (`flutter_localizations`): seletores de data e hora hoje aparecem em inglês. Cuidado: mexe no app inteiro,
-   então vai com conferência de todas as telas que usam data e hora.
+3. **Textos do Flutter em português (feito):** `flutter_localizations` com `pt-BR` (`lib/ui/app_locale.dart`). Seletores de data e hora, "OK"/"Cancelar" e nomes de mês saem em português; conferido no navegador e com 4 testes.
+   Custo: +140 KB compactado (+11,5%) no download do app web, porque o Flutter embute os textos de todos os idiomas.
 4. **Alerta no painel e no celular do admin:** aviso (push) para erro crítico, pico de cadastros e lembrete falhando, para você não precisar
    olhar o painel. Já existe push de bug grave; ampliar os gatilhos.
 5. **Métricas de sucesso definidas por escrito** (ver Fase 3) e mostradas no painel.

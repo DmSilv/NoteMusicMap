@@ -9,6 +9,7 @@ import 'package:toastification/toastification.dart';
 import 'app_state.dart';
 import 'stats/error_service.dart';
 import 'stats/stats_service.dart';
+import 'ui/app_locale.dart';
 import 'ui/app_logo.dart';
 import 'ui/hello_bar.dart';
 import 'ui/link_bar.dart';
@@ -54,6 +55,9 @@ Future<void> _start() async {
     runApp(MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: buildTheme(dark: true),
+      localizationsDelegates: kLocalizationsDelegates,
+      supportedLocales: kSupportedLocales,
+      locale: kAppLocale,
       home: CriticalErrorPage(error: critical, onRetry: _start),
     ));
     return;
@@ -306,6 +310,9 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
           child: MaterialApp(
             title: 'Notemusic',
             debugShowCheckedModeBanner: false,
+            localizationsDelegates: kLocalizationsDelegates,
+            supportedLocales: kSupportedLocales,
+            locale: kAppLocale,
             scaffoldMessengerKey: _messengerKey,
             navigatorKey: _navKey,
             theme: theme,
