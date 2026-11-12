@@ -23,7 +23,7 @@ import 'theme.dart';
 import 'widgets.dart';
 
 String _day(DateTime d) =>
-    '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
+    fmtDayMonth(d);
 
 Future<String?> _askText(BuildContext context, String title, String label,
     {String initial = '', bool multiline = false, String? action, AppState? voice}) async {
@@ -1505,7 +1505,7 @@ class _LessonCardState extends State<_LessonCard> {
   String _absenceSummary() {
     final n = s.absences.length;
     final d = DateTime.fromMillisecondsSinceEpoch(s.absences.first.lessonMs);
-    return tr('{0} falta{1} registrada{2} · última em {3}/{4}', [n, n == 1 ? '' : 's', n == 1 ? '' : 's', d.day.toString().padLeft(2, '0'), d.month.toString().padLeft(2, '0')]);
+    return tr('{0} falta{1} registrada{2} · última em {3}', [n, n == 1 ? '' : 's', n == 1 ? '' : 's', fmtDayMonth(d)]);
   }
 
   @override

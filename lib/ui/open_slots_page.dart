@@ -146,7 +146,7 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
           OutlinedButton.icon(
             onPressed: _pickDate,
             icon: const Icon(Icons.calendar_today, size: 18),
-            label: Text('${_days[date.weekday - 1]}, ${_two(date.day)}/${_two(date.month)}/${date.year}'),
+            label: Text('${_days[date.weekday - 1]}, ${fmtDayMonthYear(date)}'),
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(

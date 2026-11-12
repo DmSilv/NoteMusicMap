@@ -38,6 +38,7 @@ Nada de Flutter nem `dart:io` (assim roda no navegador e nos testes de linha de 
 | Área | Módulos | O que decidem |
 |---|---|---|
 | Afinação e som | `tuning`, `pitch_detector` (McLeod), `tone_synth`, `metronome_engine`, `pedal`, `needle_spring`, `note_display`, `note_gate` | Matemática de afinação (igual, pitagórico, justo), detecção de altura, metrônomo por amostra exata, pedal, estabilização da nota exibida |
+| Idiomas | `i18n` (+ dicionário `i18n_en` e as partes `i18n_en_*`) | `Lang` (idioma do app, datas dia/mês ou mês/dia), `tr()`, `fmtDayMonth`; ver `13_IDIOMAS.md` |
 | Acelerar aos poucos | `speed_trainer` (+ `TempoTrainer` em `metronome_engine`) | Aumento por tempo ou por compassos, resumo em frase, tempo até o teto e texto do acompanhamento ao vivo |
 | Grade e exercícios | `pitch_grid`, `scale_exercise`, `practice_coach`, `rhythm_challenge`, `system_guide` | Grade de entonação, escalas guiadas, orientações, modo desafio |
 | Estudo | `pomodoro`, `study_clock` | Temporizadores |

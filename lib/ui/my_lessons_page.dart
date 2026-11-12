@@ -7,7 +7,7 @@ import 'theme.dart';
 import 'widgets.dart';
 
 String _date(DateTime d) =>
-    '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+    fmtDayMonthYear(d);
 
 IconData taskKindIcon(TaskKind k) => switch (k) {
       TaskKind.scale => Icons.piano,

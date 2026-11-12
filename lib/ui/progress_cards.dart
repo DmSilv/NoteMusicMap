@@ -11,7 +11,7 @@ import 'widgets.dart';
 String _pct(double a) => '${(a * 100).round()}%';
 
 String _date(DateTime d) =>
-    '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
+    fmtDayMonth(d);
 
 Color _accColor(double a) =>
     a >= 0.8 ? AppColors.inTune : (a >= 0.5 ? AppColors.flat : AppColors.sharp);

@@ -40,7 +40,7 @@ for (const rel of allDocs) {
 
 // 3) cobertura
 const coreDir = path.join(ROOT, 'packages/afina_core/lib');
-for (const f of fs.readdirSync(coreDir).filter((x) => x.endsWith('.dart') && x !== 'afina_core.dart')) {
+for (const f of fs.readdirSync(coreDir).filter((x) => x.endsWith('.dart') && x !== 'afina_core.dart' && !/^i18n_en_/.test(x))) {
   const name = f.replace(/\.dart$/, '');
   if (!read('docs/02_APP_E_NUCLEO.md').includes(name)) problems.push(`Módulo do núcleo sem menção em docs/02_APP_E_NUCLEO.md: ${name}`);
 }

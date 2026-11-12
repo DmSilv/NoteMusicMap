@@ -613,7 +613,7 @@ class _BeatDot extends StatelessWidget {
     return Semantics(
       button: true,
       label:
-          tr('Tempo {0}, acento {1}', [index + 1, switch (accent) { Accent.strong => 'forte', Accent.medium => tr('médio'), Accent.weak => 'fraco', Accent.mute => 'mudo' }]),
+          tr('Tempo {0}, acento {1}', [index + 1, switch (accent) { Accent.strong => tr('forte'), Accent.medium => tr('médio'), Accent.weak => tr('fraco'), Accent.mute => tr('mudo') }]),
       child: GestureDetector(
         onTap: onTap,
         child: SizedBox(

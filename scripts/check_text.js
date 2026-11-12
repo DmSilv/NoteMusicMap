@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Trava da "dieta de texto": conta os textos fixos de tela (Text('...')) com mais de MAX_CHARS
+// Trava da "dieta de texto": conta os textos fixos de tela (Text('...') e Text(tr('...'))) com mais de MAX_CHARS
 // caracteres em lib/ui. Falha se houver MAIS do que o teto (LIMIT), para o app não voltar a encher
 // de parágrafo. O teto só pode descer: quando você encurtar textos, baixe o LIMIT aqui.
 // Texto longo de verdade vai para o "?" (HelpButton / Help em lib/ui/widgets.dart).
@@ -16,7 +16,7 @@ const DIR = path.resolve(__dirname, '..', 'lib', 'ui');
 const found = [];
 for (const f of fs.readdirSync(DIR).filter((x) => x.endsWith('.dart'))) {
   const src = fs.readFileSync(path.join(DIR, f), 'utf8');
-  const re = /Text\(\s*((?:'[^'\n]*'\s*)+|(?:"[^"\n]*"\s*)+)/g;
+  const re = /Text\(\s*(?:tr\(\s*)?((?:'[^'\n]*'\s*)+|(?:"[^"\n]*"\s*)+)/g;
   let m;
   while ((m = re.exec(src))) {
     const t = [...m[1].matchAll(/'([^'\n]*)'|"([^"\n]*)"/g)].map((x) => x[1] || x[2]).join('');

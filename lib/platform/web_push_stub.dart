@@ -1,4 +1,5 @@
 /// Fora da web não há notificação de navegador (o app nativo usaria outro caminho).
+void webPushSetLang(String code) {}
 bool webPushSupported() => false;
 bool webPushStandalone() => false;
 String webPushPermission() => 'denied';

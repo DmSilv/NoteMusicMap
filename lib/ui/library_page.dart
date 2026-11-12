@@ -175,7 +175,7 @@ class _LibraryPageState extends State<LibraryPage> {
                       ChoiceChip(label: Text(tr('Todas')), selected: _folder == null, onSelected: (_) => setState(() => _folder = null)),
                       for (final f in folders) ...[
                         const SizedBox(width: Ds.s8),
-                        ChoiceChip(label: Text(f), selected: _folder == f, onSelected: (_) => setState(() => _folder = f)),
+                        ChoiceChip(label: Text(folderLabel(f)), selected: _folder == f, onSelected: (_) => setState(() => _folder = f)),
                       ],
                     ]),
                   ),
@@ -191,7 +191,7 @@ class _LibraryPageState extends State<LibraryPage> {
                   for (final f in libraryFolders(shown)) ...[
                     Padding(
                       padding: const EdgeInsets.fromLTRB(Ds.s4, Ds.s16, 0, Ds.s8),
-                      child: Text(f.toUpperCase(), style: TextStyle(fontSize: 12, letterSpacing: 1.1, fontWeight: FontWeight.w700, color: AppColors.textDim)),
+                      child: Text(folderLabel(f).toUpperCase(), style: TextStyle(fontSize: 12, letterSpacing: 1.1, fontWeight: FontWeight.w700, color: AppColors.textDim)),
                     ),
                     for (final i in shown.where((x) => x.folder == f)) _tile(i),
                   ],
@@ -322,7 +322,7 @@ class _ItemFormState extends State<_ItemForm> {
     final it = LibItem(
       id: id.length > 40 ? id.substring(0, 40) : id,
       kind: kind,
-      folder: folder.text.trim().isEmpty ? tr('Geral') : folder.text.trim(),
+      folder: folder.text.trim().isEmpty ? 'Geral' : folder.text.trim(),
       title: title.text.trim(),
       author: author.text.trim(),
       url: u,
@@ -383,7 +383,7 @@ class _ItemFormState extends State<_ItemForm> {
                 if (folders.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: Ds.s4),
-                    child: Wrap(spacing: Ds.s8, children: [for (final f in folders.take(8)) ActionChip(label: Text(f), onPressed: () => setState(() => folder.text = f))]),
+                    child: Wrap(spacing: Ds.s8, children: [for (final f in folders.take(8)) ActionChip(label: Text(folderLabel(f)), onPressed: () => setState(() => folder.text = f))]),
                   ),
                 // Opcionais recolhidos: a tela abre só com o essencial (tipo, título, link e pasta).
                 Theme(

@@ -202,7 +202,7 @@ function errorsDoc() {
   const t = read('packages/afina_core/lib/errors.dart');
   let md = HEADER('Catálogo de erros', 'Lido de `packages/afina_core/lib/errors.dart` (`kErrorCatalog`). Para criar um erro novo, acrescente a entrada lá e rode o gerador.');
   md += '| Código | Gravidade | Título | O que a pessoa lê | Ação |\n|---|---|---|---|---|\n';
-  const re = /'([A-Z]+-\d+)':\s*ErrorSpec\(\s*'[^']+',\s*ErrorSeverity\.(\w+),\s*'([^']*)',\s*'((?:[^'\\]|\\.)*)',\s*'([^']*)'\s*\)/g;
+  const re = /'([A-Z]+-\d+)':\s*ErrorSpec\(\s*'[^']+',\s*ErrorSeverity\.(\w+),\s*tr\('([^']*)'\),\s*tr\('((?:[^'\\]|\\.)*)'\),\s*tr\('([^']*)'\)\s*\)/g;
   let m, n = 0;
   while ((m = re.exec(t))) {
     md += `| \`${m[1]}\` | ${m[2]} | ${m[3]} | ${m[4].replace(/\\'/g, "'")} | ${m[5]} |\n`;

@@ -215,3 +215,11 @@ O painel foi redesenhado com o design system do app: cores iguais (testadas cont
 ## Metrônomo mais alto e "Acelerar aos poucos" refeito (novembro/2026)
 - **Volume:** sons reforçados (corpo mais longo, harmônicos para o alto-falante do celular, saturação suave, batidas fracas mais fortes) e volume padrão no máximo: **+9,4 dB** de sonoridade medida. Ferramenta nova: `packages/afina_core/tool/metro_loudness.dart`.
 - **Acelerar aos poucos:** saiu do modal de Ajustes (três barras, uma de 40 a 320 com 280 passos, e o BPM da tela nem mostrava a subida) para um **card na tela do metrônomo**, com ajustes em quatro perguntas simples (por tempo ou compassos, quanto aumentar, teto com − e +), resumo em frase e acompanhamento ao vivo. Novo: aumento **por tempo** (15 s a 2 min). 15 testes no núcleo e 9 de tela.
+
+## Versão em inglês (novembro/2026)
+- **O app inteiro fala inglês**: ~1.950 textos (app, núcleo e mensagens do servidor). O idioma segue o aparelho e troca em Ajustes › Aparência e tela › Idioma / Language (Auto, Português, English). Português continua o padrão e não mudou.
+- **Como**: texto no código em português dentro de `tr('...')` e dicionário `packages/afina_core/lib/i18n_en_*.dart`; ver `13_IDIOMAS.md`. Mesmo texto com sentidos diferentes usa `@@contexto`.
+- **Também acompanham o idioma**: nomes das notas (C D E…), dias e meses, datas (dia/mês, ou mês/dia nos EUA, Canadá e Filipinas), tipo dos avisos (sucesso/atenção), lembretes de aula (service worker), resposta da IA (`lang` no `/api/coach`, compatível com apps antigos) e mensagens do servidor (traduzidas ao mostrar).
+- **Lógica que dependia de texto** passou a depender de tipo: `ScaleType.isMinor`, `isDefaultStudentName`.
+- **Teste e CI**: `node scripts/check_i18n.js` (cobertura das traduções), `i18n_test.dart` (núcleo), `toast_kind_en_test.dart` e um teste de `/api/coach` com `lang`. A "dieta de texto" (`check_text.js`) passou a contar também `Text(tr('...'))`.
+- **Limites conhecidos**: páginas estáticas (`index.html`, `sobre.html`) e painel do administrador seguem em português; fora da web a troca de idioma só vale por completo ao reiniciar o app (na web a página recarrega sozinha).

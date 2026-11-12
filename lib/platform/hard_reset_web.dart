@@ -11,6 +11,17 @@ Future<void> clearWebCachesAndReload() async {
   globalContext.callMethod<JSAny?>('nmHardReset'.toJS);
 }
 
+/// Recarrega a página: o app começa de novo (usado ao trocar o idioma, para todos os textos nascerem no idioma novo).
+/// Devolve true quando pediu o recarregamento.
+bool reloadWebPage() {
+  try {
+    globalContext.getProperty<JSObject>('location'.toJS).callMethod<JSAny?>('reload'.toJS);
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 /// Busca a versão mais nova do site SEM apagar os dados do usuário: remove o
 /// service worker e os caches e recarrega com um parâmetro novo na URL (assim
 /// o app instalado no celular não fica preso na versão antiga).

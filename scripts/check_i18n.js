@@ -25,11 +25,25 @@ function extractKeys() {
       for (const l of g.lits) for (const p of l.parts) if (p.t === 'expr' && /['"]/.test(p.code)) visit(p.code, file, line);
     }
   };
+  serverMessages(add);
   for (const f of dartFiles()) {
     const rel = path.relative(ROOT, f).split(path.sep).join('/');
     visit(fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n'), rel, 1);
   }
   return keys;
+}
+
+/** Mensagens que o servidor devolve e o app mostra (api/link.js, api/coach.js, api/_lib/library.js): o app traduz ao mostrar. */
+function serverMessages(add) {
+  const files = ['api/link.js', 'api/coach.js', 'api/_lib/library.js'];
+  const re = /\b(?:error|message)\s*:\s*'((?:[^'\\r\n]|\.)*)'/g;
+  for (const rel of files) {
+    const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
+    for (const m of src.matchAll(re)) {
+      const t = m[1].replace(/\'/g, "'");
+      if (/\s/.test(t) && /[A-Za-zÀ-ÿ]/.test(t) && !/^Use (GET|POST)\.$/.test(t)) add(t, rel, src.slice(0, m.index).split('\n').length);
+    }
+  }
 }
 
 /** Dicionário: Map pt -> en, lido dos arquivos i18n_en*.dart (pares de textos: chave, valor). */
@@ -48,12 +62,32 @@ function readDictionary() {
   return { dict, dupes, files };
 }
 
+/** Texto esperado de i18n_en.dart: junta todas as partes i18n_en_*.dart. */
+function indexSource() {
+  const parts = fs.readdirSync(DICT_DIR).filter((n) => /^i18n_en_.+\.dart$/.test(n)).sort();
+  const vars = parts.map((n) => 'kEn' + n.replace(/^i18n_en_/, '').replace(/\.dart$/, '').replace(/^./, (c) => c.toUpperCase()));
+  return [
+    "/// Dicionário português → inglês. A chave é o texto em português exatamente como está em `tr('...')` no código.",
+    '/// Marcadores `{0}`, `{1}`… recebem os valores. As traduções ficam em partes (`i18n_en_*.dart`) e são juntadas aqui;',
+    '/// `node scripts/check_i18n.js --write` atualiza esta lista quando entra uma parte nova.',
+    'library;',
+    '',
+    ...parts.map((n) => "import '" + n + "';"),
+    '',
+    'const Map<String, String> kEn = {',
+    ...vars.map((v) => '  ...' + v + ','),
+    '};',
+    '',
+  ].join('\n');
+}
+
 const slotSet = (t) => new Set(t.match(/\{\d+\}/g) || []);
 const PT_LOOK = /[ãõçÃÕÇ]|\b(você|não|para o|para a|uma|então|aqui)\b/i;
 
 function main() {
   const keys = extractKeys();
   const { dict, dupes } = readDictionary();
+  let badIndex = false;
   const missing = [], badSlots = [], looksPt = [], empty = [], dropped = [];
   for (const [k, where] of keys) {
     const v = dict.get(k);
@@ -64,6 +98,13 @@ function main() {
     if (PT_LOOK.test(v)) looksPt.push([k, v]);
   }
   if (process.argv.includes('--dropped')) { dropped.forEach(([k, v]) => console.log(JSON.stringify(k) + ' -> ' + JSON.stringify(v))); return; }
+  const idxFile = path.join(DICT_DIR, 'i18n_en.dart');
+  const idxWant = indexSource();
+  const idxHave = fs.readFileSync(idxFile, 'utf8').split('\r\n').join('\n');
+  if (idxWant !== idxHave) {
+    if (process.argv.includes('--write')) { fs.writeFileSync(idxFile, idxWant); console.log('i18n_en.dart atualizado.'); }
+    else badIndex = true;
+  }
   const unused = [...dict.keys()].filter((k) => !keys.has(k));
   if (process.argv.includes('--list')) {
     for (const [k, w] of missing) console.log(`${w.file}:${w.line}\t${JSON.stringify(k)}`);
@@ -76,7 +117,8 @@ function main() {
   show('Marcadores {n} que o original não tem', badSlots, ([k, v]) => `${JSON.stringify(k)} -> ${JSON.stringify(v)}`);
   show('Tradução com cara de português', looksPt, ([k, v]) => `${JSON.stringify(k)} -> ${JSON.stringify(v)}`);
   show('Texto repetido no dicionário', dupes, (k) => JSON.stringify(k));
-  if (unused.length) console.log(`\nAviso: ${unused.length} entradas do dicionário não são usadas pelo código.` + (unused.length <= 15 ? '\n  ' + unused.map((k) => JSON.stringify(k)).join('\n  ') : ''));
+  show('Entradas do dicionário que nenhum texto do código usa (apague)', unused, (k) => JSON.stringify(k));
+  if (badIndex) { bad++; console.log('\ni18n_en.dart está desatualizado: rode `node scripts/check_i18n.js --write`.'); }
   if (bad) { console.log(`\n${bad} problema(s).`); process.exit(1); }
   console.log('Tudo certo.');
 }

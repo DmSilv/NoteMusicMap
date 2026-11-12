@@ -34,7 +34,7 @@
 | `lib/ui/agenda_calendar.dart` | Calendário do mês para as agendas (professor e aluno): a semana começa na segunda, cada dia com aula leva pontinhos (um por aula, até 3), o dia de hoje tem um anel e o dia escolhido fica preenchido. |
 | `lib/ui/agenda_page.dart` | Agenda do PROFESSOR: as aulas marcadas, por semana ou por mês. Marcar, mudar, cancelar uma aula (ou só um dia de uma aula semanal) e ligar o lembrete de 15 minutos. |
 | `lib/ui/agenda_sheets.dart` | Modais da agenda do professor (remarcar uma aula, trocar horários, confirmar). Cada ação é UM modal só: o que vai mudar aparece antes (de → para), a conferência de choque é feita ao vivo e o botão só liga quando cabe… |
-| `lib/ui/app_locale.dart` | O app é só em português do Brasil: os textos do próprio Flutter (seletor de data e hora, "OK"/"Cancelar", copiar/colar, nomes de mês e dia) seguem o mesmo idioma. Custo conhecido: o Flutter embute os textos de todos… |
+| `lib/ui/app_locale.dart` | O app fala português do Brasil ou inglês: os textos do próprio Flutter (seletor de data e hora, "OK"/"Cancelar", copiar/colar, nomes de mês e dia) seguem o idioma escolhido (veja `Lang` e `tr()` em afina_core). Custo… |
 | `lib/ui/app_logo.dart` | Logo do Notemusic: um mostrador de afinador (arco verde, a cor do app) com uma nota musical branca no centro. Mesma geometria de tools/make_icons.mjs. |
 | `lib/ui/design_system.dart` | Design system do Notemusic. REGRA: toda tela nova ou alterada usa estes valores e estes componentes (ver docs/12_DESIGN_SYSTEM.md). Números soltos de espaçamento, raio ou altura de botão não entram em tela nova.… |
 | `lib/ui/dictation_button.dart` | Botão de microfone para ditar num campo de texto. Use como `suffixIcon` do `InputDecoration`. Pisca em vermelho enquanto ouve; tocar de novo para. |
@@ -119,6 +119,21 @@
 | `packages/afina_core/lib/greeting.dart` | Saudação conforme a hora do dia (relógio local do aparelho). 5h às 11h59: "Bom dia" · 12h às 17h59: "Boa tarde" · o resto: "Boa noite". |
 | `packages/afina_core/lib/hub.dart` | Regras do hub "Meu espaço": o que vai no bloco grande (destaque) e os textos dos blocos menores, sempre dizendo o que fazer quando não há nada. Dart puro e testável. |
 | `packages/afina_core/lib/hub_view.dart` | Visões do "Meu espaço": quem é professor também pode ser aluno de outra pessoa, então o hub tem duas visões separadas (Aluno e Professor) e cada destino aparece UMA vez por visão. Dart puro e testável: a tela só… |
+| `packages/afina_core/lib/i18n.dart` | Idiomas do app (português e inglês) e a função [tr]. Como funciona: o texto no código é o PORTUGUÊS (`tr('Salvar')`). Com o idioma em português, [tr] devolve o próprio texto; em inglês, procura a tradução em [kEn]… |
+| `packages/afina_core/lib/i18n_en.dart` | Dicionário português → inglês. A chave é o texto em português exatamente como está em `tr('...')` no código. Marcadores `{0}`, `{1}`… recebem os valores. As traduções ficam em partes (`i18n_en_*.dart`) e são juntadas… |
+| `packages/afina_core/lib/i18n_en_a.dart` | Parte A do dicionário português → inglês (ver i18n_en.dart). |
+| `packages/afina_core/lib/i18n_en_b00.dart` | Dicionário português → inglês, parte b00 (ver i18n_en.dart). |
+| `packages/afina_core/lib/i18n_en_b01.dart` | Dicionário português → inglês, parte b01 (ver i18n_en.dart). |
+| `packages/afina_core/lib/i18n_en_b02.dart` | Dicionário português → inglês, parte b02 (ver i18n_en.dart). |
+| `packages/afina_core/lib/i18n_en_b03.dart` | Dicionário português → inglês, parte b03 (ver i18n_en.dart). |
+| `packages/afina_core/lib/i18n_en_b04.dart` | Dicionário português → inglês, parte b04 (ver i18n_en.dart). |
+| `packages/afina_core/lib/i18n_en_b05.dart` | Dicionário português → inglês, parte b05 (ver i18n_en.dart). |
+| `packages/afina_core/lib/i18n_en_b06.dart` | Dicionário português → inglês, parte b06 (ver i18n_en.dart). |
+| `packages/afina_core/lib/i18n_en_b07.dart` | Dicionário português → inglês, parte b07 (ver i18n_en.dart). |
+| `packages/afina_core/lib/i18n_en_b08.dart` | Dicionário português → inglês, parte b08 (ver i18n_en.dart). |
+| `packages/afina_core/lib/i18n_en_b09.dart` | Dicionário português → inglês, parte b09 (ver i18n_en.dart). |
+| `packages/afina_core/lib/i18n_en_b10.dart` | Dicionário português → inglês, parte b10 (ver i18n_en.dart). |
+| `packages/afina_core/lib/i18n_en_srv.dart` | Dicionário português → inglês, parte srv (ver i18n_en.dart). |
 | `packages/afina_core/lib/identity.dart` | Identidade do perfil (Fase 1): quem é a pessoa, sem cadastro e sem servidor. - [Profile.id]: UUID do perfil. Todos os dados pertencem a ele, não ao aparelho. - [Profile.secret]: 256 bits aleatórios que provam que… |
 | `packages/afina_core/lib/input_guard.dart` | Limpeza e limites de tudo que a pessoa digita, cola ou lê de um QR. Dart puro. O app não monta HTML nem consulta banco com esses textos, mas eles aparecem na tela, vão para backups colados e (em resumo) para a IA.… |
 | `packages/afina_core/lib/lesson.dart` | Aulas: o professor começa a aula com um aluno, pode pausar, e ao encerrar o que ele passou nela (tarefas e observações) é empacotado para o aluno receber. Dart puro e testável (o relógio é sempre passado de fora). |
@@ -165,6 +180,7 @@
 | `packages/afina_core/test/grid_replay_test.dart` | Toca [cents] por [seconds] (quadros de 30 ms) a partir de [t0]; devolve o instante final. |
 | `packages/afina_core/test/hub_test.dart` | a aula das 13:00 (60 min) acaba às 14:00: no instante do fim já não é "em andamento" |
 | `packages/afina_core/test/hub_view_test.dart` | Testes do módulo `hub_view`. |
+| `packages/afina_core/test/i18n_test.dart` | "{0} de {1}, {2}" (dia, mês, dia da semana) vira "{2}, {1} {0}" |
 | `packages/afina_core/test/identity_test.dart` | Troca de um caractere por outro diferente do alfabeto. |
 | `packages/afina_core/test/input_guard_test.dart` | Testes do módulo `input_guard`. |
 | `packages/afina_core/test/lesson_delivery_test.dart` | dados antigos (sem a chave) continuam lendo, como "não se aplica" |
@@ -290,4 +306,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **247** arquivos mapeados.
+Total: **263** arquivos mapeados.

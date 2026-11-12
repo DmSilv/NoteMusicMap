@@ -93,7 +93,6 @@ const Map<String, String> kEnB01 = {
   'Pausar aulas de… até…': 'Pause lessons from… to…',
   'Não há aulas nesse período.': 'There are no lessons in that period.',
   'Pausar as aulas?': 'Pause the lessons?',
-  '{0} aula{1} de {2}/{3} a {4}/{5} ser{6}.\n{7} aluno{8}.\nAs aulas semanais voltam depois do período.': '{0} lesson{1} from {2}/{3} to {4}/{5} will be canceled.\n{7} student{8}.\nWeekly lessons resume after the period.',
   'á cancelada': '',
   'ão canceladas': '',
   ' é avisado': ' is notified',

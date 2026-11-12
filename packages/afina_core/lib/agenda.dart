@@ -485,7 +485,7 @@ String describeSlot(ClassSlot s) {
   final d = DateTime.fromMillisecondsSinceEpoch(s.startMs);
   final hm = '${two(d.hour)}:${two(d.minute)}';
   final day = _kDiasSemana[d.weekday - 1];
-  final head = s.weekly ? tr('Toda {0} às {1}', [day, hm]) : tr('{0}{1}, {2}/{3} às {4}', [day[0].toUpperCase(), day.substring(1), two(d.day), two(d.month), hm]);
+  final head = s.weekly ? tr('Toda {0} às {1}', [day, hm]) : tr('{0}{1}, {2} às {3}', [day[0].toUpperCase(), day.substring(1), fmtDayMonth(d), hm]);
   return tr('{0} · {1} min{2}', [head, s.durationMin, s.online ? tr(' · online') : '']);
 }
 
@@ -500,6 +500,5 @@ String fmtSlotWhen(DateTime when, DateTime now) {
   final diff = day.difference(today).inDays;
   if (diff == 0) return tr('hoje, {0}', [hh]);
   if (diff == 1) return tr('amanhã, {0}', [hh]);
-  final dd = when.day.toString().padLeft(2, '0'), mm = when.month.toString().padLeft(2, '0');
-  return '${days[when.weekday - 1]}, $dd/$mm, $hh';
+  return '${days[when.weekday - 1]}, ${fmtDayMonth(when)}, $hh';
 }

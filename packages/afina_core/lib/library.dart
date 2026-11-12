@@ -137,6 +137,9 @@ List<String> libraryFolders(Iterable<LibItem> items, {String? kind}) {
 /// Texto de uma tarefa que aponta para o acervo inteiro.
 final String kMaterialAll = tr('Material do professor');
 
+/// A pasta padrão é gravada como "Geral" (dado); na tela aparece no idioma de hoje. Pastas que o professor criou ficam como estão.
+String folderLabel(String folder) => folder == 'Geral' ? tr('Geral') : folder;
+
 class MaterialRef {
   /// Título do item procurado (vazio = só a pasta, ou o acervo todo).
   final String title;

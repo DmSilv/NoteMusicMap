@@ -16,6 +16,14 @@ class Lang {
   Lang._();
 
   static AppLang current = AppLang.pt;
+
+  /// Datas com o mês primeiro (mm/dd): inglês de região que escreve assim (EUA, Canadá, Filipinas). Nos demais, dia primeiro (dd/mm).
+  static bool monthFirst = false;
+
+  /// Liga [monthFirst] pela língua do aparelho (ex.: "en-US").
+  static void setRegionFrom(String? deviceTag) {
+    monthFirst = current == AppLang.en && RegExp(r'^en[-_](US|CA|PH)', caseSensitive: false).hasMatch(deviceTag ?? '');
+  }
   static bool get isEn => current == AppLang.en;
 
   /// Código curto: 'pt' ou 'en'.
@@ -57,5 +65,13 @@ String tr(String pt, [List<Object?> args = const []]) {
   return fillSlots(base, args);
 }
 
-/// Texto que veio de fora (servidor) e talvez já tenha tradução no dicionário: traduz se souber, senão devolve como veio.
-String trServer(String? msg) => msg == null || msg.isEmpty ? '' : tr(msg);
+/// Texto que veio de fora (servidor): o servidor responde em português; aqui ele ganha a tradução do dicionário (se houver) ou fica como veio.
+String? trOrNull(String? msg) => msg == null ? null : tr(msg);
+
+String _p2(int n) => n.toString().padLeft(2, '0');
+
+/// Dia e mês na ordem do idioma/região: "12/11" (dia primeiro) ou "11/12" (mês primeiro).
+String fmtDayMonth(DateTime d) => Lang.monthFirst ? '${_p2(d.month)}/${_p2(d.day)}' : '${_p2(d.day)}/${_p2(d.month)}';
+
+/// Como [fmtDayMonth], com o ano: "12/11/2026".
+String fmtDayMonthYear(DateTime d) => '${fmtDayMonth(d)}/${d.year}';

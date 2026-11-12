@@ -13,6 +13,7 @@ node --test api/*.test.js api/_lib/*.test.js
 
 # Documentação em dia (referência gerada, links, cobertura, limite de 12 funções)
 node scripts/check_docs.js
+node scripts/check_i18n.js
 ```
 > **Atenção:** neste ambiente de desenvolvimento o `flutter test` do projeto **não roda** (o áudio nativo exige o compilador do Windows). A lógica testável mora no núcleo (`dart test`); as peças de tela que não dependem de áudio têm testes em `test/ui/`, rodados por `node scripts/ui_tests.js` (pacote isolado, roda aqui e no CI); o resto da interface é conferido com `flutter analyze` + olhando a tela.
 
@@ -20,6 +21,7 @@ node scripts/check_docs.js
 | Camada | Onde | O que cobre |
 |---|---|---|
 | Núcleo | `packages/afina_core/test/*_test.dart` | Afinação, detector (<0,5 cent em tons limpos), metrônomo sem deriva, grade, escalas, agenda, aulas, **status de tarefas**, **horários livres**, **fase e permissões da aula**, **visões do hub** (sem repetição/mistura), **erros** (catálogo, classificação, higienização, histórico), relatório de erro, markdown da IA |
+| Inglês | `scripts/check_i18n.js` | Todo `tr('...')` do código (e as mensagens do servidor que o app mostra) tem tradução em `packages/afina_core/lib/i18n_en_*.dart`; marcadores `{n}` sem sobra; nada com cara de português; sem entrada repetida ou sobrando; `i18n_en.dart` inclui todas as partes. `--list` mostra o que falta; `--write` atualiza o índice |
 | Texto | `scripts/check_text.js` | Trava da dieta de texto: falha se houver mais textos de tela com mais de 110 caracteres do que o teto (`LIMIT`, que só desce). Texto longo vai para o "?" |
 | Interface | conferência manual em 390×844 + `test/ui/*_test.dart` (`node scripts/ui_tests.js`) | Roteiro do design system (`12_DESIGN_SYSTEM.md`): ação principal sem rolar, ajustes no modal, nada abaixo de 13 px. Teste automático de tela só das peças puras (sem áudio nem AppState): modal de sucesso e tutorial guiado. Para incluir uma peça nova, ela só pode importar Flutter e outros arquivos puros; o script avisa se não puder |
 | API | `api/*.test.js` | Vínculo e segurança (`link.test.js`), agenda e lembretes (`agenda.test.js`), horários livres (`avail.test.js`), painel (`admin.test.js`, `painel_precisao.test.js`), suporte do painel (`support.test.js`), presença online (`presence.test.js`), indicadores de saúde (`indicators.test.js`), aviso de bug grave, precisão dos bugs e busca por apelido (`admin_push.test.js`), relatórios de erro e bugs (`errors.test.js`), IA (`coach.test.js`), feedback, estatísticas, **guardrails** (`guardrails.test.js`) |

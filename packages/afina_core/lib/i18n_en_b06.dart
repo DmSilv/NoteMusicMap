@@ -146,7 +146,7 @@ const Map<String, String> kEnB06 = {
   ', e descarta a aula em andamento': ', and discards the lesson in progress',
   'Aluno excluído.': 'Student deleted.',
   '{0} alunos excluídos.': '{0} students deleted.',
-  'Gerenciar': 'Manage',
+  'Gerenciar': 'Edit',
   'Importar aluno': 'Import student',
   'Meus métodos e lições ({0})': 'My methods and lessons ({0})',
   'Senha desta tela': 'Password for this screen',
@@ -261,5 +261,4 @@ const Map<String, String> kEnB06 = {
   'Aula encerrada e guardada neste aparelho.': 'Lesson ended and saved on this device.',
   'Aula de hoje às {0}': 'Today\'s lesson at {0}',
   'Aula às {0}': 'Lesson at {0}',
-  '{0} falta{1} registrada{2} · última em {3}/{4}': '{0} absence{1} recorded · last on {3}/{4}',
 };

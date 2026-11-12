@@ -143,7 +143,7 @@ class _SlotFormPageState extends State<SlotFormPage> {
   Widget build(BuildContext context) {
     final st = code == null ? null : app.studentByCode(code!);
     final end = date.add(Duration(minutes: duration));
-    final when = weekly ? tr('Toda {0}', [_dow[date.weekday - 1]]) : '${_dow[date.weekday - 1]}, ${_two(date.day)}/${_two(date.month)}';
+    final when = weekly ? tr('Toda {0}', [_dow[date.weekday - 1]]) : '${_dow[date.weekday - 1]}, ${fmtDayMonth(date)}';
     final summary = '$when · ${_two(date.hour)}:${_two(date.minute)}–${_two(end.hour)}:${_two(end.minute)}${st == null ? '' : ' · ${st.name}'}';
     final (deliveryText, deliveryColor) = _delivery(st);
     final hasDetails = app.remindChoiceOn || app.onlineClassesOn;
@@ -181,7 +181,7 @@ class _SlotFormPageState extends State<SlotFormPage> {
                       child: DsPickTile(
                         icon: Icons.event,
                         label: weekly ? tr('Primeira aula') : tr('Dia'),
-                        value: '${_dow[date.weekday - 1].substring(0, 3)}, ${_two(date.day)}/${_two(date.month)}/${date.year}',
+                        value: '${_dow[date.weekday - 1].substring(0, 3)}, ${fmtDayMonthYear(date)}',
                         onTap: _pickDate,
                       ),
                     ),

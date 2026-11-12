@@ -1,5 +1,6 @@
-// O app inteiro em português do Brasil: seletores de data e hora, botões e nomes de mês saem em português.
+// O app fala português do Brasil ou inglês: seletores de data e hora, botões e nomes de mês saem no idioma escolhido.
 import 'package:afina/ui/app_locale.dart';
+import 'package:afina_core/afina_core.dart' show AppLang;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -58,6 +59,28 @@ void main() {
     expect(find.text('OK'), findsOneWidget);
     expect(find.text('Select time'), findsNothing);
     expect(find.text('SELECT TIME'), findsNothing);
+  });
+
+
+  testWidgets('em inglês o seletor de data usa os textos do Flutter em inglês', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      localizationsDelegates: kLocalizationsDelegates,
+      supportedLocales: kSupportedLocales,
+      locale: localeFor(AppLang.en),
+      home: Builder(builder: (context) => Scaffold(body: Center(child: _abreData(context)))),
+    ));
+    await tester.tap(find.text('abrir'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('November'), findsWidgets, reason: 'nome do mês em inglês');
+    expect(find.text('Cancel'), findsOneWidget);
+    expect(find.text('OK'), findsOneWidget);
+    expect(find.text('Cancelar'), findsNothing);
+  });
+
+  test('localeFor: português do Brasil ou inglês', () {
+    expect(localeFor(AppLang.pt), const Locale('pt', 'BR'));
+    expect(localeFor(AppLang.en), const Locale('en'));
+    expect(kSupportedLocales, contains(const Locale('en')));
   });
 
   testWidgets('controle: sem a configuração do app, o seletor sai em inglês (o teste enxerga a diferença)', (tester) async {

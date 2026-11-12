@@ -5,6 +5,15 @@ import 'dart:js_interop_unsafe';
 /// navegador recusar, devolve "sem suporte" em vez de lançar erro.
 JSObject? get _nm => globalContext.getProperty<JSObject?>('nmPush'.toJS);
 
+/// Avisa o service worker do idioma do app (o texto dos lembretes de aula é montado lá).
+void webPushSetLang(String code) {
+  try {
+    _nm?.callMethod<JSAny?>('setLang'.toJS, code.toJS);
+  } catch (_) {
+    /* sem service worker */
+  }
+}
+
 bool webPushSupported() {
   try {
     final nm = _nm;

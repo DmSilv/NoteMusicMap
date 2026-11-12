@@ -140,7 +140,7 @@ class CoachAi extends ChangeNotifier {
             .post(
               ep,
               headers: {'Content-Type': 'application/json', 'X-Device-Id': id},
-              body: jsonEncode({'summary': summary, 'kind': kind, if (_ticket != null) 'ticket': _ticket}),
+              body: jsonEncode({'summary': summary, 'kind': kind, if (_ticket != null) 'ticket': _ticket, if (Lang.isEn) 'lang': 'en'}),
             )
             .timeout(_timeout);
         final data = _json(r.body);
@@ -176,7 +176,7 @@ class CoachAi extends ChangeNotifier {
           await _waitInQueue(ms, why == 'cooldown');
           continue;
         }
-        _fail((data['error'] as String?) ?? tr('A IA não respondeu (erro {0}).', [r.statusCode]));
+        _fail(trOrNull(data['error'] as String?) ?? tr('A IA não respondeu (erro {0}).', [r.statusCode]));
         return;
       } on TimeoutException {
         await _waitInQueue(8000, false);

@@ -14,7 +14,7 @@ String _when(DateTime at) {
   final hh = '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
   if (day == today) return tr('hoje, {0}', [hh]);
   if (day == today.subtract(const Duration(days: 1))) return tr('ontem, {0}', [hh]);
-  return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}, $hh';
+  return '${fmtDayMonth(d)}, $hh';
 }
 
 /// Na ficha do aluno: as tarefas que ELE marcou como feitas e que esperam a validação do

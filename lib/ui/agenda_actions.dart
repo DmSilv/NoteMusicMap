@@ -9,7 +9,7 @@ import 'agenda_sheets.dart';
 
 String _two(int n) => n.toString().padLeft(2, '0');
 final _dow = [tr('seg'), tr('ter'), tr('qua'), tr('qui'), tr('sex'), tr('sáb'), tr('dom')];
-String _when(DateTime d) => '${_dow[d.weekday - 1]} ${_two(d.day)}/${_two(d.month)} ${_two(d.hour)}:${_two(d.minute)}';
+String _when(DateTime d) => '${_dow[d.weekday - 1]} ${fmtDayMonth(d)} ${_two(d.hour)}:${_two(d.minute)}';
 
 String _nameOf(AppState app, ClassSlot s) => app.studentByCode(s.studentCode)?.name ?? tr('o aluno');
 
@@ -139,7 +139,7 @@ Future<void> pauseFlow(BuildContext context, AppState app) async {
   final ok = await _ask(
       context,
       tr('Pausar as aulas?'),
-      tr('{0} aula{1} de {2}/{3} a {4}/{5} ser{6}.\n{7} aluno{8}.\nAs aulas semanais voltam depois do período.', [hit.length, hit.length == 1 ? '' : 's', _two(from.day), _two(from.month), _two(r.end.day), _two(r.end.month), hit.length == 1 ? tr('á cancelada') : tr('ão canceladas'), students.length, students.length == 1 ? tr(' é avisado') : tr('s são avisados')]),
+      tr('{0} aula{1} de {2} a {3} ser{4}.\n{5} aluno{6}.\nAs aulas semanais voltam depois do período.', [hit.length, hit.length == 1 ? '' : 's', fmtDayMonth(from), fmtDayMonth(r.end), hit.length == 1 ? tr('á cancelada') : tr('ão canceladas'), students.length, students.length == 1 ? tr(' é avisado') : tr('s são avisados')]),
       tr('Pausar'),
       danger: true);
   if (!ok) return;

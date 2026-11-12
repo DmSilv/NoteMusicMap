@@ -43,6 +43,7 @@ jobs:
         run: |
           node scripts/check_docs.js
           node scripts/check_text.js
+          node scripts/check_i18n.js
 
       - name: Análise estática
         run: flutter analyze

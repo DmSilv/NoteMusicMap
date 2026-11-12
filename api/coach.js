@@ -65,7 +65,9 @@ function validate(body) {
   const kind = body.kind == null ? 'session_summary' : String(body.kind);
   if (!isKind(kind)) return { error: 'Tipo de pedido desconhecido.' };
   const ticket = typeof body.ticket === 'string' ? body.ticket.slice(0, 120) : '';
-  return { summary, kind, ticket };
+  // Idioma da resposta: o app em inglês pede "en"; sem o campo (apps antigos) segue em português.
+  const lang = body.lang === 'en' ? 'en' : 'pt';
+  return { summary, kind, ticket, lang };
 }
 
 function send(res, status, obj, extraHeaders = {}) {
@@ -167,7 +169,7 @@ function makeHandler(deps = {}) {
       const r = await callProvider(pid, {
         key: cfg.keys[pid],
         tier: cand.tier,
-        system: PROMPTS[v.kind],
+        system: v.lang === 'en' ? PROMPTS[v.kind] + '\n\nWrite the whole answer in English.' : PROMPTS[v.kind],
         prompt: v.summary,
         maxTokens: cand.maxTokens,
         timeoutMs: Math.min(deps.timeoutMs || 25000, left - 1000),

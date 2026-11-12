@@ -83,6 +83,5 @@ WeekPlan buildWeekPlan(List<SharedLesson> lessons, Set<String> doneKeys, DateTim
 /// "segunda, 09/11" (o dia da semana em português).
 String fmtLessonDay(DateTime d) {
   final days = [tr('segunda'), tr('terça'), tr('quarta'), tr('quinta'), tr('sexta'), tr('sábado'), tr('domingo')];
-  final dd = d.day.toString().padLeft(2, '0'), mm = d.month.toString().padLeft(2, '0');
-  return '${days[d.weekday - 1]}, $dd/$mm';
+  return '${days[d.weekday - 1]}, ${fmtDayMonth(d)}';
 }

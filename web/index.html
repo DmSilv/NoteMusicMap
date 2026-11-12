@@ -116,6 +116,14 @@
   <!-- Notificações de aula (Web Push): ponte simples para o app em Dart. Só funciona com permissão da pessoa. -->
   <script>
     window.nmPush = {
+      // Idioma do app (o texto do lembrete é montado no service worker, que não enxerga as configurações do app).
+      setLang: function (l) {
+        try {
+          navigator.serviceWorker.ready.then(function (reg) {
+            if (reg.active) reg.active.postMessage({ lang: l === 'en' ? 'en' : 'pt' });
+          });
+        } catch (e) { /* sem service worker */ }
+      },
       supported: function () {
         return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
       },

@@ -17,7 +17,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
       for (const k of await caches.keys()) {
-        if (k !== CACHE) await caches.delete(k);
+        if (k !== CACHE && k !== LANG_CACHE) await caches.delete(k);
       }
       await self.clients.claim();
     })(),
@@ -57,15 +57,39 @@ async function redePrimeiro(req) {
 // ---- Notificações de aula (Web Push) ----
 // O servidor manda { kind: 'lesson', role, start, who } com a antecedência que o professor escolheu (15 min se não escolheu);
 // o texto é montado aqui, com a hora no fuso do aparelho e o tempo que REALMENTE falta (não um número fixo).
-function lessonTitle(start, now) {
+// Idioma do app: a página avisa quando muda (postMessage) e guardamos numa cache à parte (a cache de arquivos é trocada a cada versão).
+// Sem aviso ainda, vale o idioma do aparelho.
+const LANG_CACHE = 'nm-lang';
+async function saveLang(l) {
+  try {
+    const c = await caches.open(LANG_CACHE);
+    await c.put('/__lang', new Response(l));
+  } catch (_) {
+    /* sem cache: o próximo aviso da página tenta de novo */
+  }
+}
+async function currentLang() {
+  try {
+    const c = await caches.open(LANG_CACHE);
+    const r = await c.match('/__lang');
+    if (r) return (await r.text()) === 'en' ? 'en' : 'pt';
+  } catch (_) {
+    /* usa o do aparelho */
+  }
+  return /^en/i.test((self.navigator && self.navigator.language) || '') ? 'en' : 'pt';
+}
+
+function lessonTitle(start, now, lang) {
+  const en = lang === 'en';
   const mins = Math.round((start - now) / 60000);
-  if (mins <= 1) return 'Aula começando agora';
-  if (mins < 60) return `Aula em ${mins} minutos`;
+  if (mins <= 1) return en ? 'Lesson starting now' : 'Aula começando agora';
+  if (mins < 60) return en ? `Lesson in ${mins} minutes` : `Aula em ${mins} minutos`;
   if (mins < 23 * 60) {
     const h = Math.round(mins / 60);
+    if (en) return h === 1 ? 'Lesson in 1 hour' : `Lesson in ${h} hours`;
     return h === 1 ? 'Aula em 1 hora' : `Aula em ${h} horas`;
   }
-  return 'Aula amanhã';
+  return en ? 'Lesson tomorrow' : 'Aula amanhã';
 }
 self.addEventListener('push', (event) => {
   let d = {};
@@ -89,18 +113,23 @@ self.addEventListener('push', (event) => {
     return;
   }
   if (d.kind !== 'lesson' || !Number.isFinite(Number(d.start))) return;
-  const hhmm = new Date(Number(d.start)).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-  const who = typeof d.who === 'string' && d.who ? ` com ${d.who.slice(0, 40)}` : '';
   event.waitUntil(
-    self.registration.showNotification(lessonTitle(Number(d.start), Date.now()), {
-      body: `Aula${who} às ${hhmm}`,
-      icon: '/icons/Icon-192.png',
-      badge: '/icons/Icon-192.png',
-      tag: `aula-${d.start}`, // a mesma aula não empilha avisos
-      renotify: false,
-      requireInteraction: false,
-      data: { url: '/' },
-    }),
+    (async () => {
+      const lang = await currentLang();
+      const en = lang === 'en';
+      const hhmm = new Date(Number(d.start)).toLocaleTimeString(en ? 'en-US' : 'pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const name = typeof d.who === 'string' && d.who ? d.who.slice(0, 40) : '';
+      const who = name ? (en ? ` with ${name}` : ` com ${name}`) : '';
+      await self.registration.showNotification(lessonTitle(Number(d.start), Date.now(), lang), {
+        body: en ? `Lesson${who} at ${hhmm}` : `Aula${who} às ${hhmm}`,
+        icon: '/icons/Icon-192.png',
+        badge: '/icons/Icon-192.png',
+        tag: `aula-${d.start}`, // a mesma aula não empilha avisos
+        renotify: false,
+        requireInteraction: false,
+        data: { url: '/' },
+      });
+    })(),
   );
 });
 
@@ -129,6 +158,10 @@ self.addEventListener('fetch', (event) => {
 // funcionar já na primeira vez (sem esperar uma segunda visita).
 self.addEventListener('message', (event) => {
   const data = event.data || {};
+  if (data.lang === 'en' || data.lang === 'pt') {
+    event.waitUntil(saveLang(data.lang));
+    return;
+  }
   if (!Array.isArray(data.precache)) return;
   event.waitUntil(
     (async () => {

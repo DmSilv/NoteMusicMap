@@ -378,7 +378,7 @@ StudentSummary summarizeStudent(Student s) {
 
 String _pct(double a) => '${(a * 100).round()}%';
 String _day(DateTime d) =>
-    '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+    fmtDayMonthYear(d);
 
 /// Relatório em texto para enviar ao aluno ou guardar.
 String studentReport(Student s, {bool? flats = false}) {

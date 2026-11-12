@@ -253,7 +253,7 @@ class HubSection extends StatelessWidget {
     String two(int n) => n.toString().padLeft(2, '0');
     final day = DateTime(d.year, d.month, d.day).difference(DateTime(now.year, now.month, now.day)).inDays;
     final wd = [tr('Seg'), tr('Ter'), tr('Qua'), tr('Qui'), tr('Sex'), tr('Sáb'), tr('Dom')];
-    final label = day == 0 ? tr('Hoje') : (day == 1 ? tr('Amanhã') : '${wd[d.weekday - 1]} ${two(d.day)}/${two(d.month)}');
+    final label = day == 0 ? tr('Hoje') : (day == 1 ? tr('Amanhã') : '${wd[d.weekday - 1]} ${fmtDayMonth(d)}');
     return '$label · ${two(d.hour)}:${two(d.minute)}';
   }
 

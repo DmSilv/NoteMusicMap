@@ -151,7 +151,7 @@ class _AgendaPageState extends State<AgendaPage> {
       out.add(Padding(
         padding: const EdgeInsets.only(top: 12, bottom: 4),
         child: Row(children: [
-          Text('${_dow[i]}, ${_two(d.day)}/${_two(d.month)}',
+          Text('${_dow[i]}, ${fmtDayMonth(d)}',
               style: TextStyle(
                   fontWeight: FontWeight.w800, color: isToday ? AppColors.accent : AppColors.text, fontSize: 14)),
           if (isToday)
@@ -187,7 +187,7 @@ class _AgendaPageState extends State<AgendaPage> {
         padding: const EdgeInsets.only(top: Ds.s20, bottom: Ds.s4),
         child: Row(children: [
           Expanded(
-            child: Text('${_dow[_picked.weekday - 1]}, ${_two(_picked.day)}/${_two(_picked.month)}',
+            child: Text('${_dow[_picked.weekday - 1]}, ${fmtDayMonth(_picked)}',
                 style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
           ),
           if (list.isNotEmpty) Text(tr('{0} aula{1}', [list.length, list.length == 1 ? '' : 's']), style: Ds.support()),
@@ -427,7 +427,7 @@ class _MyAgendaPageState extends State<MyAgendaPage> {
                   padding: const EdgeInsets.only(top: Ds.s20, bottom: Ds.s8),
                   child: Row(children: [
                     Expanded(
-                      child: Text('${_dow[shown.weekday - 1]}, ${_two(shown.day)}/${_two(shown.month)}',
+                      child: Text('${_dow[shown.weekday - 1]}, ${fmtDayMonth(shown)}',
                           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                     ),
                     if (list.isNotEmpty) Text(tr('{0} aula{1}', [list.length, list.length == 1 ? '' : 's']), style: Ds.support()),

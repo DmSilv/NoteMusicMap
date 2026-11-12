@@ -3315,14 +3315,22 @@ class AppState extends ChangeNotifier {
   void _applyLang() {
     final l = Lang.resolve(langPref, deviceLangTag);
     Lang.current = l;
+    Lang.setRegionFrom(deviceLangTag);
     langNotifier.value = l;
+    webPushSetLang(l.name);
   }
 
-  void setLangPref(String pref) {
-    langPref = const {'pt', 'en'}.contains(pref) ? pref : 'auto';
-    _prefs?.setString('lang', langPref);
+  /// Troca o idioma. Na web a página recarrega (tudo, inclusive listas guardadas na memória, nasce no idioma novo);
+  /// nos outros sistemas a troca vale na hora, nas telas que se refazem.
+  Future<void> setLangPref(String pref) async {
+    final next = const {'pt', 'en'}.contains(pref) ? pref : 'auto';
+    if (next == langPref) return;
+    final before = Lang.current;
+    langPref = next;
+    await _prefs?.setString('lang', langPref);
     _applyLang();
     notifyListeners();
+    if (Lang.current != before) reloadWebPage();
   }
 
   void cycleTheme() {

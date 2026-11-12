@@ -356,7 +356,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
             for (final f in folders) ...[
               ListTile(
                 leading: const DsIconBadge(Icons.folder_rounded, size: 36),
-                title: Text(tr('Pasta: {0}', [f])),
+                title: Text(tr('Pasta: {0}', [folderLabel(f)])),
                 subtitle: Text(tr('{0} material(is)', [items.where((i) => i.folder == f).length])),
                 onTap: () => choose(f, ''),
               ),

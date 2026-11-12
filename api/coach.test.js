@@ -117,6 +117,21 @@ test('o prompt do tipo vai como instrução e o texto do aluno como dado', async
   assert.equal(b.messages[1].role, 'user');
 });
 
+test('idioma da resposta: "en" pede inglês; sem o campo (app antigo) segue em português', async () => {
+  const f1 = fakeFetch();
+  await call(mk({ OPENAI_API_KEY: 'o' }, f1), req({}, { summary: SUMMARY, kind: 'question', lang: 'en' }));
+  const sys1 = JSON.parse(f1.calls[0].opts.body).messages[0].content;
+  assert.match(sys1, /Write the whole answer in English./);
+  const f2 = fakeFetch();
+  await call(mk({ OPENAI_API_KEY: 'o' }, f2), req({}, { summary: SUMMARY, kind: 'question' }));
+  assert.doesNotMatch(JSON.parse(f2.calls[0].opts.body).messages[0].content, /English/);
+  const f3 = fakeFetch();
+  await call(mk({ OPENAI_API_KEY: 'o' }, f3), req({}, { summary: SUMMARY, kind: 'question', lang: 'fr' }));
+  assert.doesNotMatch(JSON.parse(f3.calls[0].opts.body).messages[0].content, /English/);
+  assert.equal(_internal.validate({ summary: SUMMARY, lang: 'en' }).lang, 'en');
+  assert.equal(_internal.validate({ summary: SUMMARY }).lang, 'pt');
+});
+
 test('se um serviço falha ou está cheio, troca para o próximo', async () => {
   const f = fakeFetch({ gemini: () => fail(429) });
   const h = mk({ geminiAPI: 'g', GROQ_API_KEY: 'q' }, f);

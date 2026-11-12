@@ -159,16 +159,16 @@ class LinkService {
       try {
         j = (jsonDecode(r.body) as Map).cast<String, dynamic>();
       } catch (_) {}
-      if (r.statusCode == 503 || r.statusCode == 404) return LinkReply(unavailable: true, error: j['message'] as String?);
+      if (r.statusCode == 503 || r.statusCode == 404) return LinkReply(unavailable: true, error: trOrNull(j['message'] as String?));
       if (r.statusCode == 409 && j['error'] == 'student_not_ready') {
-        return LinkReply(notReady: true, error: j['message'] as String?);
+        return LinkReply(notReady: true, error: trOrNull(j['message'] as String?));
       }
       if (r.statusCode != 200) {
         // 5xx: servidor com problema, tentar depois. 4xx: o pedido foi recusado de vez.
         return LinkReply(
             offline: r.statusCode >= 500,
             rejected: r.statusCode >= 400 && r.statusCode < 500 && r.statusCode != 429,
-            error: (j['error'] as String?) ?? tr('Não foi possível vincular.'));
+            error: trOrNull(j['error'] as String?) ?? tr('Não foi possível vincular.'));
       }
       List<LinkedPerson> list(Object? v) => [for (final x in (v as List? ?? const [])) ?LinkedPerson.tryFrom(x)];
       return LinkReply(

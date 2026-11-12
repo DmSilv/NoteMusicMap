@@ -12,7 +12,7 @@ String _two(int n) => n.toString().padLeft(2, '0');
 final _dow = [tr('seg'), tr('ter'), tr('qua'), tr('qui'), tr('sex'), tr('sáb'), tr('dom')];
 
 /// "qui 12/11 · 15:00".
-String whenText(DateTime d) => '${_dow[d.weekday - 1]} ${_two(d.day)}/${_two(d.month)} · ${_two(d.hour)}:${_two(d.minute)}';
+String whenText(DateTime d) => '${_dow[d.weekday - 1]} ${fmtDayMonth(d)} · ${_two(d.hour)}:${_two(d.minute)}';
 
 Future<T?> _sheet<T>(BuildContext context, WidgetBuilder builder) => showModalBottomSheet<T>(
       context: context,
@@ -136,7 +136,7 @@ class _MoveBodyState extends State<_MoveBody> {
     final t = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: to.hour, minute: to.minute),
-      helpText: tr('Novo horário'),
+      helpText: tr('Novo horário@@hora'),
       builder: (c, child) => MediaQuery(data: MediaQuery.of(c).copyWith(alwaysUse24HourFormat: true), child: child!),
     );
     if (t != null) {
@@ -165,10 +165,10 @@ class _MoveBodyState extends State<_MoveBody> {
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
         _header(Icons.event_repeat_rounded, tr('Remarcar esta aula'), '${widget.who} · ${whenText(widget.from)}'),
         const SizedBox(height: Ds.s20),
-        Text(tr('Novo horário'), style: Ds.section()),
+        Text(tr('Novo horário@@hora'), style: Ds.section()),
         const SizedBox(height: Ds.s8),
         Row(children: [
-          Expanded(child: DsPickTile(icon: Icons.event, label: tr('Dia'), value: '${_dow[to.weekday - 1]}, ${_two(to.day)}/${_two(to.month)}/${to.year}', onTap: _pickDate)),
+          Expanded(child: DsPickTile(icon: Icons.event, label: tr('Dia'), value: '${_dow[to.weekday - 1]}, ${fmtDayMonthYear(to)}', onTap: _pickDate)),
           const SizedBox(width: Ds.s12),
           SizedBox(width: 112, child: DsPickTile(icon: Icons.schedule, label: tr('Hora'), value: '${_two(to.hour)}:${_two(to.minute)}', onTap: _pickTime)),
         ]),

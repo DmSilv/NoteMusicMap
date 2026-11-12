@@ -57,7 +57,7 @@ const Map<String, String> kEnB00 = {
   'Choca com a aula de {0} ({1}). Escolha outro horário.': 'Conflicts with the lesson of {0} ({1}). Pick another time.',
   'Limite de aulas marcadas atingido. Cancele algumas antigas.': 'Scheduled lessons limit reached. Cancel some old ones.',
   'Não foi possível avisar {0} da aula.': 'Couldn\'t notify {0} about the lesson.',
-  'Agenda do professor': 'Teacher\'s schedule',
+  'Agenda do professor': 'Schedule',
   'Publicar horário livre': 'Publish open slot',
   'Não foi possível publicar o horário: {0}': 'Couldn\'t publish the slot: {0}',
   'Horários livres': 'Open slots',
