@@ -82,7 +82,8 @@
 | `lib/ui/smooth_color.dart` | Transição suave de cor para os quadrados da grade e do ponteiro. |
 | `lib/ui/status_strip.dart` | Faixa fina logo abaixo da barra superior com os avisos que ficam ativos: microfone ouvindo e timer do Pomodoro. Só aparece quando há algo ativo, e os dois avisos ficam lado a lado, sem disputar espaço com o título e… |
 | `lib/ui/student_identity.dart` | Selo do vínculo online e campo do código do aluno, na ficha e na lista. |
-| `lib/ui/study_page.dart` | "Meu espaço": o foco é a AGENDA (próxima aula e o que vem depois). Embaixo, o estudo de hoje num bloco só (resumo + cronômetro); dados e gráficos ficam na tela "Evolução". |
+| `lib/ui/study_card.dart` | "Seu estudo": o tempo estudado hoje, os dias seguidos, a meta diária e o cronômetro/Pomodoro num cartão só. Mora na aba Metrônomo (onde a pessoa já está praticando); os dados e gráficos ficam na tela "Evolução". |
+| `lib/ui/study_page.dart` | "Meu espaço": o foco é a AGENDA (próxima aula e o que vem depois), os alunos, as tarefas e o acervo. O estudo (resumo, cronômetro e Pomodoro) mora na aba Metrônomo (`study_card.dart`). |
 | `lib/ui/study_timers.dart` | Bloco "Como você quer estudar?": submenu com Pomodoro, Cronômetro e Meu tempo, cada um com uma explicação curta de quando usar. |
 | `lib/ui/success_moment.dart` | "Momento de sucesso": uma folha que sobe de baixo com um ✓ desenhado, uma frase e um detalhe, e some sozinha. Serve para os poucos momentos em que algo importante deu certo (pegar um horário, marcar uma aula, enviar… |
 | `lib/ui/suggestions.dart` | Sugestões do app (não são avisos de aula): ficam no sino, não presas no topo da tela. Hoje: informar o apelido e instalar no celular. |
@@ -283,4 +284,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **240** arquivos mapeados.
+Total: **241** arquivos mapeados.

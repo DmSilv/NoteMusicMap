@@ -202,3 +202,6 @@ O aviso deixou de ser fixo em 15 minutos: o professor escolhe por aula (sem lemb
 - **Agenda:** **Remarcar**, **Trocar** e **Cancelar** ficam à vista em cada aula (antes eram itens do menu de três pontos); cancelar uma aula semanal pergunta se é só esta ou todas.
 - **Aluno faltou** (`lib/ui/agenda_actions.dart`, `absenceFlow`; modelo em `afina_core/lib/absence.dart`): segunda rota ao lado de "Começar a aula", com faltou sem avisar, avisou que não vem e quer remarcar. 9 testes no núcleo e 7 de tela.
 - **Alunos:** lista agrupada (Aula hoje, Para validar, Todos os outros), cartões com aula do dia em destaque e marca de faltas, botão flutuante "Novo aluno" e extras no menu do topo.
+
+## "Seu estudo" foi para o Metrônomo (novembro/2026)
+O bloco **Seu estudo** (tempo de hoje, dias seguidos, meta diária, cronômetro, Pomodoro e o link "Evolução") saiu do Meu espaço e agora fica na aba **Metrônomo**, abaixo do modo desafio (`lib/ui/study_card.dart`). O Meu espaço ficou só com agenda, alunos, tarefas, acervo e o convite de feedback. As pílulas de Pomodoro e relógio da faixa de cima agora levam ao Metrônomo.

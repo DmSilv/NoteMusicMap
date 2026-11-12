@@ -585,7 +585,7 @@ class _HomeShellState extends State<HomeShell> {
           child: Column(
             children: [
               // Microfone e Pomodoro ativos: faixa própria, longe do título.
-              StatusStrip(app: app, hideMic: !split && (_index == 0 || _index == 2 || _index == 3), onPomodoro: () => _go(4)),
+              StatusStrip(app: app, hideMic: !split && (_index == 0 || _index == 2 || _index == 3), onPomodoro: () => _go(kTabMetronome)),
               // Saudação com o apelido (ou convite para preencher), só nas telas principais.
               // Versão nova disponível (faixa fixa, com botão).
               UpdateBar(app: app),

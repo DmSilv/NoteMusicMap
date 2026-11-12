@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'safe_input.dart';
+import 'study_card.dart';
 import 'package:afina_core/afina_core.dart';
 import 'perf.dart';
 import 'design_system.dart';
@@ -236,6 +237,9 @@ class _MetronomePageState extends State<MetronomePage>
             ),
             const DsGap(Ds.sectionGap),
             _challengeQuick(m),
+            const DsGap(Ds.gap),
+            // Seu estudo: tempo de hoje, meta, cronômetro e Pomodoro (saiu do Meu espaço).
+            StudyCard(app: app),
             const DsGap(Ds.gap),
             SizedBox(width: double.infinity, child: DsSettingsButton(onPressed: _openSettings, label: 'Ajustes do metrônomo')),
           ],
