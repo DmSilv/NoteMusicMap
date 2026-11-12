@@ -44,7 +44,15 @@ class MetroBeat {
 
   /// O que o modo desafio faz neste compasso.
   final ChallengeKind challenge;
-  const MetroBeat(this.beat, this.bar, this.accent, {this.hidden = false, this.challenge = ChallengeKind.normal});
+
+  /// BPM que está tocando AGORA (o treino "Acelerar aos poucos" muda isso sozinho), e o que falta para o próximo aumento
+  /// (compassos ou segundos, conforme [trainerByTime]); [trainerAtMax] = já chegou ao teto.
+  final double bpm;
+  final double? trainerLeft;
+  final bool trainerByTime;
+  final bool trainerAtMax;
+  const MetroBeat(this.beat, this.bar, this.accent,
+      {this.hidden = false, this.challenge = ChallengeKind.normal, this.bpm = 0, this.trainerLeft, this.trainerByTime = false, this.trainerAtMax = false});
   static const idle = MetroBeat(-1, -1, Accent.weak);
 }
 
@@ -3657,6 +3665,10 @@ class AppState extends ChangeNotifier {
     _toursSeen = (p.getStringList('tours_seen') ?? const []).toSet();
     keepAwake = p.getBool('keepAwake') ?? true;
     showFreq = p.getBool('showFreq') ?? true;
+    trainerSeconds = (p.getInt('tr_sec') ?? 30).clamp(0, 600);
+    trainerBars = (p.getInt('tr_bars') ?? 4).clamp(1, 32);
+    trainerStep = (p.getDouble('tr_step') ?? 5).clamp(1, 20).toDouble();
+    trainerUp = (p.getDouble('tr_up') ?? 40).clamp(5, 280).toDouble();
     final bpm = p.getDouble('bpm') ?? 100;
     final beats = p.getInt('beats') ?? 4;
     final sub = p.getInt('sub') ?? 1;
@@ -4037,7 +4049,13 @@ class AppState extends ChangeNotifier {
       if (ev.sub == 0) last = ev;
     }
     if (last == null) return;
-    metroBeat.value = MetroBeat(last.beat, last.bar, last.accent, hidden: last.hidden, challenge: last.challenge);
+    metroBeat.value = MetroBeat(last.beat, last.bar, last.accent,
+        hidden: last.hidden,
+        challenge: last.challenge,
+        bpm: last.bpm,
+        trainerLeft: last.trainerLeft,
+        trainerByTime: last.trainerByTime,
+        trainerAtMax: last.trainerAtMax);
     // Várias de uma vez (o app ficou parado um instante): vibra uma vez só, no tempo mais recente.
     if (hapticEnabled && last.audible && !last.hidden) {
       buzz(ms: last.accent == Accent.strong ? 70 : 45);
@@ -4076,6 +4094,37 @@ class AppState extends ChangeNotifier {
 
   void setBpm(double bpm) =>
       setMetro(metro.copyWith(bpm: bpm.clamp(20, 320).roundToDouble()));
+
+  // ---------------- Acelerar aos poucos ----------------
+  /// Último jeito escolhido (fica no aparelho): segundos entre aumentos (0 = por compassos), compassos, quanto sobe e quanto
+  /// acima do BPM de partida fica o teto. Ao ligar o treino, ele já vem pronto assim.
+  int trainerSeconds = 30;
+  int trainerBars = 4;
+  double trainerStep = 5;
+  double trainerUp = 40;
+
+  /// O treino pronto para ligar, a partir do BPM da tela e do último jeito escolhido.
+  TempoTrainer trainerForNow() => TempoTrainer(
+        everyBars: trainerBars,
+        everySeconds: trainerSeconds,
+        stepBpm: trainerStep,
+        maxBpm: (metro.bpm + trainerUp).clamp(kTrainerMinBpm, kTrainerMaxBpm).toDouble(),
+      );
+
+  /// Liga (com o último jeito escolhido), muda ou desliga ([t] nulo) o "Acelerar aos poucos".
+  void setTrainer(TempoTrainer? t) {
+    if (t != null) {
+      trainerSeconds = t.everySeconds;
+      trainerBars = t.everyBars;
+      trainerStep = t.stepBpm;
+      trainerUp = (t.maxBpm - metro.bpm).clamp(t.stepBpm, 280).toDouble();
+      _prefs?.setInt('tr_sec', trainerSeconds);
+      _prefs?.setInt('tr_bars', trainerBars);
+      _prefs?.setDouble('tr_step', trainerStep);
+      _prefs?.setDouble('tr_up', trainerUp);
+    }
+    setMetro(metro.copyWith(trainer: t));
+  }
 
   void tapTempo() {
     final b = _tap.tap(DateTime.now().millisecondsSinceEpoch);

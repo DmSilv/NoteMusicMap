@@ -19,13 +19,32 @@ enum Accent { strong, medium, weak, mute }
 
 enum ClickSound { click, wood, beep, clave, drum }
 
+/// "Acelerar aos poucos": o andamento sobe sozinho até um teto.
+/// O aumento vem **a cada [everyBars] compassos** ou, se [everySeconds] for maior que zero, **a cada [everySeconds] segundos**
+/// (nesse caso [everyBars] é ignorado). O aumento sempre entra no começo de um compasso, para não quebrar o tempo no meio.
 class TempoTrainer {
-  /// A cada [everyBars] compassos soma [stepBpm], até [maxBpm].
   final int everyBars;
+  final int everySeconds;
   final double stepBpm;
   final double maxBpm;
-  const TempoTrainer(
-      {this.everyBars = 4, this.stepBpm = 4, this.maxBpm = 160});
+  const TempoTrainer({this.everyBars = 4, this.everySeconds = 0, this.stepBpm = 4, this.maxBpm = 160});
+
+  /// O aumento é por tempo (segundos) e não por compassos.
+  bool get byTime => everySeconds > 0;
+
+  TempoTrainer copyWith({int? everyBars, int? everySeconds, double? stepBpm, double? maxBpm}) => TempoTrainer(
+        everyBars: everyBars ?? this.everyBars,
+        everySeconds: everySeconds ?? this.everySeconds,
+        stepBpm: stepBpm ?? this.stepBpm,
+        maxBpm: maxBpm ?? this.maxBpm,
+      );
+
+  @override
+  bool operator ==(Object other) =>
+      other is TempoTrainer && other.everyBars == everyBars && other.everySeconds == everySeconds && other.stepBpm == stepBpm && other.maxBpm == maxBpm;
+
+  @override
+  int get hashCode => Object.hash(everyBars, everySeconds, stepBpm, maxBpm);
 }
 
 class SilentBars {
@@ -65,7 +84,7 @@ class MetronomeConfig {
     ],
     this.subdivisionMask = const [true],
     this.sound = ClickSound.click,
-    this.volume = 0.8,
+    this.volume = 1.0,
     this.countInBars = 0,
     this.trainer,
     this.silent,
@@ -145,8 +164,14 @@ class ClickEvent {
 
   /// O que o modo desafio está fazendo neste compasso (para a tela avisar).
   final ChallengeKind challenge;
+
+  /// "Acelerar aos poucos": quanto falta para o próximo aumento (compassos, ou segundos se [trainerByTime]); null sem treino,
+  /// na contagem inicial ou quando já chegou ao teto ([trainerAtMax]).
+  final double? trainerLeft;
+  final bool trainerByTime;
+  final bool trainerAtMax;
   const ClickEvent(this.sample, this.bar, this.beat, this.sub, this.accent,
-      this.audible, this.bpm, {this.hidden = false, this.challenge = ChallengeKind.normal});
+      this.audible, this.bpm, {this.hidden = false, this.challenge = ChallengeKind.normal, this.trainerLeft, this.trainerByTime = false, this.trainerAtMax = false});
 }
 
 class _Voice {
@@ -171,6 +196,7 @@ class MetronomeEngine {
   int _beat = 0;
   int _sub = 0;
   int _barsSinceStep = 0;
+  int _lastStepAt = 0; // amostra em que o treino de andamento deu o último aumento (ou começou)
 
   final List<_Voice> _voices = [];
   final List<ClickEvent> _events = [];
@@ -210,12 +236,18 @@ class MetronomeEngine {
   void update(MetronomeConfig cfg) {
     final bpmChanged = cfg.bpm != _cfg.bpm;
     final challengeChanged = cfg.challenge != _cfg.challenge;
+    final trainerChanged = cfg.trainer != _cfg.trainer;
     final beats = cfg.beatsPerBar;
     final subs = cfg.subdivision;
     _cfg = cfg;
-    if (bpmChanged) _baseBpm = cfg.bpm;
+    // Mexeu no BPM ou no treino: o andamento recomeça do que está na tela e a contagem do próximo aumento volta ao zero.
+    if (bpmChanged || trainerChanged) {
+      _baseBpm = cfg.bpm;
+      _barsSinceStep = 0;
+      _lastStepAt = _nextTick.round();
+    }
     if (challengeChanged) _setupChallenge();
-    if (bpmChanged || challengeChanged) _applyChallenge();
+    if (bpmChanged || challengeChanged || trainerChanged) _applyChallenge();
     if (_beat >= beats) _beat = 0;
     if (_sub >= subs) _sub = 0;
   }
@@ -252,47 +284,56 @@ class MetronomeEngine {
   Float32List _buildClick(ClickSound s, Accent a, bool isSub) {
     // Sons sintetizados: transiente de ruído (ataque) + parciais com
     // decaimento próprio (corpo). Determinístico (ruído com semente fixa).
-    // Todos terminam em < 60 ms.
+    // Feitos para SOAR ALTO: o que o ouvido percebe como volume é a ENERGIA, não o pico. Um clique de 30 ms tem pico alto e
+    // energia baixa, então soa fraco. Por isso cada som tem corpo mais longo (até ~80 ms), harmônicos acima de 300 Hz (o
+    // alto-falante do celular quase não reproduz o grave) e uma saturação suave (`drive`) que "enche" o sinal sem passar de 1,0.
+    // Medido com tool/metro_loudness.dart (sonoridade pela curva A).
     final k = a == Accent.strong ? 1.0 : (a == Accent.medium ? 0.84 : 0.70);
     final sub = isSub ? 0.85 : 1.0;
     // (razão, amplitude, decaimento em s)
     late List<(double, double, double)> parts;
-    late double base, noiseAmp, noiseDecay, dur;
+    late double base, noiseAmp, noiseDecay, dur, drive;
     var sweep = 0.0;
     var attackMs = 0.5;
     switch (s) {
       case ClickSound.click:
-        base = 1900 * k * sub;
-        parts = [(1, 1.0, 0.006), (2.0, 0.35, 0.003)];
-        noiseAmp = 0.7;
-        noiseDecay = 0.0015;
-        dur = 0.03;
+        base = 2200 * k * sub;
+        parts = [(1, 1.0, 0.014), (2.0, 0.5, 0.008), (3.0, 0.25, 0.005)];
+        noiseAmp = 0.8;
+        noiseDecay = 0.0035;
+        dur = 0.06;
+        drive = 3.2;
       case ClickSound.wood:
-        base = 820 * k * sub;
-        parts = [(1, 1.0, 0.018), (2.76, 0.55, 0.008), (5.4, 0.25, 0.004)];
-        noiseAmp = 0.3;
-        noiseDecay = 0.002;
-        dur = 0.055;
+        base = 900 * k * sub;
+        parts = [(1, 1.0, 0.03), (2.76, 0.7, 0.014), (5.4, 0.35, 0.007)];
+        noiseAmp = 0.35;
+        noiseDecay = 0.003;
+        dur = 0.08;
+        drive = 2.6;
       case ClickSound.clave:
-        base = 2400 * k * sub;
-        parts = [(1, 1.0, 0.012), (1.5, 0.3, 0.006)];
-        noiseAmp = 0.2;
-        noiseDecay = 0.0015;
-        dur = 0.05;
+        base = 2500 * k * sub;
+        parts = [(1, 1.0, 0.022), (1.5, 0.4, 0.012), (2.5, 0.2, 0.006)];
+        noiseAmp = 0.25;
+        noiseDecay = 0.0025;
+        dur = 0.07;
+        drive = 2.6;
       case ClickSound.beep:
-        base = 880 * k * sub;
-        parts = [(1, 1.0, 0.03), (2.0, 0.2, 0.02)];
+        base = 1000 * k * sub;
+        parts = [(1, 1.0, 0.05), (2.0, 0.35, 0.03), (3.0, 0.15, 0.02)];
         noiseAmp = 0.0;
         noiseDecay = 0.001;
-        dur = 0.055;
+        dur = 0.08;
         attackMs = 3;
+        drive = 2.0;
       case ClickSound.drum:
-        base = 170 * k * sub;
-        parts = [(1, 1.0, 0.035)];
-        noiseAmp = 0.35;
-        noiseDecay = 0.002;
-        dur = 0.055;
-        sweep = 1.2;
+        // Grave ("tum") ainda existe, mas com harmônicos acima de 300 Hz para o alto-falante do celular reproduzir.
+        base = 260 * k * sub;
+        parts = [(1, 0.7, 0.06), (2.0, 1.0, 0.04), (3.2, 0.9, 0.025), (5.0, 0.5, 0.012)];
+        noiseAmp = 0.5;
+        noiseDecay = 0.003;
+        dur = 0.08;
+        sweep = 1.0;
+        drive = 2.6;
     }
     final n = (sampleRate * dur).round();
     final out = Float32List(n);
@@ -321,9 +362,13 @@ class MetronomeEngine {
       if (v.abs() > peak) peak = v.abs();
     }
     if (peak > 0) {
-      final g = 0.95 / peak;
+      // Normaliza para 1,0, aplica a saturação suave (tanh) e fecha em 0,98: o pico nunca passa de 1,0 e a energia sobe.
+      final norm = 1 / peak;
+      final th = (math.exp(2 * drive) - 1) / (math.exp(2 * drive) + 1); // tanh(drive)
       for (var i = 0; i < n; i++) {
-        out[i] *= g;
+        final x = out[i] * norm * drive;
+        final e2 = math.exp(2 * x);
+        out[i] = 0.98 * ((e2 - 1) / (e2 + 1)) / th;
       }
     }
     return out;
@@ -340,12 +385,22 @@ class MetronomeEngine {
       final muted = _isMuted(_bar) || _cb.muted;
       final accent = _accentFor(_beat, _sub);
       final audible = !muted && accent != Accent.mute;
-      _events.add(ClickEvent(at, _bar, _beat, _sub, accent, audible, _bpm, hidden: _cb.muted, challenge: _cb.kind));
+      final tr = _cfg.trainer;
+      final atMax = tr != null && _baseBpm >= tr.maxBpm;
+      double? left;
+      if (tr != null && !atMax && _bar >= 0) {
+        left = tr.byTime
+            ? math.max(0.0, (_lastStepAt + tr.everySeconds * sampleRate - at) / sampleRate)
+            : math.max(0, tr.everyBars - _barsSinceStep).toDouble();
+      }
+      _events.add(ClickEvent(at, _bar, _beat, _sub, accent, audible, _bpm,
+          hidden: _cb.muted, challenge: _cb.kind, trainerLeft: left, trainerByTime: tr?.byTime ?? false, trainerAtMax: atMax));
       if (audible) {
+        // O "um" continua mais forte (e mais agudo), mas as outras batidas também soam bem alto.
         final gain = switch (accent) {
           Accent.strong => 1.0,
-          Accent.medium => 0.8,
-          Accent.weak => _sub == 0 ? 0.6 : 0.4,
+          Accent.medium => 0.9,
+          Accent.weak => _sub == 0 ? 0.82 : 0.68,
           Accent.mute => 0.0,
         };
         _voices.add(_Voice(at, _wave(_cfg.sound, accent, _sub != 0), gain));
@@ -380,13 +435,25 @@ class MetronomeEngine {
     if (_beat < _cfg.beatsPerBar) return;
     _beat = 0;
     _bar++;
-    // Treino de andamento: só depois da contagem inicial.
+    if (_bar == 0) {
+      // Acabou a contagem inicial: o treino de andamento começa a contar daqui.
+      _barsSinceStep = 0;
+      _lastStepAt = _nextTick.round();
+    }
+    // Treino de andamento: só depois da contagem inicial, e o aumento só entra no começo de um compasso.
     final t = _cfg.trainer;
     if (t != null && _bar > 0) {
-      _barsSinceStep++;
-      if (_barsSinceStep >= t.everyBars) {
-        _barsSinceStep = 0;
-        _baseBpm = math.min(t.maxBpm, _baseBpm + t.stepBpm);
+      if (t.byTime) {
+        if (_baseBpm < t.maxBpm && _nextTick.round() - _lastStepAt >= t.everySeconds * sampleRate) {
+          _baseBpm = math.min(t.maxBpm, _baseBpm + t.stepBpm);
+          _lastStepAt = _nextTick.round();
+        }
+      } else {
+        _barsSinceStep++;
+        if (_barsSinceStep >= t.everyBars) {
+          _barsSinceStep = 0;
+          _baseBpm = math.min(t.maxBpm, _baseBpm + t.stepBpm);
+        }
       }
     }
     _applyChallenge(); // surpresas do modo desafio, sempre voltando ao andamento original

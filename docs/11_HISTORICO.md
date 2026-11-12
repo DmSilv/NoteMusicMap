@@ -211,3 +211,7 @@ A aba Metrônomo ganhou um seletor no topo: **Metrônomo** (padrão) e **Estudo 
 
 ## Painel do administrador no padrão do app (novembro/2026)
 O painel foi redesenhado com o design system do app: cores iguais (testadas contra `theme.dart`), escala de espaço de 8 em 8, cartões e janelas com os mesmos raios, abas com ícone e indicador que desliza, **uma frase de apoio em cada título** (38 ao todo), "Agora mesmo" antes de "Saúde do uso" na Visão geral, seletor de modo dos recursos em 4 botões iguais, estado do sistema numa linha que rola de lado no celular, janelas que sobem de baixo, avisos no estilo dos avisos do app e animações (entrada, barras, números que contam) que respeitam "reduzir movimento". Dados, ações e confirmações não mudaram. Teste novo: `api/admin_design.test.js` (6).
+
+## Metrônomo mais alto e "Acelerar aos poucos" refeito (novembro/2026)
+- **Volume:** sons reforçados (corpo mais longo, harmônicos para o alto-falante do celular, saturação suave, batidas fracas mais fortes) e volume padrão no máximo: **+9,4 dB** de sonoridade medida. Ferramenta nova: `packages/afina_core/tool/metro_loudness.dart`.
+- **Acelerar aos poucos:** saiu do modal de Ajustes (três barras, uma de 40 a 320 com 280 passos, e o BPM da tela nem mostrava a subida) para um **card na tela do metrônomo**, com ajustes em quatro perguntas simples (por tempo ou compassos, quanto aumentar, teto com − e +), resumo em frase e acompanhamento ao vivo. Novo: aumento **por tempo** (15 s a 2 min). 15 testes no núcleo e 9 de tela.

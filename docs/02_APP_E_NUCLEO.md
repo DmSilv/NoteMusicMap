@@ -38,6 +38,7 @@ Nada de Flutter nem `dart:io` (assim roda no navegador e nos testes de linha de 
 | Área | Módulos | O que decidem |
 |---|---|---|
 | Afinação e som | `tuning`, `pitch_detector` (McLeod), `tone_synth`, `metronome_engine`, `pedal`, `needle_spring`, `note_display`, `note_gate` | Matemática de afinação (igual, pitagórico, justo), detecção de altura, metrônomo por amostra exata, pedal, estabilização da nota exibida |
+| Acelerar aos poucos | `speed_trainer` (+ `TempoTrainer` em `metronome_engine`) | Aumento por tempo ou por compassos, resumo em frase, tempo até o teto e texto do acompanhamento ao vivo |
 | Grade e exercícios | `pitch_grid`, `scale_exercise`, `practice_coach`, `rhythm_challenge`, `system_guide` | Grade de entonação, escalas guiadas, orientações, modo desafio |
 | Estudo | `pomodoro`, `study_clock` | Temporizadores |
 | Identidade e entrada | `identity`, `input_guard` | Perfil, código com dígito verificador, limpeza de tudo que se digita/cola/lê de QR |
@@ -64,7 +65,7 @@ Pares `x.dart` (exporta) → `x_web.dart` (navegador) e `x_stub.dart` (celular/t
 | Tela | Arquivo | Notas |
 |---|---|---|
 | Afinador | `tuner_page.dart`, `pedal_view.dart`, `needle.dart` | Cordas soltas, cromático, Pedal |
-| Metrônomo | `metronome_page.dart` | Som, subdivisão, tap tempo, desafio |
+| Metrônomo | `metronome_page.dart`, `speed_trainer_card.dart`, `trainer_editor.dart` | Som, subdivisão, tap tempo, **Acelerar aos poucos** (card + ajustes em 4 perguntas), desafio |
 | Grade | `grid_page.dart`, `grid_board.dart`, `scale_exercise_page.dart` | Grade, escalas e arpejos |
 | Meu espaço | `study_page.dart` + `hub_section.dart` | Hub por visão (agenda, alunos, tarefas, acervo) |
 | Seu estudo | `study_card.dart` + `metro_section.dart` (aba Metrônomo) | Visão "Estudo e timers" da aba, escondida até a pessoa escolher no seletor do topo: tempo de hoje, dias seguidos, meta, cronômetro e Pomodoro; abre a Evolução |

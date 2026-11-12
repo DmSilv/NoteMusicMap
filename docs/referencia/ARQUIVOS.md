@@ -81,6 +81,7 @@
 | `lib/ui/share_sheet.dart` | Compartilhar o app (QR, copiar link, enviar) e o convite do professor. |
 | `lib/ui/slot_form_page.dart` | Formulário de aula marcada (aluno, dia, hora, duração, repetir, observação) com as regras de horário. |
 | `lib/ui/smooth_color.dart` | Transição suave de cor para os quadrados da grade e do ponteiro. |
+| `lib/ui/speed_trainer_card.dart` | "Acelerar aos poucos" na tela do metrônomo: liga e desliga num toque, mostra o resumo em frase e, tocando, mostra o BPM que subiu, quanto falta para o próximo aumento e o caminho até o teto. Os ajustes ficam numa… |
 | `lib/ui/status_strip.dart` | Faixa fina logo abaixo da barra superior com os avisos que ficam ativos: microfone ouvindo e timer do Pomodoro. Só aparece quando há algo ativo, e os dois avisos ficam lado a lado, sem disputar espaço com o título e… |
 | `lib/ui/student_identity.dart` | Selo do vínculo online e campo do código do aluno, na ficha e na lista. |
 | `lib/ui/study_card.dart` | "Seu estudo": o tempo estudado hoje, os dias seguidos, a meta diária e o cronômetro/Pomodoro num cartão só. Mora na aba Metrônomo (onde a pessoa já está praticando); os dados e gráficos ficam na tela "Evolução". |
@@ -95,6 +96,7 @@
 | `lib/ui/toast_kind.dart` | Tipos de aviso curto: o tipo define cor, ícone e quanto tempo fica na tela. |
 | `lib/ui/tour/start_card.dart` | "Comece por aqui": três passos para o professor novo (vincular, marcar aula, passar tarefa), com o progresso, um atalho para cada passo e o tutorial "Ver como funciona". Some sozinho quando tudo foi feito e dá para… |
 | `lib/ui/tour/tour.dart` | Tutorial guiado: escurece a tela, deixa um buraco redondo no botão e mostra uma caixinha com o que ele faz. Nunca é obrigatório (sempre tem "Pular") e nunca trava: se um botão não estiver na tela, o passo é pulado. O… |
+| `lib/ui/trainer_editor.dart` | Ajustes do "Acelerar aos poucos", em quatro perguntas simples e um resumo em frase: 1. Quando aumentar (por tempo ou por compassos), 2. Quanto aumentar, 3. Até quantos BPM, 4. "Fica assim: …". Só botões de escolha e… |
 | `lib/ui/transitions.dart` | Troca "sai e depois entra" para usar no `AnimatedSwitcher`. O padrão (fade cruzado) deixa os dois textos um em cima do outro por um instante, o que parece bagunçado. Aqui quem sai some depressa (e encolhe um pouco) e… |
 | `lib/ui/tuner_page.dart` | Aba Afinador: cordas soltas, cromático e Pedal; ponteiro, desvio, frequência, Lá de referência e tônica. |
 | `lib/ui/tuning_guide.dart` | Explicação didática do sistema de afinação escolhido, com a tabela de alvos da tônica (em Hz, contra a afinação igual) e botões para OUVIR cada nota. Aparece no Afinador (modo Cromático) e nas Configurações. |
@@ -138,6 +140,7 @@
 | `packages/afina_core/lib/practice_coach.dart` | Treinador: analisa o histórico de escalas e devolve orientações em português, como "Suas notas Mi estão ficando baixas: tente colocá-las um pouco mais altas". É uma análise por regras (estatística sobre as suas… |
 | `packages/afina_core/lib/rhythm_challenge.dart` | Modo desafio do metrônomo ("sabotagem"): de vez em quando, de surpresa, o andamento muda por alguns compassos ou o metrônomo fica mudo, e depois volta sempre ao andamento que a pessoa configurou. Serve para treinar a… |
 | `packages/afina_core/lib/scale_exercise.dart` | Exercício de escalas guiado (estilo "sistema de escalas" de Carl Flesch): o músico toca a escala subindo e descendo, em 1, 2 ou 3 oitavas, e o app acompanha nota por nota, medindo a afinação de cada uma. Dois jeitos… |
+| `packages/afina_core/lib/speed_trainer.dart` | Ajudantes do "Acelerar aos poucos": opções prontas, textos em linguagem simples e o tempo até o teto. Dart puro (sem Flutter), testado em test/speed_trainer_test.dart. |
 | `packages/afina_core/lib/start_checklist.dart` | "Comece por aqui": o que o professor novo precisa fazer para o app render (vincular, marcar aula, passar tarefa). Dart puro: o app diz o que já aconteceu e esta lógica diz o que falta e qual é o próximo passo. |
 | `packages/afina_core/lib/study_clock.dart` | Relógios de estudo: CRONÔMETRO (conta para cima) e MINUTERIA (conta para baixo até um tempo escolhido). Dart puro: o relógio de parede é passado de fora (ms), então dá para testar e para retomar depois de fechar o app. |
 | `packages/afina_core/lib/system_guide.dart` | Dados para explicar o "Sistema de afinação" na tela: para a tônica escolhida, qual é o ALVO de cada nota no sistema (igual, pitagórico ou justo) e quanto ele difere do temperamento igual, em Hz. Dart puro e testável. |
@@ -186,6 +189,7 @@
 | `packages/afina_core/test/rhythm_challenge_test.dart` | Sorteia [n] compassos e devolve a decisão de cada um. |
 | `packages/afina_core/test/scale_coach_test.dart` | Passos de uma escala em que cada nota (pitch class) tem um viés fixo. |
 | `packages/afina_core/test/scale_flow_test.dart` | Sol maior, 1 oitava. |
+| `packages/afina_core/test/speed_trainer_test.dart` | Renderiza [seconds] segundos e devolve os eventos de "primeiro tempo" de cada compasso. |
 | `packages/afina_core/test/start_checklist_test.dart` | Testes do módulo `start_checklist`. |
 | `packages/afina_core/test/study_clock_test.dart` | Testes do módulo `study_clock`. |
 | `packages/afina_core/test/system_guide_test.dart` | em Hz, na oitava 4: Mi justo (5/4 de 261,626) = 327,03 Hz contra 329,63 do igual |
@@ -286,4 +290,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **243** arquivos mapeados.
+Total: **247** arquivos mapeados.

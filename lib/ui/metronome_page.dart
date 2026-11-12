@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import 'safe_input.dart';
 import 'metro_section.dart';
+import 'speed_trainer_card.dart';
 import 'study_card.dart';
 import 'package:afina_core/afina_core.dart';
 import 'perf.dart';
@@ -131,15 +132,23 @@ class _MetronomePageState extends State<MetronomePage>
                         padding: const EdgeInsets.symmetric(horizontal: 18),
                         child: GestureDetector(
                           onTap: () => _editBpm(context),
-                          child: Column(
-                            children: [
-                              Text(m.bpm.round().toString(),
-                                  semanticsLabel: '${m.bpm.round()} batidas por minuto',
-                                  style: const TextStyle(
-                                      fontSize: 84, fontWeight: FontWeight.w800, height: 1.0)),
-                              Text('BPM · ${tempoName(m.bpm)}',
-                                  style: TextStyle(color: AppColors.textDim)),
-                            ],
+                          // Acelerando: mostra o BPM que está tocando AGORA (e de onde partiu), não o de partida.
+                          child: ValueListenableBuilder<MetroBeat>(
+                            valueListenable: app.metroBeat,
+                            builder: (context, beat, _) {
+                              final live = m.trainer != null && app.metroRunning && beat.bar >= 0 && beat.bpm > 0;
+                              final shown = live ? beat.bpm : m.bpm;
+                              return Column(
+                                children: [
+                                  Text(shown.round().toString(),
+                                      semanticsLabel: '${shown.round()} batidas por minuto',
+                                      style: TextStyle(
+                                          fontSize: 84, fontWeight: FontWeight.w800, height: 1.0, color: live ? AppColors.accent : null)),
+                                  Text(live ? 'BPM · ${tempoName(shown)} · partiu de ${m.bpm.round()}' : 'BPM · ${tempoName(m.bpm)}',
+                                      style: TextStyle(color: AppColors.textDim)),
+                                ],
+                              );
+                            },
                           ),
                         ),
                       ),
@@ -253,6 +262,8 @@ class _MetronomePageState extends State<MetronomePage>
               ),
             ),
             const DsGap(Ds.sectionGap),
+            SpeedTrainerCard(app: app),
+            const DsGap(Ds.gap),
             _challengeQuick(m),
             const DsGap(Ds.gap),
             SizedBox(width: double.infinity, child: DsSettingsButton(onPressed: _openSettings, label: 'Ajustes do metrônomo')),
@@ -370,7 +381,7 @@ class _MetronomePageState extends State<MetronomePage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Treino de andamento e pulso',
+                  const Text('Contagem e pulso interno',
                       style: TextStyle(fontWeight: FontWeight.w700)),
                   ...[
                     const SizedBox(height: 8),
@@ -383,42 +394,6 @@ class _MetronomePageState extends State<MetronomePage>
                           onSelected: (_) => app.setMetro(m.copyWith(countInBars: n)),
                         ),
                     ]),
-                    const Divider(height: 24),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Acelerar aos poucos'),
-                      subtitle: Text(m.trainer == null
-                          ? 'Sobe o BPM automaticamente a cada alguns compassos'
-                          : 'A cada ${m.trainer!.everyBars} compassos: +${m.trainer!.stepBpm.round()} BPM, até ${m.trainer!.maxBpm.round()}'),
-                      value: m.trainer != null,
-                      onChanged: (v) => app.setMetro(m.copyWith(
-                          trainer: v
-                              ? TempoTrainer(
-                                  everyBars: 4,
-                                  stepBpm: 4,
-                                  maxBpm: (m.bpm + 40).clamp(40, 320))
-                              : null)),
-                    ),
-                    if (m.trainer != null) ...[
-                      _stepper('Compassos entre aumentos', m.trainer!.everyBars.toDouble(), 1, 16,
-                          (v) => app.setMetro(m.copyWith(
-                              trainer: TempoTrainer(
-                                  everyBars: v.round(),
-                                  stepBpm: m.trainer!.stepBpm,
-                                  maxBpm: m.trainer!.maxBpm)))),
-                      _stepper('Aumento (BPM)', m.trainer!.stepBpm, 1, 20,
-                          (v) => app.setMetro(m.copyWith(
-                              trainer: TempoTrainer(
-                                  everyBars: m.trainer!.everyBars,
-                                  stepBpm: v.roundToDouble(),
-                                  maxBpm: m.trainer!.maxBpm)))),
-                      _stepper('Teto (BPM)', m.trainer!.maxBpm, 40, 320,
-                          (v) => app.setMetro(m.copyWith(
-                              trainer: TempoTrainer(
-                                  everyBars: m.trainer!.everyBars,
-                                  stepBpm: m.trainer!.stepBpm,
-                                  maxBpm: v.roundToDouble())))),
-                    ],
                     const Divider(height: 24),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,

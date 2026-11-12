@@ -168,6 +168,10 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `toneVol` | app_state.dart |
 | `tonicPc` | app_state.dart |
 | `tours_seen` | app_state.dart |
+| `tr_bars` | app_state.dart |
+| `tr_sec` | app_state.dart |
+| `tr_step` | app_state.dart |
+| `tr_up` | app_state.dart |
 | `transpose` | app_state.dart |
 | `tunerMode` | app_state.dart |
 | `unlink_students` | app_state.dart |
@@ -177,4 +181,4 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `verdict_rev` | app_state.dart |
 | `verdicts` | app_state.dart |
 
-Total: **103** chaves locais.
+Total: **107** chaves locais.

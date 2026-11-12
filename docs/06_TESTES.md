@@ -50,3 +50,6 @@ O app de teste local (`http://localhost:...`) **não envia** estatísticas nem r
 4. Custo de Redis estimado/medido para qualquer ação nova.
 5. Contagem de funções em `api/` ≤ 12 (`ls api/*.js | grep -v test | wc -l`).
 6. **"Sim" explícito do dono**; depois do push, **não** ficar esperando o deploy (conferir só se houver problema).
+
+## Medir o volume do metrônomo
+`cd packages/afina_core && dart run tool/metro_loudness.dart` mostra, para cada som e acento, o pico, a energia e a **sonoridade** (energia pela curva A, a que melhor acompanha o que se escuta). Use antes e depois de mexer nos sons. Os testes `volume: o metrônomo soa ALTO` guardam o mínimo aceitável.

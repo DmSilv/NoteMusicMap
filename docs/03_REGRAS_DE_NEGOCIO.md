@@ -137,3 +137,13 @@ Só neste aparelho, na ficha do aluno (`Student.absences`, `packages/afina_core/
 
 ## 17. Tela de Alunos
 Lista agrupada do mais urgente ao resto: **Aula hoje**, **Para validar** e **Todos os outros** (cada aluno aparece uma vez; sem os dois primeiros grupos, a lista vem sem título). O botão **Novo aluno** é flutuante e sempre visível; **Ler QR**, **Importar**, **Meus métodos e lições** e **Senha desta tela** ficam no menu do topo.
+
+## 18. Metrônomo: volume e "Acelerar aos poucos"
+**Volume.** O que se escuta como volume é a **energia** do som, não o pico: um clique curto tem pico alto e energia baixa. Por isso os cinco sons têm corpo mais longo (até ~80 ms), harmônicos acima de 300 Hz (o alto-falante do celular quase não reproduz o grave do "tambor"), uma saturação suave que enche o sinal sem passar de 1,0, e as batidas fracas soam quase tão alto quanto a forte (o "um" continua mais agudo). O volume padrão é o máximo. Medido com `packages/afina_core/tool/metro_loudness.dart` (energia pela curva A): média de **−22,5 dB para −13,1 dB (+9,4 dB, cerca do dobro do que se escuta)**. Testes em `metronome_engine_test.dart` ("volume: o metrônomo soa ALTO") impedem voltar atrás.
+
+**Acelerar aos poucos** (card na tela do metrônomo; ajustes pelo botão **Ajustar**):
+1. **Quando aumentar:** por **tempo** (15 s, 30 s, 1 min, 2 min) ou por **compassos** (2, 4, 8, 16). O aumento sempre entra no começo de um compasso.
+2. **Quanto aumentar:** +1, +2, +5 ou +10 BPM. **Até quantos BPM:** teto com − e + de 5 em 5 e atalhos (BPM atual +20, +40, +60), limitado a 40–320.
+3. **Resumo em frase** antes de começar: "Começa em 100 BPM. A cada 30 segundos sobe 5 BPM, até 140 BPM. Chega lá em cerca de 4 min." Se o teto for menor ou igual ao BPM de partida, o resumo avisa.
+4. **Ao vivo:** o BPM grande mostra o que está tocando agora ("partiu de 100"), o card mostra "+10 BPM em 55 s" (ou "no próximo compasso"), uma barra até o próximo aumento e outra até o teto; ao chegar, "Chegou ao teto".
+5. A contagem só começa depois da contagem inicial. Mexer no BPM ou nos ajustes com o metrônomo tocando recomeça do BPM da tela. O último jeito escolhido fica no aparelho (padrão: por tempo, a cada 30 s, +5 BPM, teto = BPM + 40).

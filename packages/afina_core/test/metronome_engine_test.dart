@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:afina_core/metronome_engine.dart';
@@ -110,9 +111,49 @@ void main() {
     });
   });
 
+  group('volume: o metrônomo soa ALTO', () {
+    // Energia (RMS) dos 100 ms depois do clique, em dB. Medida com tool/metro_loudness.dart. Antes dos sons reforçados a energia
+    // ficava entre -16 e -25 dB; o ouvido percebe a energia (não o pico) como volume.
+    double energyDb(ClickSound snd, Accent acc) {
+      final cfg = MetronomeConfig.signature(4, bpm: 60, sound: snd).copyWith(accents: [acc, acc, acc, acc], volume: 1.0);
+      final buf = renderAll(MetronomeEngine(sr, cfg), sr, 512);
+      var sum = 0.0;
+      final n = (sr * 0.1).round();
+      for (var i = 0; i < n; i++) {
+        sum += buf[i] * buf[i];
+      }
+      return 10 * (math.log(sum / n + 1e-18) / math.ln10);
+    }
+
+    test('todo som, em qualquer acento, tem energia de pelo menos -14 dB (antes chegava a -25)', () {
+      for (final snd in ClickSound.values) {
+        for (final acc in [Accent.strong, Accent.medium, Accent.weak]) {
+          expect(energyDb(snd, acc), greaterThan(-14.0), reason: '${snd.name} ${acc.name}');
+        }
+      }
+    });
+
+    test('as batidas fracas ficam perto da forte (no máximo 4 dB abaixo): todas soam alto', () {
+      for (final snd in ClickSound.values) {
+        expect(energyDb(snd, Accent.strong) - energyDb(snd, Accent.weak), lessThan(4.0), reason: snd.name);
+      }
+    });
+
+    test('o volume padrão é o máximo e o pico continua dentro do limite', () {
+      expect(const MetronomeConfig().volume, 1.0);
+      final buf = renderAll(MetronomeEngine(sr, MetronomeConfig.signature(4, bpm: 120)), sr * 2, 512);
+      var peak = 0.0;
+      for (final s in buf) {
+        if (s.abs() > peak) peak = s.abs();
+      }
+      expect(peak, greaterThan(0.9), reason: 'o clique forte usa quase toda a faixa');
+      expect(peak, lessThanOrEqualTo(1.0));
+    });
+  });
+
   group('sons', () {
     for (final snd in ClickSound.values) {
-      test('${snd.name}: sem estalo, < 60 ms, sem clipping, todos os acentos', () {
+      test('${snd.name}: sem estalo, < 90 ms, sem clipping, todos os acentos', () {
         for (final acc in [Accent.strong, Accent.medium, Accent.weak]) {
           final cfg = MetronomeConfig.signature(4, bpm: 60, sound: snd)
               .copyWith(accents: [acc, acc, acc, acc], volume: 1.0);
@@ -124,8 +165,8 @@ void main() {
           }
           expect(peak, greaterThan(0.3), reason: '$snd $acc');
           expect(peak, lessThanOrEqualTo(1.0));
-          // depois de 60 ms, silêncio
-          for (var i = (sr * 0.06).round(); i < sr; i++) {
+          // depois de 90 ms, silêncio (o corpo mais longo é o que faz o som soar mais alto)
+          for (var i = (sr * 0.09).round(); i < sr; i++) {
             expect(buf[i], 0.0, reason: '$snd $acc amostra $i');
           }
         }
