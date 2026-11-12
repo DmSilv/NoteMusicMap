@@ -164,3 +164,6 @@ Aulas e horários livres ganham o modo **Presencial/Online** e o **link da sala*
 
 ## Controle da agenda do professor (novembro/2026)
 Novas ações no menu da aula: **Remarcar só esta aula** (aula semanal), **Trocar horário com outro aluno** e, na barra da agenda, **Pausar aulas** (férias). Dá para **trocar o aluno** de uma aula ao editar (o aluno anterior deixa de ver e é avisado). As mudanças são conferidas juntas (sem choque, sem passado) e aplicadas de uma vez; cada aluno afetado é avisado. Também corrigido: ao mudar o horário de uma regra semanal, as datas já canceladas passavam a apontar para o horário antigo. Pendência conhecida: os seletores de data do Flutter aparecem em inglês (o app não tem os textos em português do Flutter).
+
+## Painel: ativação, comparar agendas e acabamento (novembro/2026)
+Novo cartão **Ativação** na Visão geral (primeira vez de cada perfil em cada etapa), botão **Comparar agendas** em cada vínculo (professor × aluno: igual, falta, diferente ou sobra), "agora há X s" no topo e acabamento visual (transições, estados de foco e clique, esqueleto de carregamento). O intervalo do "agora" ficou em 30 s de propósito (custo). O funil só conta a partir da publicação desta versão.

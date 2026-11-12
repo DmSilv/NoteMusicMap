@@ -20,6 +20,8 @@
 //   indicators                 saúde do uso: notificações negadas, versões antigas, cota de IA, bloqueados, online
 //   push {op}                  avisos de bug grave neste navegador: status | sub {sub} | unsub {endpoint} | test
 //   presence                   quem está online agora (sinal nos últimos 12 min) e quem esteve há pouco
+//  funnel                     ativação: quantos perfis fizeram cada coisa pela primeira vez (vincular, marcar aula, enviar tarefa…)
+//  agenda_pair {code, other}  compara a agenda do professor (code) com a que o aluno (other) recebeu: o que falta ou sobra
 //  Recursos liberados aos poucos (docs/PLANO_AULA_ONLINE_AGENDA_ADMIN.md, seção 6):
 //   features                   um cartão por recurso: estado, % e quem está na lista
 //   feature_set {id, mode, pct?}        off | list | pct | all
@@ -427,6 +429,62 @@ function makeHandler(deps = {}) {
       }
 
       // Limpa agora os perfis abandonados (sem vínculo, sem dados e parados há 60 dias). Até 30 por toque.
+      // ---------------- Funil de ativação (primeira vez de cada perfil) ----------------
+      if (action === 'funnel') {
+        const [flat, created, teachers, students] = await cmd.pipeline([['HGETALL', 'fn:ms'], ['ZCARD', Z.last], ['ZCARD', Z.teach], ['ZCARD', Z.stud]]);
+        const h = Object.fromEntries(pairs(flat).map(([k, v]) => [k, v]));
+        const n = (k) => Number(h[k]) || 0;
+        return send(200, {
+          ok: true,
+          since: Number(h.since) || 0,
+          steps: [
+            { k: 'created', n: Number(created) || 0 },
+            { k: 'linked', n: n('linked') },
+            { k: 'klass', n: n('klass') },
+            { k: 'task', n: n('task') },
+            { k: 'pick', n: n('pick') },
+            { k: 'done', n: n('done') },
+          ],
+          teachers: Number(teachers) || 0,
+          students: Number(students) || 0,
+        });
+      }
+
+      // ---------------- Suporte: compara a agenda do professor com a que o aluno recebeu ----------------
+      if (action === 'agenda_pair') {
+        if (needCode()) return;
+        const other = String(b.other || '').toUpperCase();
+        if (!CODE_RE.test(other)) return send(400, { error: 'Código do aluno inválido.' });
+        const [made, got, links] = await Promise.all([store.hgetall(SL(code)), store.hgetall(SS(other)), store.hgetall(T(code))]);
+        const parse = (j) => { try { return JSON.parse(j); } catch (_) { return null; } };
+        const sig = (j) => [j.s, j.d, j.w ? 1 : 0, j.c ? 1 : 0, (j.x || []).join('.'), j.m || '', j.l ? 1 : 0].join('|');
+        const teacherSide = [];
+        for (const [id, j] of Object.entries(made)) {
+          const x = parse(j);
+          if (x && x.sc === other) teacherSide.push({ id, x });
+        }
+        const studentSide = [];
+        for (const [f, j] of Object.entries(got)) {
+          if (!f.startsWith(code + ':')) continue;
+          const x = parse(j);
+          if (x) studentSide.push({ id: f.slice(code.length + 1), x });
+        }
+        const sMap = new Map(studentSide.map((r) => [r.id, r.x]));
+        const tMap = new Map(teacherSide.map((r) => [r.id, r.x]));
+        const rows = [];
+        for (const { id, x } of teacherSide) {
+          const y = sMap.get(id);
+          rows.push({ id, start: x.s || 0, mins: x.d || 0, weekly: !!x.w, canceled: !!x.c, online: x.m === 'o', status: !y ? 'missing' : sig(x) === sig(y) ? 'same' : 'diff' });
+        }
+        for (const { id, x } of studentSide) {
+          if (!tMap.has(id)) rows.push({ id, start: x.s || 0, mins: x.d || 0, weekly: !!x.w, canceled: !!x.c, online: x.m === 'o', status: 'extra' });
+        }
+        rows.sort((p, q) => p.start - q.start);
+        let nameT = '', nameS = '';
+        try { nameS = String((parse(links[other]) || {}).n || ''); } catch (_) { /* ok */ }
+        return send(200, { ok: true, rows: rows.slice(0, 80), teacherCount: teacherSide.length, studentCount: studentSide.length, linked: links[other] !== undefined, studentName: nameS, teacherName: nameT });
+      }
+
       // ---------------- Recursos liberados aos poucos ----------------
       if (action === 'features') {
         const legacy = new Set((cfg.libraryTesters || []).map((c) => String(c).toUpperCase()));

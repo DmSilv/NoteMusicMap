@@ -30,6 +30,8 @@ Funções hoje: **8 de 12**.
   indicators                 saúde do uso: notificações negadas, versões antigas, cota de IA, bloqueados, online
   push {op}                  avisos de bug grave neste navegador: status | sub {sub} | unsub {endpoint} | test
   presence                   quem está online agora (sinal nos últimos 12 min) e quem esteve há pouco
+ funnel                     ativação: quantos perfis fizeram cada coisa pela primeira vez (vincular, marcar aula, enviar tarefa…)
+ agenda_pair {code, other}  compara a agenda do professor (code) com a que o aluno (other) recebeu: o que falta ou sobra
  Recursos liberados aos poucos (docs/PLANO_AULA_ONLINE_AGENDA_ADMIN.md, seção 6):
   features                   um cartão por recurso: estado, % e quem está na lista
   feature_set {id, mode, pct?}        off | list | pct | all
@@ -52,7 +54,9 @@ Custo: só quando o admin abre o painel (kpis ~35 comandos; lista de 25 = ~27; d
 | `library` | Acervo e Repertório (professores de teste) |
 | `library_hide` | — |
 | `visitors` | Visitantes (quem usa sem cadastro): divulgação e engajamento Custo: ~35 comandos por abertura da aba (7 dias de contadores + abas de hoje + 4 contagens). |
-| `features` | Limpa agora os perfis abandonados (sem vínculo, sem dados e parados há 60 dias). Até 30 por toque. Recursos liberados aos poucos |
+| `funnel` | Limpa agora os perfis abandonados (sem vínculo, sem dados e parados há 60 dias). Até 30 por toque. Funil de ativação (primeira vez de cada perfil) |
+| `agenda_pair` | Suporte: compara a agenda do professor com a que o aluno recebeu |
+| `features` | Recursos liberados aos poucos |
 | `feature_set` | — |
 | `feature_grant` | — |
 | `sweep` | — |

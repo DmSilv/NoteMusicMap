@@ -202,6 +202,19 @@ function makeHandler(deps = {}) {
 
     // Recursos liberados aos poucos (chaves no painel). LIBRARY_TESTERS continua valendo como ponto de partida do acervo.
     const legacy = new Set((cfg.libraryTesters || []).map(normCode).filter(Boolean));
+    // Funil de ativação: a PRIMEIRA vez que cada perfil faz cada coisa (1 gravação no perfil + 1 contador por perfil, uma vez só).
+    const MS = { linked: 1, klass: 2, task: 4, pick: 8, done: 16 };
+    const mileFor = async (code, p, key) => {
+      try {
+        const bit = MS[key];
+        const cur = Number(p && p.ms) || 0;
+        if (cur & bit) return;
+        if (p) p.ms = String(cur | bit);
+        await store.hset(U(code), 'ms', String(cur | bit));
+        await cmd.cmd(['HSETNX', 'fn:ms', 'since', String(clock())]);
+        await cmd.cmd(['HINCRBY', 'fn:ms', key, '1']);
+      } catch (_) { /* contador: nunca atrapalha a ação */ }
+    };
     // Aula online: recurso liberado por chave (aba Recursos). Sem a chave o servidor ignora modo e link novos.
     const canOnline = async (c, p) => features.isOn(await features.loadCfg(store, clock()), 'aula_online', c, p, null);
     // Mantém modo e link já guardados quando o pedido veio de um app antigo (sem a chave m) ou sem o recurso ligado.
@@ -552,6 +565,7 @@ function makeHandler(deps = {}) {
         await store.hset(U(me), 'sr', String(now));
         await store.hset(U(teacher), 'ar', String(now)); // o professor vê que um aluno pegou um horário
         await metric('pick');
+        await mileFor(me, prof, 'pick');
         const reminder = await scheduleNext(cfg, fetchImpl, teacher, me, cls, now);
         await metric('slot');
         return send(200, { ok: true, slot: cls, reminder });
@@ -601,6 +615,7 @@ function makeHandler(deps = {}) {
         await store.hset(U(student), 'sr', String(clock())); // o aluno vê que a agenda mudou
         const reminder = await scheduleNext(cfg, fetchImpl, me, student, slot, clock());
         await metric('slot');
+        await mileFor(me, prof, 'klass');
         return send(200, { ok: true, reminder });
       }
 
@@ -635,6 +650,7 @@ function makeHandler(deps = {}) {
           }
         }
         await store.hset(U(teacher), 'dr', String(clock())); // o professor vê que há novidade
+        await mileFor(me, prof, 'done');
         return send(200, { ok: true });
       }
 
@@ -697,6 +713,7 @@ function makeHandler(deps = {}) {
         }
         await store.hset(U(student), 'lr', String(clock())); // o aluno vê que há novidade
         await metric('lesson');
+        await mileFor(me, prof, 'task');
         return send(200, { ok: true });
       }
 
@@ -720,6 +737,8 @@ function makeHandler(deps = {}) {
           await profiles.setRole(cmd, student, 's', true, now);
           await metric('link', { field: 'links', by: 1 });
         }
+        await mileFor(me, prof, 'linked');
+        await mileFor(other, otherProf, 'linked');
         return send(200, { ok: true, created: !existed, other: { code: other, name: theirName } });
       }
 

@@ -90,6 +90,26 @@
     .journey .b { height: 8px; background: var(--card2); border-radius: 6px; margin-top: 5px; overflow: hidden; } .journey .b i { display: block; height: 100%; background: var(--accent); transition: width .6s; }
     .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--card2); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 14px; padding: 12px 18px; font-weight: 700; z-index: 99; max-width: 90vw; box-shadow: 0 8px 30px rgba(0,0,0,.4); }
     .toast.bad { border-left-color: var(--bad); }
+    /* movimento e estados (respeita "reduzir movimento") */
+    main { animation: tabIn .28s ease both; }
+    @keyframes tabIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .card { transition: border-color .15s, box-shadow .15s, transform .15s; }
+    .card:hover { border-color: #35505a; box-shadow: 0 6px 22px rgba(0,0,0,.25); }
+    button { transition: background .15s, border-color .15s, transform .08s, box-shadow .15s, filter .15s; }
+    button:hover:not(:disabled) { border-color: #3c5964; }
+    button:active:not(:disabled) { transform: scale(.98); }
+    button.primary:hover:not(:disabled) { filter: brightness(1.08); }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .skel { background: linear-gradient(90deg, var(--card2) 25%, #26343d 37%, var(--card2) 63%); background-size: 400% 100%; animation: shimmer 1.3s infinite; border-radius: 8px; color: transparent !important; min-height: 1em; }
+    @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+    #liveAge { color: var(--dim); font-size: 12px; }
+    .pair .row2 { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+    .pair .row2:first-child { border-top: 0; }
+    .pair .st { font-size: 11.5px; font-weight: 800; padding: 3px 9px; border-radius: 20px; border: 1px solid var(--line); white-space: nowrap; }
+    .pair .st.same { color: var(--accent); border-color: rgba(34,229,143,.5); }
+    .pair .st.missing, .pair .st.extra, .pair .st.diff { color: var(--warn); border-color: rgba(255,177,74,.55); }
+    .pair small { color: var(--dim); display: block; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
     /* recursos liberados aos poucos */
     .ffc { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; margin-bottom: 14px; animation: rise .3s ease both; }
     @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -176,6 +196,7 @@
       <button class="pill" id="healthPill" title="Saúde do app"><span class="dot" id="healthDot"></span><span id="healthTxt">Verificando…</span></button>
       <span class="pill" style="cursor:default"><span class="dot" id="dot"></span><span id="liveTxt">—</span></span>
       <button class="pill" id="sysPill" title="Banco de dados e limites"><span class="dot" id="sysDot"></span><span id="sysTxt">Sistema…</span></button>
+      <span id="liveAge" aria-live="off"></span>
       <button id="refresh">Atualizar</button>
       <button id="out">Sair</button>
     </header>
@@ -226,6 +247,9 @@
 
       <h2>Jornada do uso (30 dias) <button class="help" data-def="journey">?</button></h2>
       <div class="card journey" id="journey"></div>
+
+      <h2>Ativação: a primeira vez de cada perfil <button class="help" data-def="funnel">?</button></h2>
+      <div class="card journey" id="funnel"><div class="skel" style="height:90px"></div></div>
 
       <h2>Professor e aluno (7 dias × 7 dias anteriores) <button class="help" data-def="compare">?</button></h2>
       <div class="grid" id="cmpGrid"></div>
@@ -428,6 +452,7 @@
     active: ['Ativos', 'Perfis com atividade (qualquer pedido ao servidor) nos últimos 30 dias. "Inativos" são os que ficaram parados mais que isso.'],
     retention: ['Retorno D1 · D7 · D30', 'Entre quem entrou há pelo menos N dias, quantos voltaram a partir do dia N. Usa uma amostra dos últimos 90 dias; com poucos perfis o número oscila muito.'],
     cohorts: ['Retorno por semana de entrada', 'Cada linha é a semana em que os perfis entraram. As colunas mostram quantos % voltaram depois de 1, 7 e 30 dias. Células vazias (–) ainda não completaram esse prazo.'],
+    funnel: ['Ativação', 'Conta cada perfil UMA vez em cada etapa, a partir do dia em que este contador começou (antes disso não há registro). Mostra onde professores e alunos travam: criar o perfil, vincular, marcar a primeira aula, enviar a primeira tarefa, pegar um horário, concluir uma tarefa. As porcentagens são em relação aos perfis criados.'],
     journey: ['Jornada do uso', 'Os passos até o uso completo, nos últimos 30 dias. Cada passo usa uma unidade diferente (aparelhos, perfis, vínculos, aulas), então os números não são uma fila: servem para ver onde o uso afina.'],
     compare: ['Comparação de 7 dias', 'Soma dos últimos 7 dias contra a soma dos 7 dias anteriores. ▲ subiu, ▼ caiu, = igual.'],
     heatmap: ['Quando usam', 'Aberturas do app por dia da semana e hora (Brasília) nos últimos 30 dias; quanto mais claro, mais aberturas. Os dados por hora começaram a ser coletados depois da atualização do painel, então o mapa vai se completando.'],
@@ -717,6 +742,7 @@
     $('helloSub').textContent = fmt(t.users) + (t.users === 1 ? ' aparelho usou' : ' aparelhos usaram') + ' o app hoje' + (lastHealth ? ' · ' + (lastHealth.errorsToday ? fmt(lastHealth.errorsToday) + ' erro(s) registrado(s)' : 'nenhum erro registrado') : '') + '.';
   }
   function live(j) {
+    lastLiveAt = Date.now();
     setNum('on5', j.online5); $('on1').textContent = fmt(j.online1);
     $('dot').className = 'dot' + (j.online5 > 0 ? ' on' : ''); $('liveTxt').textContent = fmt(j.online5) + ' online';
   }
@@ -1030,6 +1056,8 @@
           var row = document.createElement('div'); row.className = 'item';
           var l = document.createElement('div'); l.textContent = (x.name || 'Sem apelido') + ' · ' + x.code;
           var sm = document.createElement('small'); sm.textContent = 'vinculado em ' + dt(x.since) + ' · ativo ' + ago(x.last); l.appendChild(sm);
+          var cmpB = document.createElement('button'); cmpB.textContent = 'Comparar agendas'; cmpB.style.marginRight = '6px';
+          cmpB.onclick = function () { if (as === 'teacher') openPair(code, x.code, x.name); else openPair(x.code, code, ''); };
           var bt = document.createElement('button'); bt.textContent = 'Encerrar vínculo';
           bt.onclick = function () {
             askConfirm({ title: 'Encerrar o vínculo?', body: code + ' e ' + x.code + (x.name ? ' (' + x.name + ')' : ''), facts: ['Aulas, tarefas e horários entre os dois somem.', 'Os dois recebem um aviso no app.', 'Não dá para desfazer.'], ok: 'Segure para encerrar', danger: true, hold: true }).then(function (y) {
@@ -1037,7 +1065,8 @@
             post({ action: 'unlink', code: code, other: x.code, as: as }).then(function (r2) { if (r2.status === 200) { toast('Vínculo encerrado.', 'ok'); loadKpis(); loadLog(); openDetail(code); } else failToast('encerrar o vínculo', r2); }).catch(offline);
             });
           };
-          row.appendChild(l); row.appendChild(bt); sec.appendChild(row);
+          var bw = document.createElement('div'); bw.appendChild(cmpB); bw.appendChild(bt);
+          row.appendChild(l); row.appendChild(bw); sec.appendChild(row);
         });
         box.appendChild(sec);
       }
@@ -1498,10 +1527,84 @@
       setUpd('Não foi possível atualizar agora (erro ' + r.status + '). Toque aqui para tentar de novo.', true); return true;
     }).catch(function () { setUpd('Sem conexão com o servidor. Toque aqui para tentar de novo.', true); return true; });
   }
+  // ---------------- Ativação (primeira vez de cada perfil) ----------------
+  var FN = {
+    created: ['📱', 'Perfis criados', 'todos os perfis'],
+    linked: ['🔗', 'Vincularam com alguém', 'criaram ou aceitaram um vínculo'],
+    klass: ['🗓️', 'Marcaram a 1ª aula', 'professores'],
+    task: ['📚', 'Enviaram a 1ª aula ou tarefa', 'professores'],
+    pick: ['✅', 'Pegaram um horário livre', 'alunos'],
+    done: ['🎯', 'Concluíram uma tarefa', 'alunos']
+  };
+  function loadFunnel() {
+    post({ action: 'funnel' }).then(function (r) {
+      var el = $('funnel'); if (!el) return;
+      if (r.status !== 200) { el.textContent = 'Não foi possível carregar: ' + why(r); return; }
+      el.innerHTML = '';
+      var base = Math.max(1, (r.j.steps[0] || {}).n || 1);
+      r.j.steps.forEach(function (x) {
+        var d = FN[x.k]; if (!d) return;
+        var row = document.createElement('div'); row.className = 'step';
+        var ico = document.createElement('div'); ico.className = 'ico'; ico.textContent = d[0];
+        var mid = document.createElement('div');
+        var t = document.createElement('div'); t.className = 't'; t.textContent = d[1];
+        var u = document.createElement('div'); u.className = 'u'; u.textContent = d[2];
+        var b = document.createElement('div'); b.className = 'b'; var i = document.createElement('i'); i.style.width = Math.max(2, Math.round((x.n / base) * 100)) + '%'; b.appendChild(i);
+        mid.appendChild(t); mid.appendChild(u); mid.appendChild(b);
+        var n = document.createElement('div'); n.className = 'n'; n.textContent = fmt(x.n) + (x.k === 'created' ? '' : ' · ' + Math.round((x.n / base) * 100) + '%');
+        row.appendChild(ico); row.appendChild(mid); row.appendChild(n); el.appendChild(row);
+      });
+      var note = document.createElement('div'); note.className = 'empty'; note.style.marginTop = '8px';
+      note.textContent = r.j.since ? 'Contando desde ' + dt(r.j.since) + '. Perfis que já tinham feito essas coisas antes não entram.' : 'Ainda não há registros: o contador começa na primeira ação depois desta versão.';
+      el.appendChild(note);
+    }).catch(function () {});
+  }
+
+  // Quanto tempo faz que o "agora" foi atualizado (só um relógio na tela, não consulta o servidor).
+  var lastLiveAt = 0;
+  setInterval(function () {
+    var el = $('liveAge'); if (!el) return;
+    if (!lastLiveAt) { el.textContent = ''; return; }
+    var s = Math.max(0, Math.round((Date.now() - lastLiveAt) / 1000));
+    el.textContent = 'agora há ' + (s < 60 ? s + ' s' : Math.floor(s / 60) + ' min');
+  }, 5000);
+
+  // ---------------- Comparar a agenda do professor com a do aluno ----------------
+  var PAIR_ST = { same: 'Igual nos dois lados', missing: 'Falta no aluno', diff: 'Diferente no aluno', extra: 'Sobra no aluno' };
+  function openPair(teacherCode, studentCode, studentName) {
+    post({ action: 'agenda_pair', code: teacherCode, other: studentCode }).then(function (r) {
+      if (r.status !== 200) { toast('Não foi possível comparar: ' + why(r), 'bad'); return; }
+      var back = document.createElement('div'); back.className = 'cfm-back'; back.setAttribute('role', 'dialog'); back.setAttribute('aria-modal', 'true');
+      var m = document.createElement('div'); m.className = 'cfm pair'; back.appendChild(m);
+      var h = document.createElement('h3'); h.textContent = 'Agenda: professor × ' + (studentName || studentCode); m.appendChild(h);
+      var bad = r.j.rows.filter(function (x) { return x.status !== 'same'; }).length;
+      var p = document.createElement('p'); p.className = 'why';
+      p.textContent = 'Professor: ' + r.j.teacherCount + ' aula(s) · aluno recebeu: ' + r.j.studentCount + (bad ? ' · ' + bad + ' diferença(s)' : ' · tudo igual') + (r.j.linked ? '' : ' · vínculo não encontrado');
+      m.appendChild(p);
+      var box = document.createElement('div'); m.appendChild(box);
+      if (!r.j.rows.length) { var e = document.createElement('div'); e.className = 'empty'; e.textContent = 'Nenhuma aula entre os dois.'; box.appendChild(e); }
+      r.j.rows.forEach(function (x) {
+        var row = document.createElement('div'); row.className = 'row2';
+        var st = document.createElement('span'); st.className = 'st ' + x.status; st.textContent = PAIR_ST[x.status];
+        var tx = document.createElement('div'); tx.textContent = dt(x.start) + ' · ' + x.mins + ' min' + (x.weekly ? ' · toda semana' : '') + (x.online ? ' · online' : '') + (x.canceled ? ' · cancelada' : '');
+        row.appendChild(st); row.appendChild(tx); box.appendChild(row);
+      });
+      var acts = document.createElement('div'); acts.className = 'acts'; m.appendChild(acts);
+      var ok = document.createElement('button'); ok.className = 'go'; ok.textContent = 'Fechar'; acts.appendChild(ok);
+      var done = false;
+      function close() { if (done) return; done = true; document.removeEventListener('keydown', onKey, true); back.classList.remove('on'); setTimeout(function () { if (back.parentNode) back.parentNode.removeChild(back); }, 220); }
+      function onKey(e2) { if (e2.key === 'Escape') { e2.preventDefault(); close(); } }
+      document.addEventListener('keydown', onKey, true);
+      ok.onclick = close; back.onclick = function (e3) { if (e3.target === back) close(); };
+      document.body.appendChild(back);
+      requestAnimationFrame(function () { back.classList.add('on'); ok.focus(); });
+    }).catch(function () { toast('Sem conexão com o servidor.', 'bad'); });
+  }
+
   function loadLive() { if (document.hidden) return; api('live').then(function (r) { if (r.status === 200) live(r.j); else fail(r.status); }).catch(function () {}); }
   function start() {
     show(true); loaded = {}; showTab('overview'); loaded.overview = true;
-    loadFull(); loadHealth(); loadKpis(); loadIndicators();
+    loadFull(); loadHealth(); loadKpis(); loadIndicators(); loadFunnel();
     post({ action: 'system' }).then(function (r) { if (r.status === 200) { sysState.sys = r.j; sysPillUpdate(); } }).catch(function () {});
     post({ action: 'costs' }).then(function (r) { if (r.status === 200) { sysState.costs = r.j; sysPillUpdate(); } }).catch(function () {});
     clearInterval(liveTimer); clearInterval(fullTimer);
@@ -1520,7 +1623,7 @@
     }).catch(function () { $('msg').textContent = 'Sem conexão com o servidor.'; });
   };
   $('key').onkeydown = function (e) { if (e.key === 'Enter') $('enter').onclick(); };
-  $('refresh').onclick = function () { loadFull(); loadHealth(); loadKpis(); loadIndicators(); if (current !== 'overview' && current !== 'usage') loadTab(current); };
+  $('refresh').onclick = function () { loadFull(); loadHealth(); loadKpis(); loadIndicators(); loadFunnel(); if (current !== 'overview' && current !== 'usage') loadTab(current); };
   $('out').onclick = function () { logout(''); };
   $('qGo').onclick = function () { query = $('q').value.trim(); offset = 0; loadList(); };
   $('q').onkeydown = function (e) { if (e.key === 'Enter') $('qGo').onclick(); };

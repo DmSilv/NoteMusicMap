@@ -27,6 +27,12 @@ Toda ação que altera algo abre um modal que sobe de baixo (função `askConfir
 ## Recursos (liberação aos poucos)
 Aba **Recursos**: um cartão por novidade (`api/_lib/features.js`). Estados: **Desligado** (vale para todos, inclusive quem está na lista, e chega em até 1 minuto), **Só liberados** (lista de códigos; no acervo, também os de `LIBRARY_TESTERS`), **Parte dos usuários** (1 a 99%, sempre os mesmos usuários, pelo código; a lista continua valendo) e **Todos**. Dá para liberar um código e, se o recurso vale para os alunos, **os alunos vinculados a ele** (até 200). Todas as mudanças passam pelo modal de confirmação (Todos e Desligado pedem digitar o nome do recurso) e entram no registro. Ações da API: `features`, `feature_set`, `feature_grant`, `feature_revoke`.
 
+## Ativação e acompanhamento (suporte)
+- **Ativação** (Visão geral): quantos perfis fizeram cada coisa **pela primeira vez** (criar o perfil, vincular, marcar a 1ª aula, enviar a 1ª aula ou tarefa, pegar um horário livre, concluir uma tarefa), com a porcentagem sobre os perfis criados. Cada perfil conta uma vez por etapa e só a partir do dia em que o contador começou (campo `ms` do perfil e hash `fn:ms`; custo: 3 comandos uma única vez por perfil e etapa, nada nas demais chamadas). Ação `funnel`.
+- **Comparar agendas** (detalhe do perfil, ao lado de cada vínculo): mostra as aulas do professor com aquele aluno e o que o aluno recebeu, marcando **Igual**, **Falta no aluno**, **Diferente no aluno** ou **Sobra no aluno**. Serve para achar "o aluno não recebeu a aula". Ação `agenda_pair`; não mostra link da aula.
+- **Idade do "agora"**: o topo mostra "agora há X s" (um relógio na tela, sem consultar o servidor). O "agora" continua atualizando a cada 30 s só com a aba à frente: 15 s dobraria o custo no Upstash.
+- Visual: abas com transição, cartões que reagem ao passar o mouse, botões com estados de foco e clique, esqueleto de carregamento (`.skel`); tudo respeita "reduzir movimento".
+
 ## Números: como são calculados
 - **Aparelhos** (HyperLogLog, erro ≈ 1%): distintos por janela. Um aparelho que abre 10 vezes conta 1. Quem limpa os dados ou reinstala conta como novo.
 - **Perfis**: quem ligou o vínculo online (índice `pf:*`); menos que os aparelhos.
