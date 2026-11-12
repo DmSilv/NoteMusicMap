@@ -258,3 +258,21 @@ test('o app não usa eval nem new Function: a política de segurança (CSP) do s
   assert.match(html, /window\.nmHardReset/);
   assert.match(html, /window\.nmUpdateApp/);
 });
+
+test('painel: toda ação que altera algo passa pela confirmação em modal (nada de confirm/prompt do navegador)', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const root = path.join(__dirname, '..');
+  const html = fs.readFileSync(path.join(root, 'web', 'admin.html'), 'utf8');
+  assert.doesNotMatch(html, /[^.\w]confirm\(|[^.\w]prompt\(/, 'use askConfirm(...) em vez de confirm()/prompt()');
+  // cada ação que muda dados tem uma chamada de askConfirm antes do post correspondente
+  const acoes = ['sweep', 'library_hide', 'unlink', 'support_code', 'support_cancel', 'agenda_del', 'unblock', 'delete', 'bug_status'];
+  for (const a of acoes) {
+    const i = html.indexOf(`action: '${a}'`) >= 0 ? html.indexOf(`action: '${a}'`) : html.indexOf(`'${a}'`);
+    assert.ok(i > 0, `ação ${a} não encontrada no painel`);
+    assert.match(html.slice(Math.max(0, i - 1500), i), /askConfirm\(/, `a ação ${a} precisa de askConfirm antes`);
+  }
+  // as ações sem volta pedem para segurar o botão ou digitar o código
+  assert.match(html, /hold: true/);
+  assert.match(html, /typed: code/);
+});

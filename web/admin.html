@@ -90,6 +90,27 @@
     .journey .b { height: 8px; background: var(--card2); border-radius: 6px; margin-top: 5px; overflow: hidden; } .journey .b i { display: block; height: 100%; background: var(--accent); transition: width .6s; }
     .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--card2); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 14px; padding: 12px 18px; font-weight: 700; z-index: 99; max-width: 90vw; box-shadow: 0 8px 30px rgba(0,0,0,.4); }
     .toast.bad { border-left-color: var(--bad); }
+    /* confirmação de ações: sobe de baixo, nunca é um clique só */
+    .cfm-back { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200; display: flex; align-items: flex-end; justify-content: center; opacity: 0; transition: opacity .2s; }
+    .cfm-back.on { opacity: 1; }
+    .cfm { width: min(480px, 100%); background: var(--card); border: 1px solid var(--line); border-radius: 22px 22px 0 0; padding: 22px 20px calc(22px + env(safe-area-inset-bottom)); transform: translateY(48px); transition: transform .28s cubic-bezier(.2,.9,.3,1); box-shadow: 0 -10px 40px rgba(0,0,0,.5); max-height: 92vh; overflow: auto; }
+    .cfm-back.on .cfm { transform: none; }
+    @media (min-width: 640px) { .cfm-back { align-items: center; } .cfm { border-radius: 22px; } }
+    .cfm .ic { width: 44px; height: 44px; border-radius: 14px; background: rgba(34,229,143,.14); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; margin-bottom: 10px; }
+    .cfm.danger .ic { background: rgba(255,107,107,.16); color: var(--bad); }
+    .cfm h3 { margin: 0 0 6px; font-size: 19px; letter-spacing: -.2px; color: var(--text); text-transform: none; }
+    .cfm .why { color: var(--dim); font-size: 14.5px; margin: 0 0 10px; }
+    .cfm ul { margin: 0 0 6px; padding: 0 0 0 18px; color: var(--text); font-size: 14px; }
+    .cfm li { margin: 3px 0; }
+    .cfm input { width: 100%; padding: 12px; margin-top: 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--card2); color: var(--text); font: inherit; font-weight: 700; letter-spacing: .5px; }
+    .cfm input.okk { border-color: var(--accent); }
+    .cfm .acts { display: flex; gap: 10px; margin-top: 18px; }
+    .cfm .acts button { flex: 1; min-height: 48px; font-weight: 700; border-radius: 14px; position: relative; overflow: hidden; }
+    .cfm .acts button.go { background: var(--accent); color: #062116; border-color: transparent; transition: opacity .2s, transform .1s; }
+    .cfm.danger .acts button.go { background: var(--bad); color: #2a0a0a; }
+    .cfm .acts button.go:active:not(:disabled) { transform: scale(.98); }
+    .cfm .acts button.go i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: rgba(255,255,255,.35); pointer-events: none; }
+    .cfm .hint { color: var(--dim); font-size: 12.5px; margin-top: 8px; min-height: 1.2em; }
     .flt { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
     .flt label { font-size: 12px; color: var(--dim); display: flex; flex-direction: column; gap: 3px; }
     .flt select, #devDays { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 8px; font-size: 13px; }
@@ -456,6 +477,54 @@
     return fetch('/api/admin', { method: 'POST', headers: { Authorization: 'Bearer ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify(body), cache: 'no-store' })
       .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) { return { status: r.status, j: j }; }); });
   }
+  /* Confirmação de ação. Nunca age em um clique só: o botão de confirmar só libera depois de ~0,7 s;
+     as ações irreversíveis pedem para segurar o botão (opts.hold) ou digitar o código (opts.typed).
+     Esc ou toque fora cancela. Devolve uma promessa com true (confirmou) ou false. */
+  function askConfirm(o) {
+    return new Promise(function (resolve) {
+      var back = document.createElement('div'); back.className = 'cfm-back'; back.setAttribute('role', 'dialog'); back.setAttribute('aria-modal', 'true');
+      var m = document.createElement('div'); m.className = 'cfm' + (o.danger ? ' danger' : ''); back.appendChild(m);
+      var ic = document.createElement('div'); ic.className = 'ic'; ic.textContent = o.danger ? '!' : '?'; m.appendChild(ic);
+      var h = document.createElement('h3'); h.textContent = o.title; m.appendChild(h);
+      if (o.body) { var p = document.createElement('p'); p.className = 'why'; p.textContent = o.body; m.appendChild(p); }
+      if (o.facts && o.facts.length) { var ul = document.createElement('ul'); o.facts.forEach(function (f) { var li = document.createElement('li'); li.textContent = f; ul.appendChild(li); }); m.appendChild(ul); }
+      var inp = null;
+      if (o.typed) { inp = document.createElement('input'); inp.type = 'text'; inp.autocomplete = 'off'; inp.autocapitalize = 'characters'; inp.placeholder = 'Digite ' + o.typed; inp.setAttribute('aria-label', 'Digite ' + o.typed + ' para confirmar'); m.appendChild(inp); }
+      var acts = document.createElement('div'); acts.className = 'acts'; m.appendChild(acts);
+      var no = document.createElement('button'); no.textContent = o.cancel || 'Cancelar'; acts.appendChild(no);
+      var go = document.createElement('button'); go.className = 'go'; go.disabled = true; acts.appendChild(go);
+      var fill = document.createElement('i'); go.appendChild(fill);
+      var lab = document.createElement('span'); lab.textContent = o.ok || 'Confirmar'; go.appendChild(lab);
+      var hint = document.createElement('div'); hint.className = 'hint'; m.appendChild(hint);
+      var armed = false, typedOk = !o.typed, done = false, holdStart = 0, holdTimer = null;
+      function refresh() { go.disabled = !(armed && typedOk); if (o.hold) hint.textContent = go.disabled ? '' : 'Segure o botão por 1,5 segundo para confirmar.'; }
+      var armT = setTimeout(function () { armed = true; refresh(); }, 700);
+      if (inp) inp.oninput = function () { typedOk = inp.value.trim().toUpperCase() === String(o.typed).toUpperCase(); inp.className = typedOk ? 'okk' : ''; refresh(); };
+      function close(v) {
+        if (done) return; done = true; clearTimeout(armT); clearInterval(holdTimer); document.removeEventListener('keydown', onKey, true);
+        back.classList.remove('on'); setTimeout(function () { if (back.parentNode) back.parentNode.removeChild(back); }, 220); resolve(v);
+      }
+      function onKey(e) {
+        if (e.key === 'Escape') { e.preventDefault(); close(false); return; }
+        if (o.hold && (e.key === ' ' || e.key === 'Enter') && document.activeElement === go && !go.disabled && !e.repeat) { e.preventDefault(); startHold(); }
+      }
+      function startHold() { clearInterval(holdTimer); holdStart = Date.now(); holdTimer = setInterval(function () { var k = Math.min(1, (Date.now() - holdStart) / 1500); fill.style.width = (k * 100) + '%'; if (k >= 1) { clearInterval(holdTimer); close(true); } }, 40); }
+      function stopHold() { clearInterval(holdTimer); fill.style.width = '0'; }
+      document.addEventListener('keydown', onKey, true);
+      no.onclick = function () { close(false); };
+      back.onclick = function (e) { if (e.target === back) close(false); };
+      if (o.hold) {
+        go.onpointerdown = function (e) { if (go.disabled) return; e.preventDefault(); startHold(); };
+        go.onpointerup = go.onpointerleave = go.onpointercancel = stopHold;
+        go.onkeyup = function (e) { if (e.key === ' ' || e.key === 'Enter') stopHold(); };
+        go.onclick = function (e) { e.preventDefault(); };
+      } else {
+        go.onclick = function () { if (!go.disabled) close(true); };
+      }
+      document.body.appendChild(back);
+      requestAnimationFrame(function () { back.classList.add('on'); no.focus(); });
+    });
+  }
   var toastT = null;
   function toast(msg, kind) {
     var t = $('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
@@ -682,10 +751,13 @@
     }).catch(function () {});
   }
   $('bSweep').onclick = function () {
-    post({ action: 'sweep' }).then(function (r) {
-      if (r.status === 200) { toast(r.j.removed ? fmt(r.j.removed) + ' perfil(is) abandonado(s) apagado(s).' : 'Nada para limpar agora.', 'ok'); loadIndicators(); }
-      else toast('Não foi possível limpar agora.', 'bad');
-    }).catch(function () { toast('Sem conexão.', 'bad'); });
+    askConfirm({ title: 'Limpar perfis abandonados?', body: 'Apaga só perfis vazios, parados há mais de 60 dias.', facts: ['Quem tem vínculo, aula ou tarefa não é apagado.', 'Não dá para desfazer.'], ok: 'Limpar agora', danger: true }).then(function (y) {
+      if (!y) return;
+      post({ action: 'sweep' }).then(function (r) {
+        if (r.status === 200) { toast(r.j.removed ? fmt(r.j.removed) + ' perfil(is) abandonado(s) apagado(s).' : 'Nada para limpar agora.', 'ok'); loadIndicators(); }
+        else toast('Não foi possível limpar agora.', 'bad');
+      }).catch(function () { toast('Sem conexão.', 'bad'); });
+    });
   };
   // ---------------- Exportar CSV (só no navegador: nada é enviado a lugar nenhum) ----------------
   function csvCell(v) {
@@ -735,6 +807,9 @@
     }).catch(function () {});
   }
   $('pushOn').onclick = function () {
+    askConfirm({ title: 'Ativar avisos neste navegador?', body: 'Este navegador passa a receber os avisos de bug grave.', ok: 'Ativar' }).then(function (y) { if (y) pushOnGo(); });
+  };
+  function pushOnGo() {
     if (!pushKey) { toast('Os avisos não estão configurados no servidor.', 'bad'); return; }
     Notification.requestPermission().then(function (perm) {
       if (perm !== 'granted') { toast('Sem permissão do navegador para notificar.', 'bad'); loadPush(); return; }
@@ -743,16 +818,22 @@
         .then(function (sub) { return post({ action: 'push', op: 'sub', sub: sub.toJSON() }); })
         .then(function (r2) { if (r2.status === 200) toast('Avisos ativados neste navegador.', 'ok'); else toast('Não foi possível ativar: ' + why(r2), 'bad'); loadPush(); loadLog(); });
     }).catch(function () { toast('Não foi possível ativar os avisos neste navegador.', 'bad'); });
-  };
+  }
   $('pushOff').onclick = function () {
+    askConfirm({ title: 'Desativar avisos neste navegador?', body: 'Você deixa de receber os avisos de bug grave aqui.', ok: 'Desativar' }).then(function (y) { if (y) pushOffGo(); });
+  };
+  function pushOffGo() {
     thisSub().then(function (sub) {
       if (!sub) { loadPush(); return; }
       return post({ action: 'push', op: 'unsub', endpoint: sub.endpoint }).then(function () { return sub.unsubscribe(); }).then(function () { toast('Avisos desativados neste navegador.', 'ok'); loadPush(); loadLog(); });
     }).catch(function () { toast('Não foi possível desativar.', 'bad'); });
-  };
+  }
   $('pushTest').onclick = function () {
-    post({ action: 'push', op: 'test' }).then(function (r) { if (r.status === 200) toast(r.j.sent ? 'Teste enviado. Deve chegar em instantes.' : 'Nenhum aparelho recebeu (inscrição expirada?). Desative e ative de novo.', r.j.sent ? 'ok' : 'bad'); else toast('Não foi possível enviar o teste: ' + why(r), 'bad'); }).catch(function () { toast('Sem conexão com o servidor.', 'bad'); });
+    askConfirm({ title: 'Enviar um aviso de teste?', body: 'Chega só aos navegadores com avisos ativados.', ok: 'Enviar teste' }).then(function (y) { if (y) pushTestGo(); });
   };
+  function pushTestGo() {
+    post({ action: 'push', op: 'test' }).then(function (r) { if (r.status === 200) toast(r.j.sent ? 'Teste enviado. Deve chegar em instantes.' : 'Nenhum aparelho recebeu (inscrição expirada?). Desative e ative de novo.', r.j.sent ? 'ok' : 'bad'); else toast('Não foi possível enviar o teste: ' + why(r), 'bad'); }).catch(function () { toast('Sem conexão com o servidor.', 'bad'); });
+  }
   function loadLibrary() {
     post({ action: 'library' }).then(function (r) {
       if (r.status !== 200) return;
@@ -765,7 +846,11 @@
         var d = document.createElement('div'); d.style.padding = '6px 0';
         var s = document.createElement('div'); s.textContent = x.title + ' (' + x.teacher + ') · ' + x.n + ' denúncia(s)' + (x.hidden ? ' · escondido' : ''); d.appendChild(s);
         var b = document.createElement('button'); b.textContent = x.hidden ? 'Mostrar de novo' : 'Esconder dos alunos';
-        b.onclick = function () { post({ action: 'library_hide', teacher: x.teacher, id: x.id, hide: !x.hidden }).then(function () { loadLibrary(); loadLog(); }); };
+        b.onclick = function () {
+          askConfirm({ title: x.hidden ? 'Mostrar de novo aos alunos?' : 'Esconder dos alunos?', body: x.title + ' (' + x.teacher + ')', facts: [x.hidden ? 'Os alunos voltam a ver este item.' : 'Os alunos deixam de ver. O professor continua vendo.', 'Dá para desfazer.'], ok: x.hidden ? 'Mostrar' : 'Esconder', danger: !x.hidden }).then(function (y) {
+            if (y) post({ action: 'library_hide', teacher: x.teacher, id: x.id, hide: !x.hidden }).then(function () { loadLibrary(); loadLog(); });
+          });
+        };
         d.appendChild(b); rp.appendChild(d);
       });
     }).catch(function () {});
@@ -833,8 +918,10 @@
           var sm = document.createElement('small'); sm.textContent = 'vinculado em ' + dt(x.since) + ' · ativo ' + ago(x.last); l.appendChild(sm);
           var bt = document.createElement('button'); bt.textContent = 'Encerrar vínculo';
           bt.onclick = function () {
-            if (!confirm('Encerrar o vínculo entre ' + code + ' e ' + x.code + '? Aulas, tarefas e horários entre os dois somem. Os dois recebem um aviso no app.')) return;
+            askConfirm({ title: 'Encerrar o vínculo?', body: code + ' e ' + x.code + (x.name ? ' (' + x.name + ')' : ''), facts: ['Aulas, tarefas e horários entre os dois somem.', 'Os dois recebem um aviso no app.', 'Não dá para desfazer.'], ok: 'Segure para encerrar', danger: true, hold: true }).then(function (y) {
+            if (!y) return;
             post({ action: 'unlink', code: code, other: x.code, as: as }).then(function (r2) { if (r2.status === 200) { toast('Vínculo encerrado.', 'ok'); loadKpis(); loadLog(); openDetail(code); } else failToast('encerrar o vínculo', r2); }).catch(offline);
+            });
           };
           row.appendChild(l); row.appendChild(bt); sec.appendChild(row);
         });
@@ -852,7 +939,8 @@
       var rb = document.createElement('div'); rb.className = 'toolbar';
       var gen = document.createElement('button'); gen.textContent = 'Gerar código de liberação';
       gen.onclick = function () {
-        if (!confirm('Gerar o código de liberação de ' + code + '? Quem tiver o código assume esta conta. Confirme que está falando com o dono.')) return;
+        askConfirm({ title: 'Gerar código de liberação?', body: 'Para ' + code, facts: ['Quem tiver o código assume esta conta.', 'Vale 24 horas e só uma vez.', 'Confirme que está falando com o dono.'], ok: 'Segure para gerar', danger: true, hold: true }).then(function (y) {
+        if (!y) return;
         post({ action: 'support_code', code: code }).then(function (r2) {
           if (r2.status !== 200) { failToast('gerar o código', r2); return; }
           loadLog();
@@ -861,11 +949,16 @@
           var ex = document.createElement('div'); ex.className = 'empty'; ex.textContent = 'Aparece só agora. Vale até ' + dt(r2.j.until) + ' e só uma vez.'; rel.appendChild(ex);
           var cp = document.createElement('button'); cp.textContent = 'Copiar código'; cp.onclick = function () { try { navigator.clipboard.writeText(r2.j.supportCode); toast('Código copiado.', 'ok'); } catch (e) { toast('Selecione e copie o código.', 'bad'); } }; rb.appendChild(cp);
         }).catch(offline);
+        });
       };
       rb.appendChild(gen);
       if (d.support.pendingUntil) {
         var cn = document.createElement('button'); cn.textContent = 'Cancelar código pendente';
-        cn.onclick = function () { post({ action: 'support_cancel', code: code }).then(function (r2) { if (r2.status === 200) { toast('Código cancelado.', 'ok'); loadLog(); openDetail(code); } else failToast('cancelar', r2); }).catch(offline); };
+        cn.onclick = function () {
+          askConfirm({ title: 'Cancelar o código pendente?', body: 'A pessoa não poderá mais usá-lo.', ok: 'Cancelar código', danger: true }).then(function (y) {
+            if (y) post({ action: 'support_cancel', code: code }).then(function (r2) { if (r2.status === 200) { toast('Código cancelado.', 'ok'); loadLog(); openDetail(code); } else failToast('cancelar', r2); }).catch(offline);
+          });
+        };
         rb.appendChild(cn);
       }
       rel.appendChild(rb); box.appendChild(rel);
@@ -882,8 +975,10 @@
         var l = document.createElement('div'); l.textContent = label; var sm = document.createElement('small'); sm.textContent = sub; l.appendChild(sm);
         var bt = document.createElement('button'); bt.className = 'danger'; bt.textContent = 'Apagar';
         bt.onclick = function () {
-          if (!confirm('Apagar este item da agenda? Não dá para desfazer. Quem estiver nele recebe um aviso no app.')) return;
-          onDel().then(function (r2) { if (r2.status === 200) { toast('Item apagado.', 'ok'); loadLog(); av.onclick(); } else failToast('apagar', r2); }).catch(offline);
+          askConfirm({ title: 'Apagar este item da agenda?', body: label + ' · ' + sub, facts: ['Quem estiver nele recebe um aviso no app.', 'Não dá para desfazer.'], ok: 'Segure para apagar', danger: true, hold: true }).then(function (y) {
+            if (!y) return;
+            onDel().then(function (r2) { if (r2.status === 200) { toast('Item apagado.', 'ok'); loadLog(); av.onclick(); } else failToast('apagar', r2); }).catch(offline);
+          });
         };
         row.appendChild(l); row.appendChild(bt); return row;
       }
@@ -903,15 +998,18 @@
       var bar = document.createElement('div'); bar.className = 'toolbar'; bar.style.marginTop = '14px';
       var bb = document.createElement('button'); bb.textContent = d.profile.blocked ? 'Liberar' : 'Bloquear';
       bb.onclick = function () {
-        if (!d.profile.blocked && !confirm('Bloquear ' + code + '? O vínculo online dele para de funcionar.')) return;
         var was = d.profile.blocked;
+        askConfirm({ title: was ? 'Liberar este perfil?' : 'Bloquear este perfil?', body: code, facts: was ? ['O vínculo online dele volta a funcionar.'] : ['O vínculo online dele para de funcionar.', 'Dá para liberar de novo depois.'], ok: was ? 'Liberar' : 'Bloquear', danger: !was }).then(function (y) {
+        if (!y) return;
         post({ action: was ? 'unblock' : 'block', code: code }).then(function (r) { if (r.status === 200) { toast(code + (was ? ' liberado.' : ' bloqueado: o vínculo online dele parou.'), 'ok'); closeDetail(); loadList(); loadLog(); } else toast('Não foi possível ' + (was ? 'liberar' : 'bloquear') + ': ' + why(r), 'bad'); }).catch(function () { toast('Sem conexão com o servidor. Nada foi alterado.', 'bad'); });
+        });
       };
       var del = document.createElement('button'); del.className = 'danger'; del.textContent = 'Excluir dados';
       del.onclick = function () {
-        var t = prompt('Isto apaga o perfil, os vínculos e as aulas/tarefas dele no servidor. Não dá para desfazer.\nPara confirmar, digite o código: ' + code);
-        if (t === null) return;
-        post({ action: 'delete', code: code, confirm: t.trim() }).then(function (r2) { if (r2.status === 200) { toast('Dados de ' + code + ' apagados.', 'ok'); closeDetail(); loadKpis(); loadList(); loadLog(); } else toast('Não foi possível excluir: ' + why(r2), 'bad'); }).catch(function () { toast('Sem conexão com o servidor. Nada foi apagado.', 'bad'); });
+        askConfirm({ title: 'Excluir todos os dados?', body: code, facts: ['Apaga o perfil, os vínculos e as aulas e tarefas dele no servidor.', 'Não dá para desfazer.'], ok: 'Excluir dados', danger: true, typed: code }).then(function (y) {
+        if (!y) return;
+        post({ action: 'delete', code: code, confirm: code }).then(function (r2) { if (r2.status === 200) { toast('Dados de ' + code + ' apagados.', 'ok'); closeDetail(); loadKpis(); loadList(); loadLog(); } else toast('Não foi possível excluir: ' + why(r2), 'bad'); }).catch(function () { toast('Sem conexão com o servidor. Nada foi apagado.', 'bad'); });
+        });
       };
       var cl = document.createElement('button'); cl.textContent = 'Fechar'; cl.onclick = closeDetail;
       bar.appendChild(bb); bar.appendChild(del); bar.appendChild(cl); box.appendChild(bar); $('detail').hidden = false;
@@ -997,7 +1095,8 @@
       var bar = document.createElement('div'); bar.className = 'toolbar'; bar.style.marginTop = '12px';
       function act(label, status, cls) {
         var bt = document.createElement('button'); if (cls) bt.className = cls; bt.textContent = label;
-        bt.onclick = function () { post({ action: 'bug_status', fp: fp, status: status, note: ta.value }).then(function (r2) { if (r2.status === 200) { toast('Bug marcado como ' + status + '.', 'ok'); closeBug(); loadBugs(); loadHealth(); } else toast('Não foi possível salvar: ' + why(r2), 'bad'); }).catch(function () { toast('Sem conexão com o servidor. Nada foi salvo.', 'bad'); }); };
+        bt.onclick = function () { askConfirm({ title: 'Marcar o bug como ' + status + '?', body: 'A nota digitada fica salva junto.', ok: 'Marcar' }).then(function (y) { if (y) bugStatusGo(); }); };
+        function bugStatusGo() { post({ action: 'bug_status', fp: fp, status: status, note: ta.value }).then(function (r2) { if (r2.status === 200) { toast('Bug marcado como ' + status + '.', 'ok'); closeBug(); loadBugs(); loadHealth(); } else toast('Não foi possível salvar: ' + why(r2), 'bad'); }).catch(function () { toast('Sem conexão com o servidor. Nada foi salvo.', 'bad'); }); }
         bar.appendChild(bt);
       }
       act('Visto', 'seen'); act('Resolvido', 'resolved', 'primary'); act('Ignorar', 'ignored'); act('Reabrir', 'new');
