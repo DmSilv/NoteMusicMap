@@ -60,7 +60,7 @@ const cardOf = async (H, id) => (await adm(H, { action: 'features' })).json().it
 test('sem ninguém liberado: tudo desligado e os cartões aparecem no painel', async () => {
   const H = await setup();
   const r = (await adm(H, { action: 'features' })).json();
-  assert.deepEqual(r.items.map((x) => x.id), ['acervo', 'aula_online']);
+  assert.deepEqual(r.items.map((x) => x.id), ['acervo', 'aula_online', 'lembrete_escolha']);
   for (const c of r.items) { assert.equal(c.mode, 'list'); assert.equal(c.count, 0); }
   const s = await sync(H, PROF);
   assert.deepEqual(s.ff, []);

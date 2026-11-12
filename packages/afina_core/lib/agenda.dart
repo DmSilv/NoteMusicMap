@@ -43,8 +43,25 @@ bool isKnownMeetingLink(String? url) {
   return h.isNotEmpty && kKnownMeetHosts.any((k) => h == k || h.endsWith('.$k'));
 }
 
-/// Quanto tempo antes da aula chega o lembrete.
+/// Quanto tempo antes da aula chega o lembrete quando o professor não escolheu (padrão).
 const int kReminderMinutes = 15;
+
+/// Antecedências que o professor pode escolher para o lembrete de uma aula (minutos). 0 = sem lembrete; 1440 = um dia antes.
+const List<int> kRemindOptions = [0, 5, 10, 15, 30, 60, 120, 1440];
+
+/// Texto de uma antecedência: "15 minutos antes", "1 hora antes", "Sem lembrete".
+String remindLabel(int minutes) {
+  if (minutes <= 0) return 'Sem lembrete';
+  if (minutes >= 1440 && minutes % 1440 == 0) {
+    final d = minutes ~/ 1440;
+    return d == 1 ? '1 dia antes' : '$d dias antes';
+  }
+  if (minutes >= 60 && minutes % 60 == 0) {
+    final h = minutes ~/ 60;
+    return h == 1 ? '1 hora antes' : '$h horas antes';
+  }
+  return '$minutes minutos antes';
+}
 
 const int kMinSlotMinutes = 15;
 const int kMaxSlotMinutes = 240;
@@ -87,6 +104,9 @@ class ClassSlot {
   /// Link da sala (só com [mode] online; pode ficar vazio e ser posto depois).
   final String link;
 
+  /// Lembrete: quantos minutos antes avisar (um valor de [kRemindOptions]); null = o padrão ([kReminderMinutes]).
+  final int? remindMin;
+
   /// PROFESSOR: ainda precisa ser enviada ao servidor (false = já foi, null = não se aplica).
   final bool? pending;
 
@@ -105,7 +125,11 @@ class ClassSlot {
     this.pending,
     this.mode = kModeNone,
     this.link = '',
+    this.remindMin,
   });
+
+  /// Antecedência do lembrete desta aula, em minutos (0 = sem lembrete).
+  int get remindLead => remindMin ?? kReminderMinutes;
 
   bool get online => mode == kModeOnline;
   bool get hasLink => online && link.isNotEmpty;
@@ -124,6 +148,7 @@ class ClassSlot {
     Object? pending = _keep,
     String? mode,
     String? link,
+    int? remindMin,
   }) =>
       ClassSlot(
         id: id,
@@ -140,6 +165,7 @@ class ClassSlot {
         pending: identical(pending, _keep) ? this.pending : pending as bool?,
         mode: mode ?? this.mode,
         link: link ?? this.link,
+        remindMin: remindMin ?? this.remindMin,
       );
 
   /// Início da primeira ocorrência que começa em [afterMs] ou depois e não foi cancelada.
@@ -188,8 +214,8 @@ class ClassSlot {
     return out;
   }
 
-  /// Quando o lembrete da ocorrência que começa em [startOccurrenceMs] deve chegar.
-  static int reminderAt(int startOccurrenceMs) => startOccurrenceMs - kReminderMinutes * kMsMinute;
+  /// Quando o lembrete da ocorrência que começa em [startOccurrenceMs] deve chegar ([minutes]: antecedência; padrão 15).
+  static int reminderAt(int startOccurrenceMs, [int minutes = kReminderMinutes]) => startOccurrenceMs - minutes * kMsMinute;
 
   // ---------------- Disco e servidor ----------------
   /// Formato do servidor (e do aluno): sem os campos de controle do professor.
@@ -204,6 +230,7 @@ class ClassSlot {
         if (canceled) 'c': 1,
         if (mode != kModeNone) 'm': mode,
         if (mode == kModeOnline && link.isNotEmpty) 'l': link,
+        if (remindMin != null) 'r': remindMin,
       };
 
   Map<String, dynamic> toJson() => {
@@ -215,6 +242,12 @@ class ClassSlot {
       };
 
   static final _idRe = RegExp(r'^[a-z0-9]{2,40}$');
+
+  /// Só aceita as antecedências permitidas; qualquer outra coisa vira "padrão" (null).
+  static int? _remindFrom(Object? v) {
+    final n = v is num ? v.toInt() : null;
+    return n != null && kRemindOptions.contains(n) ? n : null;
+  }
 
   /// Lê (do disco ou do servidor) limpando e limitando tudo; null se inválido.
   static ClassSlot? tryFrom(Object? j, {String teacherCode = '', String teacherName = ''}) {
@@ -244,6 +277,7 @@ class ClassSlot {
         pending: m['p'] is bool ? m['p'] as bool : null,
         mode: m['m'] == kModeOnline ? kModeOnline : (m['m'] == kModeInPerson ? kModeInPerson : kModeNone),
         link: m['m'] == kModeOnline ? (meetingUrl(m['l'] as String?) ?? '') : '',
+        remindMin: _remindFrom(m['r']),
       );
     } catch (_) {
       return null;
@@ -372,6 +406,7 @@ SlotPlan planMoveOccurrence(ClassSlot slot, int occurrenceMs, int newStartMs, {r
       updatedMs: 0,
       mode: slot.mode,
       link: slot.link,
+      remindMin: slot.remindMin,
     ),
   ]);
 }

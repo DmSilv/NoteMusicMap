@@ -225,6 +225,15 @@ function makeHandler(deps = {}) {
       if (old && (!on || slot.m === undefined)) { if (old.m) slot.m = old.m; if (old.l) slot.l = old.l; }
       return slot;
     };
+    // Lembrete escolhido pelo professor (recurso por chave): sem a chave o servidor ignora r novo e mantém o que já havia.
+    const canRemind = async (c, p) => features.isOn(await features.loadCfg(store, clock()), 'lembrete_escolha', c, p, null);
+    const keepRemind = (slot, oldRaw, on) => {
+      let old = null;
+      try { old = oldRaw ? JSON.parse(oldRaw) : null; } catch (_) { old = null; }
+      if (!on) delete slot.r;
+      if (old && old.r !== undefined && (!on || slot.r === undefined)) slot.r = old.r;
+      return slot;
+    };
     const canLib = async (c) => (await features.many(cmd, store, 'acervo', [c], legacy, clock())).has(c);
     const b = readBody(req);
     if (!b) return send(400, { error: 'Corpo inválido.' });
@@ -510,6 +519,7 @@ function makeHandler(deps = {}) {
         }
         const oldRaw = await store.hget(AV(me), slot.id);
         keepOnline(slot, oldRaw, await canOnline(me, prof));
+        keepRemind(slot, oldRaw, await canRemind(me, prof));
         if (oldRaw === undefined) {
           if ((await store.hlen(AV(me))) >= MAX_AVAIL) return send(400, { error: 'Limite de horários disponíveis atingido.' });
           if ((await store.hget(TK(me), slot.id)) !== undefined) return send(409, { error: 'slot_taken', message: 'Este horário já foi pego.' });
@@ -554,6 +564,7 @@ function makeHandler(deps = {}) {
         if (open.w) cls.w = 1;
         if (open.n) cls.n = open.n;
         if (open.m) cls.m = open.m;
+        if (open.r !== undefined) cls.r = open.r;
         if (open.m === 'o') {
           // sem link no horário: usa o link padrão do professor, se ele tiver
           const dl = open.l ? open.l : cleanMeetUrl(await store.hget(U(teacher), 'ml'));
@@ -595,6 +606,7 @@ function makeHandler(deps = {}) {
         if (!slot) return send(400, { error: 'Aula marcada inválida.' });
         const oldRaw = await store.hget(SL(me), slot.id);
         keepOnline(slot, oldRaw, await canOnline(me, prof));
+        keepRemind(slot, oldRaw, await canRemind(me, prof));
         if (oldRaw !== undefined) {
           let old = null;
           try { old = JSON.parse(oldRaw); } catch (_) { /* ruim */ }

@@ -9,7 +9,7 @@ recurso novo atrás de chave e só publicar com o "Sim, publicar".
 |---|---|---|
 | Conferir o CI e o CodeQL no GitHub (primeira execução) | você olha, eu corrijo se ficar vermelho | os dois verdes |
 | Ligar *Secret scanning*, *Push protection* e proteger o `main` | você (GitHub › Settings) | ligado |
-| Painel › Recursos: confirmar os dois cartões e o acervo do Vinícius | você | ok |
+| Painel › Recursos: confirmar os três cartões (acervo, aula online, lembrete escolhido) e o acervo do Vinícius | você | ok |
 | Liberar **Aula online** só para o Vinícius (com os alunos dele) e usar de verdade por 1 semana | você + Vinícius | 3 aulas online com link, sem erro no painel |
 | Testar em **celular real** (Android e iPhone): vibração, abrir link da sala, tutorial, folha de sucesso | você | lista de problemas (se houver) |
 | Conferir se os **lembretes** (QStash e VAPID) estão ativos na Vercel | você; eu explico o que olhar | cartão da agenda deixa de dizer "Notificações ainda não disponíveis" |
@@ -33,7 +33,7 @@ Ordem por valor para quem dá aula, cada item atrás de uma chave em `Recursos`:
    conversa do WhatsApp. Reaproveita remarcar/trocar (já existem e são aplicados de uma vez).
 2. **Falta e reposição:** marcar "aluno faltou", gerar uma reposição (horário livre dedicado) e manter o histórico por aluno.
 3. **Visão de semana em grade** na agenda (hoje é lista) com toque longo para mover uma aula.
-4. **Lembrete com o link:** o aviso 15 min antes da aula online leva o botão "Entrar". Depende da Fase 0 (lembretes ativos).
+4. **Lembrete com o link:** o aviso da aula online leva o botão "Entrar". Depende da Fase 0 (lembretes ativos). O **tempo do aviso já é escolhido pelo professor** (feito, chave `lembrete_escolha`).
 5. **Tutorial do aluno** e dicas de primeiro uso (código, vincular, pegar horário), no mesmo mecanismo do tutorial do professor.
 6. **Acervo para todos os professores:** abrir pela chave em etapas (você → Vinícius → 10% → todos), depois de a revisão jurídica sair (Fase 4).
 
@@ -46,7 +46,7 @@ Ordem por valor para quem dá aula, cada item atrás de uma chave em `Recursos`:
   consultas mais espaçadas e contadores em lote.
 - **Suporte:** usar a ficha "Acompanhar" e "Comparar agendas"; anotar os problemas mais comuns para virar melhoria do app.
 
-## Fase 4: lojas e jurídico (quando as Fases 0 e 1 estiverem fechadas)
+## Fase 4: lojas e jurídico (adiada: o foco agora são os ajustes do app)
 Meta: Google Play (conta de desenvolvedor já existe). Passos, em ordem:
 1. Conferir o `AndroidManifest` de release (permissão de internet), `applicationId` definitivo e chave de assinatura (upload keystore guardada com segurança).
 2. **Página pública de política de privacidade** (a do app serve de base) e a ficha da loja (textos, capturas, ícone).

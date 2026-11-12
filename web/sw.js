@@ -55,8 +55,18 @@ async function redePrimeiro(req) {
 }
 
 // ---- Notificações de aula (Web Push) ----
-// O servidor manda { kind: 'lesson', role, start, who } 15 min antes da aula; o texto é montado
-// aqui, com a hora no fuso do aparelho.
+// O servidor manda { kind: 'lesson', role, start, who } com a antecedência que o professor escolheu (15 min se não escolheu);
+// o texto é montado aqui, com a hora no fuso do aparelho e o tempo que REALMENTE falta (não um número fixo).
+function lessonTitle(start, now) {
+  const mins = Math.round((start - now) / 60000);
+  if (mins <= 1) return 'Aula começando agora';
+  if (mins < 60) return `Aula em ${mins} minutos`;
+  if (mins < 23 * 60) {
+    const h = Math.round(mins / 60);
+    return h === 1 ? 'Aula em 1 hora' : `Aula em ${h} horas`;
+  }
+  return 'Aula amanhã';
+}
 self.addEventListener('push', (event) => {
   let d = {};
   try {
@@ -82,7 +92,7 @@ self.addEventListener('push', (event) => {
   const hhmm = new Date(Number(d.start)).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
   const who = typeof d.who === 'string' && d.who ? ` com ${d.who.slice(0, 40)}` : '';
   event.waitUntil(
-    self.registration.showNotification('Aula em 15 minutos', {
+    self.registration.showNotification(lessonTitle(Number(d.start), Date.now()), {
       body: `Aula${who} às ${hhmm}`,
       icon: '/icons/Icon-192.png',
       badge: '/icons/Icon-192.png',

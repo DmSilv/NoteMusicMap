@@ -7,7 +7,9 @@ const crypto = require('node:crypto');
 const MIN = 60 * 1000;
 const DAY = 24 * 60 * MIN;
 const WEEK = 7 * DAY;
-const REMINDER_MIN = 15;
+const REMINDER_MIN = 15; // padrão: aula sem o campo r (app antigo ou recurso desligado)
+/** Antecedências que o professor pode escolher, em minutos (0 = sem lembrete; 1440 = um dia antes). */
+const REMIND_OPTIONS = [0, 5, 10, 15, 30, 60, 120, 1440];
 const MAX_SKIPS = 30;
 const MAX_SLOTS = 400;
 const MAX_DELAY = 6 * DAY; // o plano grátis do QStash limita o atraso (~7 dias): agenda em passos de até 6
@@ -52,6 +54,11 @@ function cleanSlot(s, now) {
   // Aula online (recurso liberado por chave): m = 'o' online | 'p' presencial; sem a chave = app antigo (o servidor mantém o que já havia).
   if (s.m === 'o' || s.m === 'p') out.m = s.m;
   if (out.m === 'o') { const l = cleanMeetUrl(s.l); if (l) out.l = l; }
+  // Lembrete: quantos minutos antes avisar (recurso liberado por chave; sem o campo r vale o padrão de 15).
+  if (s.r !== undefined && s.r !== null) {
+    const r = Math.round(Number(s.r));
+    if (REMIND_OPTIONS.includes(r)) out.r = r;
+  }
   if (s.c === 1 || s.c === true) out.c = 1;
   return out;
 }
@@ -120,14 +127,16 @@ function remindersEnabled(cfg) {
 }
 
 /**
- * Agenda no QStash a próxima mensagem desta aula (15 min antes da próxima ocorrência).
- * Devolve 'scheduled' | 'off' | 'none' (sem próxima aula) | 'error'.
+ * Agenda no QStash a próxima mensagem desta aula (antes da próxima ocorrência: o tempo da aula, ou 15 min se não houver).
+ * Devolve 'scheduled' | 'off' | 'none' (sem próxima aula ou aula sem lembrete) | 'error'.
  */
 async function scheduleNext(cfg, fetchImpl, teacher, student, slot, nowMs, afterMs = nowMs) {
   if (!remindersEnabled(cfg)) return 'off';
+  const lead = REMIND_OPTIONS.includes(slot.r) ? slot.r : REMINDER_MIN;
+  if (lead === 0) return 'none'; // o professor escolheu aula sem lembrete
   const occ = nextStart(slot, afterMs);
   if (occ == null) return 'none';
-  const target = occ - REMINDER_MIN * MIN;
+  const target = occ - lead * MIN;
   let at = Math.max(target, nowMs + 5000);
   let kind = 'rem';
   if (at - nowMs > MAX_DELAY) {
@@ -179,6 +188,6 @@ function verifyQstashJwt(cfg, token, nowSec) {
 }
 
 module.exports = {
-  MIN, DAY, WEEK, REMINDER_MIN, MAX_SLOTS,
+  MIN, DAY, WEEK, REMINDER_MIN, REMIND_OPTIONS, MAX_SLOTS,
   cleanSlot, cleanMeetUrl, nextStart, occurrences, slotsOverlap, remindSig, validRemindSig, remindersEnabled, scheduleNext, verifyQstashJwt,
 };

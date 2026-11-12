@@ -29,6 +29,12 @@ const FEATURES = {
     scope: 'professor',
     students: true,
   },
+  lembrete_escolha: {
+    name: 'Lembrete escolhido pelo professor',
+    desc: 'O professor escolhe com quanto tempo de antecedência avisar cada aula (5 min a 1 dia, ou nenhum). Sem a chave, o aviso é 15 min antes.',
+    scope: 'professor',
+    students: true,
+  },
 };
 
 const MODES = ['off', 'list', 'pct', 'all'];

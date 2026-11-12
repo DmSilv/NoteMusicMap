@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import 'dictation_button.dart';
 import 'meeting_link.dart';
+import 'remind_field.dart';
 import 'open_slots_page.dart' show describeOpenSlot;
 import 'safe_input.dart';
 import 'student_identity.dart';
@@ -51,6 +52,8 @@ class _SlotFormPageState extends State<SlotFormPage> {
   late final note = TextEditingController(text: widget.edit?.note ?? '');
   late String mode = widget.edit?.mode ?? kModeNone;
   late String link = widget.edit?.link ?? '';
+  // Lembrete: ao editar mostra o que a aula tem de verdade; numa aula nova começa pela última escolha do professor.
+  late int remind = widget.edit?.remindLead ?? app.remindDefault;
   String? error;
 
   List<Student> get _choices => [for (final s in app.students) if (s.code != null) s];
@@ -112,12 +115,14 @@ class _SlotFormPageState extends State<SlotFormPage> {
       updatedMs: e?.updatedMs ?? now.millisecondsSinceEpoch,
       mode: online ? (mode == kModeNone ? kModeInPerson : mode) : (e?.mode ?? kModeNone),
       link: online ? (mode == kModeOnline ? (meetingUrl(link) ?? '') : '') : (e?.link ?? ''),
+      remindMin: app.remindChoiceOn ? remind : e?.remindMin,
     );
     final err = app.saveSlot(slot);
     if (err != null) {
       setState(() => error = err);
       return;
     }
+    if (app.remindChoiceOn) app.setRemindDefault(remind);
     final st = app.studentByCode(c);
     if (isEdit) {
       app.say('Aula atualizada.');
@@ -202,6 +207,10 @@ class _SlotFormPageState extends State<SlotFormPage> {
                 value: weekly,
                 onChanged: (v) => setState(() => weekly = v),
               ),
+              if (app.remindChoiceOn) ...[
+                _label('Lembrete'),
+                RemindField(value: remind, onChanged: (v) => setState(() => remind = v)),
+              ],
               if (app.onlineClassesOn)
                 MeetingEditor(
                   app: app,
@@ -303,7 +312,12 @@ class _SlotFormPageState extends State<SlotFormPage> {
       text = '${st.name} ainda não está vinculado: a aula vai quando o vínculo for confirmado.';
       color = AppColors.flat;
     } else {
-      text = '${st.name} vê a aula na agenda dele. Os dois recebem um lembrete 15 minutos antes (se ativarem as notificações).';
+      final aviso = !app.remindChoiceOn
+          ? 'Os dois recebem um lembrete 15 minutos antes (se ativarem as notificações).'
+          : (remind == 0
+              ? 'Esta aula fica sem lembrete.'
+              : 'Os dois recebem um lembrete ${remindLabel(remind).toLowerCase()} (se ativarem as notificações).');
+      text = '${st.name} vê a aula na agenda dele. $aviso';
       color = AppColors.accent;
     }
     return Container(

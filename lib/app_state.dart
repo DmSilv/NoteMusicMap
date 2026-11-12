@@ -2232,6 +2232,18 @@ class AppState extends ChangeNotifier {
   /// Aula online (modo e link da aula) está liberada para este perfil?
   bool get onlineClassesOn => hasFeature('aula_online');
 
+  /// O professor escolhe o lembrete de cada aula (recurso liberado pela chave `lembrete_escolha`)?
+  bool get remindChoiceOn => hasFeature('lembrete_escolha');
+
+  /// Antecedência do lembrete para aulas e horários livres NOVOS (a última escolha do professor; fica neste aparelho).
+  int remindDefault = kReminderMinutes;
+
+  void setRemindDefault(int minutes) {
+    if (!kRemindOptions.contains(minutes) || minutes == remindDefault) return;
+    remindDefault = minutes;
+    _prefs?.setInt('remind_default', minutes);
+  }
+
   /// Link padrão da aula online do professor: fica no aparelho (e no servidor, para horários livres sem link).
   String meetDefault = '';
 
@@ -3621,6 +3633,8 @@ class AppState extends ChangeNotifier {
     hapticEnabled = p.getBool('haptic') ?? false;
     successHaptic = p.getBool('ok_haptic') ?? true;
     meetDefault = p.getString('meet_default') ?? '';
+    final rd = p.getInt('remind_default');
+    remindDefault = rd != null && kRemindOptions.contains(rd) ? rd : kReminderMinutes;
     startCardHidden = p.getBool('start_hidden') ?? false;
     _toursSeen = (p.getStringList('tours_seen') ?? const []).toSet();
     keepAwake = p.getBool('keepAwake') ?? true;

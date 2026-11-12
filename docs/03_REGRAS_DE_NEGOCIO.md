@@ -33,7 +33,7 @@ O **professor é a fonte oficial** do status. O aluno só **sinaliza**.
 ## 4. Aulas e agenda
 - **Aula marcada** (`ClassSlot`): início, duração (15–240 min), semanal ou única, ocorrências canceladas (`skipped`, até 30), observação, versão (`updatedMs`). Uma regra semanal é **uma** entrada.
 - **Conflito** (`findConflict`): duas aulas do professor não podem se sobrepor (olha 120 dias à frente). Aula no passado não pode ser criada.
-- **Lembrete**: 15 minutos antes (`kReminderMinutes`). O servidor agenda no QStash só a **próxima** ocorrência; ao disparar (`/api/remind`) envia Web Push e agenda a seguinte (semanal).
+- **Lembrete**: 15 minutos antes por padrão (`kReminderMinutes`); com o recurso `lembrete_escolha` o professor escolhe por aula (seção 15). O servidor agenda no QStash só a **próxima** ocorrência; ao disparar (`/api/remind`) envia Web Push e agenda a seguinte (semanal).
 - **Fase da aula** (`class_rules.dart`, teste `class_rules_test`): `upcoming`, `soon` (≤15 min), `ongoing`, `finished`.
 - **Permissões** (`classPermissions`): aluno só vê. Professor: antes de começar edita e cancela; "em breve" também pode começar; **em andamento** só ajusta; **encerrada** é histórico (sem menu).
 - **Agenda visível** (`visibleTeacherSlots`): sem canceladas e sem aulas de aluno que o professor já não tem. Hub e agenda usam a mesma lista (`visibleAgenda`), nunca divergem.
@@ -105,7 +105,7 @@ Recurso `aula_online` (aba Recursos do painel; nasce desligado). Com ele ligado 
 
 ## 13. Controle da agenda do professor (remarcar, trocar, pausar)
 Tudo no menu de cada aula da agenda e no botão de pausa da barra, sempre com confirmação que diz quem é avisado. As regras ficam em `packages/afina_core/lib/agenda.dart` (`planMoveOccurrence`, `planSwap`, `planPause`, `validatePlan`) e valem **de uma vez só**: se uma das mudanças não couber (choque com outra aula, horário no passado, limite de datas canceladas), **nada muda**.
-1. **Remarcar só esta aula** (regra semanal): aquela data é cancelada e nasce uma aula avulsa no horário novo, com o mesmo aluno, duração, observação, modo e link. Numa aula avulsa, "Editar" já muda o horário.
+1. **Remarcar só esta aula** (regra semanal): aquela data é cancelada e nasce uma aula avulsa no horário novo, com o mesmo aluno, duração, observação, modo, link e lembrete. Numa aula avulsa, "Editar" já muda o horário.
 2. **Trocar horário com outro aluno:** cada aula vai para o horário da outra (a duração de cada uma continua a sua); aulas de regra semanal viram avulsas só naquela data. Mesma aula ou mesmo aluno é recusado. Vale para as aulas das próximas 3 semanas.
 3. **Pausar** (férias, viagem): as datas do período são canceladas nas regras semanais (que voltam depois) e as aulas avulsas do período são canceladas. No máximo 120 dias por vez e até 30 datas canceladas por regra.
 4. **Trocar o aluno de uma aula:** em Editar, com 2 ou mais alunos, o campo Aluno pode ser trocado; o servidor tira a aula do aluno anterior e ele é avisado.
@@ -116,3 +116,13 @@ Tudo no menu de cada aula da agenda e no botão de pausa da barra, sempre com co
 2. **Comece por aqui** (Meu espaço, visão de professor): três passos, calculados do que já existe no aparelho: vincular um aluno (vínculo ativo), marcar uma aula, passar uma tarefa. Mostra o progresso, leva a cada passo, some sozinho quando tudo foi feito e pode ser escondido ("Esconder"). Lógica pura em `packages/afina_core/lib/start_checklist.dart`.
 3. **Ver como funciona:** tutorial com a tela escura e um buraco no botão (`lib/ui/tour/tour.dart`): Comece por aqui, Agenda completa, Horários livres, Seus alunos. Na agenda do professor, o "?" da barra mostra Marcar aula e Pausar aulas. Se um botão não estiver na tela, o passo é pulado.
 4. **Só no aparelho:** o que foi visto/escondido fica em `tours_seen` e `start_hidden` (nada vai ao servidor, custo zero). Ajustes › Sobre o app › **Rever tutoriais** zera os dois.
+
+## 15. Lembrete escolhido pelo professor — liberado por chave
+Recurso `lembrete_escolha` (aba Recursos; nasce desligado). Com ele ligado para o professor, o formulário de **Marcar aula** e o de **Novo horário livre** ganham o campo **Lembrete para os dois** (um modal com as opções):
+1. **Opções** (`kRemindOptions` no núcleo = `REMIND_OPTIONS` no servidor; um teste confere que são iguais): sem lembrete, 5, 10, **15 (padrão)**, 30 minutos, 1 hora, 2 horas e 1 dia antes. Qualquer outro valor é ignorado.
+2. **Vale para os dois:** o professor e o aluno recebem o aviso no tempo escolhido para aquela aula (o aluno não escolhe). Em horário livre, a aula que nasce quando o aluno pega herda a escolha. Remarcar só um dia mantém a escolha na aula avulsa.
+3. **Última escolha:** o app lembra a última antecedência usada (neste aparelho) como ponto de partida das aulas novas. Ao editar, mostra a antecedência que a aula realmente tem.
+4. **Sem lembrete (0):** nada é agendado no QStash para aquela aula.
+5. **Texto da notificação:** montado no aparelho (`web/sw.js`) pelo tempo que realmente falta: "Aula em 30 minutos", "Aula em 2 horas", "Aula amanhã" (um aviso agendado para já, porque a aula está perto, não mente o tempo).
+6. **Compatibilidade:** campo novo `r` (minutos) no horário. Sem `r` vale 15, como sempre. Sem a chave, o servidor ignora o `r` que chegar e **mantém** o que já estava guardado; app antigo editando uma aula também mantém. Voltar a 15 com o recurso ligado grava `r=15` (não ressuscita um valor antigo). Mudar a escolha troca o `u` da aula, então o aviso antigo já agendado é ignorado quando disparar.
+7. **Custo:** zero comandos a mais no Redis; no máximo uma mensagem no QStash por aula e ocorrência, como antes (menos, se for "sem lembrete").

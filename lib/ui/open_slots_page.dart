@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'meeting_link.dart';
+import 'remind_field.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -113,6 +114,7 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
   bool weekly = false;
   String mode = kModeNone;
   String link = '';
+  late int remind = widget.app.remindDefault;
   String? error;
 
   Future<void> _pickDate() async {
@@ -164,6 +166,10 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
             value: weekly,
             onChanged: (v) => setState(() => weekly = v),
           ),
+          if (widget.app.remindChoiceOn) ...[
+            const SizedBox(height: 4),
+            RemindField(value: remind, onChanged: (v) => setState(() => remind = v)),
+          ],
           if (widget.app.onlineClassesOn)
             MeetingEditor(
               app: widget.app,
@@ -187,6 +193,7 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
               setState(() => error = 'O link da aula não é válido.');
               return;
             }
+            if (widget.app.remindChoiceOn) widget.app.setRemindDefault(remind);
             Navigator.pop(
               context,
               ClassSlot(
@@ -197,6 +204,7 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
                 updatedMs: now.millisecondsSinceEpoch,
                 mode: online ? (mode == kModeNone ? kModeInPerson : mode) : kModeNone,
                 link: online && mode == kModeOnline ? (meetingUrl(link) ?? '') : '',
+                remindMin: widget.app.remindChoiceOn ? remind : null,
               ),
             );
           },

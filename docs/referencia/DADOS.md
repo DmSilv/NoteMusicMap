@@ -139,6 +139,7 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `pomo_state` | app_state.dart |
 | `push_on` | app_state.dart |
 | `refA` | app_state.dart |
+| `remind_default` | app_state.dart |
 | `report_mode` | app_state.dart |
 | `roleCardHidden` | app_state.dart |
 | `sens` | app_state.dart |
@@ -176,4 +177,4 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `verdict_rev` | app_state.dart |
 | `verdicts` | app_state.dart |
 
-Total: **102** chaves locais.
+Total: **103** chaves locais.

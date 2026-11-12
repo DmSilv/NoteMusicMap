@@ -64,6 +64,7 @@ Tudo é **anônimo**; o código de perfil é a única identificação.
 ## Recursos por chave e aula online
 - A sincronização (`sync`) devolve `ff` (lista de recursos ligados para o perfil) e, com a aula online ligada, `ml` (link padrão do professor). Apps antigos ignoram os dois. `lb`/`lbT` continuam existindo para o acervo.
 - Campos novos do horário (aula marcada e horário livre): `m` (`p`|`o`) e `l` (link, só com `m=o`). Nova ação `meet_set {link}` guarda ou limpa (`""`) o link padrão (campo `ml` do perfil); exige o recurso ligado (`403 feature_off`) e recusa link inválido (`400 link_invalid`).
+- Campo novo do horário: `r` (minutos antes do aviso: 0, 5, 10, 15, 30, 60, 120 ou 1440; sem `r` = 15), só com o recurso `lembrete_escolha` ligado para o professor; sem ele o servidor ignora e mantém o já guardado. O `r` vai junto da aula para o aluno e é copiado do horário livre para a aula pega.
 - Redis: `ff:cfg` (estado de cada recurso), `ff:l:<recurso>` (códigos liberados) e o campo `ff` do perfil.
 
 ## Armazenamento local (aparelho)

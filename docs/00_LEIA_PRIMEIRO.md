@@ -5,7 +5,7 @@ Este é o ponto de partida da documentação. Se você vai dar manutenção, com
 ## O que é o app
 **Notemusic** é um app em português, **sem cadastro e sem login**, para quem estuda música de corda (violino, viola, violoncelo, contrabaixo, violão, cavaquinho, ukulele, bandolim):
 - **Afinador** (cordas soltas, cromático e *Pedal* com notas sustentadas), **metrônomo**, **grade de entonação** e exercícios de escala, **registro de estudo** (Pomodoro, cronômetro, "meu tempo").
-- **Professor e aluno** (opcional, com "vínculo online"): o professor cadastra alunos, passa tarefas, valida o que o aluno fez, marca aulas (com lembrete 15 minutos antes) e publica **horários livres** para o aluno escolher.
+- **Professor e aluno** (opcional, com "vínculo online"): o professor cadastra alunos, passa tarefas, valida o que o aluno fez, marca aulas (com lembrete, 15 minutos antes por padrão; o professor pode escolher) e publica **horários livres** para o aluno escolher.
 - **Painel do administrador** (`/admin`): indicadores de uso, perfis, **bugs** e custos.
 
 Roda no **navegador** (PWA instalável, hospedado na Vercel) e tem projetos Android e iOS no mesmo código Flutter.

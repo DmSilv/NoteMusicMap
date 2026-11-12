@@ -43,7 +43,9 @@ class _ReminderCardState extends State<ReminderCard> {
               Icons.notifications_active_outlined,
               AppColors.inTune,
               'Lembretes ligados',
-              'Você recebe uma notificação 15 minutos antes de cada aula, mesmo com o app fechado.'
+              app.remindChoiceOn
+                  ? 'Você recebe uma notificação antes de cada aula, no tempo que o professor escolheu, mesmo com o app fechado.'
+                  : 'Você recebe uma notificação 15 minutos antes de cada aula, mesmo com o app fechado.'
             ),
           PushStatus.off => (
               Icons.notifications_none,

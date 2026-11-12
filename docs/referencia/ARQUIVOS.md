@@ -68,6 +68,7 @@
 | `lib/ui/progress_cards.dart` | Evolução da taxa de acerto nos exercícios de escala. |
 | `lib/ui/qr_scan_page.dart` | Abre a câmera para ler o QR de um aluno ou de um professor. Também deixa digitar o código na mesma tela (se a câmera estiver sem permissão ou o QR não sair). Devolve o código lido, ou null se a pessoa voltar. [want]… |
 | `lib/ui/ref_a_dialog.dart` | Diálogo do Lá de referência (415 a 443 Hz e valor livre). |
+| `lib/ui/remind_field.dart` | Escolha do lembrete de uma aula: com quanto tempo de antecedência o professor e o aluno são avisados. Um campo só (a lista abre num modal), para não pesar o formulário. O padrão é [kReminderMinutes]. |
 | `lib/ui/reminder_card.dart` | Lembrete de aula 15 minutos antes (notificação do navegador, mesmo com o app fechado). Mostra a situação deste aparelho e o botão para ligar ou desligar. |
 | `lib/ui/safe_input.dart` | Filtro de digitação: tira na hora caracteres de controle e invisíveis (inclusive os que invertem a direção do texto) e corta no tamanho do campo, contando letras e não bytes. Colar um texto gigante também é cortado. |
 | `lib/ui/scale_exercise_page.dart` | Exercício de escala guiado: o app mostra a próxima nota, acompanha a afinação de cada uma e, no fim, dá a pontuação e orientações. |
@@ -172,6 +173,7 @@
 | `packages/afina_core/test/pitch_detector_test.dart` | Gera um tom com harmônicos [amps] (índice 0 = fundamental). |
 | `packages/afina_core/test/pitch_grid_test.dart` | Sobe devagar até +52 cents. |
 | `packages/afina_core/test/pomodoro_test.dart` | Testes do módulo `pomodoro`. |
+| `packages/afina_core/test/remind_test.dart` | Testes do módulo `remind`. |
 | `packages/afina_core/test/rhythm_challenge_test.dart` | Sorteia [n] compassos e devolve a decisão de cada um. |
 | `packages/afina_core/test/scale_coach_test.dart` | Passos de uma escala em que cada nota (pitch class) tem um viés fixo. |
 | `packages/afina_core/test/scale_flow_test.dart` | Sol maior, 1 oitava. |
@@ -244,6 +246,7 @@
 | `api/online.test.js` | Testes da aula online (link da aula, modo online/presencial, link padrão): `node --test api/online.test.js` |
 | `api/painel_precisao.test.js` | Painel mais preciso: saúde, custos, coortes, período anterior, horas, limpeza e erros do servidor. `node --test api/painel_precisao.test.js` |
 | `api/presence.test.js` | Testes da presença (quem está online agora) no painel, sem rede: `node --test api/presence.test.js` |
+| `api/remind_choice.test.js` | Testes do lembrete escolhido pelo professor (chave `lembrete_escolha`): `node --test api/remind_choice.test.js` |
 | `api/stats.test.js` | Testes das métricas anônimas e do painel de admin, sem rede: `node --test api/stats.test.js` |
 | `api/support.test.js` | Testes do suporte do painel (vínculo, agenda, código de liberação e aviso ao usuário), sem rede: `node --test api/support.test.js` |
 | `api/sweep.test.js` | Testes da limpeza de perfis abandonados e do aviso de origens com muitos perfis: `node --test api/sweep.test.js` |
@@ -273,4 +276,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **230** arquivos mapeados.
+Total: **233** arquivos mapeados.

@@ -68,4 +68,5 @@ ClassSlot classFromOpen(ClassSlot open, {required String studentCode, required S
       note: open.note,
       updatedMs: nowMs,
       pending: false,
+      remindMin: open.remindMin,
     );
