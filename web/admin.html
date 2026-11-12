@@ -6,197 +6,306 @@
   <meta name="robots" content="noindex, nofollow">
   <title>Notemusic · Painel</title>
   <style>
+    /* ==========================================================================================================
+       Painel do Notemusic: mesmo design system do app (docs/12_DESIGN_SYSTEM.md, seção "Painel").
+       Cores do app, espaços na escala de 8 (4, 8, 12, 16, 20, 24, 32), raios 20 (cartão) e 12 (controle),
+       alvos de toque de 40 a 48 px, texto de apoio a partir de 13 px e movimento que respeita "reduzir movimento".
+       ========================================================================================================== */
     :root {
-      --bg: #0e1418; --card: #161e24; --card2: #1d2830; --line: #27343d; --text: #e8eef2; --dim: #8fa1ad;
-      --accent: #22e58f; --warn: #ffb14a; --bad: #ff6b6b; --blue: #5aa9ff;
+      color-scheme: dark; /* barras de rolagem e campos nativos no tema escuro */
+      /* cores (as mesmas de lib/ui/theme.dart, tema escuro) */
+      --bg: #0F1419; --surface: #171E26; --surface2: #202A35; --outline: #2E3B49; --text: #E8EEF4; --dim: #8FA0B1;
+      --accent: #1FE68F; --accent-ink: #062B1E; --flat: #2E9BFF; --sharp: #FF9226; --bad: #FF6B6B;
+      /* nomes antigos, para o que já existe continuar funcionando */
+      --card: var(--surface); --card2: var(--surface2); --line: var(--outline); --warn: var(--sharp); --blue: var(--flat);
+      /* espaços (base 8) */
+      --s4: 4px; --s8: 8px; --s12: 12px; --s16: 16px; --s20: 20px; --s24: 24px; --s32: 32px;
+      /* raios, alvos, sombra e curva de movimento */
+      --r-card: 20px; --r-ctl: 12px; --r-pill: 999px; --tap: 44px;
+      --shadow: 0 8px 28px rgba(0,0,0,.3); --ease: cubic-bezier(.2,.9,.3,1);
     }
     * { box-sizing: border-box; }
-    body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-    header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 16px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--bg); z-index: 5; }
-    header h1 { font-size: 17px; margin: 0; flex: 1; min-width: 120px; }
-    .pill { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line); background: var(--card); color: var(--text); border-radius: 20px; padding: 6px 12px; font-size: 13px; font-weight: 700; cursor: pointer; }
-    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--dim); }
-    .dot.on, .dot.green { background: var(--accent); box-shadow: 0 0 0 4px rgba(34,229,143,.18); }
-    .dot.yellow { background: var(--warn); box-shadow: 0 0 0 4px rgba(255,177,74,.2); }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
+    [hidden] { display: none !important; }
+    .i { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+    /* ---------- barra de cima: marca, estado e abas (fixas juntas) ---------- */
+    .topbar { position: sticky; top: 0; z-index: 10; background: rgba(15,20,25,.92); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--outline); }
+    header { display: flex; align-items: center; gap: var(--s12); flex-wrap: wrap; padding: var(--s12) var(--s16); max-width: 1100px; margin: 0 auto; }
+    .brand { display: flex; align-items: center; gap: var(--s12); flex: 1 1 0; min-width: 0; order: 1; }
+    .brand > div { min-width: 0; }
+    .logo { width: 40px; height: 40px; border-radius: var(--r-ctl); background: rgba(31,230,143,.16); color: var(--accent); display: flex; align-items: center; justify-content: center; flex: none; }
+    .brand h1 { font-size: 18px; margin: 0; font-weight: 800; letter-spacing: -.2px; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .brand .sub { padding: 0; margin-top: 2px; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .actions { display: flex; align-items: center; gap: var(--s8); order: 2; }
+    .status { display: flex; gap: var(--s8); flex-wrap: wrap; width: 100%; order: 3; }
+    @media (min-width: 900px) { .status { width: auto; order: 2; } .actions { order: 3; } }
+    .pill { display: inline-flex; align-items: center; gap: var(--s8); border: 1px solid var(--outline); background: var(--surface); color: var(--text); border-radius: var(--r-pill); padding: var(--s8) var(--s12); min-height: 36px; font-size: 13px; font-weight: 700; cursor: pointer; }
+    .pill:hover { border-color: #43566a; }
+    .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--dim); flex: none; }
+    .dot.on, .dot.green { background: var(--accent); box-shadow: 0 0 0 4px rgba(31,230,143,.18); }
+    .dot.yellow { background: var(--sharp); box-shadow: 0 0 0 4px rgba(255,146,38,.2); }
     .dot.red { background: var(--bad); box-shadow: 0 0 0 4px rgba(255,107,107,.22); animation: pulse 1.6s infinite; }
     @keyframes pulse { 50% { box-shadow: 0 0 0 7px rgba(255,107,107,.08); } }
-    button { font: inherit; background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 8px 14px; cursor: pointer; }
-    button.primary { background: var(--accent); color: #062116; border-color: transparent; font-weight: 700; }
+    #liveAge { color: var(--dim); font-size: 13px; }
+    @media (max-width: 560px) { #liveAge { display: none; } }
+    .sub { color: var(--dim); font-size: 13px; padding: var(--s8) var(--s16) 0; }
+
+    .tabs { position: relative; display: flex; gap: var(--s4); padding: 0 var(--s12); overflow-x: auto; scrollbar-width: none; max-width: 1100px; margin: 0 auto; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tabs button { border: 0; background: transparent; color: var(--dim); font-weight: 700; padding: var(--s12); display: inline-flex; align-items: center; gap: var(--s8); white-space: nowrap; border-radius: var(--r-ctl) var(--r-ctl) 0 0; min-height: 48px; transition: color .2s, background .2s; }
+    .tabs button:hover { color: var(--text); background: rgba(255,255,255,.04); }
+    .tabs button.on { color: var(--text); }
+    .tabs button.on .i { color: var(--accent); }
+    .tab-ind { position: absolute; bottom: 0; left: 0; height: 3px; width: 0; background: var(--accent); border-radius: 3px 3px 0 0; transition: transform .32s var(--ease), width .32s var(--ease); pointer-events: none; }
+    @media (max-width: 560px) {
+      .topbar { display: contents; }
+      header { padding-bottom: var(--s8); }
+      .status { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-right: calc(var(--s16) * -1); padding-right: var(--s16); }
+      .status::-webkit-scrollbar { display: none; }
+      .status .pill { flex: none; }
+      .tabs { position: sticky; top: 0; z-index: 10; max-width: none; margin: 0; background: rgba(15,20,25,.94); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--outline); }
+    }
+
+    /* ---------- botões e campos ---------- */
+    button { font: inherit; background: var(--surface2); color: var(--text); border: 1px solid var(--outline); border-radius: var(--r-ctl); padding: var(--s8) var(--s16); min-height: 40px; cursor: pointer; transition: background .15s, border-color .15s, transform .08s, box-shadow .15s, filter .15s; }
+    button:hover:not(:disabled) { border-color: #43566a; }
+    button:active:not(:disabled) { transform: scale(.98); }
     button:disabled { opacity: .45; cursor: default; }
-    .sub { color: var(--dim); font-size: 12.5px; padding: 6px 16px 0; }
-    .tabs { display: flex; gap: 4px; padding: 8px 12px 0; border-bottom: 1px solid var(--line); background: var(--bg); position: sticky; top: 56px; z-index: 4; overflow-x: auto; }
-    .tabs button { border: 0; border-bottom: 3px solid transparent; border-radius: 8px 8px 0 0; background: transparent; color: var(--dim); font-weight: 700; padding: 9px 12px; white-space: nowrap; }
-    .tabs button.on { color: var(--text); border-bottom-color: var(--accent); }
-    main { max-width: 1100px; margin: 0 auto; padding: 16px; }
-    .hello { font-size: 20px; font-weight: 800; margin: 2px 0 4px; }
-    .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; position: relative; }
-    .card .k { color: var(--dim); font-size: 12.5px; display: flex; justify-content: space-between; align-items: center; gap: 6px; }
-    .card .v { font-size: 30px; font-weight: 800; letter-spacing: -.5px; margin-top: 2px; font-variant-numeric: tabular-nums; }
-    .card .s { color: var(--dim); font-size: 12px; margin-top: 2px; }
+    button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; font-weight: 800; min-height: var(--tap); }
+    button.primary:hover:not(:disabled) { filter: brightness(1.08); }
+    .icon-btn { width: var(--tap); padding: 0; display: inline-flex; align-items: center; justify-content: center; }
+    .danger { background: var(--bad); color: #2a0707; border-color: transparent; font-weight: 800; }
+    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    input:not([type=checkbox]):not([type=radio]), select, textarea { font: inherit; color: var(--text); background: var(--surface2); border: 1px solid var(--outline); border-radius: var(--r-ctl); padding: var(--s8) var(--s12); min-height: var(--tap); }
+    input[type=checkbox], input[type=radio] { accent-color: var(--accent); width: 18px; height: 18px; }
+    textarea { min-height: 72px; resize: vertical; width: 100%; }
+    .help { border: 1px solid var(--outline); background: var(--surface2); color: var(--dim); width: 28px; height: 28px; min-height: 0; padding: 0; border-radius: 50%; font-size: 13px; font-weight: 800; line-height: 1; flex: none; }
+    .help:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
+
+    /* ---------- conteúdo: seções, cartões, grades ---------- */
+    main { max-width: 1100px; margin: 0 auto; padding: var(--s16) var(--s16) var(--s32); }
+    @media (min-width: 720px) { main { padding: var(--s24) var(--s24) 48px; } }
+    .hello { font-size: 22px; font-weight: 800; letter-spacing: -.3px; margin: 0 0 var(--s4); }
+    h2 { font-size: 17px; font-weight: 800; letter-spacing: -.1px; color: var(--text); margin: var(--s32) 0 var(--s4); display: flex; align-items: center; gap: var(--s8); }
+    main > h2:first-child, .two h2 { margin-top: 0; }
+    h2 button:not(.help) { margin-left: auto; font-size: 13px; min-height: 36px; font-weight: 600; }
+    .lead { margin: 0 0 var(--s12); color: var(--dim); font-size: 13.5px; line-height: 1.5; max-width: 72ch; }
+    .grid { display: grid; gap: var(--s16); grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+    .two { display: grid; gap: var(--s16); grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+    @media (max-width: 560px) {
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s12); }
+      .two { grid-template-columns: 1fr; }
+      .card { padding: var(--s16); }
+      .card .v { font-size: 28px; }
+    }
+    .card { background: var(--surface); border: 1px solid var(--outline); border-radius: var(--r-card); padding: var(--s20); position: relative; transition: border-color .2s, box-shadow .2s, transform .2s var(--ease); }
+    .card:hover { border-color: #3a4b5c; }
+    .grid > .card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .card .k { color: var(--dim); font-size: 13px; font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: var(--s8); }
+    .card .v { font-size: 32px; font-weight: 800; line-height: 1.1; letter-spacing: -.5px; margin-top: var(--s8); font-variant-numeric: tabular-nums; }
+    .card .s { color: var(--dim); font-size: 13px; line-height: 1.4; margin-top: var(--s4); }
+    .card.big { background: linear-gradient(160deg, rgba(31,230,143,.13), transparent 62%), var(--surface); border-color: rgba(31,230,143,.4); }
     .card.big .v { color: var(--accent); }
-    .help { border: 1px solid var(--line); background: var(--card2); color: var(--dim); width: 22px; height: 22px; padding: 0; border-radius: 50%; font-size: 12px; font-weight: 800; line-height: 1; flex: none; }
-    .delta { display: inline-block; font-size: 12px; font-weight: 700; margin-left: 6px; }
-    .delta.up { color: var(--accent); } .delta.down { color: var(--bad); } .delta.eq { color: var(--dim); }
-    h2 { font-size: 13px; color: var(--dim); font-weight: 700; margin: 22px 0 8px; text-transform: uppercase; letter-spacing: .6px; display: flex; align-items: center; gap: 8px; }
-    .two { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-    .bars { display: flex; align-items: flex-end; gap: 3px; height: 120px; margin-top: 10px; }
-    .bar { flex: 1; background: var(--accent); border-radius: 3px 3px 0 0; min-height: 2px; opacity: .85; position: relative; }
-    .bar.today { opacity: 1; background: var(--blue); }
-    .bar:hover::after { content: attr(data-t); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 2px 6px; border-radius: 6px; font-size: 11px; white-space: nowrap; z-index: 2; }
-    .axis { display: flex; justify-content: space-between; color: var(--dim); font-size: 11px; margin-top: 4px; }
-    .row { display: flex; align-items: center; gap: 8px; margin: 7px 0; font-size: 13.5px; }
-    .row .n { width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .row .b { flex: 1; height: 10px; background: var(--card2); border-radius: 6px; overflow: hidden; }
-    .row .b i { display: block; height: 100%; background: var(--accent); border-radius: 6px; transition: width .6s; }
+    .delta { display: flex; width: fit-content; align-items: center; gap: var(--s4); font-size: 12px; font-weight: 700; margin: var(--s8) 0 0; padding: 2px var(--s8); border-radius: var(--r-pill); background: rgba(143,161,177,.14); color: var(--dim); }
+    .delta.up { color: var(--accent); background: rgba(31,230,143,.14); } .delta.down { color: var(--bad); background: rgba(255,107,107,.14); } .delta.eq { color: var(--dim); }
+    .delta:not(.up):not(.down):not(.eq) { display: contents; } /* o código põe um selo dentro de outro: só o de dentro aparece */
+    .empty { color: var(--dim); font-size: 13.5px; }
+    .note { color: var(--dim); font-size: 13px; line-height: 1.5; margin-top: var(--s20); }
+
+    /* gráficos de barras e linhas de proporção */
+    .bars { display: flex; align-items: flex-end; gap: var(--s4); height: 120px; margin-top: var(--s12); }
+    .bar { flex: 1; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 2px; opacity: .85; position: relative; }
+    .bar:hover { opacity: 1; }
+    .bar.today { opacity: 1; background: var(--flat); }
+    .bar:hover::after { content: attr(data-t); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: #000; color: #fff; padding: 2px var(--s8); border-radius: 6px; font-size: 12px; white-space: nowrap; z-index: 2; }
+    .axis { display: flex; justify-content: space-between; color: var(--dim); font-size: 12px; margin-top: var(--s8); }
+    .row { display: flex; align-items: center; gap: var(--s12); margin: var(--s8) 0; font-size: 14px; }
+    .row .n { width: 132px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .row .b { flex: 1; height: 10px; background: var(--surface2); border-radius: var(--r-pill); overflow: hidden; }
+    .row .b i { display: block; height: 100%; background: var(--accent); border-radius: var(--r-pill); transition: width .6s var(--ease); }
     .row .c { width: 64px; text-align: right; color: var(--dim); font-variant-numeric: tabular-nums; }
-    .empty { color: var(--dim); font-size: 13px; }
-    #login { max-width: 380px; margin: 12vh auto; padding: 0 16px; }
-    #login input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; margin: 10px 0; }
-    #msg { color: var(--bad); min-height: 1.4em; }
-    .note { color: var(--dim); font-size: 12.5px; margin-top: 18px; }
-    table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-    th { text-align: left; color: var(--dim); font-weight: 600; font-size: 12px; padding: 6px 8px; }
-    td { padding: 8px; border-top: 1px solid var(--line); }
-    tr.pick { cursor: pointer; } tr.pick:hover td { background: var(--card2); }
-    .tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 8px; background: var(--card2); color: var(--dim); margin-right: 4px; }
-    .tag.t { color: var(--blue); } .tag.s { color: var(--accent); } .tag.x { color: var(--bad); } .tag.i { color: var(--warn); } .tag.ok { color: var(--accent); } .tag.b { color: var(--blue); }
-    .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
-    .toolbar input, .filters select, .filters input { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; }
-    .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
-    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 20; }
-    .overlay .box { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; max-width: 460px; width: 100%; max-height: 92vh; overflow: auto; }
-    #bugDetail .box { max-width: 640px; }
-    .box h3 { margin: 0 0 8px; font-size: 17px; }
-    .danger { background: var(--bad); color: #2a0707; border-color: transparent; font-weight: 700; }
-    .kv { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
-    .kv span:first-child { color: var(--dim); }
+    .meter { height: 14px; background: var(--surface2); border-radius: var(--r-pill); overflow: hidden; margin: var(--s8) 0; }
+    .meter i { display: block; height: 100%; background: var(--accent); transition: width .8s var(--ease); }
+    .meter.warn i { background: var(--sharp); } .meter.bad i { background: var(--bad); }
     .spark { display: inline-flex; align-items: flex-end; gap: 1px; height: 22px; }
     .spark i { display: block; width: 4px; background: var(--accent); border-radius: 1px; min-height: 1px; opacity: .85; }
-    .sevdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; background: var(--dim); }
-    .sevdot.critical { background: var(--bad); } .sevdot.action { background: var(--warn); } .sevdot.info { background: var(--blue); }
-    pre.stack { background: var(--card2); border-radius: 10px; padding: 10px; font-size: 12px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; color: var(--dim); margin: 6px 0 10px; }
-    .occ { border-top: 1px solid var(--line); padding: 8px 0; font-size: 13px; } .occ .bc { color: var(--dim); font-size: 12px; }
-    textarea#bugNote { width: 100%; min-height: 56px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--text); font: inherit; resize: vertical; }
-    .medals { display: flex; gap: 8px; flex-wrap: wrap; }
-    .medal { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; background: var(--card); border: 1px solid var(--line); font-size: 13px; font-weight: 700; }
-    .medal.got { border-color: rgba(34,229,143,.55); background: rgba(34,229,143,.1); }
-    .medal.lock { opacity: .45; }
-    .journey .step { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); }
-    .journey .step:first-child { border-top: 0; }
-    .journey .ico { font-size: 20px; text-align: center; }
-    .journey .t { font-weight: 700; } .journey .u { color: var(--dim); font-size: 12px; }
+
+    /* tabelas */
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { text-align: left; color: var(--dim); font-weight: 600; font-size: 12.5px; padding: var(--s8) var(--s12); }
+    td { padding: var(--s12); border-top: 1px solid var(--outline); }
+    tr.pick { cursor: pointer; } tr.pick:hover td { background: var(--surface2); }
+    .tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px var(--s8); border-radius: var(--r-pill); background: var(--surface2); color: var(--dim); margin-right: var(--s4); }
+    .tag.t { color: var(--flat); } .tag.s { color: var(--accent); } .tag.x { color: var(--bad); } .tag.i { color: var(--sharp); } .tag.ok { color: var(--accent); } .tag.b { color: var(--flat); }
+    .toolbar { display: flex; gap: var(--s8); align-items: center; margin-bottom: var(--s12); flex-wrap: wrap; }
+    .filters { display: flex; gap: var(--s8); flex-wrap: wrap; align-items: center; margin-bottom: var(--s12); }
+    .kv { display: flex; justify-content: space-between; gap: var(--s12); padding: var(--s8) 0; border-bottom: 1px solid var(--outline); font-size: 14px; }
+    .kv span:first-child { color: var(--dim); }
+
+    /* entrada: login */
+    #login { max-width: 420px; margin: 10vh auto 0; padding: 0 var(--s16); }
+    #login .card { padding: var(--s24); text-align: center; }
+    #login .logo { width: 56px; height: 56px; margin: 0 auto var(--s16); border-radius: 16px; }
+    #login h1 { font-size: 22px; margin: 0 0 var(--s8); letter-spacing: -.3px; }
+    #login input { width: 100%; margin: var(--s16) 0 var(--s12); text-align: center; }
+    #login button { width: 100%; }
+    #msg { color: var(--bad); min-height: 1.4em; margin: var(--s12) 0 0; font-size: 14px; }
+
+    /* janelas (sobem de baixo no celular, como no app) */
+    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.62); backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); display: flex; align-items: flex-end; justify-content: center; z-index: 20; animation: fade .2s ease both; }
+    .overlay .box { background: var(--surface); border: 1px solid var(--outline); border-radius: var(--r-card) var(--r-card) 0 0; padding: var(--s12) var(--s20) calc(var(--s24) + env(safe-area-inset-bottom)); max-width: 460px; width: 100%; max-height: 92vh; overflow: auto; animation: sheetUp .34s var(--ease) both; }
+    .overlay .box::before { content: ""; display: block; width: 40px; height: 4px; border-radius: 4px; background: var(--outline); margin: 0 auto var(--s16); }
+    #bugDetail .box { max-width: 640px; }
+    @media (min-width: 640px) { .overlay { align-items: center; padding: var(--s16); } .overlay .box { border-radius: var(--r-card); padding: var(--s24); animation-name: pop; } .overlay .box::before { display: none; } }
+    .box h3 { margin: 0 0 var(--s8); font-size: 18px; letter-spacing: -.2px; }
+    @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes sheetUp { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+    @keyframes pop { from { transform: scale(.96) translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    /* aviso curto (mesmo estilo dos avisos do app: ícone em círculo, borda na cor do tipo) */
+    .toast { position: fixed; left: 50%; bottom: calc(var(--s24) + env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; align-items: center; gap: var(--s12); background: color-mix(in srgb, var(--accent) 16%, var(--surface)); border: 1.5px solid var(--accent); border-radius: 18px; padding: var(--s12) var(--s20) var(--s12) var(--s12); font-weight: 700; z-index: 99; max-width: 90vw; box-shadow: var(--shadow); animation: toastIn .38s var(--ease) both; }
+    .toast::before { content: "\2713"; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); display: inline-flex; align-items: center; justify-content: center; font-size: 15px; flex: none; }
+    .toast.bad { background: color-mix(in srgb, var(--bad) 16%, var(--surface)); border-color: var(--bad); }
+    .toast.bad::before { content: "!"; background: var(--bad); color: #2a0707; }
+    @keyframes toastIn { from { opacity: 0; transform: translate(-50%, 16px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+    /* conquistas, jornada, ativação, comparação */
+    .medals { display: flex; gap: var(--s8); flex-wrap: wrap; }
+    .medal { display: inline-flex; align-items: center; gap: var(--s8); padding: var(--s8) var(--s16); border-radius: var(--r-pill); background: var(--surface); border: 1px solid var(--outline); font-size: 13.5px; font-weight: 700; transition: transform .2s var(--ease); }
+    .medal:hover { transform: translateY(-2px); }
+    .medal.got { border-color: rgba(31,230,143,.55); background: rgba(31,230,143,.1); }
+    .medal.lock { opacity: .55; }
+    .journey .step { display: grid; grid-template-columns: 32px 1fr auto; gap: var(--s12); align-items: center; padding: var(--s12) 0; border-top: 1px solid var(--outline); }
+    .journey .step:first-child { border-top: 0; padding-top: 0; }
+    .journey .ico { font-size: 22px; text-align: center; }
+    .journey .t { font-weight: 700; } .journey .u { color: var(--dim); font-size: 13px; }
     .journey .n { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
-    .journey .b { height: 8px; background: var(--card2); border-radius: 6px; margin-top: 5px; overflow: hidden; } .journey .b i { display: block; height: 100%; background: var(--accent); transition: width .6s; }
-    .toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); background: var(--card2); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 14px; padding: 12px 18px; font-weight: 700; z-index: 99; max-width: 90vw; box-shadow: 0 8px 30px rgba(0,0,0,.4); }
-    .toast.bad { border-left-color: var(--bad); }
+    .journey .b { height: 8px; background: var(--surface2); border-radius: var(--r-pill); margin-top: var(--s8); overflow: hidden; }
+    .journey .b i { display: block; height: 100%; background: var(--accent); border-radius: var(--r-pill); transition: width .6s var(--ease); }
+    .pair .row2 { display: grid; grid-template-columns: auto 1fr; gap: var(--s12); align-items: center; padding: var(--s12) 0; border-top: 1px solid var(--outline); font-size: 14px; }
+    .pair .row2:first-child { border-top: 0; }
+    .pair .st { font-size: 12px; font-weight: 800; padding: 3px var(--s12); border-radius: var(--r-pill); border: 1px solid var(--outline); white-space: nowrap; }
+    .pair .st.same { color: var(--accent); border-color: rgba(31,230,143,.5); }
+    .pair .st.missing, .pair .st.extra, .pair .st.diff { color: var(--sharp); border-color: rgba(255,146,38,.55); }
+    .pair small { color: var(--dim); display: block; }
+
+    /* bugs */
+    .sevdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: var(--s8); background: var(--dim); }
+    .sevdot.critical { background: var(--bad); } .sevdot.action { background: var(--sharp); } .sevdot.info { background: var(--flat); }
+    pre.stack { background: var(--surface2); border-radius: var(--r-ctl); padding: var(--s12); font-size: 12.5px; line-height: 1.45; white-space: pre-wrap; word-break: break-word; color: var(--dim); margin: var(--s8) 0 var(--s12); }
+    .occ { border-top: 1px solid var(--outline); padding: var(--s12) 0; font-size: 13.5px; } .occ .bc { color: var(--dim); font-size: 12.5px; }
+
     /* contas (quanto custa manter) */
-    .bill .tw { overflow-x: auto; margin-top: 10px; }
+    .bill .tw { overflow-x: auto; margin-top: var(--s12); }
     .bill table { min-width: 640px; }
     .bill td.n, .bill th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-    .bill tr.me td { background: rgba(34,229,143,.08); font-weight: 700; }
-    .bill tr.now td { background: rgba(90,169,255,.10); }
+    .bill tr.me td { background: rgba(31,230,143,.08); font-weight: 700; }
+    .bill tr.now td { background: rgba(46,155,255,.10); }
     .bill .big { font-size: 26px; font-weight: 800; letter-spacing: -.4px; font-variant-numeric: tabular-nums; }
-    .bill .al { margin: 6px 0 0; padding: 8px 12px; border-radius: 12px; background: rgba(255,177,74,.12); border: 1px solid rgba(255,177,74,.4); font-size: 13px; }
-    .bill .ln { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+    .bill .al { margin: var(--s8) 0 0; padding: var(--s12) var(--s16); border-radius: var(--r-ctl); background: rgba(255,146,38,.12); border: 1px solid rgba(255,146,38,.4); font-size: 13.5px; }
+    .bill .ln { display: flex; justify-content: space-between; gap: var(--s12); padding: var(--s8) 0; border-top: 1px solid var(--outline); font-size: 14px; }
     .bill .ln:first-child { border-top: 0; }
     .bill .ln small { color: var(--dim); display: block; }
-    .bill label.f { display: inline-flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--dim); }
-    .bill label.f input, .bill label.f select { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card2); color: var(--text); font: inherit; width: 130px; }
-    /* movimento e estados (respeita "reduzir movimento") */
-    main { animation: tabIn .28s ease both; }
-    @keyframes tabIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-    .card { transition: border-color .15s, box-shadow .15s, transform .15s; }
-    .card:hover { border-color: #35505a; box-shadow: 0 6px 22px rgba(0,0,0,.25); }
-    button { transition: background .15s, border-color .15s, transform .08s, box-shadow .15s, filter .15s; }
-    button:hover:not(:disabled) { border-color: #3c5964; }
-    button:active:not(:disabled) { transform: scale(.98); }
-    button.primary:hover:not(:disabled) { filter: brightness(1.08); }
-    button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-    .skel { background: linear-gradient(90deg, var(--card2) 25%, #26343d 37%, var(--card2) 63%); background-size: 400% 100%; animation: shimmer 1.3s infinite; border-radius: 8px; color: transparent !important; min-height: 1em; }
-    @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
-    #liveAge { color: var(--dim); font-size: 12px; }
-    .pair .row2 { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: center; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
-    .pair .row2:first-child { border-top: 0; }
-    .pair .st { font-size: 11.5px; font-weight: 800; padding: 3px 9px; border-radius: 20px; border: 1px solid var(--line); white-space: nowrap; }
-    .pair .st.same { color: var(--accent); border-color: rgba(34,229,143,.5); }
-    .pair .st.missing, .pair .st.extra, .pair .st.diff { color: var(--warn); border-color: rgba(255,177,74,.55); }
-    .pair small { color: var(--dim); display: block; }
-    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+    .bill label.f { display: inline-flex; flex-direction: column; gap: var(--s4); font-size: 13px; color: var(--dim); }
+    .bill label.f input, .bill label.f select { width: 140px; }
+
     /* recursos liberados aos poucos */
-    .ffc { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 16px; margin-bottom: 14px; animation: rise .3s ease both; }
-    @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-    .ffc h3 { margin: 0; font-size: 17px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    .ffc .d { color: var(--dim); font-size: 13.5px; margin: 4px 0 12px; }
-    .ffc .badge { font-size: 11.5px; font-weight: 800; padding: 3px 9px; border-radius: 20px; background: var(--card2); color: var(--dim); border: 1px solid var(--line); }
-    .ffc .badge.all { color: var(--accent); border-color: rgba(34,229,143,.5); }
+    .ffc { background: var(--surface); border: 1px solid var(--outline); border-radius: var(--r-card); padding: var(--s20); margin-bottom: var(--s16); }
+    .ffc h3 { margin: 0; font-size: 17px; display: flex; align-items: center; gap: var(--s8); flex-wrap: wrap; }
+    .ffc .d { color: var(--dim); font-size: 14px; margin: var(--s4) 0 var(--s16); }
+    .ffc .badge { font-size: 12px; font-weight: 800; padding: 3px var(--s12); border-radius: var(--r-pill); background: var(--surface2); color: var(--dim); border: 1px solid var(--outline); }
+    .ffc .badge.all { color: var(--accent); border-color: rgba(31,230,143,.5); }
     .ffc .badge.off { color: var(--bad); border-color: rgba(255,107,107,.5); }
-    .ffc .badge.pct { color: var(--warn); border-color: rgba(255,177,74,.5); }
-    .seg { display: inline-flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
-    .seg button { padding: 9px 14px; border-radius: 12px; font-weight: 700; transition: background .15s, transform .1s; }
-    .seg button.on { background: var(--accent); color: #062116; border-color: transparent; }
+    .ffc .badge.pct { color: var(--sharp); border-color: rgba(255,146,38,.5); }
+    .seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s8); margin: 0 0 var(--s12); }
+    @media (min-width: 640px) { .seg { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+    .seg button { padding: var(--s8) var(--s12); min-height: var(--tap); border-radius: var(--r-ctl); font-weight: 700; }
+    .pctrow { display: flex; align-items: center; gap: var(--s8); flex-wrap: wrap; margin: 0 0 var(--s16); color: var(--dim); font-size: 13.5px; }
+    .pctrow input { width: 76px; }
+    .seg button.on { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
     .seg button.on.off { background: var(--bad); color: #2a0a0a; }
-    .seg button:active { transform: scale(.97); }
-    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 12px; }
-    .chip { display: inline-flex; align-items: center; gap: 6px; background: var(--card2); border: 1px solid var(--line); border-radius: 20px; padding: 4px 6px 4px 11px; font-size: 13px; font-variant-numeric: tabular-nums; }
-    .chip button { border: 0; background: transparent; color: var(--dim); padding: 0 6px; font-size: 15px; line-height: 1; border-radius: 10px; }
+    .chips { display: flex; flex-wrap: wrap; gap: var(--s8); margin: var(--s8) 0 var(--s16); }
+    .chip { display: inline-flex; align-items: center; gap: var(--s8); background: var(--surface2); border: 1px solid var(--outline); border-radius: var(--r-pill); padding: var(--s4) var(--s8) var(--s4) var(--s12); font-size: 13.5px; font-variant-numeric: tabular-nums; }
+    .chip button { border: 0; background: transparent; color: var(--dim); padding: 0 var(--s8); min-height: 28px; font-size: 16px; line-height: 1; border-radius: var(--r-ctl); }
     .chip button:hover { color: var(--bad); }
-    .ffc .add { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    .ffc .add input[type=text], .ffc input[type=number] { padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card2); color: var(--text); font: inherit; width: 150px; }
-    .ffc label.ck { font-size: 13px; color: var(--dim); display: inline-flex; gap: 6px; align-items: center; }
+    .ffc .add { display: flex; gap: var(--s8); align-items: center; flex-wrap: wrap; }
+    .ffc .add input[type=text], .ffc input[type=number] { width: 160px; }
+    .ffc label.ck { font-size: 13.5px; color: var(--dim); display: inline-flex; gap: var(--s8); align-items: center; }
+
     /* confirmação de ações: sobe de baixo, nunca é um clique só */
-    .cfm-back { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 200; display: flex; align-items: flex-end; justify-content: center; opacity: 0; transition: opacity .2s; }
+    .cfm-back { position: fixed; inset: 0; background: rgba(0,0,0,.62); z-index: 200; display: flex; align-items: flex-end; justify-content: center; opacity: 0; transition: opacity .2s; }
     .cfm-back.on { opacity: 1; }
-    .cfm { width: min(480px, 100%); background: var(--card); border: 1px solid var(--line); border-radius: 22px 22px 0 0; padding: 22px 20px calc(22px + env(safe-area-inset-bottom)); transform: translateY(48px); transition: transform .28s cubic-bezier(.2,.9,.3,1); box-shadow: 0 -10px 40px rgba(0,0,0,.5); max-height: 92vh; overflow: auto; }
+    .cfm { width: min(480px, 100%); background: var(--surface); border: 1px solid var(--outline); border-radius: var(--r-card) var(--r-card) 0 0; padding: var(--s24) var(--s20) calc(var(--s24) + env(safe-area-inset-bottom)); transform: translateY(48px); transition: transform .3s var(--ease); box-shadow: 0 -10px 40px rgba(0,0,0,.5); max-height: 92vh; overflow: auto; }
     .cfm-back.on .cfm { transform: none; }
-    @media (min-width: 640px) { .cfm-back { align-items: center; } .cfm { border-radius: 22px; } }
-    .cfm .ic { width: 44px; height: 44px; border-radius: 14px; background: rgba(34,229,143,.14); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; margin-bottom: 10px; }
+    @media (min-width: 640px) { .cfm-back { align-items: center; } .cfm { border-radius: var(--r-card); } }
+    .cfm .ic { width: 44px; height: 44px; border-radius: 14px; background: rgba(31,230,143,.14); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 800; margin-bottom: var(--s12); }
     .cfm.danger .ic { background: rgba(255,107,107,.16); color: var(--bad); }
-    .cfm h3 { margin: 0 0 6px; font-size: 19px; letter-spacing: -.2px; color: var(--text); text-transform: none; }
-    .cfm .why { color: var(--dim); font-size: 14.5px; margin: 0 0 10px; }
-    .cfm ul { margin: 0 0 6px; padding: 0 0 0 18px; color: var(--text); font-size: 14px; }
-    .cfm li { margin: 3px 0; }
-    .cfm input { width: 100%; padding: 12px; margin-top: 8px; border-radius: 12px; border: 1px solid var(--line); background: var(--card2); color: var(--text); font: inherit; font-weight: 700; letter-spacing: .5px; }
+    .cfm h3 { margin: 0 0 var(--s8); font-size: 19px; letter-spacing: -.2px; color: var(--text); text-transform: none; }
+    .cfm .why { color: var(--dim); font-size: 14.5px; margin: 0 0 var(--s12); }
+    .cfm ul { margin: 0 0 var(--s8); padding: 0 0 0 var(--s20); color: var(--text); font-size: 14px; }
+    .cfm li { margin: var(--s4) 0; }
+    .cfm input { width: 100%; margin-top: var(--s8); font-weight: 700; letter-spacing: .5px; }
     .cfm input.okk { border-color: var(--accent); }
-    .cfm .acts { display: flex; gap: 10px; margin-top: 18px; }
+    .cfm .acts { display: flex; gap: var(--s12); margin-top: var(--s20); }
     .cfm .acts button { flex: 1; min-height: 48px; font-weight: 700; border-radius: 14px; position: relative; overflow: hidden; }
-    .cfm .acts button.go { background: var(--accent); color: #062116; border-color: transparent; transition: opacity .2s, transform .1s; }
+    .cfm .acts button.go { background: var(--accent); color: var(--accent-ink); border-color: transparent; transition: opacity .2s, transform .1s; }
     .cfm.danger .acts button.go { background: var(--bad); color: #2a0a0a; }
     .cfm .acts button.go:active:not(:disabled) { transform: scale(.98); }
     .cfm .acts button.go i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: rgba(255,255,255,.35); pointer-events: none; }
-    .cfm .hint { color: var(--dim); font-size: 12.5px; margin-top: 8px; min-height: 1.2em; }
-    .flt { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; }
-    .flt label { font-size: 12px; color: var(--dim); display: flex; flex-direction: column; gap: 3px; }
-    .flt select, #devDays { background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 8px; font-size: 13px; }
+    .cfm .hint { color: var(--dim); font-size: 13px; margin-top: var(--s8); min-height: 1.2em; }
+
+    /* aparelhos, horário, retorno */
+    .flt { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--s12); }
+    .flt label { font-size: 13px; color: var(--dim); display: flex; flex-direction: column; gap: var(--s4); }
     .flt select.on { border-color: var(--accent); color: var(--accent); }
-    .heat { display: grid; grid-template-columns: 34px repeat(24, 1fr); gap: 2px; font-size: 10px; color: var(--dim); }
+    .heat { display: grid; grid-template-columns: 34px repeat(24, 1fr); gap: 2px; font-size: 11px; color: var(--dim); }
     .heat .c { height: 18px; border-radius: 3px; background: var(--accent); }
     .heat .l { display: flex; align-items: center; }
     .heat .hh { text-align: center; }
     .cohort td, .cohort th { text-align: center; }
     .cohort td:first-child, .cohort th:first-child { text-align: left; }
-    .cell { display: inline-block; min-width: 52px; padding: 3px 6px; border-radius: 6px; font-variant-numeric: tabular-nums; }
-    .meter { height: 14px; background: var(--card2); border-radius: 8px; overflow: hidden; margin: 8px 0; }
-    .meter i { display: block; height: 100%; background: var(--accent); transition: width .8s; }
-    .meter.warn i { background: var(--warn); } .meter.bad i { background: var(--bad); }
-    [hidden] { display: none !important; }
-  
-  .sup { margin-top: 14px; border-top: 1px solid var(--line, #2a3340); padding-top: 10px; }
-  .sup h4 { margin: 0 0 6px; font-size: 13px; color: var(--muted, #8a97a8); font-weight: 600; }
-  .item { display: flex; gap: 8px; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid var(--line, #2a3340); }
-  .item small { color: var(--muted, #8a97a8); display: block; }
-  .item button { padding: 3px 9px; font-size: 12px; }
-  .codebox { font-size: 26px; letter-spacing: 3px; font-weight: 700; text-align: center; padding: 12px; margin: 8px 0; border: 1px dashed var(--line, #2a3340); border-radius: 10px; user-select: all; }
-  .pillx { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 10px; margin-left: 6px; background: rgba(120,160,255,.18); }
-</style>
+    .cell { display: inline-block; min-width: 52px; padding: 3px var(--s8); border-radius: 6px; font-variant-numeric: tabular-nums; }
+
+    /* suporte (ficha do perfil) */
+    .sup { margin-top: var(--s16); border-top: 1px solid var(--outline); padding-top: var(--s12); }
+    .sup h4 { margin: 0 0 var(--s8); font-size: 13.5px; color: var(--dim); font-weight: 600; }
+    .item { display: flex; gap: var(--s8); align-items: center; justify-content: space-between; padding: var(--s8) 0; font-size: 14px; border-bottom: 1px solid var(--outline); }
+    .item small { color: var(--dim); display: block; }
+    .item button { padding: var(--s4) var(--s12); min-height: 36px; font-size: 13px; }
+    .codebox { font-size: 26px; letter-spacing: 3px; font-weight: 700; text-align: center; padding: var(--s16); margin: var(--s8) 0; border: 1px dashed var(--outline); border-radius: var(--r-ctl); user-select: all; }
+    .pillx { display: inline-block; font-size: 12px; padding: 1px var(--s8); border-radius: var(--r-ctl); margin-left: var(--s8); background: rgba(46,155,255,.18); }
+
+    /* ---------- movimento (tudo some com "reduzir movimento") ---------- */
+    .skel { background: linear-gradient(90deg, var(--surface2) 25%, #2a3745 37%, var(--surface2) 63%); background-size: 400% 100%; animation: shimmer 1.3s infinite; border-radius: 8px; color: transparent !important; min-height: 1em; }
+    @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+    @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+    @keyframes grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+    @keyframes fill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+    main > * { animation: rise .42s var(--ease) both; }
+    main > .grid { animation: none; }
+    main > *:nth-child(2) { animation-delay: .04s; } main > *:nth-child(3) { animation-delay: .08s; } main > *:nth-child(4) { animation-delay: .12s; }
+    main > *:nth-child(5) { animation-delay: .16s; } main > *:nth-child(6) { animation-delay: .2s; } main > *:nth-child(n+7) { animation-delay: .24s; }
+    .grid > .card { animation: rise .42s var(--ease) both; }
+    .grid > .card:nth-child(2) { animation-delay: .05s; } .grid > .card:nth-child(3) { animation-delay: .1s; } .grid > .card:nth-child(4) { animation-delay: .15s; }
+    .grid > .card:nth-child(5) { animation-delay: .2s; } .grid > .card:nth-child(6) { animation-delay: .25s; } .grid > .card:nth-child(n+7) { animation-delay: .3s; }
+    .enter .bar { transform-origin: bottom; animation: grow .7s var(--ease) both; }
+    .enter .row .b i, .enter .journey .b i, .enter .meter i { transform-origin: left; animation: fill .8s var(--ease) both; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+  </style>
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol><symbol id="i-home" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol><symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-chart" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></symbol><symbol id="i-phone" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></symbol><symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol><symbol id="i-bug" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol><symbol id="i-toggle" viewBox="0 0 24 24"><rect x="1" y="5" width="22" height="14" rx="7" ry="7"/><circle cx="16" cy="12" r="3"/></symbol><symbol id="i-coin" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></symbol><symbol id="i-server" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></symbol><symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol><symbol id="i-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol></defs></svg>
   <section id="login">
-    <h1>Painel do Notemusic</h1>
-    <p class="empty">Digite a chave de administrador (a mesma do painel de feedback). Ela fica só nesta aba do navegador.</p>
-    <input id="key" type="password" autocomplete="current-password" placeholder="Chave de administrador">
-    <button class="primary" id="enter">Entrar</button>
-    <p id="msg"></p>
+    <div class="card">
+      <div class="logo"><svg class="i" aria-hidden="true"><use href="#i-music"/></svg></div>
+      <h1>Painel do Notemusic</h1>
+      <p class="empty">Digite a chave de administrador (a mesma do painel de feedback). Ela fica só nesta aba do navegador.</p>
+      <input id="key" type="password" autocomplete="current-password" placeholder="Chave de administrador">
+      <button class="primary" id="enter">Entrar</button>
+      <p id="msg"></p>
+    </div>
   </section>
 
   <div id="detail" class="overlay" hidden><div class="box" id="detailBox"></div></div>
@@ -204,33 +313,53 @@
   <div id="defModal" class="overlay" hidden><div class="box" id="defBox"></div></div>
 
   <div id="app" hidden>
-    <header>
-      <h1>Notemusic · Painel</h1>
-      <button class="pill" id="healthPill" title="Saúde do app"><span class="dot" id="healthDot"></span><span id="healthTxt">Verificando…</span></button>
-      <span class="pill" style="cursor:default"><span class="dot" id="dot"></span><span id="liveTxt">—</span></span>
-      <button class="pill" id="sysPill" title="Banco de dados e limites"><span class="dot" id="sysDot"></span><span id="sysTxt">Sistema…</span></button>
-      <span id="liveAge" aria-live="off"></span>
-      <button id="refresh">Atualizar</button>
-      <button id="out">Sair</button>
-    </header>
-    <div class="sub" id="updated">—</div>
-    <nav class="tabs" id="tabs">
-      <button data-tab="overview" class="on">Visão geral</button>
-      <button data-tab="visitors">Visitantes</button>
-      <button data-tab="usage">Uso</button>
-      <button data-tab="devices">Aparelhos</button>
-      <button data-tab="people">Pessoas</button>
-      <button data-tab="bugs">Bugs <span id="bugBadge" class="tag x" hidden></span></button>
-      <button data-tab="features">Recursos</button>
-      <button data-tab="costs">Custos</button>
-      <button data-tab="system">Sistema</button>
-    </nav>
+    <div class="topbar">
+      <header>
+        <div class="brand">
+          <span class="logo"><svg class="i" aria-hidden="true"><use href="#i-music"/></svg></span>
+          <div><h1>Painel do Notemusic</h1><div class="sub" id="updated">—</div></div>
+        </div>
+        <div class="status">
+          <button class="pill" id="healthPill" title="Saúde do app"><span class="dot" id="healthDot"></span><span id="healthTxt">Verificando…</span></button>
+          <span class="pill" style="cursor:default"><span class="dot" id="dot"></span><span id="liveTxt">—</span></span>
+          <button class="pill" id="sysPill" title="Banco de dados e limites"><span class="dot" id="sysDot"></span><span id="sysTxt">Sistema…</span></button>
+        </div>
+        <div class="actions">
+          <span id="liveAge" aria-live="off"></span>
+          <button class="icon-btn" id="refresh" title="Atualizar agora" aria-label="Atualizar agora"><svg class="i" aria-hidden="true"><use href="#i-refresh"/></svg></button>
+          <button id="out" title="Sair do painel" aria-label="Sair"><svg class="i" aria-hidden="true"><use href="#i-out"/></svg></button>
+        </div>
+      </header>
+      <nav class="tabs" id="tabs" role="tablist" aria-label="Seções do painel">
+      <button data-tab="overview" class="on" role="tab" aria-selected="true" title="O resumo de tudo: quem usa agora, evolução e saúde do app"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg><span>Visão geral</span></button>
+      <button data-tab="visitors" role="tab" aria-selected="false" title="Quem abriu o app hoje, de onde veio e o que fez"><svg class="i" aria-hidden="true"><use href="#i-eye"/></svg><span>Visitantes</span></button>
+      <button data-tab="usage" role="tab" aria-selected="false" title="Telas mais usadas e horários mais cheios"><svg class="i" aria-hidden="true"><use href="#i-chart"/></svg><span>Uso</span></button>
+      <button data-tab="devices" role="tab" aria-selected="false" title="Celulares, sistemas e navegadores dos usuários"><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg><span>Aparelhos</span></button>
+      <button data-tab="people" role="tab" aria-selected="false" title="Perfis, vínculos, suporte e acervo"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg><span>Pessoas</span></button>
+      <button data-tab="bugs" role="tab" aria-selected="false" title="Erros do app e avisos de problema grave"><svg class="i" aria-hidden="true"><use href="#i-bug"/></svg><span>Bugs</span> <span id="bugBadge" class="tag x" hidden></span></button>
+      <button data-tab="features" role="tab" aria-selected="false" title="Liberar novidades aos poucos"><svg class="i" aria-hidden="true"><use href="#i-toggle"/></svg><span>Recursos</span></button>
+      <button data-tab="costs" role="tab" aria-selected="false" title="Quanto custa manter o app e projeções"><svg class="i" aria-hidden="true"><use href="#i-coin"/></svg><span>Custos</span></button>
+      <button data-tab="system" role="tab" aria-selected="false" title="Banco de dados, servidor e chaves configuradas"><svg class="i" aria-hidden="true"><use href="#i-server"/></svg><span>Sistema</span></button>
+        <span class="tab-ind" id="tabInd"></span>
+      </nav>
+    </div>
 
     <!-- ===== Visão geral ===== -->
     <main id="tab-overview">
       <div class="hello" id="hello">Olá!</div>
-      <div class="sub" style="padding:0 0 12px" id="helloSub"></div>
-      <h2 style="margin-top:0">Saúde do uso <button class="help" data-def="indicators">?</button></h2>
+      <div class="sub" style="padding:0" id="helloSub"></div>
+      <h2 style="margin-top:var(--s24)">Agora mesmo</h2>
+      <p class="lead">Quantas pessoas estão usando o app neste momento e nos últimos dias.</p>
+      <div class="grid">
+        <div class="card big"><div class="k"><span>Online agora</span><button class="help" data-def="online">?</button></div><div class="v" id="on5">–</div><div class="s">últimos 5 min · <span id="on1">–</span> no último minuto</div></div>
+        <div class="card"><div class="k"><span>Usuários hoje</span><button class="help" data-def="dau">?</button></div><div class="v" id="dau">–</div><div class="s"><span id="opens">–</span> aberturas<span class="delta" id="dDau"></span></div></div>
+        <div class="card"><div class="k"><span>Últimos 7 dias</span><button class="help" data-def="wau">?</button></div><div class="v" id="wau">–</div><div class="s">aparelhos distintos<span class="delta" id="dWau"></span></div></div>
+        <div class="card"><div class="k"><span>Últimos 30 dias</span><button class="help" data-def="mau">?</button></div><div class="v" id="mau">–</div><div class="s">aparelhos distintos<span class="delta" id="dMau"></span></div></div>
+        <div class="card"><div class="k"><span>Total de aparelhos</span><button class="help" data-def="total">?</button></div><div class="v" id="total">–</div><div class="s"><span id="newToday">–</span> novos hoje</div></div>
+      </div>
+
+      <h2>Saúde do uso <button class="help" data-def="indicators">?</button></h2>
+      <p class="lead">Sinais de que algo precisa de atenção. Perto de zero é bom; só em "Perfis online" quanto maior, melhor.</p>
       <div class="grid" id="indGrid">
         <div class="card"><div class="k">Notificações negadas</div><div class="v" id="indNt">–</div><div class="s" id="indNtS"></div></div>
         <div class="card"><div class="k">Versão antiga do app</div><div class="v" id="indVer">–</div><div class="s" id="indVerS"></div></div>
@@ -240,31 +369,27 @@
         <div class="card"><div class="k">Origens com muitos cadastros</div><div class="v" id="indHot">–</div><div class="s">passaram de 30 perfis novos num dia (7 dias). Escola ou igreja com um Wi-Fi só é normal.</div></div>
         <div class="card"><div class="k">Perfis abandonados</div><div class="v" id="indStale">–</div><div class="s">sem vínculo e parados há 60 dias · <button id="bSweep">Limpar agora</button></div></div>
       </div>
-      <h2>Agora</h2>
-      <div class="grid">
-        <div class="card big"><div class="k"><span>Online agora</span><button class="help" data-def="online">?</button></div><div class="v" id="on5">–</div><div class="s">últimos 5 min · <span id="on1">–</span> no último minuto</div></div>
-        <div class="card"><div class="k"><span>Usuários hoje</span><button class="help" data-def="dau">?</button></div><div class="v" id="dau">–</div><div class="s"><span id="opens">–</span> aberturas<span class="delta" id="dDau"></span></div></div>
-        <div class="card"><div class="k"><span>Últimos 7 dias</span><button class="help" data-def="wau">?</button></div><div class="v" id="wau">–</div><div class="s">aparelhos distintos<span class="delta" id="dWau"></span></div></div>
-        <div class="card"><div class="k"><span>Últimos 30 dias</span><button class="help" data-def="mau">?</button></div><div class="v" id="mau">–</div><div class="s">aparelhos distintos<span class="delta" id="dMau"></span></div></div>
-        <div class="card"><div class="k"><span>Total de aparelhos</span><button class="help" data-def="total">?</button></div><div class="v" id="total">–</div><div class="s"><span id="newToday">–</span> novos hoje</div></div>
-      </div>
-
       <h2>Conquistas <button class="help" data-def="medals">?</button></h2>
+      <p class="lead">Marcos do projeto. A medalha acende quando o app alcança cada meta.</p>
       <div class="medals" id="medals"></div>
 
       <h2>Últimos 30 dias</h2>
+      <p class="lead">Como o uso mudou dia a dia. A barra azul é hoje (o dia ainda está em andamento).</p>
       <div class="two">
         <div class="card"><div class="k">Usuários por dia</div><div class="bars" id="chUsers"></div><div class="axis"><span id="axA"></span><span id="axB"></span></div></div>
         <div class="card"><div class="k">Aparelhos novos por dia</div><div class="bars" id="chNew"></div><div class="axis"><span id="axC"></span><span id="axD"></span></div></div>
       </div>
 
       <h2>Jornada do uso (30 dias) <button class="help" data-def="journey">?</button></h2>
+      <p class="lead">De quantas pessoas abriram o app até quantas concluíram tarefas. Cada linha é uma etapa.</p>
       <div class="card journey" id="journey"></div>
 
       <h2>Ativação: a primeira vez de cada perfil <button class="help" data-def="funnel">?</button></h2>
+      <p class="lead">Mostra onde as pessoas desistem: a primeira vez que cada perfil fez cada coisa.</p>
       <div class="card journey" id="funnel"><div class="skel" style="height:90px"></div></div>
 
       <h2>Professor e aluno (7 dias × 7 dias anteriores) <button class="help" data-def="compare">?</button></h2>
+      <p class="lead">Esta semana comparada com a semana anterior. Verde quer dizer que melhorou; vermelho, que piorou.</p>
       <div class="grid" id="cmpGrid"></div>
       <p class="note">Contagens anônimas: cada aparelho tem um código aleatório, sem nome, IP ou áudio. Quem limpa os dados do navegador ou reinstala conta como aparelho novo; o total de aparelhos usa uma contagem aproximada (erro de cerca de 1%).</p>
     </main>
@@ -272,6 +397,7 @@
     <!-- ===== Uso ===== -->
     <main id="tab-usage" hidden>
       <h2>Quem usa (hoje)</h2>
+      <p class="lead">Por quais telas e recursos as pessoas passaram hoje.</p>
       <div class="two">
         <div class="card"><div class="k">Aparelho e navegador</div><div id="dPl"></div></div>
         <div class="card"><div class="k">Como abriu</div><div id="dIn"></div></div>
@@ -280,12 +406,14 @@
         <div class="card"><div class="k">Abas abertas (aparelhos distintos)</div><div id="dTabs"></div></div>
       </div>
       <h2>Quando usam (30 dias) <button class="help" data-def="heatmap">?</button></h2>
+      <p class="lead">Os horários mais cheios. Quanto mais forte a cor, mais gente usando.</p>
       <div class="card"><div class="heat" id="heat"></div><div class="axis" id="heatNote" style="margin-top:8px"></div></div>
     </main>
 
     <!-- ===== Pessoas ===== -->
     <main id="tab-people" hidden>
       <h2>Perfis (professores e alunos) <button class="help" data-def="profiles">?</button></h2>
+      <p class="lead">Quantas contas existem e como estão ligadas entre si.</p>
       <div class="grid">
         <div class="card big"><div class="k">Perfis no total</div><div class="v" id="pTotal">–</div><div class="s"><span id="pNew7">–</span> novos em 7 dias · <span id="pNew30">–</span> em 30</div></div>
         <div class="card"><div class="k"><span>Ativos (30 dias)</span><button class="help" data-def="active">?</button></div><div class="v" id="pAct30">–</div><div class="s"><span id="pAct7">–</span> em 7 dias · <span id="pAct1">–</span> hoje</div></div>
@@ -295,26 +423,33 @@
         <div class="card"><div class="k"><span>Retorno D1 · D7 · D30</span><button class="help" data-def="retention">?</button></div><div class="v" id="pRet" style="font-size:22px">–</div><div class="s" id="pRetS"></div></div>
       </div>
       <h2>Perfis online agora <button class="help" data-def="presence">?</button></h2>
+      <p class="lead">Quem está conectado, com o vínculo ligado, nos últimos minutos.</p>
       <div class="card" id="presCard">
         <div class="kv"><span>Online agora</span><span id="presN">–</span></div>
         <div id="presRows"></div>
         <div class="empty" id="presNote"></div>
       </div>
       <h2>Perfis novos por dia (14 dias)</h2>
+      <p class="lead">Quantos perfis nasceram em cada um dos últimos 14 dias.</p>
       <div class="card"><div class="bars" id="chProf"></div></div>
       <h2>Retorno por semana de entrada <button class="help" data-def="cohorts">?</button></h2>
+      <p class="lead">Das pessoas que entraram em cada semana, quantas voltaram depois. Quanto mais forte a cor, melhor.</p>
       <div class="card" style="overflow:auto"><table class="cohort"><thead><tr><th>Semana</th><th>Entraram</th><th>D1</th><th>D7</th><th>D30</th></tr></thead><tbody id="cohortRows"></tbody></table></div>
       <h2>Lista de perfis</h2>
+      <p class="lead">Toque em um perfil para ver a ficha, dar suporte ou resolver um problema.</p>
       <div class="card">
         <div class="toolbar"><input id="q" placeholder="Buscar por trecho do código" maxlength="40"><label class="empty"><input type="checkbox" id="qName"> pelo apelido</label><button id="qGo">Buscar</button><button id="pExport">Exportar CSV</button><span class="empty" id="pCount"></span></div>
         <div style="overflow:auto"><table><thead><tr><th>Código</th><th>Apelido</th><th>Papel</th><th>Entrou</th><th>Última atividade</th></tr></thead><tbody id="pRows"></tbody></table></div>
         <div class="toolbar" style="margin-top:10px"><button id="pPrev">‹ Anterior</button><button id="pNext">Próxima ›</button><span class="empty" id="pNote"></span></div>
       </div>
       <h2>Acervo dos professores de teste <button class="help" data-def="library">?</button></h2>
+      <p class="lead">Os materiais (só links) que os professores liberados cadastraram.</p>
       <div class="card"><div id="libTesters" class="empty">Carregando…</div></div>
       <h2>Denúncias do acervo</h2>
+      <p class="lead">Itens que alguém denunciou. Você decide se esconde.</p>
       <div class="card"><div id="libReports" class="empty">Nenhuma denúncia.</div></div>
       <h2>Ações do administrador</h2>
+      <p class="lead">O registro de tudo o que foi feito aqui no painel, com data e hora.</p>
       <div class="card"><div id="logRows" class="empty">Nada ainda.</div></div>
     </main>
 
@@ -329,14 +464,17 @@
         <div class="card"><div class="k">Últimas 2 horas</div><div class="v" id="bTwoH">–</div><div class="s" id="bSpike"></div></div>
       </div>
       <h2>Erros por hora (hoje)</h2>
+      <p class="lead">Em que horas do dia os erros aconteceram.</p>
       <div class="card"><div class="bars" id="bHours"></div><div class="axis"><span>0h</span><span>12h</span><span>23h</span></div></div>
       <h2>Avisos de bug grave <button class="help" data-def="pushadmin">?</button></h2>
+      <p class="lead">Receba uma notificação neste aparelho quando acontecer um erro grave.</p>
       <div class="card">
         <div class="kv"><span>Neste navegador</span><span id="pushState">–</span></div>
         <div class="kv"><span>Aparelhos avisados</span><span id="pushDevs">–</span></div>
         <div class="toolbar" style="margin-top:8px"><button id="pushOn" class="primary">Ativar avisos neste navegador</button><button id="pushOff" hidden>Desativar</button><button id="pushTest" hidden>Enviar teste</button><span class="empty" id="pushNote"></span></div>
       </div>
       <h2>Bugs agrupados</h2>
+      <p class="lead">Erros iguais ficam juntos. Toque em um para ver os detalhes e marcar como resolvido.</p>
       <div class="filters">
         <select id="fDays"><option value="1">Últimas 24 h</option><option value="7" selected>7 dias</option><option value="30">30 dias</option><option value="90">90 dias</option></select>
         <select id="fSev"><option value="">Toda gravidade</option><option value="critical">Grave</option><option value="action">De ação</option><option value="info">De conexão</option></select>
@@ -359,16 +497,20 @@
     <!-- ===== Aparelhos ===== -->
     <main id="tab-devices" hidden>
       <h2>Aparelhos <button class="help" data-def="devices">?</button></h2>
+      <p class="lead">De que celulares, sistemas e navegadores vêm os usuários.</p>
       <div class="toolbar">
         <label class="empty">Período <select id="devDays"><option value="1">Hoje</option><option value="7" selected>7 dias</option><option value="30">30 dias</option></select></label>
         <button id="devClear">Limpar filtros</button><span class="empty" id="devNote"></span>
       </div>
       <div class="card"><div class="k"><span>Resultado do filtro</span><span id="devPct">–</span></div><div class="v" id="devCount">–</div><div class="s" id="devSub"></div></div>
       <h2>Filtros (combine à vontade)</h2>
+      <p class="lead">Escolha um ou mais. Os números mostram só quem se encaixa.</p>
       <div class="flt" id="devFilters"></div>
       <h2>Como se dividem dentro do filtro</h2>
+      <p class="lead">Dentro do filtro, a proporção de cada tipo.</p>
       <div class="two" id="devBreak"></div>
       <h2>Combinações mais comuns</h2>
+      <p class="lead">Os tipos de aparelho que mais aparecem.</p>
       <div class="card" style="overflow:auto"><table><thead><tr><th>Aparelho</th><th>Ficha</th><th>Vezes</th></tr></thead><tbody id="devTop"></tbody></table></div>
       <p class="note">Cada aparelho entra uma vez por dia, com uma "ficha" só de categorias (nada de nome, código, som ou IP). A região é aproximada (país e estado, pelo servidor) e não é GPS. Aparelhos antigos, que ainda não atualizaram o app, aparecem como "Não informado" nos campos novos.</p>
     </main>
@@ -376,6 +518,7 @@
     <!-- ===== Visitantes: quem usa sem cadastro ===== -->
     <main id="tab-visitors" hidden>
       <h2>Visitantes de hoje <button class="help" data-def="visitors">?</button> <button id="visRefresh">Atualizar</button></h2>
+      <p class="lead">Quem abriu o app hoje, mesmo sem ter conta.</p>
       <div class="grid">
         <div class="card big"><div class="k"><span>Aparelhos hoje</span></div><div class="v" id="vUsers">–</div><div class="s" id="vUsersS"></div></div>
         <div class="card"><div class="k">Novos hoje</div><div class="v" id="vNew">–</div><div class="s">primeira vez neste aparelho</div></div>
@@ -385,21 +528,26 @@
         <div class="card"><div class="k">Viraram cadastro hoje</div><div class="v" id="vProf">–</div><div class="s">perfis novos no servidor</div></div>
       </div>
       <h2>De onde vieram (aparelhos por dia) <button class="help" data-def="origin">?</button></h2>
+      <p class="lead">O caminho pelo qual as pessoas chegaram (vídeos, links, buscas).</p>
       <div class="card" style="overflow:auto"><table><thead id="vOrgHead"></thead><tbody id="vOrgRows"></tbody></table></div>
       <div class="two">
-        <div><h2>O que usaram hoje</h2><div class="card" id="vTabs"></div></div>
-        <div><h2>Permissões e instalação (hoje)</h2><div class="card" id="vPerms"></div></div>
+        <div><h2>O que usaram hoje</h2>
+      <p class="lead">As abas mais abertas hoje.</p><div class="card" id="vTabs"></div></div>
+        <div><h2>Permissões e instalação (hoje)</h2>
+      <p class="lead">Quem deu permissão de microfone e de notificações, e quem instalou o app.</p><div class="card" id="vPerms"></div></div>
       </div>
       <div class="two">
-        <div><h2>Aparelhos por hora (hoje)</h2><div class="card"><div class="bars" id="vHours" style="height:90px"></div><div class="s" id="vHoursS" style="margin-top:6px"></div></div></div>
-        <div><h2>De que região (hoje)</h2><div class="card" id="vGeo"></div></div>
+        <div><h2>Aparelhos por hora (hoje)</h2>
+      <p class="lead">Em quais horas de hoje o app foi aberto.</p><div class="card"><div class="bars" id="vHours" style="height:90px"></div><div class="s" id="vHoursS" style="margin-top:6px"></div></div></div>
+        <div><h2>De que região (hoje)</h2>
+      <p class="lead">Estados e países dos visitantes (aproximado).</p><div class="card" id="vGeo"></div></div>
       </div>
       <p class="note">Cada aparelho conta uma vez por dia (a mesma pessoa em dois aparelhos conta duas vezes). As visualizações do YouTube e do Instagram não chegam aqui: só quem tocou no link e abriu o app. "Sem cadastro" é uma estimativa: aparelhos de hoje menos perfis com vínculo ativos hoje. Aparelhos antigos, que ainda não atualizaram o app, podem ficar fora de alguns números.</p>
     </main>
 
     <!-- ===== Recursos (liberação aos poucos) ===== -->
     <main id="tab-features" hidden>
-      <p class="note" style="margin-top:0">Cada novidade nasce desligada. Libere para alguns códigos, depois para uma parte dos usuários e, por fim, para todos.
+      <p class="lead">Cada novidade nasce desligada. Libere para alguns códigos, depois para uma parte dos usuários e, por fim, para todos.
         <b>Desligado</b> vale para todos (inclusive quem está na lista) e chega aos aparelhos em até 1 minuto. O servidor é quem decide; esconder no app não basta.</p>
       <div id="ffBox"><div class="empty">Carregando…</div></div>
     </main>
@@ -407,21 +555,26 @@
     <!-- ===== Sistema ===== -->
     <main id="tab-system" hidden>
       <h2>Banco de dados (Redis) <button class="help" data-def="sysdb">?</button></h2>
+      <p class="lead">Onde ficam guardados os dados: se está respondendo e quanto já guardou.</p>
       <div class="two">
         <div class="card"><div class="k"><span>Conexão</span><span id="sDbPill">–</span></div><div class="v" id="sDbMs">–</div><div class="s" id="sDbSub"></div></div>
         <div class="card"><div class="k"><span>Dados guardados</span></div><div class="v" id="sKeys">–</div><div class="s" id="sMem"></div></div>
       </div>
       <h2>Servidor (Vercel) <button class="help" data-def="sysserver">?</button></h2>
+      <p class="lead">O servidor que entrega o app: versão publicada, funções usadas e erros.</p>
       <div class="two">
         <div class="card"><div class="k"><span>Versão publicada</span></div><div class="v" id="sCommit">–</div><div class="s" id="sEnv"></div></div>
         <div class="card"><div class="k"><span>Funções usadas</span></div><div class="v" id="sFns">–</div><div class="meter"><i id="sFnsBar" style="width:0%"></i></div><div class="s">limite de 12 no plano gratuito</div></div>
       </div>
       <div class="card" style="margin-top:12px"><div class="k"><span>Erros do servidor por dia (14 dias)</span><span id="sSrvTot">–</span></div><div class="bars" id="sSrv"></div><div class="axis"><span id="sSrvA"></span><span id="sSrvB"></span></div></div>
       <h2>Limites e gasto <button class="help" data-def="syslimits">?</button></h2>
+      <p class="lead">Quanto do plano gratuito já foi usado neste mês.</p>
       <div class="card" id="sLimits"></div>
       <h2>Variáveis configuradas <button class="help" data-def="syschecks">?</button></h2>
+      <p class="lead">Confere se as chaves do servidor (lembretes, IA, painel) estão preenchidas.</p>
       <div class="card" id="sChecks"></div>
       <h2>Serviços de IA</h2>
+      <p class="lead">Quais serviços de IA estão ligados e quanto cada um respondeu hoje.</p>
       <div class="card" id="sAi"></div>
       <p class="note">Estimativa onde estiver escrito "estimado": o uso exato do Redis e da Vercel só aparece com as chaves de API desses serviços, que ainda não estão ligadas. Banco, versão, variáveis e erros do servidor são medidos de verdade.</p>
     </main>
@@ -429,6 +582,7 @@
     <!-- ===== Custos ===== -->
     <main id="tab-costs" hidden>
       <h2>Comandos do Redis no mês (estimativa) <button class="help" data-def="cost">?</button></h2>
+      <p class="lead">Estimativa do uso do banco no mês e se vai caber no plano gratuito.</p>
       <div class="card">
         <div class="k"><span>Últimos 30 dias</span><span id="cPct">–</span></div>
         <div class="v" id="cMonth">–</div>
@@ -442,6 +596,7 @@
       <p class="note" id="cNote"></p>
 
       <h2>Contas: quanto custa manter a plataforma <button class="help" data-def="bill">?</button></h2>
+      <p class="lead">Quanto custa manter o app hoje e quanto custaria com mais usuários.</p>
       <div class="card bill" id="bill">
         <div class="toolbar">
           <label class="f">Usuários ativos por mês<input id="bUsers" type="number" min="1" max="10000000" value="1000"></label>
@@ -454,6 +609,7 @@
         <div class="tw" id="billTbl"></div>
         <div id="billAl"></div>
         <h2 style="margin-top:16px">Custos que não são mensais</h2>
+      <p class="lead">Gastos pontuais, como a conta das lojas e o domínio.</p>
         <div id="billOne"></div>
         <p class="note" id="billNote"></p>
       </div>
@@ -515,7 +671,7 @@
   });
 
   // ---------------- Utilidades ----------------
-  function show(logged) { $('login').hidden = logged; $('app').hidden = !logged; }
+  function show(logged) { $('login').hidden = logged; $('app').hidden = !logged; if (logged) requestAnimationFrame(moveInd); }
   function fmt(n) { return (Number(n) || 0).toLocaleString('pt-BR'); }
   function p2(n) { return (n < 10 ? '0' : '') + n; }
   function dt(ms) { if (!ms) return '—'; var d = new Date(ms); return p2(d.getDate()) + '/' + p2(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes()); }
@@ -638,9 +794,9 @@
       var b = document.createElement('button'); b.textContent = FF_MODE[m]; b.className = (f.mode === m ? 'on ' : '') + m;
       b.onclick = function () { if (f.mode !== m || m === 'pct') ffChange(f, m, parseInt(pctInp.value, 10)); };
       seg.appendChild(b);
-      if (m === 'pct') { seg.appendChild(pctInp); var pl = document.createElement('span'); pl.textContent = '%'; pl.style.alignSelf = 'center'; pl.style.color = 'var(--dim)'; seg.appendChild(pl); }
     });
     c.appendChild(seg);
+    var pr = document.createElement('div'); pr.className = 'pctrow'; pr.appendChild(document.createTextNode('Porcentagem:')); pctInp.style.width = ''; pr.appendChild(pctInp); pr.appendChild(document.createTextNode('% dos usuários (sempre os mesmos)')); c.appendChild(pr);
 
     var cnt = document.createElement('div'); cnt.className = 'sub'; cnt.style.padding = '0'; cnt.textContent = 'Liberados por código: ' + f.count + (f.count > f.members.length ? ' (mostrando ' + f.members.length + ')' : ''); c.appendChild(cnt);
     var chips = document.createElement('div'); chips.className = 'chips';
@@ -698,7 +854,7 @@
   var toastT = null;
   function toast(msg, kind) {
     var t = $('toast'); if (!t) { t = document.createElement('div'); t.id = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
-    t.className = 'toast ' + (kind || 'ok'); t.textContent = (kind === 'bad' ? '⚠ ' : '✓ ') + msg; t.hidden = false;
+    t.className = 'toast ' + (kind || 'ok'); t.textContent = msg; t.hidden = false;
     clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, kind === 'bad' ? 6000 : 3500);
   }
   function why(r) { return (r && r.j && (r.j.message || r.j.error)) || ('erro ' + (r && r.status)); }
@@ -1600,7 +1756,9 @@
   function showTab(name) {
     current = name;
     ['overview', 'visitors', 'usage', 'devices', 'people', 'bugs', 'features', 'costs', 'system'].forEach(function (t) { $('tab-' + t).hidden = t !== name; });
-    var bs = $('tabs').querySelectorAll('button'); for (var i = 0; i < bs.length; i++) bs[i].className = bs[i].getAttribute('data-tab') === name ? 'on' : '';
+    var bs = $('tabs').querySelectorAll('button'); for (var i = 0; i < bs.length; i++) { var isOn = bs[i].getAttribute('data-tab') === name; bs[i].className = isOn ? 'on' : ''; bs[i].setAttribute('aria-selected', isOn ? 'true' : 'false'); }
+    var mainEl = $('tab-' + name); mainEl.classList.add('enter'); setTimeout(function () { mainEl.classList.remove('enter'); }, 1200);
+    moveInd();
     if (!loaded[name]) { loaded[name] = true; loadTab(name); }
     window.scrollTo(0, 0);
   }
@@ -1613,7 +1771,16 @@
     if (name === 'visitors') loadVisitors();
     if (name === 'system') loadSystem();
   }
-  $('tabs').onclick = function (e) { var t = e.target; if (t && t.getAttribute && t.getAttribute('data-tab')) showTab(t.getAttribute('data-tab')); };
+  // Indicador verde que desliza até a aba escolhida (e a aba escolhida rola para o meio, no celular).
+  function moveInd() {
+    var tabsEl = $('tabs'), on = tabsEl && tabsEl.querySelector('button.on'), ind = $('tabInd');
+    if (!on || !ind || !on.offsetWidth) return;
+    ind.style.width = on.offsetWidth + 'px';
+    ind.style.transform = 'translateX(' + on.offsetLeft + 'px)';
+    try { tabsEl.scrollTo({ left: Math.max(0, on.offsetLeft - (tabsEl.clientWidth - on.offsetWidth) / 2), behavior: 'smooth' }); } catch (e) { /* sem rolagem suave: segue */ }
+  }
+  window.addEventListener('resize', moveInd);
+  $('tabs').onclick = function (e) { var t = e.target && e.target.closest ? e.target.closest('button[data-tab]') : null; if (t) showTab(t.getAttribute('data-tab')); };
 
   function setUpd(t, bad) { var e = $('updated'); e.textContent = t; e.style.color = bad ? 'var(--bad)' : ''; e.style.cursor = bad ? 'pointer' : ''; }
   $('updated').onclick = function () { if (this.style.cursor === 'pointer') { loadFull(); loadHealth(); } };
@@ -1731,6 +1898,34 @@
   $('fQ').onkeydown = function (e) { if (e.key === 'Enter') $('fGo').onclick(); };
   $('bPrev').onclick = function () { bOffset = Math.max(0, bOffset - 25); loadBugs(); };
   $('bNext').onclick = function () { bOffset += 25; loadBugs(); };
+
+  // ---------------- Números que "contam" até o valor ----------------
+  (function () {
+    if (!window.MutationObserver || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+    function parse(t) { t = String(t).trim(); return /^\d{1,3}(\.\d{3})*$|^\d+$/.test(t) ? parseInt(t.replace(/\./g, ''), 10) : null; }
+    function run(el, from, to) {
+      var t0 = null, dur = 650;
+      function step(ts) {
+        if (t0 === null) t0 = ts;
+        var k = Math.min(1, (ts - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+        el._last = Math.round(from + (to - from) * e).toLocaleString('pt-BR');
+        el.textContent = el._last;
+        if (k < 1) el._raf = requestAnimationFrame(step);
+      }
+      cancelAnimationFrame(el._raf); el._raf = requestAnimationFrame(step);
+    }
+    var mo = new MutationObserver(function (list) {
+      list.forEach(function (m) {
+        var el = m.target.nodeType === 3 ? m.target.parentNode : m.target;
+        if (!el || !el.classList || !el.classList.contains('v') || el.textContent === el._last) return;
+        var to = parse(el.textContent); if (to === null) { el._val = null; return; }
+        var from = typeof el._val === 'number' ? el._val : 0;
+        el._val = to; if (from === to) return;
+        el._last = el.textContent; run(el, from, to);
+      });
+    });
+    mo.observe($('app'), { childList: true, characterData: true, subtree: true });
+  })();
 
   if (key) start(); else show(false);
 })();

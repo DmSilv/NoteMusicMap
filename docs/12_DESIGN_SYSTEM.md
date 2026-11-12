@@ -43,5 +43,14 @@
 4. Margens e espaços vêm de `Ds`? Botões com 48 px ou mais?
 5. Abri no navegador em 390×844 e olhei antes de pedir "sim, publicar"?
 
+## Painel do administrador (`web/admin.html`)
+O painel segue o mesmo sistema, em CSS:
+- **Cores:** as do app, no tema escuro (`--bg`, `--surface`, `--surface2`, `--outline`, `--text`, `--dim`, `--accent`, `--flat`, `--sharp`). Vermelho (`--bad`) só para problema. Um teste compara com `lib/ui/theme.dart`.
+- **Espaço:** `--s4` a `--s32` (4, 8, 12, 16, 20, 24, 32). Nada de números soltos como 10, 14 ou 22 px.
+- **Raios:** 20 (cartão e janela), 12 (botão e campo) e pílula.
+- **Toque:** botões e campos com 40 a 48 px; texto de apoio a partir de 13 px.
+- **Estrutura de uma seção:** título (17 px, forte) + **frase de apoio** + conteúdo em cartões. O "?" guarda a explicação longa.
+- **Movimento:** entrada suave dos blocos e dos cartões, barras que crescem, números que contam, indicador que desliza entre as abas, janelas que sobem de baixo. Tudo para com "reduzir movimento".
+
 ## Onde já está aplicado
 Afinador (instrumento + Ajustes, Ouvir fixo), Metrônomo (BPM, play e Modo desafio à vista; ajustes no modal), Grade (ajustes no modal), Escalas (escala + Iniciar à vista; configurar no modal), Meu espaço (agenda em primeiro lugar; estudo e cronômetro num bloco só; gráficos na tela Evolução; meta no modal; explicações dos timers no "?"), sino com sugestões. Telas de professor e aluno (listas, fichas) ainda usam os espaçamentos antigos e entram nas próximas passadas.

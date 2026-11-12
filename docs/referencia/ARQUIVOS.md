@@ -238,6 +238,7 @@
 |---|---|
 | `api/_lib/webpush.test.js` | Exemplo oficial da RFC 8291 (apêndice A). |
 | `api/admin.test.js` | Testes do painel do administrador (indicadores e gestão de perfis), sem rede: `node --test api/admin.test.js` |
+| `api/admin_design.test.js` | O painel segue o mesmo design system do app: `node --test api/admin_design.test.js` (cores iguais às de lib/ui/theme.dart, escala de espaço, abas com ícone, frase de apoio em todo título, movimento que se desliga). |
 | `api/admin_push.test.js` | Aviso de bug grave ao admin (Web Push), precisão dos bugs e busca por nome, sem rede: `node --test api/admin_push.test.js` |
 | `api/agenda.test.js` | Testes da agenda e dos lembretes, sem rede: `node --test api/agenda.test.js` |
 | `api/agenda_control.test.js` | Testes do controle da agenda (trocar o aluno de uma aula, remarcar uma data, pausar): `node --test api/agenda_control.test.js` |
@@ -285,4 +286,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **242** arquivos mapeados.
+Total: **243** arquivos mapeados.

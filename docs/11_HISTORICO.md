@@ -208,3 +208,6 @@ O bloco **Seu estudo** (tempo de hoje, dias seguidos, meta diária, cronômetro,
 
 ## Metrônomo com duas visões (novembro/2026)
 A aba Metrônomo ganhou um seletor no topo: **Metrônomo** (padrão) e **Estudo e timers**. O "Seu estudo" só aparece na segunda visão, então a primeira fica limpa e a troca está sempre à vista. As pílulas de Pomodoro e relógio da faixa de cima abrem direto a visão de estudo (`lib/ui/metro_section.dart`). A escolha vale até fechar o app.
+
+## Painel do administrador no padrão do app (novembro/2026)
+O painel foi redesenhado com o design system do app: cores iguais (testadas contra `theme.dart`), escala de espaço de 8 em 8, cartões e janelas com os mesmos raios, abas com ícone e indicador que desliza, **uma frase de apoio em cada título** (38 ao todo), "Agora mesmo" antes de "Saúde do uso" na Visão geral, seletor de modo dos recursos em 4 botões iguais, estado do sistema numa linha que rola de lado no celular, janelas que sobem de baixo, avisos no estilo dos avisos do app e animações (entrada, barras, números que contam) que respeitam "reduzir movimento". Dados, ações e confirmações não mudaram. Teste novo: `api/admin_design.test.js` (6).

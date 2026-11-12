@@ -7,6 +7,16 @@ Página estática (`web/admin.html`, JavaScript puro, sem bibliotecas) que fala 
 - Errou a chave 10 vezes na hora → bloqueio temporário (429).
 - Sem `ADMIN_KEY`/`FEEDBACK_ADMIN_KEY` configuradas, o painel responde 404 ("falta a variável").
 
+## Visual e como ler (mesmo padrão do app)
+O painel (`web/admin.html`) usa o **design system do app** (ver `12_DESIGN_SYSTEM.md`, seção "Painel"): as mesmas cores, a escala de espaço de 8 em 8, cartões de 20 px de raio e movimento suave (que se desliga com "reduzir movimento"). Para ficar fácil de entender:
+- **Cada título tem uma frase de apoio** em linguagem simples ("Quantas pessoas estão usando o app neste momento…"), e o "?" abre a explicação completa.
+- **As abas têm ícone, nome e uma dica** (passe o mouse ou segure o dedo). Um traço verde desliza até a aba escolhida.
+- **Visão geral:** primeiro "Agora mesmo" (quem usa), depois "Saúde do uso" (sinais de problema).
+- **Números** contam até o valor ao carregar; as barras e os medidores crescem ao entrar na aba.
+- **Cores com o mesmo sentido do app:** verde = bom ou ligado, laranja = atenção, vermelho = problema, azul = informação.
+- **Celular:** a marca e o estado rolam junto; só as abas ficam fixas. As janelas (ficha do perfil, bug, confirmação) sobem de baixo, como no app. No computador, abrem no centro.
+- Um teste (`api/admin_design.test.js`) garante que as cores sejam iguais às de `lib/ui/theme.dart` e que todo título tenha frase de apoio.
+
 ## Topo da página
 - **Semáforo de saúde** (`health`): verde "Tudo certo", amarelo "Atenção", vermelho "Problema". Vermelho: erro grave hoje ou pico de erros nas últimas 2 h. Amarelo: mais de 5 erros por 100 aberturas (com ≥ 20 aberturas) ou falha do servidor hoje. Passar o mouse mostra os motivos; tocar leva à aba Bugs.
 - **Online agora** (atualiza a cada 30 s) e "atualizado às HH:MM · horário de Brasília · o dia de hoje é parcial".
