@@ -11,7 +11,9 @@ import 'stats/error_service.dart';
 import 'stats/stats_service.dart';
 import 'ui/app_locale.dart';
 import 'ui/app_logo.dart';
+import 'ui/exit_sheet.dart';
 import 'ui/hello_bar.dart';
+import 'ui/home_tabs.dart';
 import 'ui/link_bar.dart';
 import 'ui/error_ui.dart';
 import 'ui/status_strip.dart';
@@ -364,7 +366,7 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
-  int _index = 0;
+  int _index = kHomeTab;
 
   @override
   void initState() {
@@ -385,7 +387,7 @@ class _HomeShellState extends State<HomeShell> {
 
   /// Abas já abertas. As outras só são criadas na primeira visita, o que acelera
   /// a abertura do app e evita construir telas que talvez nunca sejam usadas.
-  final Set<int> _visited = {0};
+  final Set<int> _visited = {kHomeTab};
 
   static const _titles = ['Afinador', 'Metrônomo', 'Grade', 'Escalas', 'Meu espaço'];
 
@@ -416,33 +418,21 @@ class _HomeShellState extends State<HomeShell> {
     });
   }
 
-  /// Botão voltar na tela principal: de outra aba, volta ao Afinador; no
-  /// Afinador, pergunta antes de sair do app.
+  bool _askingExit = false;
+
+  /// Botão voltar na tela principal: de outra aba, volta ao Meu espaço; no
+  /// Meu espaço, pergunta antes de sair do app.
   Future<void> _onBack() async {
-    if (_index != 0 && !isSplitLayout(MediaQuery.sizeOf(context))) {
-      _go(0);
+    if (_index != kHomeTab && !isSplitLayout(MediaQuery.sizeOf(context))) {
+      _go(kHomeTab);
       return;
     }
-    final leave = await showDialog<bool>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Sair do Notemusic?'),
-        content: const Text(
-          'Se estiver tocando ou estudando, o app para de ouvir.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: const Text('Ficar'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: const Text('Sair'),
-          ),
-        ],
-      ),
-    );
-    if (leave == true) SystemNavigator.pop();
+    // Já está perguntando (voltar apertado várias vezes): não empilha outra pergunta.
+    if (_askingExit) return;
+    _askingExit = true;
+    final leave = await confirmExitApp(context);
+    _askingExit = false;
+    if (leave) SystemNavigator.pop();
   }
 
   /// Uma tela inteira dentro de um dos lados (as duas ficam ativas ao mesmo tempo).
@@ -619,20 +609,10 @@ class _HomeShellState extends State<HomeShell> {
         ),
         // Em duas telas, cada lado tem o seu seletor: a barra de baixo não é necessária.
         bottomNavigationBar: split ? null : NavigationBar(
-          selectedIndex: _index,
-          onDestinationSelected: _go,
-          destinations: const [
-            NavigationDestination(icon: Icon(Icons.graphic_eq_rounded), label: 'Afinador'),
-            NavigationDestination(
-              icon: Icon(Icons.timer_outlined),
-              label: 'Metrônomo',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.grid_view_rounded),
-              label: 'Grade',
-            ),
-            NavigationDestination(icon: Icon(Icons.queue_music), label: 'Escalas'),
-            NavigationDestination(icon: Icon(Icons.calendar_month_rounded), label: 'Meu espaço'),
+          selectedIndex: kTabOrder.indexOf(_index),
+          onDestinationSelected: (k) => _go(kTabOrder[k]),
+          destinations: [
+            for (final t in kTabOrder) NavigationDestination(icon: Icon(_icons[t]), label: _titles[t]),
           ],
         ),
       ),

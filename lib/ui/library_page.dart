@@ -141,6 +141,7 @@ class _LibraryPageState extends State<LibraryPage> {
           const SizedBox(width: Ds.s8),
         ],
       ),
+      floatingActionButton: mine ? FloatingActionButton.extended(onPressed: () => _edit(null), icon: const Icon(Icons.add_link_rounded), label: const Text('Adicionar material')) : null,
       body: SafeArea(
         child: ListenableBuilder(
           listenable: app,
@@ -151,7 +152,7 @@ class _LibraryPageState extends State<LibraryPage> {
             final shown = [for (final i in ofKind) if (_folder == null || i.folder == _folder) i];
             final nA = all.where((i) => i.kind == 'a').length, nR = all.length - nA;
             return ListView(
-              padding: Ds.screen,
+              padding: EdgeInsets.fromLTRB(Ds.screenPad, Ds.s12, Ds.screenPad, mine ? 96 : Ds.s24),
               children: [
                 SegmentedButton<String>(
                   showSelectedIcon: false,
@@ -165,18 +166,21 @@ class _LibraryPageState extends State<LibraryPage> {
                     _folder = null;
                   }),
                 ),
-                if (mine) ...[
-                  const DsGap(Ds.gap),
-                  DsPrimaryButton(onPressed: () => _edit(null), icon: Icons.add_link_rounded, label: 'Adicionar material'),
-                ],
                 if (folders.length > 1) ...[
-                  const DsGap(Ds.gap),
-                  Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
-                    ChoiceChip(label: const Text('Todas'), selected: _folder == null, onSelected: (_) => setState(() => _folder = null)),
-                    for (final f in folders) ChoiceChip(label: Text(f), selected: _folder == f, onSelected: (_) => setState(() => _folder = f)),
-                  ]),
+                  const DsGap(Ds.s12),
+                  // Pastas numa linha só, que rola de lado: não ocupa a tela com várias linhas de botões.
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(children: [
+                      ChoiceChip(label: const Text('Todas'), selected: _folder == null, onSelected: (_) => setState(() => _folder = null)),
+                      for (final f in folders) ...[
+                        const SizedBox(width: Ds.s8),
+                        ChoiceChip(label: Text(f), selected: _folder == f, onSelected: (_) => setState(() => _folder = f)),
+                      ],
+                    ]),
+                  ),
                 ],
-                const DsGap(Ds.gap),
+                const DsGap(Ds.s8),
                 if (_loading && all.isEmpty)
                   const Padding(padding: EdgeInsets.all(Ds.sectionGap), child: Center(child: CircularProgressIndicator()))
                 else if (_failed && all.isEmpty)
@@ -186,7 +190,7 @@ class _LibraryPageState extends State<LibraryPage> {
                 else
                   for (final f in libraryFolders(shown)) ...[
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(Ds.s4, Ds.s8, 0, Ds.s8),
+                      padding: const EdgeInsets.fromLTRB(Ds.s4, Ds.s16, 0, Ds.s8),
                       child: Text(f.toUpperCase(), style: TextStyle(fontSize: 12, letterSpacing: 1.1, fontWeight: FontWeight.w700, color: AppColors.textDim)),
                     ),
                     for (final i in shown.where((x) => x.folder == f)) _tile(i),
@@ -202,45 +206,58 @@ class _LibraryPageState extends State<LibraryPage> {
   Widget _note(IconData icon, String text, {Widget? action}) => Padding(
         padding: const EdgeInsets.symmetric(vertical: Ds.sectionGap),
         child: Column(children: [
-          Icon(icon, size: 32, color: AppColors.textDim),
-          const DsGap(Ds.s8),
-          Text(text, textAlign: TextAlign.center, style: Ds.support()),
+          DsIconBadge(icon, size: 56, color: AppColors.textDim),
+          const DsGap(Ds.s12),
+          Text(text, textAlign: TextAlign.center, style: Ds.support().copyWith(fontSize: 15)),
           ?action,
         ]),
       );
 
   Widget _tile(LibItem i) {
     final focus = (widget.focusTitle ?? '').trim().toLowerCase() == i.title.trim().toLowerCase();
+    final host = (Uri.tryParse(i.url)?.host ?? '').replaceFirst('www.', '');
+    final tag = mine && (i.to != null || i.hidden)
+        ? (i.hidden ? 'Escondido pelo administrador' : 'Só ${i.to!.length} aluno${i.to!.length == 1 ? '' : 's'}')
+        : null;
     return Padding(
       padding: const EdgeInsets.only(bottom: Ds.s8),
       child: Material(
-        color: AppColors.surface2,
-        borderRadius: BorderRadius.circular(Ds.radiusControl),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
         child: InkWell(
-          borderRadius: BorderRadius.circular(Ds.radiusControl),
+          borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
           onTap: () => _open(i),
           child: Container(
-            constraints: const BoxConstraints(minHeight: Ds.tap + 8),
-            padding: const EdgeInsets.fromLTRB(Ds.s16, Ds.s8, Ds.s4, Ds.s8),
+            constraints: const BoxConstraints(minHeight: Ds.primaryHeight + 12),
+            padding: const EdgeInsets.fromLTRB(Ds.s12, Ds.s12, Ds.s4, Ds.s12),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(Ds.radiusControl),
-              border: Border.all(color: focus ? AppColors.accent : Colors.transparent, width: 1.5),
+              borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
+              border: Border.all(color: focus ? AppColors.accent : AppColors.outline, width: focus ? 1.5 : 1),
             ),
-            child: Row(children: [
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              DsIconBadge(i.kind == 'a' ? Icons.menu_book_rounded : Icons.library_music_rounded, size: 44),
+              const SizedBox(width: Ds.s12),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(i.title, style: const TextStyle(fontSize: Ds.fontBody, fontWeight: FontWeight.w700)),
-                  if (i.author.isNotEmpty) Text(i.author, style: Ds.support()),
-                  if (i.note.isNotEmpty) Padding(padding: const EdgeInsets.only(top: Ds.s4), child: Text(i.note, style: Ds.support())),
-                  if (mine && (i.to != null || i.hidden))
-                    Padding(
-                      padding: const EdgeInsets.only(top: Ds.s4),
-                      child: Text(i.hidden ? 'Escondido pelo administrador' : 'Só ${i.to!.length} aluno${i.to!.length == 1 ? '' : 's'}',
-                          style: TextStyle(fontSize: Ds.fontLabel, color: i.hidden ? AppColors.sharp : AppColors.textDim)),
-                    ),
+                  Text(i.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: Ds.fontBody, fontWeight: FontWeight.w700, height: 1.25)),
+                  if (i.author.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 2), child: Text(i.author, style: Ds.support())),
+                  if (i.note.isNotEmpty) Padding(padding: const EdgeInsets.only(top: Ds.s4), child: Text(i.note, maxLines: 2, overflow: TextOverflow.ellipsis, style: Ds.support().copyWith(fontSize: 13))),
+                  Padding(
+                    padding: const EdgeInsets.only(top: Ds.s8),
+                    child: Row(children: [
+                      Icon(Icons.open_in_new_rounded, size: 14, color: AppColors.accent),
+                      const SizedBox(width: Ds.s4),
+                      Flexible(child: Text(host.isEmpty ? 'Abrir' : host, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, color: AppColors.accent, fontWeight: FontWeight.w600))),
+                      if (tag != null) ...[
+                        const SizedBox(width: Ds.s8),
+                        Text('·', style: TextStyle(color: AppColors.textDim)),
+                        const SizedBox(width: Ds.s8),
+                        Flexible(child: Text(tag, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: Ds.fontLabel, color: i.hidden ? AppColors.sharp : AppColors.textDim))),
+                      ],
+                    ]),
+                  ),
                 ]),
               ),
-              IconButton(tooltip: 'Abrir', onPressed: () => _open(i), icon: Icon(Icons.open_in_new_rounded, color: AppColors.accent)),
               PopupMenuButton<String>(
                 tooltip: 'Mais',
                 onSelected: (v) {
@@ -359,14 +376,31 @@ class _ItemFormState extends State<_ItemForm> {
                 ),
                 const DsGap(Ds.gap),
                 TextField(controller: title, maxLength: 80, textCapitalization: TextCapitalization.sentences, decoration: const InputDecoration(labelText: 'Título', hintText: 'Ex.: Estudos op. 45, Lição 5', counterText: '')),
-                TextField(controller: folder, maxLength: 40, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: 'Pasta', hintText: kind == 'a' ? 'Ex.: Wohlfahrt' : 'Ex.: Vivaldi', counterText: '')),
-                if (folders.isNotEmpty)
-                  Wrap(spacing: Ds.s8, children: [for (final f in folders.take(8)) ActionChip(label: Text(f), onPressed: () => setState(() => folder.text = f))]),
-                const DsGap(Ds.s8),
-                TextField(controller: author, maxLength: 60, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Autor (opcional)', counterText: '')),
+                const DsGap(Ds.s12),
                 TextField(controller: url, keyboardType: TextInputType.url, decoration: const InputDecoration(labelText: 'Link do material', hintText: 'https://drive.google.com/…', helperText: 'Drive, Dropbox, OneDrive, IMSLP, CPDL ou YouTube')),
                 const DsGap(Ds.s12),
-                TextField(controller: note, maxLength: 300, maxLines: 2, decoration: const InputDecoration(labelText: 'Observação (opcional)', counterText: '')),
+                TextField(controller: folder, maxLength: 40, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: 'Pasta', hintText: kind == 'a' ? 'Ex.: Wohlfahrt' : 'Ex.: Vivaldi', counterText: '')),
+                if (folders.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: Ds.s4),
+                    child: Wrap(spacing: Ds.s8, children: [for (final f in folders.take(8)) ActionChip(label: Text(f), onPressed: () => setState(() => folder.text = f))]),
+                  ),
+                // Opcionais recolhidos: a tela abre só com o essencial (tipo, título, link e pasta).
+                Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    childrenPadding: EdgeInsets.zero,
+                    initiallyExpanded: author.text.isNotEmpty || note.text.isNotEmpty,
+                    title: Text('Mais detalhes (opcional)', style: Ds.section()),
+                    children: [
+                      TextField(controller: author, maxLength: 60, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Autor', counterText: '')),
+                      const DsGap(Ds.s12),
+                      TextField(controller: note, maxLength: 300, maxLines: 2, decoration: const InputDecoration(labelText: 'Observação', counterText: '')),
+                      const DsGap(Ds.s8),
+                    ],
+                  ),
+                ),
                 const DsGap(Ds.s8),
                 Text('Quem vê', style: Ds.section()),
                 const DsGap(Ds.s8),

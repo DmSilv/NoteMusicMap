@@ -2,6 +2,7 @@ import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import 'design_system.dart';
 import 'dictation_button.dart';
 import 'meeting_link.dart';
 import 'remind_field.dart';
@@ -132,29 +133,30 @@ class _SlotFormPageState extends State<SlotFormPage> {
     Navigator.pop(context, true);
   }
 
-  Widget _label(String t) => Padding(
-        padding: const EdgeInsets.only(top: 16, bottom: 6),
-        child: Text(t, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5)),
+  /// Título de seção: pequeno e discreto, para a tela respirar (os campos já dizem o que são).
+  Widget _section(String t) => Padding(
+        padding: const EdgeInsets.fromLTRB(Ds.s4, Ds.sectionGap, 0, Ds.s8),
+        child: Text(t, style: Ds.section()),
       );
 
   @override
   Widget build(BuildContext context) {
     final st = code == null ? null : app.studentByCode(code!);
     final end = date.add(Duration(minutes: duration));
-    final summary = '${weekly ? 'Toda ${_dow[date.weekday - 1]}' : '${_dow[date.weekday - 1]}, ${_two(date.day)}/${_two(date.month)}'}'
-        ' · ${_two(date.hour)}:${_two(date.minute)}–${_two(end.hour)}:${_two(end.minute)}'
-        '${st == null ? '' : ' · ${st.name}'}';
+    final when = weekly ? 'Toda ${_dow[date.weekday - 1]}' : '${_dow[date.weekday - 1]}, ${_two(date.day)}/${_two(date.month)}';
+    final summary = '$when · ${_two(date.hour)}:${_two(date.minute)}–${_two(end.hour)}:${_two(end.minute)}${st == null ? '' : ' · ${st.name}'}';
+    final (deliveryText, deliveryColor) = _delivery(st);
+    final hasDetails = app.remindChoiceOn || app.onlineClassesOn;
 
     return Scaffold(
       appBar: AppBar(title: Text(isEdit ? 'Editar aula' : 'Marcar aula')),
       body: SafeArea(
         child: Column(children: [
           Expanded(
-            child: ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 16), children: [
-              _label('Aluno'),
+            child: ListView(padding: const EdgeInsets.fromLTRB(Ds.screenPad, 0, Ds.screenPad, Ds.s24), children: [
+              _section('Aluno'),
               if (_choices.isEmpty)
-                Text('Cadastre um aluno com código para marcar aulas (Meu espaço › Alunos › Novo aluno).',
-                    style: TextStyle(color: AppColors.flat))
+                Text('Cadastre um aluno com código para marcar aulas (Meu espaço › Alunos › Novo aluno).', style: TextStyle(color: AppColors.flat))
               else if (isEdit && st != null && _choices.length < 2)
                 AppCard(padding: const EdgeInsets.fromLTRB(14, 12, 14, 12), child: StudentIdentity(app: app, student: st))
               else
@@ -171,84 +173,94 @@ class _SlotFormPageState extends State<SlotFormPage> {
                     error = null;
                   }),
                 ),
-              _label(weekly ? 'Primeira aula' : 'Dia e hora'),
-              Row(children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-                    onPressed: _pickDate,
-                    icon: const Icon(Icons.event, size: 18),
-                    label: Text('${_dow[date.weekday - 1]}, ${_two(date.day)}/${_two(date.month)}/${date.year}'),
+              _section('Quando'),
+              AppCard(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Row(children: [
+                    Expanded(
+                      child: _PickTile(
+                        icon: Icons.event,
+                        label: weekly ? 'Primeira aula' : 'Dia',
+                        value: '${_dow[date.weekday - 1].substring(0, 3)}, ${_two(date.day)}/${_two(date.month)}/${date.year}',
+                        onTap: _pickDate,
+                      ),
+                    ),
+                    const SizedBox(width: Ds.s12),
+                    SizedBox(width: 112, child: _PickTile(icon: Icons.schedule, label: 'Hora', value: '${_two(date.hour)}:${_two(date.minute)}', onTap: _pickTime)),
+                  ]),
+                  const SizedBox(height: Ds.s16),
+                  Text('Duração', style: Ds.section()),
+                  const SizedBox(height: Ds.s8),
+                  ChipGrid(
+                    labels: [for (final m in _durations) Text('$m min')],
+                    selected: _durations.indexOf(duration),
+                    onSelected: (i) => setState(() => duration = _durations[i]),
                   ),
-                ),
-                const SizedBox(width: 10),
-                SizedBox(
-                  width: 110,
-                  child: OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-                    onPressed: _pickTime,
-                    icon: const Icon(Icons.schedule, size: 18),
-                    label: Text('${_two(date.hour)}:${_two(date.minute)}'),
+                  const Padding(padding: EdgeInsets.symmetric(vertical: Ds.s8), child: Divider(height: 1)),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Repetir toda semana', style: TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: Text('Mesmo dia e horário. Dá para cancelar só um dia depois.', style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+                    value: weekly,
+                    onChanged: (v) => setState(() => weekly = v),
                   ),
+                ]),
+              ),
+              if (hasDetails) ...[
+                _section('Detalhes'),
+                AppCard(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    if (app.remindChoiceOn) RemindField(value: remind, onChanged: (v) => setState(() => remind = v)),
+                    if (app.remindChoiceOn && app.onlineClassesOn) const SizedBox(height: Ds.s16),
+                    if (app.onlineClassesOn)
+                      MeetingEditor(
+                        app: app,
+                        compact: true,
+                        mode: widget.edit?.mode ?? kModeInPerson,
+                        link: widget.edit?.link ?? '',
+                        onChanged: (m, l) {
+                          mode = m;
+                          link = l;
+                        },
+                      ),
+                  ]),
                 ),
-              ]),
-              _label('Duração'),
-              ChipGrid(
-                labels: [for (final m in _durations) Text('$m min')],
-                selected: _durations.indexOf(duration),
-                onSelected: (i) => setState(() => duration = _durations[i]),
-              ),
-              const SizedBox(height: 6),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Repetir toda semana', style: TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: Text('No mesmo dia e horário, sem precisar marcar de novo. Dá para cancelar só um dia depois.',
-                    style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
-                value: weekly,
-                onChanged: (v) => setState(() => weekly = v),
-              ),
-              if (app.remindChoiceOn) ...[
-                _label('Lembrete'),
-                RemindField(value: remind, onChanged: (v) => setState(() => remind = v)),
               ],
-              if (app.onlineClassesOn)
-                MeetingEditor(
-                  app: app,
-                  mode: widget.edit?.mode ?? kModeInPerson,
-                  link: widget.edit?.link ?? '',
-                  onChanged: (m, l) {
-                    mode = m;
-                    link = l;
-                  },
-                ),
-              _label('Observação (opcional)'),
+              const SizedBox(height: Ds.sectionGap),
               TextField(
                 controller: note,
                 inputFormatters: const [SafeText.line()],
                 maxLength: kMaxSlotNote,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
+                  labelText: 'Observação (opcional)',
                   hintText: 'Ex.: trazer o arco novo',
                   suffixIcon: DictationButton(app: app, controller: note),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: Ds.s8),
+              // Resumo e "como chega ao aluno" num bloco só (antes eram dois).
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(Ds.s16),
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
+                  color: deliveryColor.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
+                  border: Border.all(color: deliveryColor.withValues(alpha: 0.35)),
                 ),
-                child: Row(children: [
-                  Icon(Icons.event_available, size: 18, color: AppColors.accent),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(summary, style: const TextStyle(fontWeight: FontWeight.w700))),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Icon(Icons.event_available, size: 20, color: deliveryColor),
+                  const SizedBox(width: Ds.s12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Text(summary, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                      const SizedBox(height: Ds.s4),
+                      Text(deliveryText, style: TextStyle(fontSize: 13, height: 1.35, color: AppColors.textDim)),
+                    ]),
+                  ),
                 ]),
               ),
-              _label('Como chega ao aluno'),
-              _delivery(st),
               if (error != null) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: Ds.s12),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -293,45 +305,59 @@ class _SlotFormPageState extends State<SlotFormPage> {
     );
   }
 
-  Widget _delivery(Student? st) {
-    if (st == null) {
-      return Text('Escolha o aluno para ver como ele será avisado.', style: TextStyle(color: AppColors.textDim, fontSize: 13));
+  /// Como a aula chega ao aluno (texto e cor do bloco de resumo).
+  (String, Color) _delivery(Student? st) {
+    if (st == null) return ('Escolha o aluno para ver como ele será avisado.', AppColors.textDim);
+    if (st.linkState == 'ended') return ('${st.name} encerrou o vínculo: a aula fica só na sua agenda.', AppColors.flat);
+    if (!app.linkEnabled) return ('O vínculo online está desligado: a aula fica na sua agenda e vai para ${st.name} quando você ligá-lo.', AppColors.flat);
+    if (app.deliveryIssue[st.code] == 'not_ready') {
+      return ('O app de ${st.name} ainda não ligou o "Vínculo online": a aula fica na fila e chega quando ele ligar.', AppColors.flat);
     }
-    final String text;
-    final Color color;
-    if (st.linkState == 'ended') {
-      text = '${st.name} encerrou o vínculo: a aula fica só na sua agenda.';
-      color = AppColors.flat;
-    } else if (!app.linkEnabled) {
-      text = 'O vínculo online está desligado: a aula fica na sua agenda e vai para ${st.name} quando você ligá-lo.';
-      color = AppColors.flat;
-    } else if (app.deliveryIssue[st.code] == 'not_ready') {
-      text = 'O app de ${st.name} ainda não ligou o "Vínculo online": a aula fica na fila e chega quando ele ligar.';
-      color = AppColors.flat;
-    } else if (st.linkState != 'active') {
-      text = '${st.name} ainda não está vinculado: a aula vai quando o vínculo for confirmado.';
-      color = AppColors.flat;
-    } else {
-      final aviso = !app.remindChoiceOn
-          ? 'Os dois recebem um lembrete 15 minutos antes (se ativarem as notificações).'
-          : (remind == 0
-              ? 'Esta aula fica sem lembrete.'
-              : 'Os dois recebem um lembrete ${remindLabel(remind).toLowerCase()} (se ativarem as notificações).');
-      text = '${st.name} vê a aula na agenda dele. $aviso';
-      color = AppColors.accent;
-    }
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
+    if (st.linkState != 'active') return ('${st.name} ainda não está vinculado: a aula vai quando o vínculo for confirmado.', AppColors.flat);
+    final aviso = !app.remindChoiceOn
+        ? 'Os dois recebem um lembrete 15 minutos antes (se ativarem as notificações).'
+        : (remind == 0
+            ? 'Esta aula fica sem lembrete.'
+            : 'Os dois recebem um lembrete ${remindLabel(remind).toLowerCase()} (se ativarem as notificações).');
+    return ('${st.name} vê a aula na agenda dele. $aviso', AppColors.accent);
+  }
+}
+
+/// Campo tocável de dia ou hora: o rótulo pequeno em cima e o valor em destaque.
+class _PickTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+  const _PickTile({required this.icon, required this.label, required this.value, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: '$label: $value. Toque para mudar.',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: Ds.primaryHeight + 4),
+          padding: const EdgeInsets.symmetric(horizontal: Ds.s12, vertical: Ds.s8),
+          decoration: BoxDecoration(
+            color: AppColors.surface2,
+            borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
+            border: Border.all(color: AppColors.outline),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
+            Text(label, style: TextStyle(fontSize: 12, color: AppColors.textDim)),
+            const SizedBox(height: 2),
+            Row(children: [
+              Icon(icon, size: 18, color: AppColors.accent),
+              const SizedBox(width: Ds.s8),
+              Expanded(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)))),
+            ]),
+          ]),
+        ),
       ),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Icon(Icons.info_outline, size: 18, color: color),
-        const SizedBox(width: 10),
-        Expanded(child: Text(text, style: const TextStyle(fontSize: 13, height: 1.3))),
-      ]),
     );
   }
 }

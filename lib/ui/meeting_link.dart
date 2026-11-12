@@ -45,7 +45,10 @@ class MeetingEditor extends StatefulWidget {
   final String mode;
   final String link;
   final void Function(String mode, String link) onChanged;
-  const MeetingEditor({super.key, required this.app, required this.mode, required this.link, required this.onChanged});
+
+  /// Dentro de um cartão: sem o espaço extra em cima.
+  final bool compact;
+  const MeetingEditor({super.key, required this.app, required this.mode, required this.link, required this.onChanged, this.compact = false});
 
   @override
   State<MeetingEditor> createState() => _MeetingEditorState();
@@ -95,9 +98,9 @@ class _MeetingEditorState extends State<MeetingEditor> {
     final valid = meetingUrl(c.text) != null;
     final isDefault = valid && meetingUrl(c.text) == app.meetDefault;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Padding(
-        padding: EdgeInsets.only(top: 16, bottom: 6),
-        child: Text('Onde será a aula', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5)),
+      Padding(
+        padding: EdgeInsets.only(top: widget.compact ? 0 : 16, bottom: Ds.s8),
+        child: Text('Onde será a aula', style: Ds.section()),
       ),
       SegmentedButton<String>(
         showSelectedIcon: false,

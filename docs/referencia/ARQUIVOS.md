@@ -38,6 +38,7 @@
 | `lib/ui/dictation_button.dart` | Botão de microfone para ditar num campo de texto. Use como `suffixIcon` do `InputDecoration`. Pisca em vermelho enquanto ouve; tocar de novo para. |
 | `lib/ui/error_ui.dart` | Telas e blocos de erro: tela crítica (APP-99), cartão amigável no lugar de bloco que quebrou e a lista "Problemas recentes". |
 | `lib/ui/evolution_page.dart` | "Evolução": segunda tela do Meu espaço, com os dados de estudo e os gráficos (últimos 7 dias, taxa de acerto nas escalas e orientações do treinador). |
+| `lib/ui/exit_sheet.dart` | Pergunta antes de fechar o app (botão voltar na tela principal). Devolve true só se a pessoa tocar em "Sair do app": tocar fora, arrastar para baixo ou apertar voltar de novo significa FICAR. O botão grande e… |
 | `lib/ui/feedback_sheet.dart` | Dar uma nota de 1 a 5 ao app (com comentário opcional). |
 | `lib/ui/grid_board.dart` | A grade principal, no estilo do Tonemap: 12 colunas (Dó a Si) e uma linha por oitava, com os agudos em cima. Cada quadrado mostra o nome da nota, a cor da última vez que foi tocada, quantas vezes (×3) e, na nota que… |
 | `lib/ui/grid_cell.dart` | Um quadrado da grade de entonação (nota, cor da última vez, brilho e contagem). |
@@ -46,6 +47,7 @@
 | `lib/ui/grid_widgets.dart` | Peças da aba Grade: seletor de oitavas, teclado de uma oitava e legendas. |
 | `lib/ui/guidance_banner.dart` | Banner de orientação do exercício: GRANDE, colorido e que NÃO some depressa. Diz claramente o que fazer (SUBA / DESÇA / AFINADA) e quanto falta. - a orientação fica pelo menos [minShow] na tela antes de trocar (evita… |
 | `lib/ui/hello_bar.dart` | Pergunta "Como posso te chamar?" e grava o apelido no perfil. Antes de vincular: o nome é obrigatório (sem ele o professor não sabe quem é o aluno). Devolve true se já havia nome ou se a pessoa acabou de informar. |
+| `lib/ui/home_tabs.dart` | Abas da tela principal. Os ids são fixos (o hub e os atalhos usam estes números); só a ORDEM na barra de baixo muda. |
 | `lib/ui/hub_section.dart` | "Meu espaço": o topo da aba. Um destaque grande (o que importa agora), dois blocos do que pede ação e uma faixa de ferramentas. Muda conforme o papel (aluno, professor ou os dois). |
 | `lib/ui/install_banner.dart` | Faixa "Instale o Notemusic no celular" (só no navegador, enquanto não instalou). |
 | `lib/ui/library_page.dart` | Abre o acervo. Sem [teacher]: o próprio professor (edita). Com [teacher]: o aluno (só abre e denuncia). [focusTitle] e [folder] vêm de uma tarefa "Material do professor": filtram e destacam o item. |
@@ -276,4 +278,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **233** arquivos mapeados.
+Total: **235** arquivos mapeados.

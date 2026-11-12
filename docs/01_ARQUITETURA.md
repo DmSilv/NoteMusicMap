@@ -114,9 +114,10 @@ flowchart LR
 ```
 
 ## Navegação do app
-- **4 abas** (`lib/main.dart`): Afinador · Metrônomo · Grade · **Meu espaço** (hub). A barra de cima tem só **Avisos** (sino) e **Minha conta**.
+- **5 abas** (`lib/main.dart`, ordem em `lib/ui/home_tabs.dart`): Afinador · Metrônomo · **Meu espaço** (hub, no centro) · Grade · Escalas. **O app abre no Meu espaço.** A barra de cima tem só **Avisos** (sino) e **Minha conta**.
 - **Meu espaço** mostra uma de duas **visões** (Aluno | Professor); cada destino aparece uma única vez por visão (regra em `hub_view.dart`, testada).
 - Telas fundas abrem por `Navigator.push` a partir do hub; o botão voltar sempre volta ao ponto de partida.
+- **Botão voltar do celular** (`PopScope` do `HomeShell`): numa tela funda volta uma tela; em outra aba volta ao Meu espaço; **no Meu espaço pergunta antes de sair** (`lib/ui/exit_sheet.dart`, "Já vai embora?"). O botão grande é **Continuar no app**; sair é um texto discreto; tocar fora, arrastar para baixo ou apertar voltar de novo significa ficar. Apertar voltar várias vezes seguidas nunca fecha o app (conferido no navegador com 6 voltas seguidas).
 
 ## Princípios que guiam o desenho
 1. **Local primeiro**; a nuvem é opcional.

@@ -185,3 +185,9 @@ O app passou a usar `flutter_localizations` com `pt-BR` (`lib/ui/app_locale.dart
 
 ## Lembrete escolhido pelo professor (novembro/2026, atrás da chave `lembrete_escolha`)
 O aviso deixou de ser fixo em 15 minutos: o professor escolhe por aula (sem lembrete, 5, 10, 15, 30 min, 1 h, 2 h ou 1 dia antes) no formulário de aula e no de horário livre. Campo `r` no horário; servidor com padrão 15 e compatível com apps antigos; texto da notificação pelo tempo que falta. Arquivos: `api/_lib/agenda.js` (`REMIND_OPTIONS`, `scheduleNext`), `api/link.js` (`keepRemind`), `api/_lib/features.js`, `web/sw.js`, `packages/afina_core/lib/agenda.dart` (`remindMin`, `kRemindOptions`, `remindLabel`), `lib/ui/remind_field.dart`. Testes: `api/remind_choice.test.js` (14) e `packages/afina_core/test/remind_test.dart` (9).
+
+## Meu espaço no centro, proteção do botão voltar e telas mais limpas (novembro/2026)
+- **Meu espaço** passou para o **centro** da barra de baixo (Afinador, Metrônomo, Meu espaço, Grade, Escalas) e é a aba que **abre primeiro**; os ids internos das abas não mudaram (`lib/ui/home_tabs.dart`). Voltar de outra aba leva ao Meu espaço.
+- **Voltar do celular**: a pergunta de sair virou uma folha (`lib/ui/exit_sheet.dart`) com **Continuar no app** em destaque e **Sair do app** discreto; não empilha perguntas se o voltar for apertado várias vezes. Um teste achou e corrigiu um estouro de 18 px em tela baixa.
+- **Formulário de aula** (`lib/ui/slot_form_page.dart`) em três blocos (Aluno, Quando, Detalhes), com dia e hora em campos com rótulo, e o resumo da aula e "como chega ao aluno" num bloco só.
+- **Acervo** (`lib/ui/library_page.dart`): cartões com ícone, autor e site do link; pastas numa linha que rola; "Adicionar material" virou botão flutuante; no formulário só o essencial fica à vista (tipo, título, link, pasta) e autor e observação ficam em "Mais detalhes".
