@@ -13,6 +13,7 @@ import 'ui/app_locale.dart';
 import 'ui/app_logo.dart';
 import 'ui/exit_sheet.dart';
 import 'ui/hello_bar.dart';
+import 'ui/metro_section.dart';
 import 'ui/home_tabs.dart';
 import 'ui/link_bar.dart';
 import 'ui/error_ui.dart';
@@ -585,7 +586,10 @@ class _HomeShellState extends State<HomeShell> {
           child: Column(
             children: [
               // Microfone e Pomodoro ativos: faixa própria, longe do título.
-              StatusStrip(app: app, hideMic: !split && (_index == 0 || _index == 2 || _index == 3), onPomodoro: () => _go(kTabMetronome)),
+              StatusStrip(app: app, hideMic: !split && (_index == 0 || _index == 2 || _index == 3), onPomodoro: () {
+                metroSection.value = kMetroSectionStudy; // Pomodoro e relógio abrem a visão de estudo
+                _go(kTabMetronome);
+              }),
               // Saudação com o apelido (ou convite para preencher), só nas telas principais.
               // Versão nova disponível (faixa fixa, com botão).
               UpdateBar(app: app),

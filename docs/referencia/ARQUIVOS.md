@@ -57,6 +57,7 @@
 | `lib/ui/markdown_lite.dart` | Mostra um texto em Markdown simples (o que a IA devolve): títulos com `##`, tópicos com `-`, listas numeradas, **negrito** e *itálico*. A leitura dos trechos mora no núcleo (`parseInline`), com testes; aqui só se… |
 | `lib/ui/meeting_link.dart` | Abre o link da aula online no navegador do aparelho. Sites conhecidos (Meet, Zoom, Teams…) abrem direto; qualquer outro mostra antes o endereço, para a pessoa saber para onde está indo. |
 | `lib/ui/methods_page.dart` | "Meus métodos e lições": a biblioteca do professor. Cadastrar, editar, copiar a lista. Ela também cresce sozinha com o que é digitado nas tarefas. |
+| `lib/ui/metro_section.dart` | Qual visão a aba Metrônomo mostra: 0 = o metrônomo, 1 = estudo e timers (resumo, cronômetro, Pomodoro). Um só valor para o app todo: as pílulas de Pomodoro e relógio da faixa de cima trocam para 1 antes de ir à aba. |
 | `lib/ui/metronome_page.dart` | Aba Metrônomo: andamento, compasso, subdivisão, som, tap tempo e modo desafio. |
 | `lib/ui/mic_pill.dart` | Aviso fixo na barra superior enquanto o microfone está captando: ponto pulsante + "Ouvindo". Visível em qualquer aba; tocar desliga. |
 | `lib/ui/my_lessons_page.dart` | Minhas aulas (aluno): aulas e tarefas recebidas do professor, com o status oficial (validada, aguardando, refazer) e o botão de treinar. |
@@ -284,4 +285,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **241** arquivos mapeados.
+Total: **242** arquivos mapeados.

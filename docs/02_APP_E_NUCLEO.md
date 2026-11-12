@@ -67,7 +67,7 @@ Pares `x.dart` (exporta) → `x_web.dart` (navegador) e `x_stub.dart` (celular/t
 | Metrônomo | `metronome_page.dart` | Som, subdivisão, tap tempo, desafio |
 | Grade | `grid_page.dart`, `grid_board.dart`, `scale_exercise_page.dart` | Grade, escalas e arpejos |
 | Meu espaço | `study_page.dart` + `hub_section.dart` | Hub por visão (agenda, alunos, tarefas, acervo) |
-| Seu estudo | `study_card.dart` (na aba Metrônomo) | Tempo de hoje, dias seguidos, meta, cronômetro e Pomodoro; abre a Evolução |
+| Seu estudo | `study_card.dart` + `metro_section.dart` (aba Metrônomo) | Visão "Estudo e timers" da aba, escondida até a pessoa escolher no seletor do topo: tempo de hoje, dias seguidos, meta, cronômetro e Pomodoro; abre a Evolução |
 | Alunos / ficha | `teacher_page.dart`, `validation_ui.dart`, `task_form_page.dart` | Professor |
 | Agendas | `agenda_page.dart` (professor e aluno), `slot_form_page.dart` | Rótulos explícitos "do professor"/"do aluno" |
 | Horários | `open_slots_page.dart` | Publicar (professor) e pegar (aluno) |

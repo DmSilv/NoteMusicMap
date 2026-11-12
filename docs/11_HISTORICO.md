@@ -205,3 +205,6 @@ O aviso deixou de ser fixo em 15 minutos: o professor escolhe por aula (sem lemb
 
 ## "Seu estudo" foi para o Metrônomo (novembro/2026)
 O bloco **Seu estudo** (tempo de hoje, dias seguidos, meta diária, cronômetro, Pomodoro e o link "Evolução") saiu do Meu espaço e agora fica na aba **Metrônomo**, abaixo do modo desafio (`lib/ui/study_card.dart`). O Meu espaço ficou só com agenda, alunos, tarefas, acervo e o convite de feedback. As pílulas de Pomodoro e relógio da faixa de cima agora levam ao Metrônomo.
+
+## Metrônomo com duas visões (novembro/2026)
+A aba Metrônomo ganhou um seletor no topo: **Metrônomo** (padrão) e **Estudo e timers**. O "Seu estudo" só aparece na segunda visão, então a primeira fica limpa e a troca está sempre à vista. As pílulas de Pomodoro e relógio da faixa de cima abrem direto a visão de estudo (`lib/ui/metro_section.dart`). A escolha vale até fechar o app.

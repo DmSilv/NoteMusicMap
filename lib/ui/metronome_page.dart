@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'safe_input.dart';
+import 'metro_section.dart';
 import 'study_card.dart';
 import 'package:afina_core/afina_core.dart';
 import 'perf.dart';
@@ -99,9 +100,25 @@ class _MetronomePageState extends State<MetronomePage>
       builder: (context, _) {
         final m = app.metro;
         final running = app.metroRunning;
-        return ListView(
+        return ValueListenableBuilder<int>(
+          valueListenable: metroSection,
+          builder: (context, section, _) => ListView(
           padding: Ds.screen,
           children: [
+            // Duas visões na mesma aba: o metrônomo e o estudo (timers). O estudo fica escondido até a pessoa escolher.
+            SegmentedButton<int>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(value: kMetroSectionMetronome, icon: Icon(Icons.timer_outlined, size: 18), label: Text('Metrônomo')),
+                ButtonSegment(value: kMetroSectionStudy, icon: Icon(Icons.auto_stories_rounded, size: 18), label: Text('Estudo e timers')),
+              ],
+              selected: {section},
+              onSelectionChanged: (v) => metroSection.value = v.first,
+            ),
+            const DsGap(Ds.gap),
+            if (section == kMetroSectionStudy)
+              StudyCard(app: app)
+            else ...[
             AppCard(
               child: Column(
                 children: [
@@ -238,12 +255,10 @@ class _MetronomePageState extends State<MetronomePage>
             const DsGap(Ds.sectionGap),
             _challengeQuick(m),
             const DsGap(Ds.gap),
-            // Seu estudo: tempo de hoje, meta, cronômetro e Pomodoro (saiu do Meu espaço).
-            StudyCard(app: app),
-            const DsGap(Ds.gap),
             SizedBox(width: double.infinity, child: DsSettingsButton(onPressed: _openSettings, label: 'Ajustes do metrônomo')),
+            ],
           ],
-        );
+        ));
       },
     );
   }
