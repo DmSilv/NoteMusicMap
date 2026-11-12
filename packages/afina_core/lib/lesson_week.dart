@@ -4,6 +4,7 @@ library;
 
 import 'lesson.dart';
 import 'teacher.dart';
+import 'i18n.dart';
 
 /// Uma tarefa dentro do plano da semana.
 class WeekTask {
@@ -81,7 +82,7 @@ WeekPlan buildWeekPlan(List<SharedLesson> lessons, Set<String> doneKeys, DateTim
 
 /// "segunda, 09/11" (o dia da semana em português).
 String fmtLessonDay(DateTime d) {
-  const days = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
+  final days = [tr('segunda'), tr('terça'), tr('quarta'), tr('quinta'), tr('sexta'), tr('sábado'), tr('domingo')];
   final dd = d.day.toString().padLeft(2, '0'), mm = d.month.toString().padLeft(2, '0');
   return '${days[d.weekday - 1]}, $dd/$mm';
 }

@@ -88,8 +88,7 @@ class FrameMeter {
     final slow = _dts.where((d) => d > 25).length;
     final fps = n / (total / 1000);
     final cost = _costs.isEmpty ? '' : ' | custo ${_stats(_costs)}';
-    lastSummary = '[frames] ${(total / 1000).toStringAsFixed(1)}s: $n quadros '
-        '(${fps.toStringAsFixed(1)} fps) | intervalo ${_stats(_dts)}$cost | >25 ms: $slow';
+    lastSummary = '[frames] ${(total / 1000).toStringAsFixed(1)}s: $n quadros (${fps.toStringAsFixed(1)} fps) | intervalo ${_stats(_dts)}$cost | >25 ms: $slow';
     debugPrint(lastSummary);
     _dts.clear();
     _costs.clear();

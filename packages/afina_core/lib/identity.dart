@@ -15,6 +15,7 @@ library;
 import 'dart:math';
 
 import 'input_guard.dart';
+import 'i18n.dart';
 
 /// 32 símbolos sem 0, O, 1 e I (não se confundem ao ler ou digitar).
 const String kCodeAlphabet = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -128,7 +129,7 @@ ScannedCode? parseScannedCode(String raw, {Set<String> extraHosts = const {}}) {
     final host = u.host.toLowerCase();
     final ok = kAppHosts.contains(host) || extraHosts.map((h) => h.toLowerCase()).contains(host);
     if (!ok) return null;
-    for (final k in const ['aluno', 'professor']) {
+    for (final k in [tr('aluno'), 'professor']) {
       final v = u.queryParameters[k];
       final c = v == null ? null : formatShareCode(v);
       if (c != null) return ScannedCode(c, k);
@@ -276,3 +277,7 @@ Profile? profileFromRecoveryKey(String text, {DateTime? now}) {
   if (!isUuid(id) || code == null) return null;
   return Profile(id: id, secret: hexPart.substring(32), shareCode: code, created: now);
 }
+
+/// Nome automático de um aluno que ainda não se apresentou ("Aluno K7QM" / "Student K7QM"): vale nos dois idiomas, porque o nome é gravado
+/// no idioma de quando o aluno entrou na lista.
+bool isDefaultStudentName(String name, String code) => name == 'Aluno $code' || name == 'Student $code';

@@ -19,10 +19,10 @@ class MethodsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Meus métodos e lições'),
+        title: Text(tr('Meus métodos e lições')),
         actions: [
           IconButton(
-            tooltip: 'Copiar lista',
+            tooltip: tr('Copiar lista'),
             icon: const Icon(Icons.copy_all_outlined),
             onPressed: () => _copy(context, json: false),
           ),
@@ -31,7 +31,7 @@ class MethodsPage extends StatelessWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _edit(context),
         icon: const Icon(Icons.add),
-        label: const Text('Novo método'),
+        label: Text(tr('Novo método')),
       ),
       body: SafeArea(
         child: ListenableBuilder(
@@ -43,7 +43,7 @@ class MethodsPage extends StatelessWidget {
               children: [
                 AppCard(
                   child: Text(
-                    'Seus métodos e lições (Suzuki, Ševčík, Mazas…). Ao passar uma tarefa, escolha com um toque.',
+                    tr('Seus métodos e lições (Suzuki, Ševčík, Mazas…). Ao passar uma tarefa, escolha com um toque.'),
                     style: TextStyle(color: AppColors.textDim, fontSize: 13, height: 1.3),
                   ),
                 ),
@@ -54,9 +54,9 @@ class MethodsPage extends StatelessWidget {
                     child: Column(children: [
                       Icon(Icons.library_books_outlined, size: 44, color: AppColors.textDim),
                       const SizedBox(height: 8),
-                      const Text('Nenhum método ainda', style: TextStyle(fontWeight: FontWeight.w800)),
+                      Text(tr('Nenhum método ainda'), style: TextStyle(fontWeight: FontWeight.w800)),
                       const SizedBox(height: 4),
-                      Text('Toque em "Novo método" para cadastrar o primeiro.',
+                      Text(tr('Toque em "Novo método" para cadastrar o primeiro.'),
                           style: TextStyle(color: AppColors.textDim)),
                     ]),
                   ),
@@ -74,12 +74,12 @@ class MethodsPage extends StatelessWidget {
                           title: Text(m.name, style: const TextStyle(fontWeight: FontWeight.w800)),
                           subtitle: Text(
                               m.lessons.isEmpty
-                                  ? 'Sem lições cadastradas'
-                                  : '${m.lessons.length} lição${m.lessons.length == 1 ? '' : 'ões'}',
+                                  ? tr('Sem lições cadastradas')
+                                  : tr('{0} lição{1}', [m.lessons.length, m.lessons.length == 1 ? '' : tr('ões')]),
                               style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
                           children: [
                             if (m.lessons.isEmpty)
-                              Text('Edite para acrescentar as lições deste método.',
+                              Text(tr('Edite para acrescentar as lições deste método.'),
                                   style: TextStyle(color: AppColors.textDim, fontSize: 13)),
                             for (final l in m.lessons)
                               Padding(
@@ -91,12 +91,12 @@ class MethodsPage extends StatelessWidget {
                               TextButton.icon(
                                 onPressed: () => _edit(context, m: m),
                                 icon: const Icon(Icons.edit_outlined, size: 18),
-                                label: const Text('Editar'),
+                                label: Text(tr('Editar')),
                               ),
                               TextButton.icon(
                                 onPressed: () => _delete(context, m),
                                 icon: const Icon(Icons.delete_outline, size: 18),
-                                label: const Text('Excluir'),
+                                label: Text(tr('Excluir')),
                               ),
                             ]),
                           ],
@@ -116,15 +116,15 @@ class MethodsPage extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: Text('Excluir ${m.name}?'),
-        content: const Text('Remove o método e as lições da sua lista. As tarefas já passadas não mudam.'),
+        title: Text(tr('Excluir {0}?', [m.name])),
+        content: Text(tr('Remove o método e as lições da sua lista. As tarefas já passadas não mudam.')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
           FilledButton.icon(
             style: FilledButton.styleFrom(
                 backgroundColor: AppColors.sharp, foregroundColor: readableOn(AppColors.sharp)),
             onPressed: () => Navigator.pop(c, true),
-            icon: const Icon(Icons.delete_outline, size: 18), label: const Text('Excluir'),
+            icon: const Icon(Icons.delete_outline, size: 18), label: Text(tr('Excluir')),
           ),
         ],
       ),
@@ -141,7 +141,7 @@ class MethodsPage extends StatelessWidget {
       context: context,
       builder: (c) => StatefulBuilder(
         builder: (c, setS) => AlertDialog(
-          title: Text(m == null ? 'Novo método' : 'Editar método'),
+          title: Text(m == null ? tr('Novo método') : tr('Editar método')),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -152,7 +152,7 @@ class MethodsPage extends StatelessWidget {
                   autofocus: m == null,
                   textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(
-                    labelText: 'Nome do método ou livro',
+                    labelText: tr('Nome do método ou livro'),
                     errorText: err,
                     suffixIcon: DictationButton(app: app, controller: name),
                   ),
@@ -165,9 +165,9 @@ class MethodsPage extends StatelessWidget {
                   minLines: 4,
                   maxLines: 10,
                   decoration: InputDecoration(
-                    labelText: 'Lições (opcional)',
+                    labelText: tr('Lições (opcional)'),
                     alignLabelWithHint: true,
-                    helperText: 'Uma por linha. Ex.: Lição 1, Lição 2… Dá para acrescentar depois.',
+                    helperText: tr('Uma por linha. Ex.: Lição 1, Lição 2… Dá para acrescentar depois.'),
                     helperMaxLines: 2,
                     suffixIcon: DictationButton(app: app, controller: lessons),
                   ),
@@ -176,16 +176,16 @@ class MethodsPage extends StatelessWidget {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
+            TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
             FilledButton.icon(
               onPressed: () {
                 if (name.text.trim().isEmpty) {
-                  setS(() => err = 'Escreva o nome do método');
+                  setS(() => err = tr('Escreva o nome do método'));
                   return;
                 }
                 Navigator.pop(c, true);
               },
-              icon: const Icon(Icons.check, size: 18), label: const Text('Salvar'),
+              icon: const Icon(Icons.check, size: 18), label: Text(tr('Salvar')),
             ),
           ],
         ),
@@ -196,7 +196,7 @@ class MethodsPage extends StatelessWidget {
     lessons.dispose();
     if (ok != true) return;
     if (m == null) {
-      if (!app.addMethod(n, l)) app.say('Esse método já estava na lista.');
+      if (!app.addMethod(n, l)) app.say(tr('Esse método já estava na lista.'));
     } else {
       app.renameMethod(m, n, l);
     }
@@ -204,10 +204,10 @@ class MethodsPage extends StatelessWidget {
 
   Future<void> _copy(BuildContext context, {required bool json}) async {
     if (app.methodLibrary.isEmpty) {
-      app.say('Sua lista está vazia.');
+      app.say(tr('Sua lista está vazia.'));
       return;
     }
     await Clipboard.setData(ClipboardData(text: json ? app.exportMethodsAsJson() : app.exportMethods()));
-    app.say('Lista copiada.');
+    app.say(tr('Lista copiada.'));
   }
 }

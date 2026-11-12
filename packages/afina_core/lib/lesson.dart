@@ -7,6 +7,7 @@ import 'identity.dart' show formatShareCode;
 import 'input_guard.dart';
 import 'lesson_week.dart' show fmtLessonDay;
 import 'teacher.dart';
+import 'i18n.dart';
 
 /// Máximos por aula (valem no app e no servidor).
 const int kMaxLessonTasks = 30;
@@ -113,14 +114,14 @@ class SharedLesson {
   bool get tasksOnly => durationSec == 0 && tasks.isNotEmpty;
 
   /// "Aula de segunda, 09/11" ou, se foram só tarefas, "Tarefas de segunda, 09/11".
-  String get label => '${tasksOnly ? 'Tarefas' : 'Aula'} de ${fmtLessonDay(date)}';
+  String get label => tr('{0} de {1}@@dia', [tasksOnly ? tr('Tarefas') : tr('Aula'), fmtLessonDay(date)]);
 
   /// Quem passou: "Marina · K7QM-4TXD" (nome e código), só o código ou "Professor".
   String get teacherLabel {
     final n = teacherName.trim(), c = teacherCode.trim();
     if (n.isNotEmpty && c.isNotEmpty) return '$n · $c';
     if (n.isNotEmpty) return n;
-    return c.isNotEmpty ? 'Professor $c' : 'Professor';
+    return c.isNotEmpty ? tr('Professor {0}', [c]) : tr('Professor');
   }
 
   /// Lê o formato do servidor, limpando e limitando tudo (o servidor também confere,
@@ -256,10 +257,10 @@ LessonRecord buildLessonRecord(Student s, ActiveLesson l, DateTime end, {String 
 String fmtLessonDuration(int seconds) {
   if (seconds >= 3600) {
     final h = seconds ~/ 3600, m = (seconds % 3600) ~/ 60;
-    return '$h h ${m.toString().padLeft(2, '0')} min';
+    return tr('{0} h {1} min', [h, m.toString().padLeft(2, '0')]);
   }
   if (seconds >= 600) return '${seconds ~/ 60} min';
-  if (seconds >= 60) return '${seconds ~/ 60} min ${(seconds % 60).toString().padLeft(2, '0')} s';
+  if (seconds >= 60) return tr('{0} min {1} s', [seconds ~/ 60, (seconds % 60).toString().padLeft(2, '0')]);
   return '$seconds s';
 }
 
@@ -328,54 +329,53 @@ TaskDelivery taskDeliveryFor(
 }) {
   final n = s.name;
   if (inLessonWithThis) {
-    return TaskDelivery(DeliveryMode.inLesson, 'Vai para $n quando você encerrar a aula.');
+    return TaskDelivery(DeliveryMode.inLesson, tr('Vai para {0} quando você encerrar a aula.', [n]));
   }
   if (s.code == null) {
     return TaskDelivery(
         DeliveryMode.localOnly,
-        '$n não tem código: a tarefa fica só na sua ficha. Para enviar, '
-        'informe o código dele (menu ⋮ › Código do aluno).');
+        tr('{0} não tem código: a tarefa fica só na sua ficha. Para enviar, informe o código dele (menu ⋮ › Código do aluno).', [n]));
   }
   if (s.linkState == 'ended') {
-    return TaskDelivery(DeliveryMode.localOnly, '$n encerrou o vínculo: a tarefa fica só na sua ficha.');
+    return TaskDelivery(DeliveryMode.localOnly, tr('{0} encerrou o vínculo: a tarefa fica só na sua ficha.', [n]));
   }
   if (!linkOn) {
-    return const TaskDelivery(
-        DeliveryMode.queued, 'O vínculo online está desligado: a tarefa fica guardada e vai quando você ligá-lo.');
+    return TaskDelivery(
+        DeliveryMode.queued, tr('O vínculo online está desligado: a tarefa fica guardada e vai quando você ligá-lo.'));
   }
   if (!serverUp) {
-    return const TaskDelivery(
-        DeliveryMode.queued, 'O servidor ainda não recebe tarefas: ela fica guardada e vai quando ficar disponível.');
+    return TaskDelivery(
+        DeliveryMode.queued, tr('O servidor ainda não recebe tarefas: ela fica guardada e vai quando ficar disponível.'));
   }
   if (s.linkState != 'active') {
     return TaskDelivery(
-        DeliveryMode.queued, '$n ainda não está vinculado: a tarefa fica guardada e vai quando ele se vincular.');
+        DeliveryMode.queued, tr('{0} ainda não está vinculado: a tarefa fica guardada e vai quando ele se vincular.', [n]));
   }
   if (!studentReady) {
     return TaskDelivery(
         DeliveryMode.queued,
-        '$n ainda não ligou o "Vínculo online" no app dele: a tarefa fica na fila e chega assim que ele ligar.');
+        tr('{0} ainda não ligou o "Vínculo online" no app dele: a tarefa fica na fila e chega assim que ele ligar.', [n]));
   }
-  return TaskDelivery(DeliveryMode.now, '$n recebe na hora, em Estudo › Tarefas do professor.');
+  return TaskDelivery(DeliveryMode.now, tr('{0} recebe na hora, em Estudo › Tarefas do professor.', [n]));
 }
 
 /// Texto do aviso para o aluno quando chegam aulas ou tarefas novas.
 String newLessonsMessage(List<SharedLesson> fresh) {
-  String who(SharedLesson l) => l.teacherName.trim().isNotEmpty ? l.teacherName.trim() : 'Seu professor';
-  String tasks(int k) => '$k tarefa${k == 1 ? '' : 's'}';
+  String who(SharedLesson l) => l.teacherName.trim().isNotEmpty ? l.teacherName.trim() : tr('Seu professor');
+  String tasks(int k) => tr('{0} tarefa{1}', [k, k == 1 ? '' : 's']);
   final total = fresh.fold<int>(0, (a, l) => a + l.tasks.length);
   if (fresh.length == 1) {
     final l = fresh.first;
     final k = l.tasks.length;
-    if (l.tasksOnly) return '${who(l)} passou ${tasks(k)} para você.';
-    if (k > 0) return '${who(l)} encerrou a aula e passou ${tasks(k)}.';
+    if (l.tasksOnly) return tr('{0} passou {1} para você.', [who(l), tasks(k)]);
+    if (k > 0) return tr('{0} encerrou a aula e passou {1}.', [who(l), tasks(k)]);
     return l.notes.isNotEmpty
-        ? '${who(l)} encerrou a aula e deixou observações.'
-        : '${who(l)} encerrou a aula.';
+        ? tr('{0} encerrou a aula e deixou observações.', [who(l)])
+        : tr('{0} encerrou a aula.', [who(l)]);
   }
   return total > 0
-      ? '${fresh.length} novidades dos seus professores: ${tasks(total)} nova${total == 1 ? '' : 's'}.'
-      : '${fresh.length} novidades dos seus professores.';
+      ? tr('{0} novidades dos seus professores: {1} nova{2}.', [fresh.length, tasks(total), total == 1 ? '' : 's'])
+      : tr('{0} novidades dos seus professores.', [fresh.length]);
 }
 
 /// Uma marcação de "feita" que o aluno enviou (como o servidor devolve ao professor).

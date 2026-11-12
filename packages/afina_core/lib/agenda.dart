@@ -7,6 +7,7 @@ library;
 
 import 'identity.dart' show formatShareCode;
 import 'input_guard.dart';
+import 'i18n.dart';
 
 const int kMsMinute = 60 * 1000;
 const int kMsDay = 24 * 60 * kMsMinute;
@@ -51,16 +52,16 @@ const List<int> kRemindOptions = [0, 5, 10, 15, 30, 60, 120, 1440];
 
 /// Texto de uma antecedência: "15 minutos antes", "1 hora antes", "Sem lembrete".
 String remindLabel(int minutes) {
-  if (minutes <= 0) return 'Sem lembrete';
+  if (minutes <= 0) return tr('Sem lembrete');
   if (minutes >= 1440 && minutes % 1440 == 0) {
     final d = minutes ~/ 1440;
-    return d == 1 ? '1 dia antes' : '$d dias antes';
+    return d == 1 ? tr('1 dia antes') : tr('{0} dias antes', [d]);
   }
   if (minutes >= 60 && minutes % 60 == 0) {
     final h = minutes ~/ 60;
-    return h == 1 ? '1 hora antes' : '$h horas antes';
+    return h == 1 ? tr('1 hora antes') : tr('{0} horas antes', [h]);
   }
-  return '$minutes minutos antes';
+  return tr('{0} minutos antes', [minutes]);
 }
 
 const int kMinSlotMinutes = 15;
@@ -386,15 +387,15 @@ class SlotPlan {
 /// Remarca SÓ uma aula. Numa regra semanal, cancela aquela data e cria uma aula avulsa no horário novo; numa aula
 /// avulsa, só muda o horário. [newId] é o id da aula avulsa criada.
 SlotPlan planMoveOccurrence(ClassSlot slot, int occurrenceMs, int newStartMs, {required String newId, int? newDurationMin}) {
-  if (slot.canceled) return const SlotPlan.fail('Esta aula já foi cancelada.');
+  if (slot.canceled) return SlotPlan.fail(tr('Esta aula já foi cancelada.'));
   final dur = (newDurationMin ?? slot.durationMin).clamp(kMinSlotMinutes, kMaxSlotMinutes);
   if (!slot.weekly) {
     return SlotPlan([slot.copyWith(startMs: newStartMs, durationMin: dur, skipped: const [])]);
   }
   if (!slot.occurrencesBetween(occurrenceMs, occurrenceMs + 1).contains(occurrenceMs)) {
-    return const SlotPlan.fail('Essa data não é uma aula desta regra.');
+    return SlotPlan.fail(tr('Essa data não é uma aula desta regra.'));
   }
-  if (slot.skipped.length >= kMaxSlotSkips) return const SlotPlan.fail('Esta aula já tem muitas datas canceladas. Edite a regra.');
+  if (slot.skipped.length >= kMaxSlotSkips) return SlotPlan.fail(tr('Esta aula já tem muitas datas canceladas. Edite a regra.'));
   return SlotPlan([
     slot.copyWith(skipped: [...slot.skipped, occurrenceMs]),
     ClassSlot(
@@ -414,8 +415,8 @@ SlotPlan planMoveOccurrence(ClassSlot slot, int occurrenceMs, int newStartMs, {r
 /// Troca os horários de duas aulas (cada uma vai para o horário da outra; a duração de cada uma continua a sua).
 /// Aulas de regra semanal viram avulsas só naquela data.
 SlotPlan planSwap(SlotOccurrence a, SlotOccurrence b, {required String newIdA, required String newIdB}) {
-  if (a.slot.id == b.slot.id) return const SlotPlan.fail('Escolha duas aulas diferentes.');
-  if (a.slot.studentCode == b.slot.studentCode) return const SlotPlan.fail('As duas aulas são do mesmo aluno.');
+  if (a.slot.id == b.slot.id) return SlotPlan.fail(tr('Escolha duas aulas diferentes.'));
+  if (a.slot.studentCode == b.slot.studentCode) return SlotPlan.fail(tr('As duas aulas são do mesmo aluno.'));
   final pa = planMoveOccurrence(a.slot, a.startMs, b.startMs, newId: newIdA);
   final pb = planMoveOccurrence(b.slot, b.startMs, a.startMs, newId: newIdB);
   if (!pa.ok) return pa;
@@ -426,8 +427,8 @@ SlotPlan planSwap(SlotOccurrence a, SlotOccurrence b, {required String newIdA, r
 /// Pausa as aulas que começam entre [fromMs] e [toMs] (férias, viagem): datas de regras semanais viram canceladas e
 /// aulas avulsas do período são canceladas.
 SlotPlan planPause(Iterable<ClassSlot> slots, int fromMs, int toMs) {
-  if (toMs <= fromMs) return const SlotPlan.fail('A data final precisa ser depois da inicial.');
-  if (toMs - fromMs > 120 * kMsDay) return const SlotPlan.fail('Pause no máximo 120 dias por vez.');
+  if (toMs <= fromMs) return SlotPlan.fail(tr('A data final precisa ser depois da inicial.'));
+  if (toMs - fromMs > 120 * kMsDay) return SlotPlan.fail(tr('Pause no máximo 120 dias por vez.'));
   final out = <ClassSlot>[];
   for (final s in slots) {
     if (s.canceled) continue;
@@ -437,7 +438,7 @@ SlotPlan planPause(Iterable<ClassSlot> slots, int fromMs, int toMs) {
       out.add(s.copyWith(canceled: true));
     } else {
       if (s.skipped.length + hit.length > kMaxSlotSkips) {
-        return const SlotPlan.fail('Algumas aulas já têm muitas datas canceladas. Use um período menor.');
+        return SlotPlan.fail(tr('Algumas aulas já têm muitas datas canceladas. Use um período menor.'));
       }
       out.add(s.copyWith(skipped: [...s.skipped, ...hit]));
     }
@@ -449,7 +450,7 @@ SlotPlan planPause(Iterable<ClassSlot> slots, int fromMs, int toMs) {
 /// Devolve o motivo ou null se pode aplicar. A conferência vale para o conjunto todo, de uma vez.
 String? validatePlan(SlotPlan plan, List<ClassSlot> current, int nowMs, {String Function(String code)? nameOf}) {
   if (!plan.ok) return plan.error;
-  if (plan.changed.isEmpty) return 'Nada para mudar.';
+  if (plan.changed.isEmpty) return tr('Nada para mudar.');
   final merged = <ClassSlot>[...current];
   for (final c in plan.changed) {
     final i = merged.indexWhere((x) => x.id == c.id);
@@ -463,19 +464,19 @@ String? validatePlan(SlotPlan plan, List<ClassSlot> current, int nowMs, {String 
     if (c.canceled) continue;
     final old = current.where((x) => x.id == c.id).firstOrNull;
     if (!c.weekly && c.startMs < nowMs - 5 * kMsMinute && (old == null || old.startMs != c.startMs)) {
-      return 'Esse horário já passou.';
+      return tr('Esse horário já passou.');
     }
     final clash = findConflict(c, merged, nowMs);
     if (clash != null) {
-      final who = nameOf?.call(clash.slot.studentCode) ?? 'outro aluno';
-      return 'Choca com a aula de $who (${fmtSlotWhen(clash.start, DateTime.fromMillisecondsSinceEpoch(nowMs))}).';
+      final who = nameOf?.call(clash.slot.studentCode) ?? tr('outro aluno');
+      return tr('Choca com a aula de {0} ({1}).', [who, fmtSlotWhen(clash.start, DateTime.fromMillisecondsSinceEpoch(nowMs))]);
     }
   }
   return null;
 }
 
 /// Novo id de aula marcada.
-const _kDiasSemana = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
+final _kDiasSemana = [tr('segunda'), tr('terça'), tr('quarta'), tr('quinta'), tr('sexta'), tr('sábado'), tr('domingo')];
 
 /// 'Terça, 12/11 às 15:00 · 60 min' (aula avulsa) ou 'Toda terça às 15:00 · 60 min' (toda semana).
 /// Usado nas telas e no aviso de sucesso, para dizerem sempre a mesma coisa.
@@ -484,21 +485,21 @@ String describeSlot(ClassSlot s) {
   final d = DateTime.fromMillisecondsSinceEpoch(s.startMs);
   final hm = '${two(d.hour)}:${two(d.minute)}';
   final day = _kDiasSemana[d.weekday - 1];
-  final head = s.weekly ? 'Toda $day às $hm' : '${day[0].toUpperCase()}${day.substring(1)}, ${two(d.day)}/${two(d.month)} às $hm';
-  return '$head · ${s.durationMin} min${s.online ? ' · online' : ''}';
+  final head = s.weekly ? tr('Toda {0} às {1}', [day, hm]) : tr('{0}{1}, {2}/{3} às {4}', [day[0].toUpperCase(), day.substring(1), two(d.day), two(d.month), hm]);
+  return tr('{0} · {1} min{2}', [head, s.durationMin, s.online ? tr(' · online') : '']);
 }
 
 String newSlotId(DateTime now) => 's${now.microsecondsSinceEpoch.toRadixString(36)}';
 
 /// "terça, 15:00" / "hoje, 15:00" / "amanhã, 09:30".
 String fmtSlotWhen(DateTime when, DateTime now) {
-  const days = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
+  final days = [tr('segunda'), tr('terça'), tr('quarta'), tr('quinta'), tr('sexta'), tr('sábado'), tr('domingo')];
   final today = DateTime(now.year, now.month, now.day);
   final day = DateTime(when.year, when.month, when.day);
   final hh = '${when.hour.toString().padLeft(2, '0')}:${when.minute.toString().padLeft(2, '0')}';
   final diff = day.difference(today).inDays;
-  if (diff == 0) return 'hoje, $hh';
-  if (diff == 1) return 'amanhã, $hh';
+  if (diff == 0) return tr('hoje, {0}', [hh]);
+  if (diff == 1) return tr('amanhã, {0}', [hh]);
   final dd = when.day.toString().padLeft(2, '0'), mm = when.month.toString().padLeft(2, '0');
   return '${days[when.weekday - 1]}, $dd/$mm, $hh';
 }

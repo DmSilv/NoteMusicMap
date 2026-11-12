@@ -13,7 +13,7 @@ import 'theme.dart';
 import 'widgets.dart';
 
 String _two(int n) => n.toString().padLeft(2, '0');
-const _dow = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
+final _dow = [tr('segunda'), tr('terça'), tr('quarta'), tr('quinta'), tr('sexta'), tr('sábado'), tr('domingo')];
 
 /// Abre o formulário de aula marcada. Devolve true se salvou.
 Future<bool> openSlotForm(BuildContext context, AppState app, {ClassSlot? edit, DateTime? day, String? studentCode}) async {
@@ -95,14 +95,14 @@ class _SlotFormPageState extends State<SlotFormPage> {
   void _save() {
     final c = code;
     if (c == null) {
-      setState(() => error = 'Escolha o aluno.');
+      setState(() => error = tr('Escolha o aluno.'));
       return;
     }
     final now = DateTime.now();
     final e = widget.edit;
     final online = app.onlineClassesOn;
     if (online && mode == kModeOnline && link.isNotEmpty && meetingUrl(link) == null) {
-      setState(() => error = 'O link da aula não é válido. Use um endereço https, como o do Meet ou do Zoom.');
+      setState(() => error = tr('O link da aula não é válido. Use um endereço https, como o do Meet ou do Zoom.'));
       return;
     }
     final slot = ClassSlot(
@@ -126,9 +126,9 @@ class _SlotFormPageState extends State<SlotFormPage> {
     if (app.remindChoiceOn) app.setRemindDefault(remind);
     final st = app.studentByCode(c);
     if (isEdit) {
-      app.say('Aula atualizada.');
+      app.say(tr('Aula atualizada.'));
     } else {
-      app.celebrate('Aula marcada!', detail: '${st?.name ?? 'O aluno'} · ${describeOpenSlot(slot)}');
+      app.celebrate(tr('Aula marcada!'), detail: '${st?.name ?? tr('O aluno')} · ${describeOpenSlot(slot)}');
     }
     Navigator.pop(context, true);
   }
@@ -143,53 +143,53 @@ class _SlotFormPageState extends State<SlotFormPage> {
   Widget build(BuildContext context) {
     final st = code == null ? null : app.studentByCode(code!);
     final end = date.add(Duration(minutes: duration));
-    final when = weekly ? 'Toda ${_dow[date.weekday - 1]}' : '${_dow[date.weekday - 1]}, ${_two(date.day)}/${_two(date.month)}';
+    final when = weekly ? tr('Toda {0}', [_dow[date.weekday - 1]]) : '${_dow[date.weekday - 1]}, ${_two(date.day)}/${_two(date.month)}';
     final summary = '$when · ${_two(date.hour)}:${_two(date.minute)}–${_two(end.hour)}:${_two(end.minute)}${st == null ? '' : ' · ${st.name}'}';
     final (deliveryText, deliveryColor) = _delivery(st);
     final hasDetails = app.remindChoiceOn || app.onlineClassesOn;
 
     return Scaffold(
-      appBar: AppBar(title: Text(isEdit ? 'Editar aula' : 'Marcar aula')),
+      appBar: AppBar(title: Text(isEdit ? tr('Editar aula') : tr('Marcar aula'))),
       body: SafeArea(
         child: Column(children: [
           Expanded(
             child: ListView(padding: const EdgeInsets.fromLTRB(Ds.screenPad, 0, Ds.screenPad, Ds.s24), children: [
-              _section('Aluno'),
+              _section(tr('Aluno')),
               if (_choices.isEmpty)
-                Text('Cadastre um aluno com código para marcar aulas (Meu espaço › Alunos › Novo aluno).', style: TextStyle(color: AppColors.flat))
+                Text(tr('Cadastre um aluno com código para marcar aulas (Meu espaço › Alunos › Novo aluno).'), style: TextStyle(color: AppColors.flat))
               else if (isEdit && st != null && _choices.length < 2)
                 AppCard(padding: const EdgeInsets.fromLTRB(14, 12, 14, 12), child: StudentIdentity(app: app, student: st))
               else
                 PickerField<String>(
-                  label: 'Aluno',
+                  label: tr('Aluno'),
                   value: code ?? '',
                   icon: Icons.person_outline,
                   options: [
-                    if (code == null) const OptionItem('', 'Escolha o aluno'),
-                    for (final s in _choices) OptionItem(s.code!, s.name, subtitle: 'Código ${s.code}'),
+                    if (code == null) OptionItem('', tr('Escolha o aluno')),
+                    for (final s in _choices) OptionItem(s.code!, s.name, subtitle: tr('Código {0}', [s.code])),
                   ],
                   onChanged: (v) => setState(() {
                     code = v.isEmpty ? null : v;
                     error = null;
                   }),
                 ),
-              _section('Quando'),
+              _section(tr('Quando')),
               AppCard(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
                     Expanded(
                       child: DsPickTile(
                         icon: Icons.event,
-                        label: weekly ? 'Primeira aula' : 'Dia',
+                        label: weekly ? tr('Primeira aula') : tr('Dia'),
                         value: '${_dow[date.weekday - 1].substring(0, 3)}, ${_two(date.day)}/${_two(date.month)}/${date.year}',
                         onTap: _pickDate,
                       ),
                     ),
                     const SizedBox(width: Ds.s12),
-                    SizedBox(width: 112, child: DsPickTile(icon: Icons.schedule, label: 'Hora', value: '${_two(date.hour)}:${_two(date.minute)}', onTap: _pickTime)),
+                    SizedBox(width: 112, child: DsPickTile(icon: Icons.schedule, label: tr('Hora'), value: '${_two(date.hour)}:${_two(date.minute)}', onTap: _pickTime)),
                   ]),
                   const SizedBox(height: Ds.s16),
-                  Text('Duração', style: Ds.section()),
+                  Text(tr('Duração'), style: Ds.section()),
                   const SizedBox(height: Ds.s8),
                   ChipGrid(
                     labels: [for (final m in _durations) Text('$m min')],
@@ -199,15 +199,15 @@ class _SlotFormPageState extends State<SlotFormPage> {
                   const Padding(padding: EdgeInsets.symmetric(vertical: Ds.s8), child: Divider(height: 1)),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Repetir toda semana', style: TextStyle(fontWeight: FontWeight.w700)),
-                    subtitle: Text('Mesmo dia e horário. Dá para cancelar só um dia depois.', style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+                    title: Text(tr('Repetir toda semana'), style: TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: Text(tr('Mesmo dia e horário. Dá para cancelar só um dia depois.'), style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
                     value: weekly,
                     onChanged: (v) => setState(() => weekly = v),
                   ),
                 ]),
               ),
               if (hasDetails) ...[
-                _section('Detalhes'),
+                _section(tr('Detalhes')),
                 AppCard(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     if (app.remindChoiceOn) RemindField(value: remind, onChanged: (v) => setState(() => remind = v)),
@@ -233,8 +233,8 @@ class _SlotFormPageState extends State<SlotFormPage> {
                 maxLength: kMaxSlotNote,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: InputDecoration(
-                  labelText: 'Observação (opcional)',
-                  hintText: 'Ex.: trazer o arco novo',
+                  labelText: tr('Observação (opcional)'),
+                  hintText: tr('Ex.: trazer o arco novo'),
                   suffixIcon: DictationButton(app: app, controller: note),
                 ),
               ),
@@ -285,7 +285,7 @@ class _SlotFormPageState extends State<SlotFormPage> {
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancelar'),
+                  child: Text(tr('Cancelar')),
                 ),
               ),
               const SizedBox(width: 10),
@@ -295,7 +295,7 @@ class _SlotFormPageState extends State<SlotFormPage> {
                   style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
                   onPressed: _choices.isEmpty ? null : _save,
                   icon: const Icon(Icons.check, size: 20),
-                  label: Text(isEdit ? 'Salvar' : 'Marcar aula', style: const TextStyle(fontWeight: FontWeight.w700)),
+                  label: Text(isEdit ? tr('Salvar') : tr('Marcar aula'), style: const TextStyle(fontWeight: FontWeight.w700)),
                 ),
               ),
             ]),
@@ -307,18 +307,18 @@ class _SlotFormPageState extends State<SlotFormPage> {
 
   /// Como a aula chega ao aluno (texto e cor do bloco de resumo).
   (String, Color) _delivery(Student? st) {
-    if (st == null) return ('Escolha o aluno para ver como ele será avisado.', AppColors.textDim);
-    if (st.linkState == 'ended') return ('${st.name} encerrou o vínculo: a aula fica só na sua agenda.', AppColors.flat);
-    if (!app.linkEnabled) return ('O vínculo online está desligado: a aula fica na sua agenda e vai para ${st.name} quando você ligá-lo.', AppColors.flat);
+    if (st == null) return (tr('Escolha o aluno para ver como ele será avisado.'), AppColors.textDim);
+    if (st.linkState == 'ended') return (tr('{0} encerrou o vínculo: a aula fica só na sua agenda.', [st.name]), AppColors.flat);
+    if (!app.linkEnabled) return (tr('O vínculo online está desligado: a aula fica na sua agenda e vai para {0} quando você ligá-lo.', [st.name]), AppColors.flat);
     if (app.deliveryIssue[st.code] == 'not_ready') {
-      return ('O app de ${st.name} ainda não ligou o "Vínculo online": a aula fica na fila e chega quando ele ligar.', AppColors.flat);
+      return (tr('O app de {0} ainda não ligou o "Vínculo online": a aula fica na fila e chega quando ele ligar.', [st.name]), AppColors.flat);
     }
-    if (st.linkState != 'active') return ('${st.name} ainda não está vinculado: a aula vai quando o vínculo for confirmado.', AppColors.flat);
+    if (st.linkState != 'active') return (tr('{0} ainda não está vinculado: a aula vai quando o vínculo for confirmado.', [st.name]), AppColors.flat);
     final aviso = !app.remindChoiceOn
-        ? 'Os dois recebem um lembrete 15 minutos antes (se ativarem as notificações).'
+        ? tr('Os dois recebem um lembrete 15 minutos antes (se ativarem as notificações).')
         : (remind == 0
-            ? 'Esta aula fica sem lembrete.'
-            : 'Os dois recebem um lembrete ${remindLabel(remind).toLowerCase()} (se ativarem as notificações).');
-    return ('${st.name} vê a aula na agenda dele. $aviso', AppColors.accent);
+            ? tr('Esta aula fica sem lembrete.')
+            : tr('Os dois recebem um lembrete {0} (se ativarem as notificações).', [remindLabel(remind).toLowerCase()]));
+    return (tr('{0} vê a aula na agenda dele. {1}', [st.name, aviso]), AppColors.accent);
   }
 }

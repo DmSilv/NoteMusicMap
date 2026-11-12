@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'design_system.dart';
 import 'theme.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// Pergunta antes de fechar o app (botão voltar na tela principal). Devolve true só se a pessoa tocar em "Sair do app":
 /// tocar fora, arrastar para baixo ou apertar voltar de novo significa FICAR. O botão grande e destacado é o de ficar;
@@ -21,15 +22,15 @@ Future<bool> confirmExitApp(BuildContext context) async {
         children: [
           DsIconBadge(Icons.waving_hand_rounded, size: 56, color: AppColors.sharp),
           const SizedBox(height: Ds.s16),
-          Text('Já vai embora?', textAlign: TextAlign.center, style: Ds.title().copyWith(fontSize: 22)),
+          Text(tr('Já vai embora?'), textAlign: TextAlign.center, style: Ds.title().copyWith(fontSize: 22)),
           const SizedBox(height: Ds.s8),
           Text(
-            'Se estiver tocando ou estudando, o app para de ouvir.',
+            tr('Se estiver tocando ou estudando, o app para de ouvir.'),
             textAlign: TextAlign.center,
             style: Ds.support().copyWith(fontSize: 15),
           ),
           const SizedBox(height: Ds.s24),
-          DsPrimaryButton(onPressed: () => Navigator.of(c).pop(false), icon: Icons.check_rounded, label: 'Continuar no app'),
+          DsPrimaryButton(onPressed: () => Navigator.of(c).pop(false), icon: Icons.check_rounded, label: tr('Continuar no app')),
           const SizedBox(height: Ds.s8),
           TextButton(
             style: TextButton.styleFrom(
@@ -38,7 +39,7 @@ Future<bool> confirmExitApp(BuildContext context) async {
               textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
             ),
             onPressed: () => Navigator.of(c).pop(true),
-            child: const Text('Sair do app'),
+            child: Text(tr('Sair do app')),
           ),
         ],
       ),

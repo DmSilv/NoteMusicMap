@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 
 import 'design_system.dart';
 import 'theme.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// Modais da agenda do professor (remarcar uma aula, trocar horários, confirmar). Cada ação é UM modal só: o que vai
 /// mudar aparece antes (de → para), a conferência de choque é feita ao vivo e o botão só liga quando cabe na agenda.
 /// Não conhecem o app: recebem as regras por funções ([check] e [commit]), o que deixa tudo testável.
 
 String _two(int n) => n.toString().padLeft(2, '0');
-const _dow = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
+final _dow = [tr('seg'), tr('ter'), tr('qua'), tr('qui'), tr('sex'), tr('sáb'), tr('dom')];
 
 /// "qui 12/11 · 15:00".
 String whenText(DateTime d) => '${_dow[d.weekday - 1]} ${_two(d.day)}/${_two(d.month)} · ${_two(d.hour)}:${_two(d.minute)}';
@@ -56,7 +57,7 @@ Widget _buttons(BuildContext context, {required String ok, required bool enabled
         child: OutlinedButton(
           style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(Ds.primaryHeight - 4)),
           onPressed: () => Navigator.pop(context),
-          child: const Text('Voltar'),
+          child: Text(tr('Voltar')),
         ),
       ),
       const SizedBox(width: Ds.s12),
@@ -121,7 +122,7 @@ class _MoveBodyState extends State<_MoveBody> {
       initialDate: to.isBefore(first) ? first : to,
       firstDate: first,
       lastDate: DateTime(now.year + 2),
-      helpText: 'Novo dia da aula',
+      helpText: tr('Novo dia da aula'),
     );
     if (d != null) {
       setState(() {
@@ -135,7 +136,7 @@ class _MoveBodyState extends State<_MoveBody> {
     final t = await showTimePicker(
       context: context,
       initialTime: TimeOfDay(hour: to.hour, minute: to.minute),
-      helpText: 'Novo horário',
+      helpText: tr('Novo horário'),
       builder: (c, child) => MediaQuery(data: MediaQuery.of(c).copyWith(alwaysUse24HourFormat: true), child: child!),
     );
     if (t != null) {
@@ -162,18 +163,18 @@ class _MoveBodyState extends State<_MoveBody> {
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(Ds.screenPad, Ds.s4, Ds.screenPad, Ds.s16 + MediaQuery.of(context).viewInsets.bottom),
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _header(Icons.event_repeat_rounded, 'Remarcar esta aula', '${widget.who} · ${whenText(widget.from)}'),
+        _header(Icons.event_repeat_rounded, tr('Remarcar esta aula'), '${widget.who} · ${whenText(widget.from)}'),
         const SizedBox(height: Ds.s20),
-        Text('Novo horário', style: Ds.section()),
+        Text(tr('Novo horário'), style: Ds.section()),
         const SizedBox(height: Ds.s8),
         Row(children: [
-          Expanded(child: DsPickTile(icon: Icons.event, label: 'Dia', value: '${_dow[to.weekday - 1]}, ${_two(to.day)}/${_two(to.month)}/${to.year}', onTap: _pickDate)),
+          Expanded(child: DsPickTile(icon: Icons.event, label: tr('Dia'), value: '${_dow[to.weekday - 1]}, ${_two(to.day)}/${_two(to.month)}/${to.year}', onTap: _pickDate)),
           const SizedBox(width: Ds.s12),
-          SizedBox(width: 112, child: DsPickTile(icon: Icons.schedule, label: 'Hora', value: '${_two(to.hour)}:${_two(to.minute)}', onTap: _pickTime)),
+          SizedBox(width: 112, child: DsPickTile(icon: Icons.schedule, label: tr('Hora'), value: '${_two(to.hour)}:${_two(to.minute)}', onTap: _pickTime)),
         ]),
         const SizedBox(height: Ds.s16),
         if (_same)
-          _banner(AppColors.textDim, Icons.touch_app_outlined, [Text('Escolha outro dia ou outra hora.', style: Ds.support().copyWith(fontSize: 15))])
+          _banner(AppColors.textDim, Icons.touch_app_outlined, [Text(tr('Escolha outro dia ou outra hora.'), style: Ds.support().copyWith(fontSize: 15))])
         else if (problem != null)
           _banner(AppColors.sharp, Icons.error_outline_rounded, [Text(problem, style: const TextStyle(fontSize: 14.5, height: 1.35, fontWeight: FontWeight.w600))])
         else
@@ -184,11 +185,11 @@ class _MoveBodyState extends State<_MoveBody> {
           ]),
         const SizedBox(height: Ds.s8),
         Text(
-          '${widget.who} é avisado.${widget.weekly ? ' As outras semanas continuam como estão.' : ''}',
+          tr('{0} é avisado.{1}', [widget.who, widget.weekly ? tr(' As outras semanas continuam como estão.') : '']),
           style: Ds.support(),
         ),
         const SizedBox(height: Ds.s16),
-        _buttons(context, ok: 'Remarcar', enabled: ready, onOk: _confirm),
+        _buttons(context, ok: tr('Remarcar'), enabled: ready, onOk: _confirm),
       ]),
     );
   }
@@ -256,11 +257,11 @@ class _SwapBodyState extends State<_SwapBody> {
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(Ds.screenPad, Ds.s4, Ds.screenPad, Ds.s12),
-          child: _header(Icons.swap_horiz_rounded, 'Trocar horário', '${widget.aName} · ${whenText(widget.aStart)}'),
+          child: _header(Icons.swap_horiz_rounded, tr('Trocar horário'), '${widget.aName} · ${whenText(widget.aStart)}'),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(Ds.screenPad, 0, Ds.screenPad, Ds.s8),
-          child: Text('Trocar com quem?', style: Ds.section()),
+          child: Text(tr('Trocar com quem?'), style: Ds.section()),
         ),
         Flexible(
           child: ListView(
@@ -275,7 +276,7 @@ class _SwapBodyState extends State<_SwapBody> {
           padding: EdgeInsets.fromLTRB(Ds.screenPad, Ds.s8, Ds.screenPad, Ds.s16),
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             if (b == null)
-              Text('Escolha uma aula acima para ver como fica.', style: Ds.support())
+              Text(tr('Escolha uma aula acima para ver como fica.'), style: Ds.support())
             else if (problem != null)
               _banner(AppColors.sharp, Icons.error_outline_rounded, [Text(problem, style: const TextStyle(fontSize: 14.5, height: 1.35, fontWeight: FontWeight.w600))])
             else
@@ -284,10 +285,10 @@ class _SwapBodyState extends State<_SwapBody> {
                 const SizedBox(height: Ds.s8),
                 _swapLine(b.name, b.start, widget.aStart),
                 const SizedBox(height: Ds.s8),
-                Text('Os dois são avisados.', style: Ds.support()),
+                Text(tr('Os dois são avisados.'), style: Ds.support()),
               ]),
             const SizedBox(height: Ds.s16),
-            _buttons(context, ok: 'Trocar', enabled: ready, onOk: _confirm, icon: Icons.swap_horiz_rounded),
+            _buttons(context, ok: tr('Trocar'), enabled: ready, onOk: _confirm, icon: Icons.swap_horiz_rounded),
           ]),
         ),
       ]),
@@ -453,22 +454,22 @@ class _AbsenceBodyState extends State<_AbsenceBody> {
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(Ds.screenPad, Ds.s4, Ds.screenPad, Ds.s16 + MediaQuery.of(context).viewInsets.bottom),
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _header(Icons.person_off_outlined, '$who não veio?', widget.lessonLabel, color: AppColors.sharp),
+        _header(Icons.person_off_outlined, tr('{0} não veio?', [who]), widget.lessonLabel, color: AppColors.sharp),
         const SizedBox(height: Ds.s20),
         _ChoiceTile(
           icon: Icons.person_off_outlined,
-          title: 'Faltou, sem avisar',
-          subtitle: widget.hasLesson ? 'Fica registrado na ficha. A aula continua na agenda.' : 'Fica registrado na ficha de $who.',
+          title: tr('Faltou, sem avisar'),
+          subtitle: widget.hasLesson ? tr('Fica registrado na ficha. A aula continua na agenda.') : tr('Fica registrado na ficha de {0}.', [who]),
           selected: p == AbsenceChoice.noShow,
           color: AppColors.sharp,
           onTap: () => setState(() => picked = AbsenceChoice.noShow),
         ),
         _ChoiceTile(
           icon: Icons.mark_chat_read_outlined,
-          title: 'Avisou que não vem',
+          title: tr('Avisou que não vem'),
           subtitle: !widget.hasLesson
-              ? 'Fica registrado na ficha de $who.'
-              : (widget.weekly ? 'Fica registrado e só a aula de hoje é cancelada. $who é avisado.' : 'Fica registrado e a aula é cancelada. $who é avisado.'),
+              ? tr('Fica registrado na ficha de {0}.', [who])
+              : (widget.weekly ? tr('Fica registrado e só a aula de hoje é cancelada. {0} é avisado.', [who]) : tr('Fica registrado e a aula é cancelada. {0} é avisado.', [who])),
           selected: p == AbsenceChoice.notified,
           color: AppColors.flat,
           onTap: () => setState(() => picked = AbsenceChoice.notified),
@@ -476,8 +477,8 @@ class _AbsenceBodyState extends State<_AbsenceBody> {
         if (widget.hasLesson)
           _ChoiceTile(
             icon: Icons.event_repeat_rounded,
-            title: 'Quer remarcar',
-            subtitle: 'Fica registrado e você escolhe o novo horário.',
+            title: tr('Quer remarcar'),
+            subtitle: tr('Fica registrado e você escolhe o novo horário.'),
             selected: p == AbsenceChoice.reschedule,
             color: AppColors.accent,
             onTap: () => setState(() => picked = AbsenceChoice.reschedule),
@@ -485,7 +486,7 @@ class _AbsenceBodyState extends State<_AbsenceBody> {
         const SizedBox(height: Ds.s8),
         _buttons(
           context,
-          ok: p == AbsenceChoice.reschedule ? 'Registrar e remarcar' : 'Registrar falta',
+          ok: p == AbsenceChoice.reschedule ? tr('Registrar e remarcar') : tr('Registrar falta'),
           enabled: p != null,
           onOk: () => Navigator.pop(context, p),
           icon: p == AbsenceChoice.reschedule ? Icons.event_repeat_rounded : Icons.check_rounded,
@@ -521,26 +522,26 @@ class _CancelBodyState extends State<_CancelBody> {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(Ds.screenPad, Ds.s4, Ds.screenPad, Ds.s16),
       child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _header(Icons.event_busy_rounded, 'Cancelar a aula', '${widget.who} · ${widget.dateLabel}', color: AppColors.sharp),
+        _header(Icons.event_busy_rounded, tr('Cancelar a aula'), '${widget.who} · ${widget.dateLabel}', color: AppColors.sharp),
         const SizedBox(height: Ds.s20),
         _ChoiceTile(
           icon: Icons.today_rounded,
-          title: 'Só esta aula',
-          subtitle: 'As outras semanas continuam. ${widget.who} é avisado.',
+          title: tr('Só esta aula'),
+          subtitle: tr('As outras semanas continuam. {0} é avisado.', [widget.who]),
           selected: picked == CancelChoice.one,
           color: AppColors.sharp,
           onTap: () => setState(() => picked = CancelChoice.one),
         ),
         _ChoiceTile(
           icon: Icons.event_repeat_rounded,
-          title: 'Todas as aulas',
-          subtitle: 'A aula semanal deixa de existir daqui para a frente. ${widget.who} é avisado.',
+          title: tr('Todas as aulas'),
+          subtitle: tr('A aula semanal deixa de existir daqui para a frente. {0} é avisado.', [widget.who]),
           selected: picked == CancelChoice.all,
           color: AppColors.sharp,
           onTap: () => setState(() => picked = CancelChoice.all),
         ),
         const SizedBox(height: Ds.s8),
-        _buttons(context, ok: 'Cancelar aula', enabled: picked != null, danger: true, onOk: () => Navigator.pop(context, picked), icon: Icons.event_busy),
+        _buttons(context, ok: tr('Cancelar aula'), enabled: picked != null, danger: true, onOk: () => Navigator.pop(context, picked), icon: Icons.event_busy),
       ]),
     );
   }

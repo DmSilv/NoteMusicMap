@@ -106,20 +106,19 @@ class _QrScanPageState extends State<QrScanPage> {
     final s = parseScannedCode(raw, extraHosts: {if (kIsWeb) Uri.base.host});
     if (s == null) {
       if (fromCamera) {
-        _banner('QR Code inválido',
-            'Este QR não é do Notemusic, então não há nada para fazer com ele. '
-            'Aponte para o QR de um aluno ou professor do app.');
+        _banner(tr('QR Code inválido'),
+            tr('Este QR não é do Notemusic, então não há nada para fazer com ele. Aponte para o QR de um aluno ou professor do app.'));
       } else {
-        setState(() => _message = 'Código incorreto. Confira as letras e os números (ex.: K7QM-4TXD).');
+        setState(() => _message = tr('Código incorreto. Confira as letras e os números (ex.: K7QM-4TXD).'));
       }
       return;
     }
     if (widget.want != null && s.kind != 'codigo' && s.kind != widget.want) {
       final msg = s.kind == 'aluno'
-          ? 'Este é o QR de um aluno. Aqui é preciso o QR do professor.'
-          : 'Este é o QR de um professor. Aqui é preciso o QR do aluno.';
+          ? tr('Este é o QR de um aluno. Aqui é preciso o QR do professor.')
+          : tr('Este é o QR de um professor. Aqui é preciso o QR do aluno.');
       if (fromCamera) {
-        _banner('QR do tipo errado', msg);
+        _banner(tr('QR do tipo errado'), msg);
       } else {
         setState(() => _message = msg);
       }
@@ -128,7 +127,7 @@ class _QrScanPageState extends State<QrScanPage> {
     final problem = widget.check?.call(s.code);
     if (problem != null) {
       if (fromCamera) {
-        _banner('Não dá para usar este QR', problem);
+        _banner(tr('Não dá para usar este QR'), problem);
       } else {
         setState(() => _message = problem);
       }
@@ -196,7 +195,7 @@ class _QrScanPageState extends State<QrScanPage> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Aponte a câmera para o QR. Se preferir, digite o código:',
+                  Text(tr('Aponte a câmera para o QR. Se preferir, digite o código:'),
                       style: TextStyle(color: AppColors.textDim, fontSize: 13)),
                   const SizedBox(height: 8),
                   Row(
@@ -216,7 +215,7 @@ class _QrScanPageState extends State<QrScanPage> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      FilledButton(onPressed: () => _accept(_typed.text, fromCamera: false), child: const Text('Usar código')),
+                      FilledButton(onPressed: () => _accept(_typed.text, fromCamera: false), child: Text(tr('Usar código'))),
                     ],
                   ),
                 ],
@@ -239,11 +238,10 @@ class _CameraProblem extends StatelessWidget {
     final denied = error.errorCode == MobileScannerErrorCode.permissionDenied;
     final unsupported = error.errorCode == MobileScannerErrorCode.unsupported;
     final text = denied
-        ? 'O Notemusic não tem permissão para usar a câmera. Libere nas configurações do aparelho (ou do navegador) '
-            'para ler o QR, ou digite o código abaixo.'
+        ? tr('O Notemusic não tem permissão para usar a câmera. Libere nas configurações do aparelho (ou do navegador) para ler o QR, ou digite o código abaixo.')
         : unsupported
-            ? 'Este aparelho ou navegador não consegue ler QR pela câmera. Digite o código abaixo.'
-            : 'Não foi possível abrir a câmera agora. Digite o código abaixo.';
+            ? tr('Este aparelho ou navegador não consegue ler QR pela câmera. Digite o código abaixo.')
+            : tr('Não foi possível abrir a câmera agora. Digite o código abaixo.');
     return ColoredBox(
       color: Colors.black,
       child: Center(

@@ -162,7 +162,7 @@ class _TunerPageState extends State<TunerPage> {
 
         // Leitura exibida
         String name = '–';
-        String sub = app.listening ? 'Toque uma nota' : 'Toque no microfone para começar';
+        String sub = app.listening ? tr('Toque uma nota') : tr('Toque no microfone para começar');
         double? cents;
         double? hz;
         double? targetHz;
@@ -176,7 +176,7 @@ class _TunerPageState extends State<TunerPage> {
             targetHz = s.target;
             final midi = inst.strings[s.index].midi;
             name = noteName(midi, app.cfg, withOctave: false);
-            sub = 'corda ${s.index + 1} · ${noteName(midi, app.cfg, withOctave: true)}';
+            sub = tr('corda {0} · {1}', [s.index + 1, noteName(midi, app.cfg, withOctave: true)]);
           } else {
             cents = cur.cents;
             targetHz = cur.target;
@@ -191,8 +191,8 @@ class _TunerPageState extends State<TunerPage> {
         final hint = cents == null
             ? ''
             : inZone
-                ? 'Afinado'
-                : (cents < 0 ? 'Grave: suba a afinação' : 'Agudo: desça a afinação');
+                ? tr('Afinado')
+                : (cents < 0 ? tr('Grave: suba a afinação') : tr('Agudo: desça a afinação'));
 
         return ListView(
           padding: Ds.screen,
@@ -213,7 +213,7 @@ class _TunerPageState extends State<TunerPage> {
                         height: 1.0,
                         fontWeight: FontWeight.w800,
                         color: color),
-                    child: Text(name, semanticsLabel: 'Nota $name'),
+                    child: Text(name, semanticsLabel: tr('Nota {0}', [name])),
                   ),
                   const SizedBox(height: 4),
                   Text(sub, style: TextStyle(color: AppColors.textDim, fontSize: 15)),
@@ -225,13 +225,13 @@ class _TunerPageState extends State<TunerPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _stat(
-                          'Desvio',
+                          tr('Desvio'),
                           cents == null || targetHz == null ? '—' : fmtHz(hzOff(cents, targetHz)),
                           color,
                           CrossAxisAlignment.start),
-                      _stat('Frequência', hz == null ? '—' : '${hz.toStringAsFixed(1)} Hz',
+                      _stat(tr('Frequência'), hz == null ? '—' : '${hz.toStringAsFixed(1)} Hz',
                           AppColors.text, CrossAxisAlignment.center),
-                      _stat('Alvo', targetHz == null ? '—' : '${targetHz.toStringAsFixed(2)} Hz',
+                      _stat(tr('Alvo'), targetHz == null ? '—' : '${targetHz.toStringAsFixed(2)} Hz',
                           AppColors.text, CrossAxisAlignment.end),
                     ],
                   ),
@@ -282,7 +282,7 @@ class _TunerPageState extends State<TunerPage> {
               ),
               onPressed: () => app.listening && !app.demo ? app.stopListening() : app.startListening(),
               icon: Icon(app.listening && !app.demo ? Icons.mic_off : Icons.mic),
-              label: Text(app.listening && !app.demo ? 'Parar' : 'Ouvir',
+              label: Text(app.listening && !app.demo ? tr('Parar') : tr('Ouvir'),
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
             ),
           ),
@@ -291,14 +291,14 @@ class _TunerPageState extends State<TunerPage> {
             style: OutlinedButton.styleFrom(minimumSize: const Size(0, Ds.primaryHeight)),
             onPressed: _toggleA,
             icon: Icon(_playingA ? Icons.stop : Icons.volume_up),
-            label: Text(_playingA ? 'Parar' : 'Lá ${app.refA.toStringAsFixed(0)}'),
+            label: Text(_playingA ? tr('Parar') : tr('Lá {0}', [app.refA.toStringAsFixed(0)])),
           ),
         ]),
         if (kDevDemo)
           TextButton.icon(
             onPressed: () => app.listening && app.demo ? app.stopListening() : app.startListening(demoMode: true),
             icon: const Icon(Icons.play_circle_outline, size: 18),
-            label: const Text('[dev] Simulação silenciosa'),
+            label: Text(tr('[dev] Simulação silenciosa')),
           ),
       ]),
     );
@@ -308,13 +308,13 @@ class _TunerPageState extends State<TunerPage> {
   void _openSettings() {
     showDsSheet(
       context,
-      title: 'Ajustes do afinador',
+      title: tr('Ajustes do afinador'),
       listenable: app,
       children: (c) => [
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
-          title: const Text('Microfone sozinho', style: TextStyle(fontWeight: FontWeight.w700)),
-          subtitle: const Text('Liga ao abrir o Afinador (depois de liberado uma vez).', style: TextStyle(fontSize: Ds.fontLabel)),
+          title: Text(tr('Microfone sozinho'), style: TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: Text(tr('Liga ao abrir o Afinador (depois de liberado uma vez).'), style: TextStyle(fontSize: Ds.fontLabel)),
           value: app.autoMicEnabled,
           onChanged: app.setAutoMic,
         ),
@@ -363,9 +363,9 @@ class _TunerPageState extends State<TunerPage> {
         Expanded(
           child: SegmentedButton<TunerMode>(
             segments: [
-              ButtonSegment(value: TunerMode.strings, label: seg('Cordas soltas')),
-              ButtonSegment(value: TunerMode.chromatic, label: seg('Cromático')),
-              ButtonSegment(value: TunerMode.pedal, label: seg('Pedal')),
+              ButtonSegment(value: TunerMode.strings, label: seg(tr('Cordas soltas'))),
+              ButtonSegment(value: TunerMode.chromatic, label: seg(tr('Cromático'))),
+              ButtonSegment(value: TunerMode.pedal, label: seg(tr('Pedal'))),
             ],
             selected: {app.tunerMode},
             onSelectionChanged: (s) {
@@ -379,8 +379,8 @@ class _TunerPageState extends State<TunerPage> {
             showSelectedIcon: false,
           ),
         ),
-        const HelpButton(
-          title: 'Cordas soltas, Cromático ou Pedal?',
+        HelpButton(
+          title: tr('Cordas soltas, Cromático ou Pedal?'),
           sections: Help.modes,
           footer: Help.modesFooter,
         ),
@@ -412,7 +412,7 @@ class _TunerPageState extends State<TunerPage> {
 
   Widget _instrumentPicker() {
     return PickerField<String>(
-      label: 'Instrumento',
+      label: tr('Instrumento'),
       value: app.instrumentId,
       options: instrumentOptions(app.cfg),
       onChanged: (v) {
@@ -475,9 +475,9 @@ class _TunerPageState extends State<TunerPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            const Expanded(
-                child: Text('Referência Lá', style: TextStyle(fontWeight: FontWeight.w700))),
-            const HelpButton(title: 'Lá de referência', sections: Help.refA),
+            Expanded(
+                child: Text(tr('Referência Lá'), style: TextStyle(fontWeight: FontWeight.w700))),
+            HelpButton(title: tr('Lá de referência'), sections: Help.refA),
           ]),
           const SizedBox(height: 8),
           // Cinco botões de largura igual: sempre cabem, em qualquer tela.
@@ -492,7 +492,7 @@ class _TunerPageState extends State<TunerPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               IconButton(
-                tooltip: 'Menos 1 Hz',
+                tooltip: tr('Menos 1 Hz'),
                 onPressed: () => app.setTuning(refA: app.refA - 1),
                 icon: const Icon(Icons.remove_circle_outline),
               ),
@@ -510,7 +510,7 @@ class _TunerPageState extends State<TunerPage> {
                 ),
               ),
               IconButton(
-                tooltip: 'Mais 1 Hz',
+                tooltip: tr('Mais 1 Hz'),
                 onPressed: () => app.setTuning(refA: app.refA + 1),
                 icon: const Icon(Icons.add_circle_outline),
               ),
@@ -519,27 +519,27 @@ class _TunerPageState extends State<TunerPage> {
           if (stringsMode) ...[
             const SizedBox(height: 8),
             Text(
-              'Cordas soltas: quintas puras nos de arco, afinação igual nos de trastes. O sistema só vale no Cromático.',
+              tr('Cordas soltas: quintas puras nos de arco, afinação igual nos de trastes. O sistema só vale no Cromático.'),
               style: Ds.support(),
             ),
           ],
           if (!stringsMode) ...[
             const Divider(height: 24),
             Row(children: [
-              const Expanded(
-                  child: Text('Sistema de afinação',
+              Expanded(
+                  child: Text(tr('Sistema de afinação'),
                       style: TextStyle(fontWeight: FontWeight.w700))),
-              const HelpButton(
-                  title: 'Qual sistema de afinação?',
+              HelpButton(
+                  title: tr('Qual sistema de afinação?'),
                   sections: Help.system,
                   footer: Help.systemFooter),
             ]),
             const SizedBox(height: 8),
             ChipGrid(
-              labels: const [
-                ChipLabel2('Igual', 'piano, violão'),
-                ChipLabel2('Pitagórico', 'melodia'),
-                ChipLabel2('Justo', 'acordes'),
+              labels: [
+                ChipLabel2(tr('Igual'), tr('piano, violão')),
+                ChipLabel2(tr('Pitagórico'), tr('melodia')),
+                ChipLabel2(tr('Justo'), tr('acordes')),
               ],
               selected: TuningSystem.values.indexOf(app.system),
               onSelected: (i) => app.setTuning(system: TuningSystem.values[i]),
@@ -551,9 +551,9 @@ class _TunerPageState extends State<TunerPage> {
               const SizedBox(height: 10),
               Row(children: [
                 Expanded(
-                    child: Text('Tônica (tom da peça)',
+                    child: Text(tr('Tônica (tom da peça)'),
                         style: TextStyle(color: AppColors.textDim, fontSize: 13))),
-                const HelpButton(title: 'Tônica e Lá fixo', sections: Help.tonic),
+                HelpButton(title: tr('Tônica e Lá fixo'), sections: Help.tonic),
               ]),
               const SizedBox(height: 6),
               ChipGrid(
@@ -570,9 +570,9 @@ class _TunerPageState extends State<TunerPage> {
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 dense: true,
-                title: const Text('Manter o Lá fixo na referência'),
-                subtitle: const Text(
-                    'Ligado: o Lá continua em 440 Hz e as outras notas se ajustam. Desligado: a tônica fica no temperado.',
+                title: Text(tr('Manter o Lá fixo na referência')),
+                subtitle: Text(
+                    tr('Ligado: o Lá continua em 440 Hz e as outras notas se ajustam. Desligado: a tônica fica no temperado.'),
                     style: TextStyle(fontSize: 12)),
                 value: app.anchor == Anchor.a4,
                 onChanged: (v) => app.setTuning(anchor: v ? Anchor.a4 : Anchor.tonic),
@@ -580,7 +580,7 @@ class _TunerPageState extends State<TunerPage> {
             ],
           ],
           const Divider(height: 24),
-          const Text('Sustenidos e bemóis', style: TextStyle(fontWeight: FontWeight.w600)),
+          Text(tr('Sustenidos e bemóis'), style: TextStyle(fontWeight: FontWeight.w600)),
           const SizedBox(height: 6),
           SpellingPicker(app: app),
         ],
@@ -614,7 +614,7 @@ class _StringChip extends StatelessWidget {
         : (active ? AppColors.accent : AppColors.outline);
     return Semantics(
       button: true,
-      label: 'Corda $label$octave, ${hz.toStringAsFixed(1)} hertz. Toque para ouvir.',
+      label: tr('Corda {0}{1}, {2} hertz. Toque para ouvir.', [label, octave, hz.toStringAsFixed(1)]),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: onTap,

@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// Endereço base da API. Na web usa o mesmo domínio do app; no celular, defina
 /// `--dart-define=API_BASE=https://seu-app.vercel.app`.
@@ -103,21 +104,21 @@ class CoachAi extends ChangeNotifier {
     if (busy) return;
     final ep = _endpoint();
     if (ep == null) {
-      _fail('A IA ainda não está configurada para este aplicativo.');
+      _fail(tr('A IA ainda não está configurada para este aplicativo.'));
       return;
     }
     if (!consent) {
-      _fail('Autorize o envio do resumo para usar a IA.');
+      _fail(tr('Autorize o envio do resumo para usar a IA.'));
       return;
     }
     if (await usedToday() >= _clientDailyLimit) {
-      _fail('Você já usou as $_clientDailyLimit análises de hoje. Volte amanhã!');
+      _fail(tr('Você já usou as {0} análises de hoje. Volte amanhã!', [_clientDailyLimit]));
       return;
     }
     final last = _lastRequest;
     if (last != null && DateTime.now().difference(last) < _cooldown) {
       final left = _cooldown.inSeconds - DateTime.now().difference(last).inSeconds;
-      _fail('Aguarde $left s para pedir de novo.');
+      _fail(tr('Aguarde {0} s para pedir de novo.', [left]));
       return;
     }
 
@@ -162,8 +163,8 @@ class CoachAi extends ChangeNotifier {
           final why = data['error'];
           if (why == 'user_daily' || why == 'daily_global') {
             _fail(why == 'user_daily'
-                ? 'Você atingiu o limite de hoje. Volte amanhã!'
-                : 'A IA gratuita atingiu o limite do dia. Tente amanhã.');
+                ? tr('Você atingiu o limite de hoje. Volte amanhã!')
+                : tr('A IA gratuita atingiu o limite do dia. Tente amanhã.'));
             return;
           }
           final ms = (data['retryAfterMs'] as num?)?.toInt() ?? 15000;
@@ -175,17 +176,17 @@ class CoachAi extends ChangeNotifier {
           await _waitInQueue(ms, why == 'cooldown');
           continue;
         }
-        _fail((data['error'] as String?) ?? 'A IA não respondeu (erro ${r.statusCode}).');
+        _fail((data['error'] as String?) ?? tr('A IA não respondeu (erro {0}).', [r.statusCode]));
         return;
       } on TimeoutException {
         await _waitInQueue(8000, false);
       } catch (_) {
-        _fail('Sem conexão com a internet. O app continua funcionando normalmente.');
+        _fail(tr('Sem conexão com a internet. O app continua funcionando normalmente.'));
         return;
       }
     }
     if (!_cancelled) {
-      _fail('A IA está muito ocupada agora. Tente de novo em alguns minutos.');
+      _fail(tr('A IA está muito ocupada agora. Tente de novo em alguns minutos.'));
     }
   }
 

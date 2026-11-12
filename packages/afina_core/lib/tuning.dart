@@ -15,23 +15,24 @@
 library;
 
 import 'dart:math' as math;
+import 'i18n.dart';
 
 enum TuningSystem { equal, pythagorean, just }
 
 enum Anchor { a4, tonic }
 
-const List<String> noteNamesSharp = [
-  'Dó', 'Dó♯', 'Ré', 'Ré♯', 'Mi', 'Fá', 'Fá♯', 'Sol', 'Sol♯', 'Lá', 'Lá♯', 'Si'
+final List<String> noteNamesSharp = [
+  tr('Dó'), tr('Dó♯'), tr('Ré'), tr('Ré♯'), tr('Mi'), tr('Fá'), tr('Fá♯'), tr('Sol'), tr('Sol♯'), tr('Lá'), tr('Lá♯'), tr('Si')
 ];
-const List<String> noteNamesFlat = [
-  'Dó', 'Ré♭', 'Ré', 'Mi♭', 'Mi', 'Fá', 'Sol♭', 'Sol', 'Lá♭', 'Lá', 'Si♭', 'Si'
+final List<String> noteNamesFlat = [
+  tr('Dó'), tr('Ré♭'), tr('Ré'), tr('Mi♭'), tr('Mi'), tr('Fá'), tr('Sol♭'), tr('Sol'), tr('Lá♭'), tr('Lá'), tr('Si♭'), tr('Si')
 ];
 
 /// Grafia automática das teclas pretas quando não há tonalidade definida: alterna
 /// sustenidos e bemóis como se escreve na prática (Dó♯, Mi♭, Fá♯, Lá♭, Si♭), em vez
 /// de usar sempre sustenidos.
-const List<String> noteNamesAuto = [
-  'Dó', 'Dó♯', 'Ré', 'Mi♭', 'Mi', 'Fá', 'Fá♯', 'Sol', 'Lá♭', 'Lá', 'Si♭', 'Si'
+final List<String> noteNamesAuto = [
+  tr('Dó'), tr('Dó♯'), tr('Ré'), tr('Mi♭'), tr('Mi'), tr('Fá'), tr('Fá♯'), tr('Sol'), tr('Lá♭'), tr('Lá'), tr('Si♭'), tr('Si')
 ];
 
 /// Nomes para [flats]: null = automático; true = só bemóis; false = só sustenidos.
@@ -252,37 +253,37 @@ class Instrument {
   }
 }
 
-const List<Instrument> instruments = [
-  Instrument('violino', 'Violino',
+final List<Instrument> instruments = [
+  Instrument('violino', tr('Violino'),
       [StringDef(55), StringDef(62), StringDef(69), StringDef(76)],
       fretted: false),
-  Instrument('viola', 'Viola de arco',
+  Instrument('viola', tr('Viola de arco'),
       [StringDef(48), StringDef(55), StringDef(62), StringDef(69)],
       fretted: false),
-  Instrument('violoncelo', 'Violoncelo',
+  Instrument('violoncelo', tr('Violoncelo'),
       [StringDef(36), StringDef(43), StringDef(50), StringDef(57)],
       fretted: false),
-  Instrument('contrabaixo', 'Contrabaixo acústico',
+  Instrument('contrabaixo', tr('Contrabaixo acústico'),
       [StringDef(28), StringDef(33), StringDef(38), StringDef(43)],
       fretted: false),
   Instrument(
       'violao',
-      'Violão / Guitarra',
+      tr('Violão / Guitarra'),
       [
         StringDef(40), StringDef(45), StringDef(50),
         StringDef(55), StringDef(59), StringDef(64),
       ],
       fretted: true),
-  Instrument('baixo', 'Baixo elétrico (4 cordas)',
+  Instrument(tr('baixo'), tr('Baixo elétrico (4 cordas)'),
       [StringDef(28), StringDef(33), StringDef(38), StringDef(43)],
       fretted: true),
-  Instrument('cavaquinho', 'Cavaquinho',
+  Instrument('cavaquinho', tr('Cavaquinho'),
       [StringDef(62), StringDef(67), StringDef(71), StringDef(74)],
       fretted: true),
-  Instrument('ukulele', 'Ukulele',
+  Instrument('ukulele', tr('Ukulele'),
       [StringDef(67), StringDef(60), StringDef(64), StringDef(69)],
       fretted: true),
-  Instrument('bandolim', 'Bandolim',
+  Instrument('bandolim', tr('Bandolim'),
       [StringDef(55), StringDef(62), StringDef(69), StringDef(76)],
       fretted: true),
 ];

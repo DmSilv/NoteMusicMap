@@ -9,9 +9,9 @@ import 'theme.dart';
 /// Antes de vincular: o nome é obrigatório (sem ele o professor não sabe quem é o aluno).
 /// Devolve true se já havia nome ou se a pessoa acabou de informar.
 Future<bool> requireNickname(BuildContext context, AppState app,
-    {String reason = 'Para se vincular, a outra pessoa precisa saber quem você é.'}) async {
+    {String? reason}) async {
   if (!app.needsNickname) return true;
-  await askNickname(context, app, mandatory: true, reason: reason);
+  await askNickname(context, app, mandatory: true, reason: reason ?? tr('Para se vincular, a outra pessoa precisa saber quem você é.'));
   return !app.needsNickname;
 }
 
@@ -22,7 +22,7 @@ Future<void> askNickname(BuildContext context, AppState app, {bool mandatory = f
     context: context,
     builder: (c) => StatefulBuilder(builder: (c, setS) => AlertDialog(
       icon: const Icon(Icons.waving_hand_outlined),
-      title: const Text('Como posso te chamar?'),
+      title: Text(tr('Como posso te chamar?')),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -38,32 +38,32 @@ Future<void> askNickname(BuildContext context, AppState app, {bool mandatory = f
             inputFormatters: const [SafeText.name()],
             textCapitalization: TextCapitalization.words,
             maxLength: 40,
-            decoration: InputDecoration(labelText: mandatory ? 'Seu nome' : 'Seu apelido', errorText: error),
+            decoration: InputDecoration(labelText: mandatory ? tr('Seu nome') : tr('Seu apelido'), errorText: error),
             onSubmitted: (v) {
               if (mandatory && v.trim().isEmpty) {
-                setS(() => error = 'Informe o seu nome para continuar.');
+                setS(() => error = tr('Informe o seu nome para continuar.'));
               } else {
                 Navigator.pop(c, v);
               }
             },
           ),
           Text(
-            'Aparece nas saudações do app e, se você se vincular a um professor ou aluno, para essa pessoa. Dá para trocar depois em Minha conta.',
+            tr('Aparece nas saudações do app e, se você se vincular a um professor ou aluno, para essa pessoa. Dá para trocar depois em Minha conta.'),
             style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
           ),
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(c), child: Text(mandatory ? 'Cancelar' : 'Agora não')),
+        TextButton(onPressed: () => Navigator.pop(c), child: Text(mandatory ? tr('Cancelar') : tr('Agora não'))),
         FilledButton(
           onPressed: () {
             if (mandatory && ctrl.text.trim().isEmpty) {
-              setS(() => error = 'Informe o seu nome para continuar.');
+              setS(() => error = tr('Informe o seu nome para continuar.'));
             } else {
               Navigator.pop(c, ctrl.text);
             }
           },
-          child: const Text('Salvar'),
+          child: Text(tr('Salvar')),
         ),
       ],
     )),
@@ -71,7 +71,7 @@ Future<void> askNickname(BuildContext context, AppState app, {bool mandatory = f
   ctrl.dispose();
   if (saved != null && saved.trim().isNotEmpty) {
     app.setProfileName(saved);
-    app.say('Prazer, ${saved.trim().split(RegExp(r'\s+')).first}!');
+    app.say(tr('Prazer, {0}!', [saved.trim().split(RegExp(r'\s+')).first]));
   }
 }
 
@@ -110,9 +110,9 @@ class HelloBar extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                        Text('${greetingFor(hour)}! Como posso te chamar?',
+                        Text(tr('{0}! Como posso te chamar?', [greetingFor(hour)]),
                             style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                        Text('Coloque seu apelido para o app falar com você.',
+                        Text(tr('Coloque seu apelido para o app falar com você.'),
                             style: TextStyle(color: AppColors.textDim, fontSize: 12)),
                       ]),
                     ),
@@ -120,10 +120,10 @@ class HelloBar extends StatelessWidget {
                       style: FilledButton.styleFrom(
                           visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 14)),
                       onPressed: () => askNickname(context, app),
-                      child: const Text('Informar'),
+                      child: Text(tr('Informar')),
                     ),
                     IconButton(
-                      tooltip: 'Agora não',
+                      tooltip: tr('Agora não'),
                       visualDensity: VisualDensity.compact,
                       icon: const Icon(Icons.close, size: 18),
                       onPressed: () => app.hideNickPrompt(days: 7),
@@ -160,7 +160,7 @@ class HelloBar extends StatelessWidget {
                         style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
                 ]),
               ),
-              Tooltip(message: 'Trocar apelido', child: Icon(Icons.edit_outlined, size: 16, color: AppColors.textDim)),
+              Tooltip(message: tr('Trocar apelido'), child: Icon(Icons.edit_outlined, size: 16, color: AppColors.textDim)),
               const SizedBox(width: 8),
             ]),
           ),
@@ -178,11 +178,11 @@ String? _who(AppState app) {
   if (t.isNotEmpty) {
     final last = t.last;
     final nm = last.name.trim().isEmpty ? last.code : last.name.trim();
-    parts.add(t.length == 1 ? 'Professor(a): $nm' : '${t.length} professores');
+    parts.add(t.length == 1 ? tr('Professor(a): {0}', [nm]) : tr('{0} professores', [t.length]));
   }
   if (app.teacherMode) {
     final n = app.students.length;
-    parts.add(n == 0 ? 'Modo professor' : (n == 1 ? '1 aluno' : '$n alunos'));
+    parts.add(n == 0 ? tr('Modo professor') : (n == 1 ? tr('1 aluno') : tr('{0} alunos', [n])));
   }
   return parts.isEmpty ? null : parts.join(' · ');
 }

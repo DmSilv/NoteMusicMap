@@ -9,6 +9,7 @@ import 'dart:math' as math;
 
 import 'pitch_detector.dart';
 import 'tuning.dart';
+import 'i18n.dart';
 
 // ---------------------------------------------------------------------------
 // Estabilizador
@@ -301,49 +302,50 @@ class PitchGrid {
 // ---------------------------------------------------------------------------
 
 enum ScaleType {
-  major('Maior', [0, 2, 4, 5, 7, 9, 11]),
-  naturalMinor('Menor natural', [0, 2, 3, 5, 7, 8, 10]),
-  harmonicMinor('Menor harmônica', [0, 2, 3, 5, 7, 8, 11]),
+  major(/*tr*/'Maior', [0, 2, 4, 5, 7, 9, 11]),
+  naturalMinor(/*tr*/'Menor natural', [0, 2, 3, 5, 7, 8, 10]),
+  harmonicMinor(/*tr*/'Menor harmônica', [0, 2, 3, 5, 7, 8, 11]),
 
   /// Sobe com 6ª e 7ª maiores e desce como menor natural (como se estuda).
-  melodicMinor('Menor melódica', [0, 2, 3, 5, 7, 9, 11], down: [0, 2, 3, 5, 7, 8, 10]),
-  majorPentatonic('Pentatônica maior', [0, 2, 4, 7, 9]),
-  chromatic('Cromática', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
+  melodicMinor(/*tr*/'Menor melódica', [0, 2, 3, 5, 7, 9, 11], down: [0, 2, 3, 5, 7, 8, 10]),
+  majorPentatonic(/*tr*/'Pentatônica maior', [0, 2, 4, 7, 9]),
+  chromatic(/*tr*/'Cromática', [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
 
   // ---- Arpejos (família do "sistema de escalas" de Carl Flesch) ----
   // Tríades em posição fundamental e nas duas inversões, 7ª da dominante e 7ª
   // diminuta, em 1, 2 e 3 oitavas. A "tônica" escolhida é a RAIZ do acorde; nas
   // inversões o exercício começa na 3ª ou na 5ª (campo [start]).
-  majorTriad('Arpejo maior', [0, 4, 7],
+  majorTriad(/*tr*/'Arpejo maior', [0, 4, 7],
       arpeggio: true,
-      hint: 'Tríade maior: 1ª, 3ª e 5ª notas. Comece em 1 oitava e aumente para 2 e 3.'),
-  minorTriad('Arpejo menor', [0, 3, 7],
+      hint: /*tr*/'Tríade maior: 1ª, 3ª e 5ª notas. Comece em 1 oitava e aumente para 2 e 3.'),
+  minorTriad(/*tr*/'Arpejo menor', [0, 3, 7],
       arpeggio: true,
-      hint: 'Tríade menor: a 3ª é mais baixa que no arpejo maior (meio tom).'),
-  majorTriad1('Arpejo maior (1ª inversão)', [0, 3, 8],
+      hint: /*tr*/'Tríade menor: a 3ª é mais baixa que no arpejo maior (meio tom).'),
+  majorTriad1(/*tr*/'Arpejo maior (1ª inversão)', [0, 3, 8],
       start: 4,
       arpeggio: true,
-      hint: 'Começa na 3ª do acorde (ex.: Mi–Sol–Dó em Dó maior).'),
-  minorTriad1('Arpejo menor (1ª inversão)', [0, 4, 9],
+      hint: /*tr*/'Começa na 3ª do acorde (ex.: Mi–Sol–Dó em Dó maior).'),
+  minorTriad1(/*tr*/'Arpejo menor (1ª inversão)', [0, 4, 9],
       start: 3,
       arpeggio: true,
-      hint: 'Começa na 3ª do acorde (ex.: Mi♭–Sol–Dó em Dó menor).'),
-  majorTriad2('Arpejo maior (2ª inversão)', [0, 5, 9],
+      hint: /*tr*/'Começa na 3ª do acorde (ex.: Mi♭–Sol–Dó em Dó menor).'),
+  majorTriad2(/*tr*/'Arpejo maior (2ª inversão)', [0, 5, 9],
       start: 7,
       arpeggio: true,
-      hint: 'Começa na 5ª do acorde (ex.: Sol–Dó–Mi em Dó maior).'),
-  minorTriad2('Arpejo menor (2ª inversão)', [0, 5, 8],
+      hint: /*tr*/'Começa na 5ª do acorde (ex.: Sol–Dó–Mi em Dó maior).'),
+  minorTriad2(/*tr*/'Arpejo menor (2ª inversão)', [0, 5, 8],
       start: 7,
       arpeggio: true,
-      hint: 'Começa na 5ª do acorde (ex.: Sol–Dó–Mi♭ em Dó menor).'),
-  dominantSeventh('Arpejo de 7ª da dominante', [0, 4, 7, 10],
+      hint: /*tr*/'Começa na 5ª do acorde (ex.: Sol–Dó–Mi♭ em Dó menor).'),
+  dominantSeventh(/*tr*/'Arpejo de 7ª da dominante', [0, 4, 7, 10],
       arpeggio: true,
-      hint: 'Tríade maior com 7ª menor: 4 notas por oitava; cuidado com a 7ª, que tende a ficar alta.'),
-  diminishedSeventh('Arpejo de 7ª diminuta', [0, 3, 6, 9],
+      hint: /*tr*/'Tríade maior com 7ª menor: 4 notas por oitava; cuidado com a 7ª, que tende a ficar alta.'),
+  diminishedSeventh(/*tr*/'Arpejo de 7ª diminuta', [0, 3, 6, 9],
       arpeggio: true,
-      hint: 'Quatro notas igualmente espaçadas (terças menores): afine cada intervalo de ouvido.');
+      hint: /*tr*/'Quatro notas igualmente espaçadas (terças menores): afine cada intervalo de ouvido.');
 
-  final String label;
+  final String _label;
+  String get label => tr(_label);
 
   /// Graus ao SUBIR (semitons acima da nota inicial do exercício).
   final List<int> steps;
@@ -358,18 +360,23 @@ enum ScaleType {
   final bool arpeggio;
 
   /// Dica de estudo mostrada ao escolher o tipo.
-  final String hint;
+  final String _hint;
+  String get hint => tr(_hint);
 
-  const ScaleType(this.label, this.steps,
-      {List<int>? down, this.start = 0, this.arpeggio = false, this.hint = ''})
-      : downSteps = down ?? steps;
+  const ScaleType(this._label, this.steps,
+      {List<int>? down, this.start = 0, this.arpeggio = false, String hint = ''})
+      : downSteps = down ?? steps,
+        _hint = hint;
+
+  /// Tipo menor (escala ou arpejo). Decide a grafia (bemóis ou sustenidos); não depende do texto, que muda com o idioma.
+  bool get isMinor => const {naturalMinor, harmonicMinor, melodicMinor, minorTriad, minorTriad1, minorTriad2}.contains(this);
 
   /// Só as escalas / só os arpejos (para os seletores).
   static List<ScaleType> get scales => [for (final t in values) if (!t.arpeggio) t];
   static List<ScaleType> get arpeggios => [for (final t in values) if (t.arpeggio) t];
 
   /// Nome para mostrar: "Sol menor natural" (escala) ou "Arpejo maior de Sol".
-  String display(String note) => arpeggio ? '$label de $note' : '$note ${label.toLowerCase()}';
+  String display(String note) => arpeggio ? tr('{0} de {1}', [label, note]) : '$note ${label.toLowerCase()}';
 }
 
 /// Notas do exercício subindo [octaves] oitavas, terminando na nota de chegada

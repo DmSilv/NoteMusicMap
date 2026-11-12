@@ -1,7 +1,28 @@
 /// Dicionário português → inglês. A chave é o texto em português exatamente como está em `tr('...')` no código.
-/// Marcadores `{0}`, `{1}`… recebem os valores. Gerado por partes em `i18n_en_*.dart` e juntado aqui.
+/// Marcadores `{0}`, `{1}`… recebem os valores. As traduções ficam em partes (`i18n_en_*.dart`) e são juntadas aqui;
+/// `node scripts/check_i18n.js` confere que cada texto do código tem tradução e que esta lista inclui todas as partes.
 library;
 
 import 'i18n_en_a.dart';
+import 'i18n_en_b00.dart';
+import 'i18n_en_b01.dart';
+import 'i18n_en_b02.dart';
+import 'i18n_en_b03.dart';
+import 'i18n_en_b04.dart';
+import 'i18n_en_b05.dart';
+import 'i18n_en_b06.dart';
+import 'i18n_en_b07.dart';
+import 'i18n_en_b08.dart';
 
-const Map<String, String> kEn = {...kEnA};
+const Map<String, String> kEn = {
+  ...kEnA,
+  ...kEnB00,
+  ...kEnB01,
+  ...kEnB02,
+  ...kEnB03,
+  ...kEnB04,
+  ...kEnB05,
+  ...kEnB06,
+  ...kEnB07,
+  ...kEnB08,
+};

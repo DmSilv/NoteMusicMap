@@ -52,7 +52,7 @@ class OctaveNav extends StatelessWidget {
       children: [
         Row(
           children: [
-            arrow(Icons.chevron_left_rounded, 'Oitava abaixo',
+            arrow(Icons.chevron_left_rounded, tr('Oitava abaixo'),
                 canDown ? () => app.shiftOctaves(-1) : null),
             const SizedBox(width: 8),
             Expanded(
@@ -64,11 +64,11 @@ class OctaveNav extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            arrow(Icons.chevron_right_rounded, 'Oitava acima',
+            arrow(Icons.chevron_right_rounded, tr('Oitava acima'),
                 canUp ? () => app.shiftOctaves(1) : null),
             if (onMore != null) ...[
               const SizedBox(width: 8),
-              arrow(Icons.tune, 'Mais opções de oitavas', onMore),
+              arrow(Icons.tune, tr('Mais opções de oitavas'), onMore),
             ],
           ],
         ),
@@ -76,8 +76,7 @@ class OctaveNav extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 6),
             child: Text(
-              'Toque num número para escolher as oitavas; o pontinho marca onde você já tocou. '
-              'A oitava 4 é a do Lá 440 Hz.',
+              tr('Toque num número para escolher as oitavas; o pontinho marca onde você já tocou. A oitava 4 é a do Lá 440 Hz.'),
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textDim, fontSize: 12),
             ),
@@ -115,8 +114,8 @@ class OctaveChips extends StatelessWidget {
 
       return Semantics(
         label: first == last
-            ? 'Oitava $first. Toque num número para mudar.'
-            : 'Oitavas $first a $last. Toque num número para mudar.',
+            ? tr('Oitava {0}. Toque num número para mudar.', [first])
+            : tr('Oitavas {0} a {1}. Toque num número para mudar.', [first, last]),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTapDown: (d) => goTo(d.localPosition.dx),
@@ -176,7 +175,7 @@ class OctaveChips extends StatelessWidget {
           height: 8,
           child: played.contains(label)
               ? Container(width: 5, height: 5, decoration: BoxDecoration(color: AppColors.accent, shape: BoxShape.circle))
-              : (label == 4 ? Text('Lá', style: TextStyle(fontSize: 9, height: 1.0, color: AppColors.textDim)) : null),
+              : (label == 4 ? Text(tr('Lá'), style: TextStyle(fontSize: 9, height: 1.0, color: AppColors.textDim)) : null),
         ),
       ],
     );
@@ -208,9 +207,9 @@ class IntonationLegend extends StatelessWidget {
           ),
           const SizedBox(height: Ds.s8),
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            _legendWord(Icons.arrow_upward_rounded, 'Grave: suba', AppColors.flat),
-            _legendWord(Icons.check_circle_rounded, 'Afinado', AppColors.inTune),
-            _legendWord(Icons.arrow_downward_rounded, 'Agudo: desça', AppColors.sharp, iconAfter: true),
+            _legendWord(Icons.arrow_upward_rounded, tr('Grave: suba'), AppColors.flat),
+            _legendWord(Icons.check_circle_rounded, tr('Afinado'), AppColors.inTune),
+            _legendWord(Icons.arrow_downward_rounded, tr('Agudo: desça'), AppColors.sharp, iconAfter: true),
           ]),
         ],
       );
@@ -254,22 +253,22 @@ class IntonationLegend extends StatelessWidget {
             _LegendTag(
               icon: Icons.arrow_upward,
               color: AppColors.flat,
-              title: 'Grave',
-              sub: compact ? 'suba' : 'afinação baixa: suba',
+              title: tr('Grave'),
+              sub: compact ? tr('suba') : tr('afinação baixa: suba'),
             ),
             const SizedBox(width: 6),
             _LegendTag(
               icon: Icons.check_circle,
               color: AppColors.inTune,
-              title: 'Afinado',
-              sub: compact ? 'faixa verde' : 'dentro da faixa verde',
+              title: tr('Afinado'),
+              sub: compact ? tr('faixa verde') : tr('dentro da faixa verde'),
             ),
             const SizedBox(width: 6),
             _LegendTag(
               icon: Icons.arrow_downward,
               color: AppColors.sharp,
-              title: 'Agudo',
-              sub: compact ? 'desça' : 'afinação alta: desça',
+              title: tr('Agudo'),
+              sub: compact ? tr('desça') : tr('afinação alta: desça'),
             ),
           ],
         ),
@@ -277,8 +276,7 @@ class IntonationLegend extends StatelessWidget {
           Padding(
             padding: EdgeInsets.only(top: 6),
             child: Text(
-              'A cor mostra a distância do som ideal. '
-              'Quanto mais forte a cor, mais longe você está.',
+              tr('A cor mostra a distância do som ideal. Quanto mais forte a cor, mais longe você está.'),
               style: TextStyle(color: AppColors.textDim, fontSize: 12),
             ),
           ),
@@ -416,19 +414,19 @@ class _CorrectionHintState extends State<CorrectionHint> with SingleTickerProvid
         IconData icon;
         Color color;
         if (!has) {
-          text = 'Toque uma nota';
+          text = tr('Toque uma nota');
           icon = Icons.hearing;
           color = AppColors.textDim;
         } else if (c.abs() <= zone) {
-          text = 'Afinada';
+          text = tr('Afinada');
           icon = Icons.check_circle;
           color = AppColors.inTune;
         } else {
           final a = c.abs();
-          final how = a <= zone * 2.5 ? 'um pouco' : (a <= zone * 6 ? '' : 'bastante');
-          final dir = c < 0 ? 'suba' : 'desça';
+          final how = a <= zone * 2.5 ? tr('um pouco') : (a <= zone * 6 ? '' : tr('bastante'));
+          final dir = c < 0 ? tr('suba') : tr('desça');
           final off = widget.target == null ? '' : ' ${fmtHz(hzOff(c, widget.target!))}';
-          text = '${c < 0 ? 'Grave' : 'Aguda'}$off · $dir ${how.isEmpty ? '' : how}'.trim();
+          text = '${c < 0 ? tr('Grave') : tr('Aguda')}$off · $dir ${how.isEmpty ? '' : how}'.trim();
           icon = c < 0 ? Icons.arrow_upward : Icons.arrow_downward;
           color = intonationColor(c, zone);
         }
@@ -491,14 +489,14 @@ class SessionChips extends StatelessWidget {
       child: Semantics(
         button: true,
         label: s.distinct == 0
-            ? 'Nenhuma nota tocada ainda'
-            : '${s.notes} notas tocadas, $pct por cento afinadas. Toque para ver por nota.',
+            ? tr('Nenhuma nota tocada ainda')
+            : tr('{0} notas tocadas, {1} por cento afinadas. Toque para ver por nota.', [s.notes, pct]),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            chip('${s.notes}', s.notes == 1 ? 'nota' : 'notas'),
+            chip('${s.notes}', s.notes == 1 ? tr('nota') : tr('notas')),
             const SizedBox(width: 8),
-            chip(s.distinct == 0 ? '—' : '$pct%', 'afinadas',
+            chip(s.distinct == 0 ? '—' : '$pct%', tr('afinadas'),
                 color: s.distinct == 0 ? null : (pct >= 70 ? AppColors.inTune : null)),
             if (s.distinct > 0) ...[
               const SizedBox(width: 4),
@@ -540,19 +538,17 @@ void showSessionSheet(BuildContext context, AppState app) {
         controller: scroll,
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
         children: [
-          const Text('Sessão', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+          Text(tr('Sessão'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
           const SizedBox(height: 2),
           Text(
-            '${s.notes} ${s.notes == 1 ? 'nota tocada' : 'notas tocadas'} · '
-            '${s.inTune} de ${s.distinct} diferentes afinadas (${(s.accuracy * 100).round()}%)',
+            tr('{0} {1} · {2} de {3} diferentes afinadas ({4}%)', [s.notes, s.notes == 1 ? tr('nota tocada') : tr('notas tocadas'), s.inTune, s.distinct, (s.accuracy * 100).round()]),
             style: TextStyle(color: AppColors.textDim),
           ),
           const SizedBox(height: 12),
           for (final (m, v) in rows) _sessionRow(app, m, v, zone),
           const SizedBox(height: 12),
           Text(
-            'Cada nota mostra a média de tudo que você tocou nela. '
-            'Para recomeçar, use o botão "Zerar" (ao lado do microfone).',
+            tr('Cada nota mostra a média de tudo que você tocou nela. Para recomeçar, use o botão "Zerar" (ao lado do microfone).'),
             style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
           ),
         ],
@@ -565,7 +561,7 @@ Widget _sessionRow(AppState app, int midi, CellView v, double zone) {
   final c = v.avgCents;
   final inTune = c.abs() <= zone;
   final color = inTune ? AppColors.inTune : intonationColor(c, zone);
-  final word = inTune ? 'afinada' : (c < 0 ? 'grave' : 'aguda');
+  final word = inTune ? tr('afinada') : (c < 0 ? tr('grave') : tr('aguda'));
   final hz = fmtHz(hzOff(c, targetFreq(midi, app.cfg)));
   return Padding(
     padding: const EdgeInsets.symmetric(vertical: 5),
@@ -584,7 +580,7 @@ Widget _sessionRow(AppState app, int midi, CellView v, double zone) {
         ),
         SizedBox(
           width: 40,
-          child: Text('×${v.plays}', style: TextStyle(color: AppColors.textDim)),
+          child: Text(tr('×{0}', [v.plays]), style: TextStyle(color: AppColors.textDim)),
         ),
         Expanded(child: Text(word, style: TextStyle(color: color, fontWeight: FontWeight.w600))),
         Text(inTune ? '' : hz,
@@ -610,10 +606,10 @@ void showOctaveSheet(BuildContext context, AppState app) {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Oitavas na grade',
+              Text(tr('Oitavas na grade'),
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
               const SizedBox(height: 14),
-              Text('Quantas oitavas mostrar: ${app.gridOctCount}',
+              Text(tr('Quantas oitavas mostrar: {0}', [app.gridOctCount]),
                   style: const TextStyle(fontWeight: FontWeight.w600)),
               Slider(
                 min: 2,
@@ -622,18 +618,18 @@ void showOctaveSheet(BuildContext context, AppState app) {
                 value: app.gridOctCount.toDouble(),
                 onChanged: (v) => app.setOctCount(v.round()),
               ),
-              Text('Menos oitavas = quadrados maiores e mais fáceis de ler.',
+              Text(tr('Menos oitavas = quadrados maiores e mais fáceis de ler.'),
                   style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
               const SizedBox(height: 8),
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
-                title: const Text('Seguir a nota que eu toco'),
-                subtitle: const Text('A grade muda de oitava sozinha quando você sobe ou desce.'),
+                title: Text(tr('Seguir a nota que eu toco')),
+                subtitle: Text(tr('A grade muda de oitava sozinha quando você sobe ou desce.')),
                 value: app.gridFollow,
                 onChanged: app.setFollow,
               ),
               const SizedBox(height: 4),
-              Text('Atalhos: toque no número da oitava (Dó4 é a oitava do Lá 440 Hz).',
+              Text(tr('Atalhos: toque no número da oitava (Dó4 é a oitava do Lá 440 Hz).'),
                   style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
             ],
           ),
@@ -648,12 +644,12 @@ Future<void> confirmResetGrid(BuildContext context, AppState app) async {
   final ok = await showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Zerar a grade?'),
-      content: const Text(
-          'As cores acumuladas das notas serão apagadas. Seu tempo de estudo e as escalas salvas não mudam.'),
+      title: Text(tr('Zerar a grade?')),
+      content: Text(
+          tr('As cores acumuladas das notas serão apagadas. Seu tempo de estudo e as escalas salvas não mudam.')),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Zerar')),
+        TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Cancelar'))),
+        FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(tr('Zerar'))),
       ],
     ),
   );

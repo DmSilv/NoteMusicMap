@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'theme.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// Design system do Notemusic. REGRA: toda tela nova ou alterada usa estes valores e estes
 /// componentes (ver docs/12_DESIGN_SYSTEM.md). Números soltos de espaçamento, raio ou altura de
@@ -92,15 +93,15 @@ class DsGap extends StatelessWidget {
 /// Botão "Ajustes" que abre o modal de configuração da tela (ícone de controles).
 class DsSettingsButton extends StatelessWidget {
   final VoidCallback onPressed;
-  final String label;
-  const DsSettingsButton({super.key, required this.onPressed, this.label = 'Ajustes'});
+  final String? label;
+  const DsSettingsButton({super.key, required this.onPressed, this.label});
 
   @override
   Widget build(BuildContext context) => OutlinedButton.icon(
         style: OutlinedButton.styleFrom(minimumSize: const Size(Ds.tap, Ds.tap), padding: const EdgeInsets.symmetric(horizontal: Ds.s16)),
         onPressed: onPressed,
         icon: const Icon(Icons.tune, size: 20),
-        label: Text(label),
+        label: Text(label ?? tr('Ajustes')),
       );
 }
 
@@ -163,7 +164,7 @@ Future<void> showDsSheet(
           padding: const EdgeInsets.fromLTRB(Ds.screenPad, 0, Ds.s12, Ds.s8),
           child: Row(children: [
             Expanded(child: Text(title, style: Ds.title())),
-            TextButton(onPressed: () => Navigator.of(c).pop(), child: const Text('Concluir')),
+            TextButton(onPressed: () => Navigator.of(c).pop(), child: Text(tr('Concluir'))),
           ]),
         ),
         const Divider(height: 1),
@@ -230,7 +231,7 @@ class DsPickTile extends StatelessWidget {
       button: true,
       excludeSemantics: true,
       onTap: onTap,
-      label: '$label: $value. Toque para mudar.',
+      label: tr('{0}: {1}. Toque para mudar.', [label, value]),
       child: InkWell(
         borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
         onTap: onTap,

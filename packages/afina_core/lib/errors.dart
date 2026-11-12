@@ -5,6 +5,7 @@ library;
 
 import 'dart:async';
 import 'dart:convert';
+import 'i18n.dart';
 
 /// Quão sério é o problema para quem usa o app.
 enum ErrorSeverity {
@@ -31,29 +32,29 @@ class ErrorSpec {
 }
 
 /// Catálogo único: todo código tem título, frase e ação. Para criar um erro novo, é aqui.
-const Map<String, ErrorSpec> kErrorCatalog = {
-  'NET-01': ErrorSpec('NET-01', ErrorSeverity.info, 'Sem internet',
-      'Sem conexão agora. O que você fez fica guardado e é enviado quando a internet voltar.', 'Tentar de novo'),
-  'NET-02': ErrorSpec('NET-02', ErrorSeverity.info, 'Servidor indisponível',
-      'O servidor não respondeu. Tudo continua funcionando neste aparelho; tente de novo daqui a pouco.', 'Tentar de novo'),
-  'NET-03': ErrorSpec('NET-03', ErrorSeverity.action, 'Muitos pedidos',
-      'Foram muitos pedidos em pouco tempo. Aguarde um instante e tente de novo.', 'Tentar de novo'),
-  'API-04': ErrorSpec('API-04', ErrorSeverity.action, 'Pedido recusado',
-      'O servidor não aceitou este pedido. Confira os dados e tente de novo.', 'Tentar de novo'),
-  'API-05': ErrorSpec('API-05', ErrorSeverity.action, 'Erro no servidor',
-      'O servidor teve um problema ao responder. Tente de novo em instantes.', 'Tentar de novo'),
-  'DATA-01': ErrorSpec('DATA-01', ErrorSeverity.action, 'Dados inválidos',
-      'Os dados recebidos não estão no formato esperado. Nada foi alterado.', 'Voltar'),
-  'STO-01': ErrorSpec('STO-01', ErrorSeverity.action, 'Armazenamento',
-      'Não foi possível guardar neste aparelho. Verifique o espaço livre e tente de novo.', 'Tentar de novo'),
-  'AUD-01': ErrorSpec('AUD-01', ErrorSeverity.action, 'Áudio',
-      'O áudio não pôde ser usado agora. Confira o microfone e as permissões do aparelho.', 'Tentar de novo'),
-  'UI-01': ErrorSpec('UI-01', ErrorSeverity.action, 'Bloco não carregou',
-      'Uma parte desta tela não carregou. O resto continua funcionando.', 'Tentar de novo'),
-  'APP-00': ErrorSpec('APP-00', ErrorSeverity.action, 'Algo não funcionou',
-      'Houve um erro inesperado. Você pode tentar de novo; se repetir, envie o relatório.', 'Tentar de novo'),
-  'APP-99': ErrorSpec('APP-99', ErrorSeverity.critical, 'O app não conseguiu abrir',
-      'Algo impediu o app de iniciar. Seus dados continuam guardados neste aparelho.', 'Tentar de novo'),
+final Map<String, ErrorSpec> kErrorCatalog = {
+  'NET-01': ErrorSpec('NET-01', ErrorSeverity.info, tr('Sem internet'),
+      tr('Sem conexão agora. O que você fez fica guardado e é enviado quando a internet voltar.'), tr('Tentar de novo')),
+  'NET-02': ErrorSpec('NET-02', ErrorSeverity.info, tr('Servidor indisponível'),
+      tr('O servidor não respondeu. Tudo continua funcionando neste aparelho; tente de novo daqui a pouco.'), tr('Tentar de novo')),
+  'NET-03': ErrorSpec('NET-03', ErrorSeverity.action, tr('Muitos pedidos'),
+      tr('Foram muitos pedidos em pouco tempo. Aguarde um instante e tente de novo.'), tr('Tentar de novo')),
+  'API-04': ErrorSpec('API-04', ErrorSeverity.action, tr('Pedido recusado'),
+      tr('O servidor não aceitou este pedido. Confira os dados e tente de novo.'), tr('Tentar de novo')),
+  'API-05': ErrorSpec('API-05', ErrorSeverity.action, tr('Erro no servidor'),
+      tr('O servidor teve um problema ao responder. Tente de novo em instantes.'), tr('Tentar de novo')),
+  'DATA-01': ErrorSpec('DATA-01', ErrorSeverity.action, tr('Dados inválidos'),
+      tr('Os dados recebidos não estão no formato esperado. Nada foi alterado.'), tr('Voltar')),
+  'STO-01': ErrorSpec('STO-01', ErrorSeverity.action, tr('Armazenamento'),
+      tr('Não foi possível guardar neste aparelho. Verifique o espaço livre e tente de novo.'), tr('Tentar de novo')),
+  'AUD-01': ErrorSpec('AUD-01', ErrorSeverity.action, tr('Áudio'),
+      tr('O áudio não pôde ser usado agora. Confira o microfone e as permissões do aparelho.'), tr('Tentar de novo')),
+  'UI-01': ErrorSpec('UI-01', ErrorSeverity.action, tr('Bloco não carregou'),
+      tr('Uma parte desta tela não carregou. O resto continua funcionando.'), tr('Tentar de novo')),
+  'APP-00': ErrorSpec('APP-00', ErrorSeverity.action, tr('Algo não funcionou'),
+      tr('Houve um erro inesperado. Você pode tentar de novo; se repetir, envie o relatório.'), tr('Tentar de novo')),
+  'APP-99': ErrorSpec('APP-99', ErrorSeverity.critical, tr('O app não conseguiu abrir'),
+      tr('Algo impediu o app de iniciar. Seus dados continuam guardados neste aparelho.'), tr('Tentar de novo')),
 };
 
 /// Um problema registrado, já classificado e sem dados pessoais.
@@ -254,13 +255,13 @@ class ErrorLog {
 
   /// Texto para a pessoa copiar e mandar (sem dados pessoais).
   String report({String appVersion = ''}) {
-    final b = StringBuffer('Relatório de problemas do Notemusic');
+    final b = StringBuffer(tr('Relatório de problemas do Notemusic'));
     if (appVersion.isNotEmpty) b.write(' · $appVersion');
     for (final e in items) {
       b
         ..write('\n\n[${e.shortId}] ${e.code} · ${e.title}')
-        ..write(e.where.isEmpty ? '' : '\nOnde: ${e.where}')
-        ..write('\nQuando: ${DateTime.fromMillisecondsSinceEpoch(e.atMs).toIso8601String()}')
+        ..write(e.where.isEmpty ? '' : tr('\nOnde: {0}', [e.where]))
+        ..write(tr('\nQuando: {0}', [DateTime.fromMillisecondsSinceEpoch(e.atMs).toIso8601String()]))
         ..write(e.detail.isEmpty ? '' : '\n${e.detail}');
     }
     return b.toString();

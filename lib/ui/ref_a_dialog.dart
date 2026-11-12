@@ -3,17 +3,18 @@ import 'package:flutter/services.dart';
 
 import '../app_state.dart';
 import 'theme.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// Atalhos comuns para o Lá de referência (Hz).
 const List<(double, String)> kRefAPresets = [
-  (392, 'Barroco francês'),
-  (415, 'Barroco'),
-  (430, 'Clássico'),
+  (392, /*tr*/'Barroco francês'),
+  (415, /*tr*/'Barroco'),
+  (430, /*tr*/'Clássico'),
   (432, '432'),
-  (440, 'Padrão'),
-  (442, 'Orquestras'),
-  (443, 'Orquestras'),
-  (445, 'Brilhante'),
+  (440, /*tr*/'Padrão'),
+  (442, /*tr*/'Orquestras'),
+  (443, /*tr*/'Orquestras'),
+  (445, /*tr*/'Brilhante'),
 ];
 
 /// Janela para digitar o Lá de referência ou escolher um atalho.
@@ -26,7 +27,7 @@ Future<void> showRefADialog(BuildContext context, AppState app) async {
         final typed = double.tryParse(ctl.text.replaceAll(',', '.'));
         final ok = typed != null && typed >= 380 && typed <= 480;
         return AlertDialog(
-          title: const Text('Lá de referência'),
+          title: Text(tr('Lá de referência')),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -41,10 +42,10 @@ Future<void> showRefADialog(BuildContext context, AppState app) async {
                     LengthLimitingTextInputFormatter(7),
                   ],
                   decoration: InputDecoration(
-                    labelText: 'Frequência do Lá4 (Hz)',
+                    labelText: tr('Frequência do Lá4 (Hz)'),
                     suffixText: 'Hz',
-                    helperText: 'Entre 380 e 480 Hz',
-                    errorText: ok ? null : 'Digite um valor entre 380 e 480',
+                    helperText: tr('Entre 380 e 480 Hz'),
+                    errorText: ok ? null : tr('Digite um valor entre 380 e 480'),
                   ),
                   onChanged: (_) => setS(() {}),
                 ),
@@ -52,7 +53,7 @@ Future<void> showRefADialog(BuildContext context, AppState app) async {
                 Wrap(spacing: 6, runSpacing: 6, children: [
                   for (final p in kRefAPresets)
                     ActionChip(
-                      label: Text('${_fmt(p.$1)} · ${p.$2}'),
+                      label: Text('${_fmt(p.$1)} · ${tr(p.$2)}'),
                       onPressed: () => setS(() => ctl.text = _fmt(p.$1)),
                     ),
                 ]),
@@ -60,10 +61,10 @@ Future<void> showRefADialog(BuildContext context, AppState app) async {
             ),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancelar')),
+            TextButton(onPressed: () => Navigator.pop(c), child: Text(tr('Cancelar'))),
             FilledButton.icon(
               onPressed: ok ? () => Navigator.pop(c, typed) : null,
-              icon: const Icon(Icons.check, size: 18), label: const Text('Aplicar'),
+              icon: const Icon(Icons.check, size: 18), label: Text(tr('Aplicar')),
             ),
           ],
         );
@@ -81,7 +82,7 @@ Widget refAOtherChip(BuildContext context, AppState app, List<double> fixed) {
   final custom = !fixed.contains(app.refA);
   return ChoiceChip(
     avatar: Icon(Icons.edit, size: 16, color: AppColors.text),
-    label: Text(custom ? '${_fmt(app.refA)} Hz' : 'Outro…'),
+    label: Text(custom ? '${_fmt(app.refA)} Hz' : tr('Outro…')),
     selected: custom,
     onSelected: (_) => showRefADialog(context, app),
   );

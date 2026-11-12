@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 import 'theme.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// Ponteiro do afinador com movimento fluido.
 ///
@@ -96,7 +97,7 @@ class _SmoothNeedleState extends State<SmoothNeedle> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: widget.cents == null ? 'Sem nota' : 'Desvio de ${widget.cents!.round()} centésimos de semitom',
+      label: widget.cents == null ? tr('Sem nota') : tr('Desvio de {0} centésimos de semitom', [widget.cents!.round()]),
       child: SizedBox(
         height: widget.mini ? 60 : 74,
         width: double.infinity,

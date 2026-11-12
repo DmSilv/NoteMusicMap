@@ -14,9 +14,9 @@ import 'theme.dart';
 import 'widgets.dart';
 
 String _two(int n) => n.toString().padLeft(2, '0');
-const _dow = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
-const _months = [
-  'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+final _dow = [tr('segunda'), tr('terça'), tr('quarta'), tr('quinta'), tr('sexta'), tr('sábado'), tr('domingo')];
+final _months = [
+  tr('janeiro'), tr('fevereiro'), tr('março'), tr('abril'), tr('maio'), tr('junho'), tr('julho'), tr('agosto'), tr('setembro'), tr('outubro'), tr('novembro'), tr('dezembro')
 ];
 
 String _hm(DateTime d) => '${_two(d.hour)}:${_two(d.minute)}';
@@ -59,10 +59,10 @@ class _AgendaPageState extends State<AgendaPage> {
       });
 
   String _title() {
-    if (_month) return '${_months[_anchor.month - 1]} de ${_anchor.year}';
+    if (_month) return tr('{0} de {1}@@mês', [_months[_anchor.month - 1], _anchor.year]);
     final a = weekStart(_anchor), b = a.add(const Duration(days: 6));
     return a.month == b.month
-        ? '${a.day}–${b.day} de ${_months[a.month - 1]}'
+        ? tr('{0}–{1} de {2}', [a.day, b.day, _months[a.month - 1]])
         : '${a.day} ${_months[a.month - 1].substring(0, 3)} – ${b.day} ${_months[b.month - 1].substring(0, 3)}';
   }
 
@@ -73,22 +73,22 @@ class _AgendaPageState extends State<AgendaPage> {
       builder: (context, _) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Agenda do professor'),
+            title: Text(tr('Agenda do professor')),
             actions: [
               IconButton(
-                tooltip: 'Como funciona',
+                tooltip: tr('Como funciona'),
                 icon: const Icon(Icons.help_outline),
                 onPressed: () async {
                   final ok = await runTour(context, [
-                    TourStep(TourKeys.agendaFab, 'Marcar aula', 'Escolha o aluno, o dia e a hora. Marque "toda semana" para ela se repetir sozinha. O aluno é avisado.'),
-                    TourStep(TourKeys.agendaPause, 'Pausar aulas', 'Vai viajar? Escolha o período e as aulas dele são canceladas só naquelas datas. Os alunos são avisados.'),
+                    TourStep(TourKeys.agendaFab, tr('Marcar aula'), tr('Escolha o aluno, o dia e a hora. Marque "toda semana" para ela se repetir sozinha. O aluno é avisado.')),
+                    TourStep(TourKeys.agendaPause, tr('Pausar aulas'), tr('Vai viajar? Escolha o período e as aulas dele são canceladas só naquelas datas. Os alunos são avisados.')),
                   ]);
                   if (ok) app.markTourSeen('agenda_teacher');
                 },
               ),
               IconButton(
                 key: TourKeys.agendaPause,
-                tooltip: 'Pausar aulas (férias, viagem)',
+                tooltip: tr('Pausar aulas (férias, viagem)'),
                 icon: const Icon(Icons.pause_circle_outline),
                 onPressed: () => pauseFlow(context, app),
               ),
@@ -97,7 +97,7 @@ class _AgendaPageState extends State<AgendaPage> {
                   _anchor = _day0(DateTime.now());
                   _picked = _anchor;
                 }),
-                child: const Text('Hoje'),
+                child: Text(tr('Hoje')),
               ),
             ],
           ),
@@ -105,25 +105,25 @@ class _AgendaPageState extends State<AgendaPage> {
             key: TourKeys.agendaFab,
             onPressed: () => openSlotForm(context, app, day: _month ? _picked : null),
             icon: const Icon(Icons.add),
-            label: const Text('Marcar aula'),
+            label: Text(tr('Marcar aula')),
           ),
           body: SafeArea(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(14, 6, 14, 96),
               children: [
                 ChipGrid(
-                  labels: const [Text('Mês'), Text('Semana')],
+                  labels: [Text(tr('Mês')), Text(tr('Semana'))],
                   selected: _month ? 0 : 1,
                   onSelected: (i) => setState(() => _month = i == 0),
                 ),
                 const SizedBox(height: 6),
                 Row(children: [
-                  IconButton(onPressed: () => _shift(-1), icon: const Icon(Icons.chevron_left), tooltip: 'Anterior'),
+                  IconButton(onPressed: () => _shift(-1), icon: const Icon(Icons.chevron_left), tooltip: tr('Anterior')),
                   Expanded(
                     child: Text(_title(),
                         textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                   ),
-                  IconButton(onPressed: () => _shift(1), icon: const Icon(Icons.chevron_right), tooltip: 'Próximo'),
+                  IconButton(onPressed: () => _shift(1), icon: const Icon(Icons.chevron_right), tooltip: tr('Próximo')),
                 ]),
                 if (_month) ..._monthView() else ..._weekView(),
                 // O que explica e configura fica no fim: o calendário é a primeira coisa que se vê.
@@ -159,12 +159,12 @@ class _AgendaPageState extends State<AgendaPage> {
               margin: const EdgeInsets.only(left: 8),
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
               decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
-              child: Text('hoje', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.accent)),
+              child: Text(tr('hoje'), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.accent)),
             ),
         ]),
       ));
       if (list.isEmpty) {
-        out.add(Text('Sem aulas', style: TextStyle(color: AppColors.textDim, fontSize: 12.5)));
+        out.add(Text(tr('Sem aulas'), style: TextStyle(color: AppColors.textDim, fontSize: 12.5)));
       } else {
         for (final o in list) {
           out.add(_tile(o));
@@ -190,13 +190,13 @@ class _AgendaPageState extends State<AgendaPage> {
             child: Text('${_dow[_picked.weekday - 1]}, ${_two(_picked.day)}/${_two(_picked.month)}',
                 style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
           ),
-          if (list.isNotEmpty) Text('${list.length} aula${list.length == 1 ? '' : 's'}', style: Ds.support()),
+          if (list.isNotEmpty) Text(tr('{0} aula{1}', [list.length, list.length == 1 ? '' : 's']), style: Ds.support()),
         ]),
       ),
       if (list.isEmpty)
         Padding(
           padding: const EdgeInsets.only(top: Ds.s4),
-          child: Text('Sem aulas neste dia. Toque em "Marcar aula" para criar uma.', style: Ds.support()),
+          child: Text(tr('Sem aulas neste dia. Toque em "Marcar aula" para criar uma.'), style: Ds.support()),
         )
       else
         for (final o in list) _tile(o),
@@ -237,7 +237,7 @@ class _AgendaPageState extends State<AgendaPage> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Flexible(
-                  child: Text(st?.name ?? 'Aluno',
+                  child: Text(st?.name ?? tr('Aluno'),
                       maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
                 ),
                 if (s.weekly) ...[
@@ -250,7 +250,7 @@ class _AgendaPageState extends State<AgendaPage> {
                 ],
               ]),
               if (s.online)
-                Text(s.hasLink ? 'Online · ${meetingHost(s.link)}' : 'Online · falta o link',
+                Text(s.hasLink ? tr('Online · {0}', [meetingHost(s.link)]) : tr('Online · falta o link'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: s.hasLink ? AppColors.textDim : AppColors.flat, fontSize: 12, fontWeight: s.hasLink ? FontWeight.w400 : FontWeight.w700)),
@@ -260,19 +260,19 @@ class _AgendaPageState extends State<AgendaPage> {
                 Text(classPhaseLabel(phase),
                     style: TextStyle(color: AppColors.accent, fontSize: 11.5, fontWeight: FontWeight.w700)),
               if (queued)
-                Text(issue ? 'Aluno ainda não recebeu' : 'A enviar ao aluno',
+                Text(issue ? tr('Aluno ainda não recebeu') : tr('A enviar ao aluno'),
                     style: TextStyle(color: AppColors.flat, fontSize: 11.5, fontWeight: FontWeight.w700)),
             ]),
           ),
           if (!past)
           PopupMenuButton<String>(
-            tooltip: 'Opções da aula',
+            tooltip: tr('Opções da aula'),
             onSelected: (v) => _menu(v, o),
             itemBuilder: (c) => [
-              if (perm.edit) const PopupMenuItem(value: 'edit', child: Text('Editar')),
-              if (perm.edit && s.online) PopupMenuItem(value: 'link', child: Text(s.hasLink ? 'Editar link da aula' : 'Adicionar link da aula')),
-              if (s.hasLink) const PopupMenuItem(value: 'join', child: Text('Abrir a sala')),
-              if (st != null) const PopupMenuItem(value: 'open', child: Text('Abrir ficha do aluno')),
+              if (perm.edit) PopupMenuItem(value: 'edit', child: Text(tr('Editar'))),
+              if (perm.edit && s.online) PopupMenuItem(value: 'link', child: Text(s.hasLink ? tr('Editar link da aula') : tr('Adicionar link da aula'))),
+              if (s.hasLink) PopupMenuItem(value: 'join', child: Text(tr('Abrir a sala'))),
+              if (st != null) PopupMenuItem(value: 'open', child: Text(tr('Abrir ficha do aluno'))),
             ],
           ),
           ]),
@@ -309,17 +309,17 @@ class _AgendaPageState extends State<AgendaPage> {
               style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(44)),
               onPressed: () => absenceFlow(context, app, st, occ: o),
               icon: const Icon(Icons.person_off_outlined, size: 18),
-              label: const Text('Aluno não veio', style: TextStyle(fontWeight: FontWeight.w700)),
+              label: Text(tr('Aluno não veio'), style: TextStyle(fontWeight: FontWeight.w700)),
             ),
           ),
           const SizedBox(height: Ds.s8),
         ],
         Row(children: [
-          if (perm.edit) btn(Icons.event_repeat_rounded, 'Remarcar', () => moveOccurrenceFlow(context, app, o)),
+          if (perm.edit) btn(Icons.event_repeat_rounded, tr('Remarcar'), () => moveOccurrenceFlow(context, app, o)),
           if (perm.edit) const SizedBox(width: Ds.s8),
-          if (perm.edit) btn(Icons.swap_horiz_rounded, 'Trocar', () => swapFlow(context, app, o)),
+          if (perm.edit) btn(Icons.swap_horiz_rounded, tr('Trocar'), () => swapFlow(context, app, o)),
           if (perm.edit && perm.cancel) const SizedBox(width: Ds.s8),
-          if (perm.cancel) btn(Icons.event_busy_rounded, 'Cancelar', () => cancelOccurrenceFlow(context, app, o), color: AppColors.sharp),
+          if (perm.cancel) btn(Icons.event_busy_rounded, tr('Cancelar'), () => cancelOccurrenceFlow(context, app, o), color: AppColors.sharp),
         ]),
       ]),
     );
@@ -334,7 +334,7 @@ class _AgendaPageState extends State<AgendaPage> {
         final r = await showMeetLinkSheet(context, app, initial: s.link);
         if (r != null) {
           final e = app.setSlotLink(s.id, r);
-          app.say(e ?? (r.isEmpty ? 'Link removido.' : 'Link da aula salvo. O aluno recebe na hora.'));
+          app.say(e ?? (r.isEmpty ? tr('Link removido.') : tr('Link da aula salvo. O aluno recebe na hora.')));
         }
       case 'join':
         await openMeetingLink(context, app, s.link);
@@ -398,14 +398,14 @@ class _MyAgendaPageState extends State<MyAgendaPage> {
         final list = agendaDay(app.myAgenda, shown);
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Agenda do aluno'),
+            title: Text(tr('Agenda do aluno')),
             actions: [
               TextButton(
                 onPressed: () => setState(() {
                   _anchor = today;
                   _picked = today;
                 }),
-                child: const Text('Hoje'),
+                child: Text(tr('Hoje')),
               ),
             ],
           ),
@@ -414,12 +414,12 @@ class _MyAgendaPageState extends State<MyAgendaPage> {
               padding: const EdgeInsets.fromLTRB(14, 6, 14, 24),
               children: [
                 Row(children: [
-                  IconButton(onPressed: () => _shift(-1), icon: const Icon(Icons.chevron_left), tooltip: 'Anterior'),
+                  IconButton(onPressed: () => _shift(-1), icon: const Icon(Icons.chevron_left), tooltip: tr('Anterior')),
                   Expanded(
-                    child: Text('${_months[_anchor.month - 1]} de ${_anchor.year}',
+                    child: Text(tr('{0} de {1}@@mês', [_months[_anchor.month - 1], _anchor.year]),
                         textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                   ),
-                  IconButton(onPressed: () => _shift(1), icon: const Icon(Icons.chevron_right), tooltip: 'Próximo'),
+                  IconButton(onPressed: () => _shift(1), icon: const Icon(Icons.chevron_right), tooltip: tr('Próximo')),
                 ]),
                 const SizedBox(height: Ds.s8),
                 AgendaMonthGrid(month: first, counts: counts, picked: shown, today: today, onPick: (d) => setState(() => _picked = d)),
@@ -430,15 +430,15 @@ class _MyAgendaPageState extends State<MyAgendaPage> {
                       child: Text('${_dow[shown.weekday - 1]}, ${_two(shown.day)}/${_two(shown.month)}',
                           style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                     ),
-                    if (list.isNotEmpty) Text('${list.length} aula${list.length == 1 ? '' : 's'}', style: Ds.support()),
+                    if (list.isNotEmpty) Text(tr('{0} aula{1}', [list.length, list.length == 1 ? '' : 's']), style: Ds.support()),
                   ]),
                 ),
                 if (list.isEmpty)
                   AppCard(
                     child: Text(
                       app.myTeachers.isEmpty
-                          ? 'Vincule-se a um professor para ver aqui as aulas que ele marcar.'
-                          : 'Sem aulas neste dia. Os dias com pontinhos têm aula marcada.',
+                          ? tr('Vincule-se a um professor para ver aqui as aulas que ele marcar.')
+                          : tr('Sem aulas neste dia. Os dias com pontinhos têm aula marcada.'),
                       style: TextStyle(color: AppColors.textDim),
                     ),
                   ),
@@ -457,7 +457,7 @@ class _MyAgendaPageState extends State<MyAgendaPage> {
 
   Widget _row(SlotOccurrence o, DateTime now) {
     final s = o.slot;
-    final who = s.teacherName.isNotEmpty ? s.teacherName : 'Professor ${s.teacherCode}';
+    final who = s.teacherName.isNotEmpty ? s.teacherName : tr('Professor {0}', [s.teacherCode]);
     final ongoing = !o.start.isAfter(now);
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -476,7 +476,7 @@ class _MyAgendaPageState extends State<MyAgendaPage> {
             Text(who, style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
             if (s.note.isNotEmpty) Text(s.note, style: const TextStyle(fontSize: 12.5, height: 1.3)),
             if (s.online)
-              Text(s.hasLink ? 'Aula online' : 'Aula online · o professor ainda vai enviar o link',
+              Text(s.hasLink ? tr('Aula online') : tr('Aula online · o professor ainda vai enviar o link'),
                   style: TextStyle(color: s.hasLink ? AppColors.accent : AppColors.flat, fontSize: 12.5, fontWeight: FontWeight.w700)),
           ]),
         ),
@@ -486,14 +486,14 @@ class _MyAgendaPageState extends State<MyAgendaPage> {
             child: FilledButton.icon(
               onPressed: () => openMeetingLink(context, app, s.link),
               icon: const Icon(Icons.videocam, size: 18),
-              label: const Text('Entrar'),
+              label: Text(tr('Entrar')),
             ),
           )
         else if (ongoing)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
-            child: Text('agora', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: AppColors.accent)),
+            child: Text(tr('agora'), style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: AppColors.accent)),
           ),
       ]),
     );
@@ -520,12 +520,12 @@ class AgendaBanner extends StatelessWidget {
         const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(teacher ? 'AGENDA DO PROFESSOR' : 'AGENDA DO ALUNO',
+            Text(teacher ? tr('AGENDA DO PROFESSOR') : tr('AGENDA DO ALUNO'),
                 style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, letterSpacing: 0.6, color: color)),
             Text(
               teacher
-                  ? 'Aulas que você marca com os seus alunos.'
-                  : 'Aulas que o seu professor marcou para você.',
+                  ? tr('Aulas que você marca com os seus alunos.')
+                  : tr('Aulas que o seu professor marcou para você.'),
               style: const TextStyle(fontSize: 13, height: 1.25),
             ),
           ]),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'theme.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// Aviso fixo na barra superior enquanto o microfone está captando: ponto
 /// pulsante + "Ouvindo". Visível em qualquer aba; tocar desliga.
@@ -38,7 +39,7 @@ class _MicPillState extends State<MicPill> with SingleTickerProviderStateMixin {
         return Padding(
           padding: const EdgeInsets.only(right: 4),
           child: Tooltip(
-            message: 'Microfone ligado. Toque para desligar',
+            message: tr('Microfone ligado. Toque para desligar'),
             child: InkWell(
               borderRadius: BorderRadius.circular(20),
               onTap: () => widget.app.stopListening(),
@@ -62,7 +63,7 @@ class _MicPillState extends State<MicPill> with SingleTickerProviderStateMixin {
                     ),
                   ),
                   const SizedBox(width: 6),
-                  Text('Ouvindo',
+                  Text(tr('Ouvindo'),
                       style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12.5, color: color)),
                 ]),
               ),

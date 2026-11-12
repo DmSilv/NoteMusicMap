@@ -7,9 +7,9 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../ai/coach_ai.dart' show kApiBase;
-import 'package:afina_core/afina_core.dart' show cpuTag, dprTag, langTag, memTag, netTag, notifTag, osVersionTag, screenTag, tzTag, yesNoTag;
 
 import '../platform/web_push.dart' show webDeviceProbe, webPushPermission, webPushStandalone, webPushSupported, webUserAgent;
+import 'package:afina_core/afina_core.dart';
 
 /// Estatísticas ANÔNIMAS de uso (para o painel do administrador). Manda um aviso ao abrir o app
 /// e uma batida a cada ~5 minutos enquanto ele está à frente. Vai só: um código aleatório do

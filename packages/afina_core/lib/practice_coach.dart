@@ -12,6 +12,7 @@ library;
 import 'dart:math' as math;
 
 import 'tuning.dart';
+import 'i18n.dart';
 
 class StepRecord {
   final int midi;
@@ -100,7 +101,7 @@ class SessionRecord {
         id: j['id'] as String?,
         origin: (j['origin'] as String?) ?? kOriginSelf,
         date: DateTime.parse(j['date'] as String),
-        title: (j['title'] as String?) ?? 'Escala',
+        title: (j['title'] as String?) ?? tr('Escala'),
         octaves: (j['oct'] as num?)?.toInt() ?? 1,
         zone: ((j['zone'] as num?) ?? 5).toDouble(),
         accuracy: ((j['acc'] as num?) ?? 0).toDouble(),
@@ -166,9 +167,7 @@ List<Insight> analyzePractice(
     out.add(Insight(
       InsightKind.warn,
       'bias-${names[b.$1]}',
-      'Suas notas ${names[b.$1]} estão ficando ${low ? 'baixas' : 'altas'} '
-      '(em média ${low ? '♭' : '♯'}${_fmt(b.$2)}). '
-      '${low ? 'Tente colocá-las um pouco mais altas.' : 'Tente colocá-las um pouco mais baixas.'}',
+      tr('Suas notas {0} estão ficando {1} (em média {2}{3}). {4}', [names[b.$1], low ? tr('baixas') : tr('altas'), low ? '♭' : '♯', _fmt(b.$2), low ? tr('Tente colocá-las um pouco mais altas.') : tr('Tente colocá-las um pouco mais baixas.')]),
     ));
   }
 
@@ -181,8 +180,7 @@ List<Insight> analyzePractice(
       out.add(Insight(
         InsightKind.tip,
         'dir',
-        'Na descida suas notas ficam mais ${diff < 0 ? 'baixas' : 'altas'} do que na '
-        'subida (diferença de ${_fmt(diff)}). Ouça a escala descendo com a mesma atenção da subida.',
+        tr('Na descida suas notas ficam mais {0} do que na subida (diferença de {1}). Ouça a escala descendo com a mesma atenção da subida.', [diff < 0 ? tr('baixas') : tr('altas'), _fmt(diff)]),
       ));
     }
   }
@@ -204,8 +202,7 @@ List<Insight> analyzePractice(
         out.add(Insight(
           InsightKind.tip,
           'register',
-          'Nas oitavas mais agudas você tende a ficar mais ${diff < 0 ? 'baixo' : 'alto'} '
-          '(${_fmt(diff)} de diferença). Confira a posição da mão e o peso do arco ali.',
+          tr('Nas oitavas mais agudas você tende a ficar mais {0} ({1} de diferença). Confira a posição da mão e o peso do arco ali.', [diff < 0 ? tr('baixo') : tr('alto'), _fmt(diff)]),
         ));
       }
     }
@@ -220,21 +217,20 @@ List<Insight> analyzePractice(
     drifts.add(_mean(v.sublist(h)) - _mean(v.sublist(0, h)));
   }
   if (drifts.length >= 2 && _mean(drifts) >= 3) {
-    out.add(const Insight(
+    out.add(Insight(
       InsightKind.tip,
       'drift',
-      'Seu desvio costuma aumentar no fim da escala. Pode ser cansaço ou pressa: '
-      'faça pausas curtas e relaxe a mão esquerda.',
+      tr('Seu desvio costuma aumentar no fim da escala. Pode ser cansaço ou pressa: faça pausas curtas e relaxe a mão esquerda.'),
     ));
   }
 
   // 5) Notas puladas.
   final skipped = steps.where((s) => s.cents == null).length;
   if (steps.isNotEmpty && skipped / steps.length >= 0.15) {
-    out.add(const Insight(
+    out.add(Insight(
       InsightKind.tip,
       'skipped',
-      'Você pulou várias notas. Diminua a velocidade e toque cada nota até o app marcá-la.',
+      tr('Você pulou várias notas. Diminua a velocidade e toque cada nota até o app marcá-la.'),
     ));
   }
 
@@ -245,19 +241,18 @@ List<Insight> analyzePractice(
     final d = _mean(last) - _mean(prev);
     if (d >= 5) {
       out.add(Insight(InsightKind.good, 'trend-up',
-          'Você está evoluindo: +${d.round()} pontos de acerto nas últimas sessões. Continue assim!'));
+          tr('Você está evoluindo: +{0} pontos de acerto nas últimas sessões. Continue assim!', [d.round()])));
     } else if (d <= -5) {
       out.add(Insight(InsightKind.info, 'trend-down',
-          'Seu acerto caiu ${d.abs().round()} pontos nas últimas sessões. '
-          'Tente tocar mais devagar e descansar entre as escalas.'));
+          tr('Seu acerto caiu {0} pontos nas últimas sessões. Tente tocar mais devagar e descansar entre as escalas.', [d.abs().round()])));
     }
   }
 
   // 7) Elogio e nota mais difícil.
   final latest = sessions.first;
   if (latest.accuracy >= 0.9) {
-    out.add(const Insight(InsightKind.good, 'excellent',
-        'Excelente: mais de 90% das notas afinadas na última escala.'));
+    out.add(Insight(InsightKind.good, 'excellent',
+        tr('Excelente: mais de 90% das notas afinadas na última escala.')));
   }
   if (biased.isEmpty && byPc.isNotEmpty) {
     final hard = byPc.entries
@@ -267,14 +262,13 @@ List<Insight> analyzePractice(
       ..sort((a, b) => b.$2.compareTo(a.$2));
     if (hard.isNotEmpty && hard.first.$2 > zone) {
       out.add(Insight(InsightKind.info, 'hardest',
-          'A nota mais difícil para você é ${names[hard.first.$1]} '
-          '(desvio médio de ${_fmt(hard.first.$2)}). Vale treiná-la sozinha, devagar.'));
+          tr('A nota mais difícil para você é {0} (desvio médio de {1}). Vale treiná-la sozinha, devagar.', [names[hard.first.$1], _fmt(hard.first.$2)])));
     }
   }
 
   if (out.isEmpty) {
-    out.add(const Insight(InsightKind.info, 'none',
-        'Ainda não vejo um padrão claro. Faça mais algumas escalas e as orientações aparecem aqui.'));
+    out.add(Insight(InsightKind.info, 'none',
+        tr('Ainda não vejo um padrão claro. Faça mais algumas escalas e as orientações aparecem aqui.')));
   }
 
   // Ordem: avisos, dicas, informações, elogios.
@@ -287,24 +281,23 @@ List<Insight> analyzePractice(
 /// números agregados; nenhum áudio.
 String buildAiPrompt(
   List<SessionRecord> sessions, {
-  String instrument = 'instrumento de cordas',
+  String instrument = /*tr*/'instrumento de cordas',
   bool? flats = false,
 }) {
   final names = namesFor(flats);
   final recent = sessions.take(10).toList();
   final b = StringBuffer()
-    ..writeln('Sou instrumentista ($instrument) e pratico escalas e arpejos com um afinador que mede o desvio de cada nota em cents (♯ = agudo, ♭ = grave; 100 cents = 1 semitom).')
-    ..writeln('Analise meus resultados e monte a orientação no formato combinado (visão geral, o que os números mostram, causas prováveis, plano de estudo e exercício para amanhã).')
+    ..writeln(tr('Sou instrumentista ({0}) e pratico escalas e arpejos com um afinador que mede o desvio de cada nota em cents (♯ = agudo, ♭ = grave; 100 cents = 1 semitom).', [tr(instrument)]))
+    ..writeln(tr('Analise meus resultados e monte a orientação no formato combinado (visão geral, o que os números mostram, causas prováveis, plano de estudo e exercício para amanhã).'))
     ..writeln();
   if (recent.isEmpty) {
-    b.writeln('(ainda não há sessões registradas)');
+    b.writeln(tr('(ainda não há sessões registradas)'));
     return b.toString();
   }
-  b.writeln('Sessões (da mais recente para a mais antiga):');
+  b.writeln(tr('Sessões (da mais recente para a mais antiga):'));
   for (final s in recent) {
     final skipped = s.steps.where((x) => x.cents == null).length;
-    b.writeln('- ${s.title}: ${(s.accuracy * 100).round()}% das notas afinadas (faixa de afinada ±${s.zone.round()}), '
-        'desvio médio ${s.meanAbsCents.toStringAsFixed(1)} cents${skipped > 0 ? ', $skipped nota(s) puladas' : ''}.');
+    b.writeln(tr('- {0}: {1}% das notas afinadas (faixa de afinada ±{2}), desvio médio {3} cents{4}.', [s.title, (s.accuracy * 100).round(), s.zone.round(), s.meanAbsCents.toStringAsFixed(1), skipped > 0 ? tr(', {0} nota(s) puladas', [skipped]) : '']));
   }
 
   // Tendência: a sessão mais recente contra a mais antiga da lista.
@@ -312,7 +305,7 @@ String buildAiPrompt(
     final d = (recent.first.accuracy - recent.last.accuracy) * 100;
     b
       ..writeln()
-      ..writeln('Tendência: ${d >= 0 ? 'subiu' : 'caiu'} ${d.abs().round()} pontos percentuais entre a sessão mais antiga e a mais recente listadas.');
+      ..writeln(tr('Tendência: {0} {1} pontos percentuais entre a sessão mais antiga e a mais recente listadas.', [d >= 0 ? 'subiu' : 'caiu', d.abs().round()]));
   }
 
   // Subindo × descendo e por oitava do exercício.
@@ -329,13 +322,13 @@ String buildAiPrompt(
   if (up.isNotEmpty && down.isNotEmpty) {
     b
       ..writeln()
-      ..writeln('Desvio médio subindo: ${_mean(up).toStringAsFixed(1)} cents; descendo: ${_mean(down).toStringAsFixed(1)} cents.');
+      ..writeln(tr('Desvio médio subindo: {0} cents; descendo: {1} cents.', [_mean(up).toStringAsFixed(1), _mean(down).toStringAsFixed(1)]));
   }
   if (byOct.length > 1) {
     final ks = byOct.keys.toList()..sort();
-    b.writeln('Desvio médio por oitava do exercício (0 = a mais grave): ${[
+    b.writeln(tr('Desvio médio por oitava do exercício (0 = a mais grave): {0}.', [[
       for (final k in ks) '$k: ${_mean(byOct[k]!).toStringAsFixed(1)}'
-    ].join('; ')}.');
+    ].join('; ')]));
   }
 
   final byPc = <int, List<double>>{};
@@ -346,11 +339,11 @@ String buildAiPrompt(
   }
   b
     ..writeln()
-    ..writeln('Desvio médio por nota (cents; negativo = grave, positivo = agudo):');
+    ..writeln(tr('Desvio médio por nota (cents; negativo = grave, positivo = agudo):'));
   final keys = byPc.keys.toList()..sort();
   for (final k in keys) {
     final v = byPc[k]!;
-    b.writeln('- ${names[k]}: ${_mean(v).toStringAsFixed(1)} (${v.length} leituras)');
+    b.writeln(tr('- {0}: {1} ({2} leituras)', [names[k], _mean(v).toStringAsFixed(1), v.length]));
   }
 
   // Observações que o próprio app já calculou (regras do treinador).
@@ -358,7 +351,7 @@ String buildAiPrompt(
   if (tips.isNotEmpty) {
     b
       ..writeln()
-      ..writeln('Observações automáticas do app (use como pistas, sem repetir palavra por palavra):');
+      ..writeln(tr('Observações automáticas do app (use como pistas, sem repetir palavra por palavra):'));
     for (final t in tips.take(5)) {
       b.writeln('- ${t.text}');
     }

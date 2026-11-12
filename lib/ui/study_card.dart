@@ -6,6 +6,7 @@ import 'evolution_page.dart';
 import 'study_timers.dart';
 import 'theme.dart';
 import 'widgets.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// "Seu estudo": o tempo estudado hoje, os dias seguidos, a meta diária e o cronômetro/Pomodoro num cartão só.
 /// Mora na aba Metrônomo (onde a pessoa já está praticando); os dados e gráficos ficam na tela "Evolução".
@@ -17,11 +18,11 @@ class StudyCard extends StatelessWidget {
   void _openSettings(BuildContext context) {
     showDsSheet(
       context,
-      title: 'Ajustes do estudo',
+      title: tr('Ajustes do estudo'),
       listenable: app,
       children: (c) => [
         DsSettingRow(
-          label: 'Meta diária: ${app.dailyGoalMinutes.round()} min',
+          label: tr('Meta diária: {0} min', [app.dailyGoalMinutes.round()]),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Slider(
               min: 5,
@@ -30,13 +31,13 @@ class StudyCard extends StatelessWidget {
               value: app.dailyGoalMinutes.clamp(5, 120),
               onChanged: (v) => app.setTuning(dailyGoalMinutes: v),
             ),
-            Text('Conta o tempo com o metrônomo ligado ou tocando no microfone.', style: Ds.support()),
+            Text(tr('Conta o tempo com o metrônomo ligado ou tocando no microfone.'), style: Ds.support()),
           ]),
         ),
         OutlinedButton.icon(
           onPressed: () => _confirmClear(c),
           icon: const Icon(Icons.delete_outline),
-          label: const Text('Apagar histórico'),
+          label: Text(tr('Apagar histórico')),
         ),
       ],
     );
@@ -46,11 +47,11 @@ class StudyCard extends StatelessWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Apagar histórico?'),
-        content: const Text('Isso remove o tempo de estudo e as escalas salvas deste aparelho. Não dá para desfazer.'),
+        title: Text(tr('Apagar histórico?')),
+        content: Text(tr('Isso remove o tempo de estudo e as escalas salvas deste aparelho. Não dá para desfazer.')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          FilledButton.icon(onPressed: () => Navigator.pop(ctx, true), icon: const Icon(Icons.delete_outline, size: 18), label: const Text('Apagar')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Cancelar'))),
+          FilledButton.icon(onPressed: () => Navigator.pop(ctx, true), icon: const Icon(Icons.delete_outline, size: 18), label: Text(tr('Apagar'))),
         ],
       ),
     );
@@ -82,11 +83,11 @@ class StudyCard extends StatelessWidget {
           Row(children: [
             const DsIconBadge(Icons.auto_stories_rounded, size: 34),
             const SizedBox(width: Ds.s12),
-            const Expanded(child: Text('Seu estudo', style: TextStyle(fontSize: Ds.fontTitle - 2, fontWeight: FontWeight.w800))),
+            Expanded(child: Text(tr('Seu estudo'), style: TextStyle(fontSize: Ds.fontTitle - 2, fontWeight: FontWeight.w800))),
             TextButton.icon(
               onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => EvolutionPage(app: app))),
               icon: const Icon(Icons.insights_rounded, size: 18),
-              label: const Text('Evolução'),
+              label: Text(tr('Evolução')),
             ),
           ]),
           const SizedBox(height: Ds.s8),
@@ -96,7 +97,7 @@ class StudyCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Hoje', style: Ds.support()),
+                    Text(tr('Hoje'), style: Ds.support()),
                     Text('${todayMin.floor()} min', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w800)),
                   ],
                 ),
@@ -104,7 +105,7 @@ class StudyCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text('Dias seguidos', style: Ds.support()),
+                  Text(tr('Dias seguidos'), style: Ds.support()),
                   Text('$streak', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w800)),
                 ],
               ),
@@ -122,11 +123,11 @@ class StudyCard extends StatelessWidget {
           ),
           const SizedBox(height: Ds.s8),
           Row(children: [
-            Expanded(child: Text('Meta diária: ${goal.round()} min', style: Ds.support())),
+            Expanded(child: Text(tr('Meta diária: {0} min', [goal.round()]), style: Ds.support())),
             TextButton.icon(
               onPressed: () => _openSettings(context),
               icon: const Icon(Icons.tune, size: 18),
-              label: const Text('Ajustar'),
+              label: Text(tr('Ajustar')),
             ),
           ]),
           const Divider(height: Ds.sectionGap),

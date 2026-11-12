@@ -17,12 +17,12 @@ String fmtClock(int ms) {
 
 String phaseLabel(PomodoroTimer p) {
   final base = switch (p.phase) {
-    PomoPhase.idle => 'Pronto para começar',
-    PomoPhase.focus => 'Foco',
-    PomoPhase.shortBreak => 'Pausa curta',
-    PomoPhase.longBreak => 'Pausa longa',
+    PomoPhase.idle => tr('Pronto para começar'),
+    PomoPhase.focus => tr('Foco'),
+    PomoPhase.shortBreak => tr('Pausa curta'),
+    PomoPhase.longBreak => tr('Pausa longa'),
   };
-  return p.isPaused ? '$base · pausado' : base;
+  return p.isPaused ? tr('{0} · pausado', [base]) : base;
 }
 
 Color phaseColor(PomoPhase p) =>
@@ -53,12 +53,12 @@ class PomodoroCard extends StatelessWidget {
             children: [
               const Icon(Icons.timer_outlined, size: 20),
               const SizedBox(width: 8),
-              const Expanded(
-                child: Text('Foco (Pomodoro)',
+              Expanded(
+                child: Text(tr('Foco (Pomodoro)'),
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
               ),
               IconButton(
-                tooltip: 'Ajustes do timer',
+                tooltip: tr('Ajustes do timer'),
                 visualDensity: VisualDensity.compact,
                 icon: const Icon(Icons.tune),
                 onPressed: () => showPomodoroSettings(context, app),
@@ -123,15 +123,15 @@ class PomodoroCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             app.pomoToday == 0
-                ? 'Nenhum foco concluído hoje'
-                : '${app.pomoToday} foco${app.pomoToday > 1 ? 's' : ''} concluído${app.pomoToday > 1 ? 's' : ''} hoje',
+                ? tr('Nenhum foco concluído hoje')
+                : tr('{0} foco{1} concluído{2} hoje', [app.pomoToday, app.pomoToday > 1 ? 's' : '', app.pomoToday > 1 ? 's' : '']),
             style: TextStyle(color: AppColors.textDim, fontSize: 13),
           ),
           const SizedBox(height: 14),
           Row(
             children: [
               IconButton.outlined(
-                tooltip: 'Reiniciar',
+                tooltip: tr('Reiniciar'),
                 iconSize: 26,
                 onPressed: p.phase == PomoPhase.idle ? null : app.pomoReset,
                 icon: const Icon(Icons.restart_alt),
@@ -143,14 +143,14 @@ class PomodoroCard extends StatelessWidget {
                   onPressed: p.running ? app.pomoPause : app.pomoStart,
                   icon: Icon(p.running ? Icons.pause : Icons.play_arrow),
                   label: Text(
-                    p.running ? 'Pausar' : (p.isPaused ? 'Continuar' : 'Iniciar foco'),
+                    p.running ? tr('Pausar') : (p.isPaused ? tr('Continuar') : tr('Iniciar foco')),
                     style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
               const SizedBox(width: 10),
               IconButton.outlined(
-                tooltip: 'Pular para a próxima fase',
+                tooltip: tr('Pular para a próxima fase'),
                 iconSize: 26,
                 onPressed: p.phase == PomoPhase.idle ? null : app.pomoSkip,
                 icon: const Icon(Icons.skip_next),
@@ -160,8 +160,8 @@ class PomodoroCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             app.pomoChime
-                ? 'Um sininho suave avisa o fim de cada fase. Mantenha o app aberto.'
-                : 'Alarme sonoro desligado (ligue nos ajustes do timer).',
+                ? tr('Um sininho suave avisa o fim de cada fase. Mantenha o app aberto.')
+                : tr('Alarme sonoro desligado (ligue nos ajustes do timer).'),
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.textDim, fontSize: 12),
           ),
@@ -299,20 +299,20 @@ void showPomodoroSettings(BuildContext context, AppState app) {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Ajustes do timer',
+                Text(tr('Ajustes do timer'),
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 4),
-                Text('Toque no número para digitar o tempo (a partir de 1 minuto). Vale a partir da próxima fase e fica salvo neste aparelho.',
+                Text(tr('Toque no número para digitar o tempo (a partir de 1 minuto). Vale a partir da próxima fase e fica salvo neste aparelho.'),
                     style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
                 const SizedBox(height: 12),
-                const Text('Atalhos', style: TextStyle(fontWeight: FontWeight.w700)),
+                Text(tr('Atalhos'), style: TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 6),
                 Wrap(spacing: 8, runSpacing: 6, children: [
-                  for (final (f, sh, lo, name) in const [
-                    (25, 5, 15, 'Clássico 25/5'),
-                    (50, 10, 20, 'Longo 50/10'),
-                    (15, 3, 10, 'Curto 15/3'),
-                    (1, 1, 2, 'Teste 1/1'),
+                  for (final (f, sh, lo, name) in [
+                    (25, 5, 15, tr('Clássico 25/5')),
+                    (50, 10, 20, tr('Longo 50/10')),
+                    (15, 3, 10, tr('Curto 15/3')),
+                    (1, 1, 2, tr('Teste 1/1')),
                   ])
                     ActionChip(
                       label: Text(name),
@@ -321,26 +321,26 @@ void showPomodoroSettings(BuildContext context, AppState app) {
                     ),
                 ]),
                 const SizedBox(height: 8),
-                stepper('Foco', c.focusMin, 1, 180, 1, 'min',
+                stepper(tr('Foco'), c.focusMin, 1, 180, 1, 'min',
                     (v) => app.setPomo(config: c.copyWith(focusMin: v))),
-                stepper('Pausa curta', c.shortMin, 1, 60, 1, 'min',
+                stepper(tr('Pausa curta'), c.shortMin, 1, 60, 1, 'min',
                     (v) => app.setPomo(config: c.copyWith(shortMin: v))),
-                stepper('Pausa longa', c.longMin, 1, 120, 1, 'min',
+                stepper(tr('Pausa longa'), c.longMin, 1, 120, 1, 'min',
                     (v) => app.setPomo(config: c.copyWith(longMin: v))),
-                stepper('Focos até a pausa longa', c.cyclesBeforeLong, 2, 8, 1, '',
+                stepper(tr('Focos até a pausa longa'), c.cyclesBeforeLong, 2, 8, 1, '',
                     (v) => app.setPomo(config: c.copyWith(cyclesBeforeLong: v))),
                 const Divider(height: 24),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Começar a próxima fase sozinho'),
-                  subtitle: const Text('Desligado: espera você tocar em Continuar.'),
+                  title: Text(tr('Começar a próxima fase sozinho')),
+                  subtitle: Text(tr('Desligado: espera você tocar em Continuar.')),
                   value: c.autoStart,
                   onChanged: (v) => app.setPomo(config: c.copyWith(autoStart: v)),
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Alarme sonoro suave'),
-                  subtitle: const Text('Sininho de duas notas, baixinho.'),
+                  title: Text(tr('Alarme sonoro suave')),
+                  subtitle: Text(tr('Sininho de duas notas, baixinho.')),
                   value: app.pomoChime,
                   onChanged: (v) => app.setPomo(chime: v),
                 ),
@@ -356,13 +356,13 @@ void showPomodoroSettings(BuildContext context, AppState app) {
                           onChanged: (v) => app.setPomo(volume: v),
                         ),
                       ),
-                      TextButton(onPressed: app.pomoTestChime, child: const Text('Ouvir')),
+                      TextButton(onPressed: app.pomoTestChime, child: Text(tr('Ouvir'))),
                     ],
                   ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Vibrar ao terminar'),
-                  subtitle: const Text('Só em celulares.'),
+                  title: Text(tr('Vibrar ao terminar')),
+                  subtitle: Text(tr('Só em celulares.')),
                   value: app.pomoVibrate,
                   onChanged: (v) => app.setPomo(vibrate: v),
                 ),
@@ -393,7 +393,7 @@ Future<void> _askNumber(BuildContext context, String label, int value, int min, 
             inputFormatters: digitsFormatters(4),
             decoration: InputDecoration(
               suffixText: unit,
-              helperText: 'De $min a $max',
+              helperText: tr('De {0} a {1}', [min, max]),
               errorText: err,
             ),
             onSubmitted: (_) {
@@ -402,12 +402,12 @@ Future<void> _askNumber(BuildContext context, String label, int value, int min, 
             },
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+            TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('Cancelar'))),
             FilledButton(
               onPressed: () {
                 final n = int.tryParse(ctl.text);
                 if (n == null || n < min || n > max) {
-                  set(() => err = 'Use um valor entre $min e $max');
+                  set(() => err = tr('Use um valor entre {0} e {1}', [min, max]));
                 } else {
                   Navigator.pop(ctx, n);
                 }

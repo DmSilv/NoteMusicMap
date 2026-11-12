@@ -54,10 +54,10 @@ class _PedalViewState extends State<PedalView> {
         return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           AppCard(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Pedal: notas que soam juntas', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+              Text(tr('Pedal: notas que soam juntas'), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
               const SizedBox(height: 4),
               Text(
-                'Ligue até $kMaxPedalVoices notas que ficam soando: toque por cima ou treine o ouvido.',
+                tr('Ligue até {0} notas que ficam soando: toque por cima ou treine o ouvido.', [kMaxPedalVoices]),
                 style: TextStyle(color: AppColors.textDim, fontSize: 12.5, height: 1.3),
               ),
               const SizedBox(height: 12),
@@ -69,27 +69,27 @@ class _PedalViewState extends State<PedalView> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 IconButton(
-                  tooltip: 'Oitava abaixo',
+                  tooltip: tr('Oitava abaixo'),
                   onPressed: _octave > 2 ? () => _shift(-1) : null,
                   icon: const Icon(Icons.chevron_left),
                 ),
                 Expanded(
-                  child: Text('Oitava $_octave  ·  Dó$_octave a Dó${_octave + 1}',
+                  child: Text(tr('Oitava {0}  ·  Dó{1} a Dó{2}', [_octave, _octave, _octave + 1]),
                       textAlign: TextAlign.center, style: const TextStyle(fontWeight: FontWeight.w700)),
                 ),
                 IconButton(
-                  tooltip: 'Oitava acima',
+                  tooltip: tr('Oitava acima'),
                   onPressed: _octave < 6 ? () => _shift(1) : null,
                   icon: const Icon(Icons.chevron_right),
                 ),
               ]),
               _Keyboard(app: app, base: _base, names: names, onTap: _tap),
               const SizedBox(height: 14),
-              const Text('Atalhos', style: TextStyle(fontWeight: FontWeight.w800)),
+              Text(tr('Atalhos'), style: TextStyle(fontWeight: FontWeight.w800)),
               Text(
                 app.pedalNotes.isEmpty
-                    ? 'Montam em cima do Lá da oitava $_octave. Com uma nota ligada, montam em cima da mais grave.'
-                    : 'Montam em cima da nota mais grave que está ligada.',
+                    ? tr('Montam em cima do Lá da oitava {0}. Com uma nota ligada, montam em cima da mais grave.', [_octave])
+                    : tr('Montam em cima da nota mais grave que está ligada.'),
                 style: TextStyle(color: AppColors.textDim, fontSize: 12),
               ),
               const SizedBox(height: 6),
@@ -107,7 +107,7 @@ class _PedalViewState extends State<PedalView> {
                   child: FilledButton.tonalIcon(
                     onPressed: app.pedalNotes.isEmpty ? null : app.clearPedal,
                     icon: const Icon(Icons.stop_circle_outlined),
-                    label: const Text('Parar tudo'),
+                    label: Text(tr('Parar tudo')),
                   ),
                 ),
               ]),
@@ -120,10 +120,10 @@ class _PedalViewState extends State<PedalView> {
           const SizedBox(height: 12),
           AppCard(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Som', style: TextStyle(fontWeight: FontWeight.w800)),
+              Text(tr('Som'), style: TextStyle(fontWeight: FontWeight.w800)),
               const SizedBox(height: 6),
               ChipGrid(
-                labels: const [Text('Diapasão'), Text('Flauta'), Text('Violino')],
+                labels: [Text(tr('Diapasão')), Text(tr('Flauta')), Text(tr('Violino'))],
                 selected: app.toneTimbre.index,
                 onSelected: (i) => app.setToneTimbre(ToneTimbre.values[i]),
               ),
@@ -146,7 +146,7 @@ class _PedalViewState extends State<PedalView> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Para tocar junto com o microfone ligado (Grade, Escalas), use fone: o microfone escuta o pedal no alto-falante.',
+                    tr('Para tocar junto com o microfone ligado (Grade, Escalas), use fone: o microfone escuta o pedal no alto-falante.'),
                     style: TextStyle(color: AppColors.textDim, fontSize: 12.5, height: 1.3),
                   ),
                 ),
@@ -160,13 +160,12 @@ class _PedalViewState extends State<PedalView> {
 
   String _systemLine() {
     final sys = switch (app.system) {
-      TuningSystem.equal => 'Igual',
-      TuningSystem.pythagorean => 'Pitagórico',
-      TuningSystem.just => 'Justo',
+      TuningSystem.equal => tr('Igual'),
+      TuningSystem.pythagorean => tr('Pitagórico'),
+      TuningSystem.just => tr('Justo'),
     };
-    final tonic = app.system == TuningSystem.equal ? '' : ', tônica ${noteName(60 + app.tonicPc, app.cfg.copyWith(transpose: 0))}';
-    return 'Soando no sistema $sys$tonic, com o Lá em ${app.refA.toStringAsFixed(app.refA == app.refA.roundToDouble() ? 0 : 1)} Hz. '
-        'Mude o Lá e o sistema logo abaixo. Em Justo, uma quinta fica pura e o tremor some.';
+    final tonic = app.system == TuningSystem.equal ? '' : tr(', tônica {0}', [noteName(60 + app.tonicPc, app.cfg.copyWith(transpose: 0))]);
+    return tr('Soando no sistema {0}{1}, com o Lá em {2} Hz. Mude o Lá e o sistema logo abaixo. Em Justo, uma quinta fica pura e o tremor some.', [sys, tonic, app.refA.toStringAsFixed(app.refA == app.refA.roundToDouble() ? 0 : 1)]);
   }
 
   /// Notas ligadas (chips) e o que elas formam entre si.
@@ -181,7 +180,7 @@ class _PedalViewState extends State<PedalView> {
           child: Row(children: [
             Icon(Icons.piano, color: AppColors.textDim),
             const SizedBox(width: 10),
-            Expanded(child: Text('Nenhuma nota ligada. Toque numa tecla ou escolha um atalho.', style: TextStyle(color: AppColors.textDim))),
+            Expanded(child: Text(tr('Nenhuma nota ligada. Toque numa tecla ou escolha um atalho.'), style: TextStyle(color: AppColors.textDim))),
           ]),
         ),
       );
@@ -233,7 +232,7 @@ class _PedalViewState extends State<PedalView> {
             TextSpan(text: '${iv.name}${iv.simple ? ' (${iv.ratio})' : ''}'),
             if (iv.simple)
               TextSpan(
-                text: iv.isSmooth ? ' · sem tremor' : ' · treme ${iv.beatHz.toStringAsFixed(1).replaceAll('.', ',')} Hz',
+                text: iv.isSmooth ? tr(' · sem tremor') : tr(' · treme {0} Hz', [iv.beatHz.toStringAsFixed(1).replaceAll('.', ',')]),
                 style: TextStyle(color: iv.isSmooth ? AppColors.inTune : AppColors.flat, fontWeight: FontWeight.w700),
               ),
           ]), style: const TextStyle(fontSize: 13, height: 1.3)),
@@ -245,14 +244,14 @@ class _PedalViewState extends State<PedalView> {
       if (tremor && app.system != TuningSystem.just) {
         lines.add(Padding(
           padding: const EdgeInsets.only(top: 6),
-          child: Text('Dica: mude o sistema para Justo e ouça o tremor sumir.',
+          child: Text(tr('Dica: mude o sistema para Justo e ouça o tremor sumir.'),
               style: TextStyle(color: AppColors.textDim, fontSize: 12, fontStyle: FontStyle.italic)),
         ));
       }
     }
     return AppCard(
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Text('O que está soando', style: TextStyle(fontWeight: FontWeight.w800)),
+        Text(tr('O que está soando'), style: TextStyle(fontWeight: FontWeight.w800)),
         ...lines,
       ]),
     );
@@ -316,7 +315,7 @@ class _Keyboard extends StatelessWidget {
     return Semantics(
       button: true,
       selected: active,
-      label: '${noteName(midi, names, withOctave: true)}${active ? ', ligada' : ''}',
+      label: '${noteName(midi, names, withOctave: true)}${active ? tr(', ligada') : ''}',
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: black ? 0 : 1),
         child: Material(

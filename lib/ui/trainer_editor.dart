@@ -44,12 +44,12 @@ class TrainerEditor extends StatelessWidget {
     final max = t.maxBpm.round();
     final up = (t.maxBpm - startBpm).round();
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      _title('Quando aumentar', help: t.byTime ? 'O aumento entra no começo do próximo compasso.' : 'Conta os compassos tocados (depois da contagem inicial).'),
+      _title(tr('Quando aumentar'), help: t.byTime ? tr('O aumento entra no começo do próximo compasso.') : tr('Conta os compassos tocados (depois da contagem inicial).')),
       SegmentedButton<bool>(
         showSelectedIcon: false,
-        segments: const [
-          ButtonSegment(value: true, icon: Icon(Icons.timer_outlined, size: 18), label: Text('Por tempo')),
-          ButtonSegment(value: false, icon: Icon(Icons.queue_music_rounded, size: 18), label: Text('Por compassos')),
+        segments: [
+          ButtonSegment(value: true, icon: Icon(Icons.timer_outlined, size: 18), label: Text(tr('Por tempo'))),
+          ButtonSegment(value: false, icon: Icon(Icons.queue_music_rounded, size: 18), label: Text(tr('Por compassos'))),
         ],
         selected: {t.byTime},
         onSelectionChanged: (s) => onChanged(s.first ? t.copyWith(everySeconds: 30) : t.copyWith(everySeconds: 0)),
@@ -58,20 +58,20 @@ class TrainerEditor extends StatelessWidget {
       if (t.byTime)
         _chips<int>(kTrainerSecondsOptions, t.everySeconds, (s) => s < 60 ? '$s s' : '${s ~/ 60} min${s % 60 == 0 ? '' : ' ${s % 60} s'}', (v) => onChanged(t.copyWith(everySeconds: v)))
       else
-        _chips<int>(kTrainerBarsOptions, t.everyBars, (b) => '$b compassos', (v) => onChanged(t.copyWith(everyBars: v))),
-      _title('Quanto aumentar a cada vez'),
-      _chips<int>(kTrainerStepOptions, t.stepBpm.round(), (s) => '+$s BPM', (v) => onChanged(t.copyWith(stepBpm: v.toDouble()))),
-      _title('Até quantos BPM (o teto)', help: 'Quando chegar aqui, o metrônomo para de acelerar e segue nesse andamento.'),
+        _chips<int>(kTrainerBarsOptions, t.everyBars, (b) => tr('{0} compassos', [b]), (v) => onChanged(t.copyWith(everyBars: v))),
+      _title(tr('Quanto aumentar a cada vez')),
+      _chips<int>(kTrainerStepOptions, t.stepBpm.round(), (s) => tr('+{0} BPM', [s]), (v) => onChanged(t.copyWith(stepBpm: v.toDouble()))),
+      _title(tr('Até quantos BPM (o teto)'), help: tr('Quando chegar aqui, o metrônomo para de acelerar e segue nesse andamento.')),
       Row(children: [
         IconButton.filledTonal(
-          tooltip: 'Diminuir o teto em 5',
+          tooltip: tr('Diminuir o teto em 5'),
           iconSize: 26,
           onPressed: t.maxBpm - 5 >= kTrainerMinBpm ? () => onChanged(t.copyWith(maxBpm: t.maxBpm - 5)) : null,
           icon: const Icon(Icons.remove),
         ),
         Expanded(
           child: Semantics(
-            label: 'Teto de $max batidas por minuto',
+            label: tr('Teto de {0} batidas por minuto', [max]),
             child: Column(children: [
               Text('$max', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w800, height: 1.1)),
               Text('BPM', style: Ds.support()),
@@ -79,7 +79,7 @@ class TrainerEditor extends StatelessWidget {
           ),
         ),
         IconButton.filledTonal(
-          tooltip: 'Aumentar o teto em 5',
+          tooltip: tr('Aumentar o teto em 5'),
           iconSize: 26,
           onPressed: t.maxBpm + 5 <= kTrainerMaxBpm ? () => onChanged(t.copyWith(maxBpm: t.maxBpm + 5)) : null,
           icon: const Icon(Icons.add),

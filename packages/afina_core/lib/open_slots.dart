@@ -6,6 +6,7 @@
 library;
 
 import 'agenda.dart';
+import 'i18n.dart';
 
 const int kMaxOpenSlots = 100; // horários disponíveis por professor
 const int kMaxPicksPerStudent = 12; // aulas marcadas por um aluno com o mesmo professor
@@ -15,11 +16,11 @@ const int kPickLeadMinutes = 60; // antecedência mínima para pegar um horário
 enum SlotProblem { canceled, past, tooSoon, conflict, limit }
 
 String slotProblemText(SlotProblem p) => switch (p) {
-      SlotProblem.canceled => 'Este horário foi cancelado.',
-      SlotProblem.past => 'Este horário já passou.',
-      SlotProblem.tooSoon => 'Falta menos de $kPickLeadMinutes min para este horário: peça direto ao professor.',
-      SlotProblem.conflict => 'Este horário bate com outra aula marcada.',
-      SlotProblem.limit => 'Limite de horários atingido.',
+      SlotProblem.canceled => tr('Este horário foi cancelado.'),
+      SlotProblem.past => tr('Este horário já passou.'),
+      SlotProblem.tooSoon => tr('Falta menos de {0} min para este horário: peça direto ao professor.', [kPickLeadMinutes]),
+      SlotProblem.conflict => tr('Este horário bate com outra aula marcada.'),
+      SlotProblem.limit => tr('Limite de horários atingido.'),
     };
 
 /// PROFESSOR cria um horário disponível: não pode estar no passado nem bater com outro horário

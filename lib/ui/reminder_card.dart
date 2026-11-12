@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import 'theme.dart';
 import 'widgets.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// Lembrete de aula 15 minutos antes (notificação do navegador, mesmo com o app fechado).
 /// Mostra a situação deste aparelho e o botão para ligar ou desligar.
@@ -42,54 +43,52 @@ class _ReminderCardState extends State<ReminderCard> {
           PushStatus.on => (
               Icons.notifications_active_outlined,
               AppColors.inTune,
-              'Lembretes ligados',
+              tr('Lembretes ligados'),
               app.remindChoiceOn
-                  ? 'Você recebe uma notificação antes de cada aula, no tempo que o professor escolheu, mesmo com o app fechado.'
-                  : 'Você recebe uma notificação 15 minutos antes de cada aula, mesmo com o app fechado.'
+                  ? tr('Você recebe uma notificação antes de cada aula, no tempo que o professor escolheu, mesmo com o app fechado.')
+                  : tr('Você recebe uma notificação 15 minutos antes de cada aula, mesmo com o app fechado.')
             ),
           PushStatus.off => (
               Icons.notifications_none,
               AppColors.accent,
-              'Lembrete 15 minutos antes',
-              'Ative para receber uma notificação antes de cada aula, mesmo com o app fechado.'
+              tr('Lembrete 15 minutos antes'),
+              tr('Ative para receber uma notificação antes de cada aula, mesmo com o app fechado.')
             ),
           PushStatus.denied => (
               Icons.notifications_off_outlined,
               AppColors.flat,
-              'Notificações bloqueadas',
-              'O navegador está bloqueando as notificações deste site. Libere nas configurações do navegador '
-                  '(cadeado ao lado do endereço › Notificações) e volte aqui.'
+              tr('Notificações bloqueadas'),
+              tr('O navegador está bloqueando as notificações deste site. Libere nas configurações do navegador (cadeado ao lado do endereço › Notificações) e volte aqui.')
             ),
           PushStatus.needsInstall => (
               Icons.install_mobile,
               AppColors.flat,
-              'Instale o app para receber lembretes',
-              'No iPhone as notificações só chegam se o app estiver na tela inicial: Compartilhar › Adicionar à Tela '
-                  'de Início, e abra por lá. Enquanto isso, o aviso aparece aqui dentro do app.'
+              tr('Instale o app para receber lembretes'),
+              tr('No iPhone as notificações só chegam se o app estiver na tela inicial: Compartilhar › Adicionar à Tela de Início, e abra por lá. Enquanto isso, o aviso aparece aqui dentro do app.')
             ),
           PushStatus.linkOff => (
               Icons.cloud_off_outlined,
               AppColors.flat,
-              'Ligue o vínculo online',
-              'A agenda e os lembretes passam pelo vínculo online. Ligue para marcar aulas e receber os avisos.'
+              tr('Ligue o vínculo online'),
+              tr('A agenda e os lembretes passam pelo vínculo online. Ligue para marcar aulas e receber os avisos.')
             ),
           PushStatus.serverOff => (
               Icons.notifications_paused_outlined,
               AppColors.textDim,
-              'Notificações ainda não disponíveis',
-              'O servidor ainda não está configurado para enviar lembretes. O aviso continua aparecendo aqui dentro do app.'
+              tr('Notificações ainda não disponíveis'),
+              tr('O servidor ainda não está configurado para enviar lembretes. O aviso continua aparecendo aqui dentro do app.')
             ),
           PushStatus.unsupported => (
               Icons.notifications_off_outlined,
               AppColors.textDim,
-              'Este navegador não envia notificações',
-              'O aviso "aula em 15 minutos" continua aparecendo aqui dentro do app.'
+              tr('Este navegador não envia notificações'),
+              tr('O aviso "aula em 15 minutos" continua aparecendo aqui dentro do app.')
             ),
           PushStatus.unknown => (
               Icons.notifications_none,
               AppColors.textDim,
-              'Lembrete 15 minutos antes',
-              'Verificando este aparelho…'
+              tr('Lembrete 15 minutos antes'),
+              tr('Verificando este aparelho…')
             ),
         };
         return AppCard(
@@ -109,7 +108,7 @@ class _ReminderCardState extends State<ReminderCard> {
                   icon: _busy
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.notifications_active_outlined, size: 18),
-                  label: const Text('Ativar lembretes'),
+                  label: Text(tr('Ativar lembretes')),
                 ),
               if (st == PushStatus.linkOff)
                 FilledButton.icon(
@@ -119,7 +118,7 @@ class _ReminderCardState extends State<ReminderCard> {
                     await app.refreshPush();
                   },
                   icon: const Icon(Icons.cloud_outlined, size: 18),
-                  label: const Text('Ligar vínculo online'),
+                  label: Text(tr('Ligar vínculo online')),
                 ),
               if (st == PushStatus.on)
                 TextButton(
@@ -128,7 +127,7 @@ class _ReminderCardState extends State<ReminderCard> {
                     await app.disablePush();
                     return null;
                   }),
-                  child: const Text('Desligar neste aparelho'),
+                  child: Text(tr('Desligar neste aparelho')),
                 ),
             ],
           ]),

@@ -20,20 +20,19 @@ class ScaleExercisePage extends StatelessWidget {
   const ScaleExercisePage({super.key, required this.app});
 
   String get _title =>
-      '${app.scaleType.display(noteName(app.scaleTonicMidi, app.cfg))} · '
-      '${app.scaleOctaves} oitava${app.scaleOctaves > 1 ? 's' : ''}';
+      tr('{0} · {1} oitava{2}', [app.scaleType.display(noteName(app.scaleTonicMidi, app.cfg)), app.scaleOctaves, app.scaleOctaves > 1 ? 's' : '']);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Escala guiada'),
+        title: Text(tr('Escala guiada')),
         actions: [
-          IconButton(tooltip: 'Ajustes do exercício', icon: const Icon(Icons.tune), onPressed: () => _openSettings(context)),
+          IconButton(tooltip: tr('Ajustes do exercício'), icon: const Icon(Icons.tune), onPressed: () => _openSettings(context)),
           const SizedBox(width: Ds.s4),
         ],
         leading: IconButton(
-          tooltip: 'Encerrar exercício',
+          tooltip: tr('Encerrar exercício'),
           icon: const Icon(Icons.close),
           onPressed: () {
             app.stopExercise();
@@ -73,10 +72,10 @@ class ScaleExercisePage extends StatelessWidget {
   /// Linha enxuta no topo: o que está sendo feito e quanto falta. O resto fica nos Ajustes.
   Widget _header(ScaleExercise e) {
     final status = e.finished
-        ? 'Concluído'
+        ? tr('Concluído')
         : (e.flow
-            ? '${e.board.length} de ${e.freeNotes.length} notas'
-            : 'Nota ${e.index + 1} de ${e.sequence.length} · ${e.ascendingNow ? 'subindo' : 'descendo'}');
+            ? tr('{0} de {1} notas', [e.board.length, e.freeNotes.length])
+            : tr('Nota {0} de {1} · {2}', [e.index + 1, e.sequence.length, e.ascendingNow ? tr('subindo') : tr('descendo')]));
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: Ds.s4),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -102,32 +101,32 @@ class ScaleExercisePage extends StatelessWidget {
   void _openSettings(BuildContext context) {
     showDsSheet(
       context,
-      title: 'Ajustes do exercício',
+      title: tr('Ajustes do exercício'),
       listenable: Listenable.merge([app, app.live]),
       children: (c) {
         final e = app.exercise;
         return [
           DsSettingRow(
-            label: 'Jeito de tocar',
+            label: tr('Jeito de tocar'),
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               SizedBox(
                 width: double.infinity,
                 child: SegmentedButton<bool>(
                   showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment(value: true, icon: Icon(Icons.shuffle_rounded, size: 18), label: Text('Livre')),
-                    ButtonSegment(value: false, icon: Icon(Icons.format_list_numbered_rounded, size: 18), label: Text('Guiado')),
+                  segments: [
+                    ButtonSegment(value: true, icon: Icon(Icons.shuffle_rounded, size: 18), label: Text(tr('Livre'))),
+                    ButtonSegment(value: false, icon: Icon(Icons.format_list_numbered_rounded, size: 18), label: Text(tr('Guiado'))),
                   ],
                   selected: {e?.flow ?? true},
                   onSelectionChanged: (v) => app.setExerciseFlow(v.first),
                 ),
               ),
               const DsGap(Ds.s8),
-              Text((e?.flow ?? true) ? 'Toque as notas na ordem que quiser.' : 'Uma nota de cada vez, na ordem.', style: Ds.support()),
+              Text((e?.flow ?? true) ? tr('Toque as notas na ordem que quiser.') : tr('Uma nota de cada vez, na ordem.'), style: Ds.support()),
             ]),
           ),
           DsSettingRow(
-            label: 'Afinação',
+            label: tr('Afinação'),
             child: OutlinedButton.icon(
               onPressed: () => pickTuningSystem(c, app, tonicPc: app.scaleTonicMidi % 12),
               icon: const Icon(Icons.straighten, size: 20),
@@ -143,23 +142,23 @@ class ScaleExercisePage extends StatelessWidget {
     return AppCard(
       child: Column(
         children: [
-          const Text('Deixe o app ouvir seu instrumento',
+          Text(tr('Deixe o app ouvir seu instrumento'),
               textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           const SizedBox(height: 2),
-          Text('O som fica no aparelho e não é gravado.', textAlign: TextAlign.center, style: Ds.support()),
+          Text(tr('O som fica no aparelho e não é gravado.'), textAlign: TextAlign.center, style: Ds.support()),
           const SizedBox(height: 12),
           FilledButton.icon(
             style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(Ds.tap)),
             onPressed: () => app.startListening(),
             icon: const Icon(Icons.mic, size: 20),
-            label: const Text('Ouvir meu instrumento', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            label: Text(tr('Ouvir meu instrumento'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           ),
           if (kDevDemo) ...[
             const SizedBox(height: 8),
             TextButton.icon(
               onPressed: () => app.startExercise(demoMode: true),
               icon: const Icon(Icons.play_circle_outline),
-              label: const Text('[dev] Simular (silencioso)'),
+              label: Text(tr('[dev] Simular (silencioso)')),
             ),
           ],
         ],
@@ -180,13 +179,13 @@ class ScaleExercisePage extends StatelessWidget {
         if (e.index + k < e.sequence.length) e.sequence[e.index + k]
     ];
     final status = e.tunedNow
-        ? 'Afinada! Segure só mais um instante…'
-        : (onTarget ? 'Quase: ajuste a afinação. A barra só enche quando estiver afinada.' : 'Aguardando a nota certa');
+        ? tr('Afinada! Segure só mais um instante…')
+        : (onTarget ? tr('Quase: ajuste a afinação. A barra só enche quando estiver afinada.') : tr('Aguardando a nota certa'));
     return AppCard(
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(
         children: [
-          Text('Toque agora', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+          Text(tr('Toque agora'), style: TextStyle(color: AppColors.textDim, fontSize: 13)),
           const SizedBox(height: 6),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 260),
@@ -207,7 +206,7 @@ class ScaleExercisePage extends StatelessWidget {
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text('Depois', style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+                      Text(tr('Depois'), style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
                       const SizedBox(width: 8),
                       for (final n in next) _miniNote(noteName(n, app.cfg, withOctave: true)),
                     ],
@@ -252,7 +251,7 @@ class ScaleExercisePage extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
       child: Column(
         children: [
-          Text('Sua vez!', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+          Text(tr('Sua vez!'), style: TextStyle(color: AppColors.textDim, fontSize: 13)),
           const SizedBox(height: 6),
           SizedBox(
             height: 92,
@@ -274,14 +273,14 @@ class ScaleExercisePage extends StatelessWidget {
             height: 38,
             child: Center(
               child: e.allPlayed
-                  ? Text('Todas as notas foram tocadas! Toque em Concluir ou refine as que ficaram fora.',
+                  ? Text(tr('Todas as notas foram tocadas! Toque em Concluir ou refine as que ficaram fora.'),
                       textAlign: TextAlign.center,
                       style: TextStyle(color: AppColors.inTune, fontSize: 13, fontWeight: FontWeight.w600))
                   : Wrap(
                       alignment: WrapAlignment.center,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Text('Faltam', style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+                        Text(tr('Faltam'), style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
                         const SizedBox(width: 8),
                         for (final n in pending.take(4)) _miniNote(noteName(n, app.cfg, withOctave: true)),
                         if (pending.length > 4)
@@ -320,10 +319,10 @@ class ScaleExercisePage extends StatelessWidget {
             zone: zone,
             cue: cue,
             noteLabel: (m) => noteName(m, app.cfg, withOctave: true),
-            idleTitle: e.flow ? 'TOQUE UMA NOTA' : 'TOQUE ${exp == null ? '' : noteName(exp, app.cfg, withOctave: true).toUpperCase()}',
-            idleDetail: e.flow ? 'Qualquer uma da escala!' : 'Afine para liberar a próxima.',
-            tunedTitle: e.flow ? 'AFINADA!' : 'AFINADA — SEGURE',
-            tunedDetail: e.flow ? 'Muito bem! Pode tocar outra nota.' : 'Segure até a barra encher.',
+            idleTitle: e.flow ? tr('TOQUE UMA NOTA') : 'TOQUE ${exp == null ? '' : noteName(exp, app.cfg, withOctave: true).toUpperCase()}',
+            idleDetail: e.flow ? tr('Qualquer uma da escala!') : tr('Afine para liberar a próxima.'),
+            tunedTitle: e.flow ? tr('AFINADA!') : tr('AFINADA — SEGURE'),
+            tunedDetail: e.flow ? tr('Muito bem! Pode tocar outra nota.') : tr('Segure até a barra encher.'),
           ),
         ],
       ),
@@ -448,12 +447,12 @@ class ScaleExercisePage extends StatelessWidget {
               ? FilledButton.icon(
                   onPressed: e.board.isEmpty ? null : app.finishExerciseNow,
                   icon: const Icon(Icons.flag),
-                  label: const Text('Concluir'),
+                  label: Text(tr('Concluir')),
                 )
               : OutlinedButton.icon(
                   onPressed: app.skipExerciseNote,
                   icon: const Icon(Icons.skip_next),
-                  label: const Text('Pular nota'),
+                  label: Text(tr('Pular nota')),
                 ),
         ),
         const SizedBox(width: 10),
@@ -461,7 +460,7 @@ class ScaleExercisePage extends StatelessWidget {
           child: OutlinedButton.icon(
             onPressed: () => app.startExercise(demoMode: app.demo),
             icon: const Icon(Icons.restart_alt),
-            label: const Text('Recomeçar'),
+            label: Text(tr('Recomeçar')),
           ),
         ),
       ],
@@ -487,23 +486,23 @@ class ScaleExercisePage extends StatelessWidget {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 6),
-                  child: Text(e.flow ? 'taxa de acerto' : 'acertos de primeira',
+                  child: Text(e.flow ? tr('taxa de acerto') : tr('acertos de primeira'),
                       style: TextStyle(color: AppColors.textDim, fontSize: 15)),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 6),
-          Text('${sc.inTune} de ${sc.total} notas afinadas'),
+          Text(tr('{0} de {1} notas afinadas', [sc.inTune, sc.total])),
           if (app.demo)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Text('Era uma demonstração: ela não entra no seu histórico.',
+              child: Text(tr('Era uma demonstração: ela não entra no seu histórico.'),
                   style: TextStyle(color: AppColors.textDim, fontSize: 13)),
             ),
           if (tips.isNotEmpty) ...[
             const Divider(height: 24),
-            const Text('Orientações do treinador', style: TextStyle(fontWeight: FontWeight.w700)),
+            Text(tr('Orientações do treinador'), style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             for (final t in tips) InsightTile(insight: t),
           ],
@@ -513,7 +512,7 @@ class ScaleExercisePage extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: () => app.startExercise(demoMode: app.demo),
                 icon: const Icon(Icons.replay),
-                label: const Text('Repetir'),
+                label: Text(tr('Repetir')),
               ),
             ),
             const SizedBox(width: 10),
@@ -524,7 +523,7 @@ class ScaleExercisePage extends StatelessWidget {
                   Navigator.of(context).pop();
                 },
                 icon: const Icon(Icons.check),
-                label: const Text('Concluir'),
+                label: Text(tr('Concluir')),
               ),
             ),
           ]),
@@ -570,5 +569,5 @@ class InsightTile extends StatelessWidget {
 /// Copia o resumo para a área de transferência (para colar numa IA).
 Future<void> copyAiSummary(AppState app) async {
   await Clipboard.setData(ClipboardData(text: app.aiSummary()));
-  app.say('Resumo copiado. Cole numa IA de sua escolha e peça orientações.');
+  app.say(tr('Resumo copiado. Cole numa IA de sua escolha e peça orientações.'));
 }

@@ -4,21 +4,22 @@
 library;
 
 import 'tuning.dart';
+import 'i18n.dart';
 
 /// Papel de cada nota em relação à tônica (0..11 semitons acima).
-const List<String> kIntervalRoles = [
-  'Tônica',
-  '2ª menor',
-  '2ª maior',
-  '3ª menor',
-  '3ª maior',
-  '4ª justa',
-  'Trítono',
-  '5ª justa',
-  '6ª menor',
-  '6ª maior',
-  '7ª menor',
-  '7ª maior',
+final List<String> kIntervalRoles = [
+  tr('Tônica'),
+  tr('2ª menor'),
+  tr('2ª maior'),
+  tr('3ª menor'),
+  tr('3ª maior'),
+  tr('4ª justa'),
+  tr('Trítono'),
+  tr('5ª justa'),
+  tr('6ª menor'),
+  tr('6ª maior'),
+  tr('7ª menor'),
+  tr('7ª maior'),
 ];
 
 /// Os graus da escala maior (semitons acima da tônica): os que mais importam ao estudar.

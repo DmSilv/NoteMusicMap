@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../ai/coach_ai.dart' show kApiBase;
+import 'package:afina_core/afina_core.dart';
 
 /// Nota do app e pesquisa rápida (1 ou 2 perguntas por aparelho).
 ///
@@ -28,12 +29,12 @@ class FeedbackService extends ChangeNotifier {
   static const int _maxPending = 20;
 
   /// Perguntas da pesquisa rápida.
-  static const List<String> featureOptions = [
-    'Afinador',
-    'Metrônomo',
-    'Grade de notas',
-    'Escalas e exercícios',
-    'Estudo (timer)',
+  static final List<String> featureOptions = [
+    tr('Afinador'),
+    tr('Metrônomo'),
+    tr('Grade de notas'),
+    tr('Escalas e exercícios'),
+    tr('Estudo (timer)'),
   ];
 
   bool surveyAnswered = false;

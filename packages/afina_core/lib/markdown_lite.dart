@@ -3,6 +3,8 @@
 /// Dart puro e testável; a tela só desenha o que sai daqui.
 library;
 
+import 'i18n.dart';
+
 /// Um trecho de uma linha, com o estilo que tem.
 class InlineRun {
   final String text;
@@ -14,7 +16,7 @@ class InlineRun {
   @override
   int get hashCode => Object.hash(text, bold, italic);
   @override
-  String toString() => 'InlineRun($text${bold ? ', negrito' : ''}${italic ? ', itálico' : ''})';
+  String toString() => 'InlineRun($text${bold ? tr(', negrito') : ''}${italic ? tr(', itálico') : ''})';
 }
 
 final _inlineRe = RegExp(r'\*\*(.+?)\*\*|\*([^*\s](?:[^*]*?[^*\s])?)\*');

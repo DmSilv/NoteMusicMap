@@ -4,6 +4,7 @@
 library;
 
 import 'errors.dart';
+import 'i18n.dart';
 
 /// Quando o app envia sozinho um relatório de erro.
 enum ReportMode {
@@ -18,9 +19,9 @@ enum ReportMode {
 }
 
 String reportModeLabel(ReportMode m) => switch (m) {
-      ReportMode.critical => 'Só os graves',
-      ReportMode.all => 'Todos os erros',
-      ReportMode.off => 'Nunca',
+      ReportMode.critical => tr('Só os graves'),
+      ReportMode.all => tr('Todos os erros'),
+      ReportMode.off => tr('Nunca'),
     };
 
 /// O app deve enviar este erro sozinho, neste modo? (Envio manual não passa por aqui.)

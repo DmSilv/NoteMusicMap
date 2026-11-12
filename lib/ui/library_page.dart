@@ -67,7 +67,7 @@ class _LibraryPageState extends State<LibraryPage> {
 
   Future<void> _open(LibItem i) async {
     final ok = await launchUrl(Uri.parse(i.url), mode: LaunchMode.externalApplication);
-    if (!ok && mounted) app.say('Não consegui abrir o link.');
+    if (!ok && mounted) app.say(tr('Não consegui abrir o link.'));
   }
 
   Future<void> _edit(LibItem? item) async {
@@ -80,18 +80,18 @@ class _LibraryPageState extends State<LibraryPage> {
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(Ds.radiusCard))),
       builder: (c) => _ItemForm(app: app, item: item, kind: _kind, folder: _folder),
     );
-    if (saved == true) app.say('Material salvo.');
+    if (saved == true) app.say(tr('Material salvo.'));
   }
 
   Future<void> _delete(LibItem i) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Apagar este material?'),
-        content: Text('"${i.title}" sai do seu acervo e os alunos deixam de ver. O arquivo no Drive não é apagado.'),
+        title: Text(tr('Apagar este material?')),
+        content: Text(tr('"{0}" sai do seu acervo e os alunos deixam de ver. O arquivo no Drive não é apagado.', [i.title])),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Apagar')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Apagar'))),
         ],
       ),
     );
@@ -105,17 +105,17 @@ class _LibraryPageState extends State<LibraryPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Denunciar este material?'),
-        content: const Text('Use se o conteúdo for indevido ou violar direitos autorais. O administrador avalia e pode esconder o item.'),
+        title: Text(tr('Denunciar este material?')),
+        content: Text(tr('Use se o conteúdo for indevido ou violar direitos autorais. O administrador avalia e pode esconder o item.')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Denunciar')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Denunciar'))),
         ],
       ),
     );
     if (ok == true) {
       final sent = await app.libReport(widget.teacher!, i.id);
-      app.say(sent ? 'Denúncia enviada. Obrigado.' : 'Não foi possível enviar agora.');
+      app.say(sent ? tr('Denúncia enviada. Obrigado.') : tr('Não foi possível enviar agora.'));
     }
   }
 
@@ -123,25 +123,25 @@ class _LibraryPageState extends State<LibraryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(mine ? 'Acervo e repertório' : 'Material${(widget.teacherName ?? '').isEmpty ? '' : ' de ${widget.teacherName}'}'),
+        title: Text(mine ? tr('Acervo e repertório') : tr('Material{0}', [(widget.teacherName ?? '').isEmpty ? '' : tr(' de {0}', [widget.teacherName])])),
         actions: [
           HelpButton(
-            title: 'Acervo e repertório',
+            title: tr('Acervo e repertório'),
             sections: mine
-                ? const [
-                    ('O que é', 'Uma lista dos seus materiais (métodos e peças), com o link de onde ficam: Google Drive, Dropbox, OneDrive, IMSLP ou YouTube. O Notemusic não guarda os arquivos.'),
-                    ('Quem vê', 'Só os seus alunos vinculados, todos ou os que você escolher.'),
-                    ('Direitos autorais', 'Compartilhe só o que é de domínio público, é seu ou tem autorização. A responsabilidade pelo conteúdo é de quem publica.'),
+                ? [
+                    (tr('O que é'), tr('Uma lista dos seus materiais (métodos e peças), com o link de onde ficam: Google Drive, Dropbox, OneDrive, IMSLP ou YouTube. O Notemusic não guarda os arquivos.')),
+                    (tr('Quem vê'), tr('Só os seus alunos vinculados, todos ou os que você escolher.')),
+                    (tr('Direitos autorais'), tr('Compartilhe só o que é de domínio público, é seu ou tem autorização. A responsabilidade pelo conteúdo é de quem publica.')),
                   ]
-                : const [
-                    ('O que é', 'Os materiais que o seu professor indicou. Ao tocar em Abrir, você sai do Notemusic para o link dele.'),
-                    ('Algo errado?', 'Use "Denunciar" no menu do item.'),
+                : [
+                    (tr('O que é'), tr('Os materiais que o seu professor indicou. Ao tocar em Abrir, você sai do Notemusic para o link dele.')),
+                    (tr('Algo errado?'), tr('Use "Denunciar" no menu do item.')),
                   ],
           ),
           const SizedBox(width: Ds.s8),
         ],
       ),
-      floatingActionButton: mine ? FloatingActionButton.extended(onPressed: () => _edit(null), icon: const Icon(Icons.add_link_rounded), label: const Text('Adicionar material')) : null,
+      floatingActionButton: mine ? FloatingActionButton.extended(onPressed: () => _edit(null), icon: const Icon(Icons.add_link_rounded), label: Text(tr('Adicionar material'))) : null,
       body: SafeArea(
         child: ListenableBuilder(
           listenable: app,
@@ -157,8 +157,8 @@ class _LibraryPageState extends State<LibraryPage> {
                 SegmentedButton<String>(
                   showSelectedIcon: false,
                   segments: [
-                    ButtonSegment(value: 'a', icon: const Icon(Icons.menu_book_rounded, size: 18), label: Text('Acervo · $nA')),
-                    ButtonSegment(value: 'r', icon: const Icon(Icons.library_music_rounded, size: 18), label: Text('Repertório · $nR')),
+                    ButtonSegment(value: 'a', icon: const Icon(Icons.menu_book_rounded, size: 18), label: Text(tr('Acervo · {0}', [nA]))),
+                    ButtonSegment(value: 'r', icon: const Icon(Icons.library_music_rounded, size: 18), label: Text(tr('Repertório · {0}', [nR]))),
                   ],
                   selected: {_kind},
                   onSelectionChanged: (s) => setState(() {
@@ -172,7 +172,7 @@ class _LibraryPageState extends State<LibraryPage> {
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(children: [
-                      ChoiceChip(label: const Text('Todas'), selected: _folder == null, onSelected: (_) => setState(() => _folder = null)),
+                      ChoiceChip(label: Text(tr('Todas')), selected: _folder == null, onSelected: (_) => setState(() => _folder = null)),
                       for (final f in folders) ...[
                         const SizedBox(width: Ds.s8),
                         ChoiceChip(label: Text(f), selected: _folder == f, onSelected: (_) => setState(() => _folder = f)),
@@ -184,9 +184,9 @@ class _LibraryPageState extends State<LibraryPage> {
                 if (_loading && all.isEmpty)
                   const Padding(padding: EdgeInsets.all(Ds.sectionGap), child: Center(child: CircularProgressIndicator()))
                 else if (_failed && all.isEmpty)
-                  _note(Icons.cloud_off_outlined, 'Não consegui carregar.', action: TextButton(onPressed: _load, child: const Text('Tentar de novo')))
+                  _note(Icons.cloud_off_outlined, tr('Não consegui carregar.'), action: TextButton(onPressed: _load, child: Text(tr('Tentar de novo'))))
                 else if (shown.isEmpty)
-                  _note(Icons.folder_open_rounded, mine ? 'Nada aqui ainda. Toque em "Adicionar material".' : 'Seu professor ainda não indicou nada aqui.')
+                  _note(Icons.folder_open_rounded, mine ? tr('Nada aqui ainda. Toque em "Adicionar material".') : tr('Seu professor ainda não indicou nada aqui.'))
                 else
                   for (final f in libraryFolders(shown)) ...[
                     Padding(
@@ -217,7 +217,7 @@ class _LibraryPageState extends State<LibraryPage> {
     final focus = (widget.focusTitle ?? '').trim().toLowerCase() == i.title.trim().toLowerCase();
     final host = (Uri.tryParse(i.url)?.host ?? '').replaceFirst('www.', '');
     final tag = mine && (i.to != null || i.hidden)
-        ? (i.hidden ? 'Escondido pelo administrador' : 'Só ${i.to!.length} aluno${i.to!.length == 1 ? '' : 's'}')
+        ? (i.hidden ? tr('Escondido pelo administrador') : tr('Só {0} aluno{1}', [i.to!.length, i.to!.length == 1 ? '' : 's']))
         : null;
     return Padding(
       padding: const EdgeInsets.only(bottom: Ds.s8),
@@ -247,7 +247,7 @@ class _LibraryPageState extends State<LibraryPage> {
                     child: Row(children: [
                       Icon(Icons.open_in_new_rounded, size: 14, color: AppColors.accent),
                       const SizedBox(width: Ds.s4),
-                      Flexible(child: Text(host.isEmpty ? 'Abrir' : host, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, color: AppColors.accent, fontWeight: FontWeight.w600))),
+                      Flexible(child: Text(host.isEmpty ? tr('Abrir') : host, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, color: AppColors.accent, fontWeight: FontWeight.w600))),
                       if (tag != null) ...[
                         const SizedBox(width: Ds.s8),
                         Text('·', style: TextStyle(color: AppColors.textDim)),
@@ -259,15 +259,15 @@ class _LibraryPageState extends State<LibraryPage> {
                 ]),
               ),
               PopupMenuButton<String>(
-                tooltip: 'Mais',
+                tooltip: tr('Mais'),
                 onSelected: (v) {
                   if (v == 'edit') _edit(i);
                   if (v == 'del') _delete(i);
                   if (v == 'rep') _report(i);
                 },
                 itemBuilder: (c) => mine
-                    ? const [PopupMenuItem(value: 'edit', child: Text('Editar')), PopupMenuItem(value: 'del', child: Text('Apagar'))]
-                    : const [PopupMenuItem(value: 'rep', child: Text('Denunciar'))],
+                    ? [PopupMenuItem(value: 'edit', child: Text(tr('Editar'))), PopupMenuItem(value: 'del', child: Text(tr('Apagar')))]
+                    : [PopupMenuItem(value: 'rep', child: Text(tr('Denunciar')))],
               ),
             ]),
           ),
@@ -310,10 +310,10 @@ class _ItemFormState extends State<_ItemForm> {
   }
 
   Future<void> _save() async {
-    if (title.text.trim().isEmpty) return setState(() => error = 'Falta o título.');
+    if (title.text.trim().isEmpty) return setState(() => error = tr('Falta o título.'));
     final u = libraryUrl(url.text);
-    if (u == null) return setState(() => error = 'Use um link https do Google Drive, Dropbox, OneDrive, IMSLP, CPDL ou YouTube.');
-    if (!declared) return setState(() => error = 'Confirme a declaração abaixo.');
+    if (u == null) return setState(() => error = tr('Use um link https do Google Drive, Dropbox, OneDrive, IMSLP, CPDL ou YouTube.'));
+    if (!declared) return setState(() => error = tr('Confirme a declaração abaixo.'));
     setState(() {
       busy = true;
       error = null;
@@ -322,7 +322,7 @@ class _ItemFormState extends State<_ItemForm> {
     final it = LibItem(
       id: id.length > 40 ? id.substring(0, 40) : id,
       kind: kind,
-      folder: folder.text.trim().isEmpty ? 'Geral' : folder.text.trim(),
+      folder: folder.text.trim().isEmpty ? tr('Geral') : folder.text.trim(),
       title: title.text.trim(),
       author: author.text.trim(),
       url: u,
@@ -355,8 +355,8 @@ class _ItemFormState extends State<_ItemForm> {
           Padding(
             padding: const EdgeInsets.fromLTRB(Ds.screenPad, 0, Ds.s12, Ds.s8),
             child: Row(children: [
-              Expanded(child: Text(widget.item == null ? 'Novo material' : 'Editar material', style: Ds.title())),
-              TextButton(onPressed: busy ? null : () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
+              Expanded(child: Text(widget.item == null ? tr('Novo material') : tr('Editar material'), style: Ds.title())),
+              TextButton(onPressed: busy ? null : () => Navigator.of(context).pop(false), child: Text(tr('Cancelar'))),
             ]),
           ),
           const Divider(height: 1),
@@ -367,19 +367,19 @@ class _ItemFormState extends State<_ItemForm> {
               children: [
                 SegmentedButton<String>(
                   showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment(value: 'a', label: Text('Acervo (método)')),
-                    ButtonSegment(value: 'r', label: Text('Repertório (peça)')),
+                  segments: [
+                    ButtonSegment(value: 'a', label: Text(tr('Acervo (método)'))),
+                    ButtonSegment(value: 'r', label: Text(tr('Repertório (peça)'))),
                   ],
                   selected: {kind},
                   onSelectionChanged: (s) => setState(() => kind = s.first),
                 ),
                 const DsGap(Ds.gap),
-                TextField(controller: title, maxLength: 80, textCapitalization: TextCapitalization.sentences, decoration: const InputDecoration(labelText: 'Título', hintText: 'Ex.: Estudos op. 45, Lição 5', counterText: '')),
+                TextField(controller: title, maxLength: 80, textCapitalization: TextCapitalization.sentences, decoration: InputDecoration(labelText: tr('Título'), hintText: tr('Ex.: Estudos op. 45, Lição 5'), counterText: '')),
                 const DsGap(Ds.s12),
-                TextField(controller: url, keyboardType: TextInputType.url, decoration: const InputDecoration(labelText: 'Link do material', hintText: 'https://drive.google.com/…', helperText: 'Drive, Dropbox, OneDrive, IMSLP, CPDL ou YouTube')),
+                TextField(controller: url, keyboardType: TextInputType.url, decoration: InputDecoration(labelText: tr('Link do material'), hintText: 'https://drive.google.com/…', helperText: tr('Drive, Dropbox, OneDrive, IMSLP, CPDL ou YouTube'))),
                 const DsGap(Ds.s12),
-                TextField(controller: folder, maxLength: 40, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: 'Pasta', hintText: kind == 'a' ? 'Ex.: Wohlfahrt' : 'Ex.: Vivaldi', counterText: '')),
+                TextField(controller: folder, maxLength: 40, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: tr('Pasta'), hintText: kind == 'a' ? tr('Ex.: Wohlfahrt') : tr('Ex.: Vivaldi'), counterText: '')),
                 if (folders.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: Ds.s4),
@@ -392,28 +392,28 @@ class _ItemFormState extends State<_ItemForm> {
                     tilePadding: EdgeInsets.zero,
                     childrenPadding: EdgeInsets.zero,
                     initiallyExpanded: author.text.isNotEmpty || note.text.isNotEmpty,
-                    title: Text('Mais detalhes (opcional)', style: Ds.section()),
+                    title: Text(tr('Mais detalhes (opcional)'), style: Ds.section()),
                     children: [
-                      TextField(controller: author, maxLength: 60, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Autor', counterText: '')),
+                      TextField(controller: author, maxLength: 60, textCapitalization: TextCapitalization.words, decoration: InputDecoration(labelText: tr('Autor'), counterText: '')),
                       const DsGap(Ds.s12),
-                      TextField(controller: note, maxLength: 300, maxLines: 2, decoration: const InputDecoration(labelText: 'Observação', counterText: '')),
+                      TextField(controller: note, maxLength: 300, maxLines: 2, decoration: InputDecoration(labelText: tr('Observação'), counterText: '')),
                       const DsGap(Ds.s8),
                     ],
                   ),
                 ),
                 const DsGap(Ds.s8),
-                Text('Quem vê', style: Ds.section()),
+                Text(tr('Quem vê'), style: Ds.section()),
                 const DsGap(Ds.s8),
                 SegmentedButton<bool>(
                   showSelectedIcon: false,
-                  segments: const [ButtonSegment(value: true, label: Text('Todos os alunos')), ButtonSegment(value: false, label: Text('Escolher'))],
+                  segments: [ButtonSegment(value: true, label: Text(tr('Todos os alunos'))), ButtonSegment(value: false, label: Text(tr('Escolher')))],
                   selected: {to == null},
                   onSelectionChanged: (s) => setState(() => to = s.first ? null : (to ?? <String>{})),
                 ),
                 if (to != null) ...[
                   const DsGap(Ds.s8),
                   if (students.isEmpty)
-                    Text('Você ainda não tem alunos com código.', style: Ds.support())
+                    Text(tr('Você ainda não tem alunos com código.'), style: Ds.support())
                   else
                     Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
                       for (final s in students)
@@ -430,11 +430,11 @@ class _ItemFormState extends State<_ItemForm> {
                   controlAffinity: ListTileControlAffinity.leading,
                   value: declared,
                   onChanged: (v) => setState(() => declared = v ?? false),
-                  title: const Text('Tenho o direito de compartilhar este material (domínio público, meu ou com autorização).', style: TextStyle(fontSize: Ds.fontSupport)),
+                  title: Text(tr('Tenho o direito de compartilhar este material (domínio público, meu ou com autorização).'), style: TextStyle(fontSize: Ds.fontSupport)),
                 ),
                 if (error != null) Padding(padding: const EdgeInsets.only(top: Ds.s8), child: Text(error!, style: TextStyle(color: AppColors.sharp, fontWeight: FontWeight.w700))),
                 const DsGap(Ds.s16),
-                DsPrimaryButton(onPressed: busy ? null : _save, icon: Icons.check_rounded, label: busy ? 'Salvando…' : 'Salvar'),
+                DsPrimaryButton(onPressed: busy ? null : _save, icon: Icons.check_rounded, label: busy ? tr('Salvando…') : tr('Salvar')),
               ],
             ),
           ),

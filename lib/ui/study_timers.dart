@@ -13,24 +13,21 @@ class StudyTimerSection extends StatelessWidget {
   final AppState app;
   const StudyTimerSection({super.key, required this.app});
 
-  static const _info = {
+  static final _info = {
     StudyMode.pomodoro: (
       Icons.local_fire_department_outlined,
-      'Pomodoro: foco e descanso em ciclos',
-      'Estude 25 minutos concentrado, descanse 5 e repita; a cada 4 ciclos há uma pausa maior. '
-          'Bom para manter a concentração e não esquecer de descansar.'
+      tr('Pomodoro: foco e descanso em ciclos'),
+      tr('Estude 25 minutos concentrado, descanse 5 e repita; a cada 4 ciclos há uma pausa maior. Bom para manter a concentração e não esquecer de descansar.')
     ),
     StudyMode.stopwatch: (
       Icons.av_timer,
-      'Cronômetro: só contar o seu tempo',
-      'Mede quanto tempo você estudou, sem alarme e sem ciclos. Toque em Iniciar ao começar e em '
-          'Pausar ao terminar. Bom para quem prefere estudar livremente.'
+      tr('Cronômetro: só contar o seu tempo'),
+      tr('Mede quanto tempo você estudou, sem alarme e sem ciclos. Toque em Iniciar ao começar e em Pausar ao terminar. Bom para quem prefere estudar livremente.')
     ),
     StudyMode.custom: (
       Icons.hourglass_bottom,
-      'Meu tempo: sessão com duração escolhida',
-      'Você define a duração (por exemplo, 40 minutos) e o app avisa no fim. Sem ciclos de '
-          'descanso. Bom para ensaios e para estudos com hora marcada.'
+      tr('Meu tempo: sessão com duração escolhida'),
+      tr('Você define a duração (por exemplo, 40 minutos) e o app avisa no fim. Sem ciclos de descanso. Bom para ensaios e para estudos com hora marcada.')
     ),
   };
 
@@ -47,12 +44,12 @@ class StudyTimerSection extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(children: [
-                    const Expanded(
-                      child: Text('Como você quer estudar?',
+                    Expanded(
+                      child: Text(tr('Como você quer estudar?'),
                           style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
                     ),
                     HelpButton(
-                      title: 'Pomodoro, Cronômetro ou Meu tempo?',
+                      title: tr('Pomodoro, Cronômetro ou Meu tempo?'),
                       sections: [for (final e in _info.values) (e.$2, e.$3)],
                     ),
                   ]),
@@ -67,10 +64,10 @@ class StudyTimerSection extends StatelessWidget {
                             TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                         padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 6)),
                       ),
-                      segments: const [
-                        ButtonSegment(value: StudyMode.pomodoro, label: Text('Pomodoro')),
-                        ButtonSegment(value: StudyMode.stopwatch, label: Text('Cronômetro')),
-                        ButtonSegment(value: StudyMode.custom, label: Text('Meu tempo')),
+                      segments: [
+                        ButtonSegment(value: StudyMode.pomodoro, label: Text(tr('Pomodoro'))),
+                        ButtonSegment(value: StudyMode.stopwatch, label: Text(tr('Cronômetro'))),
+                        ButtonSegment(value: StudyMode.custom, label: Text(tr('Meu tempo'))),
                       ],
                       selected: {m},
                       onSelectionChanged: (s) => app.setStudyMode(s.first),
@@ -106,7 +103,7 @@ class _StopwatchCard extends StatelessWidget {
           final ms = c.elapsedMs(DateTime.now().millisecondsSinceEpoch);
           return Column(
             children: [
-              Text(c.running ? 'Contando seu estudo…' : (ms > 0 ? 'Pausado' : 'Pronto para começar'),
+              Text(c.running ? tr('Contando seu estudo…') : (ms > 0 ? tr('Pausado') : tr('Pronto para começar')),
                   style: TextStyle(color: AppColors.textDim)),
               const SizedBox(height: 6),
               Text(formatClock(ms),
@@ -115,9 +112,9 @@ class _StopwatchCard extends StatelessWidget {
                       fontWeight: FontWeight.w800,
                       fontFeatures: [FontFeature.tabularFigures()])),
               const SizedBox(height: 12),
-              _clockButtons(app, c, startLabel: ms > 0 ? 'Continuar' : 'Iniciar'),
+              _clockButtons(app, c, startLabel: ms > 0 ? tr('Continuar') : tr('Iniciar')),
               const SizedBox(height: 6),
-              Text('O tempo vai para o seu total de hoje enquanto o cronômetro roda.',
+              Text(tr('O tempo vai para o seu total de hoje enquanto o cronômetro roda.'),
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
             ],
@@ -137,18 +134,18 @@ class _CustomCard extends StatelessWidget {
     final v = await showDialog<int>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Quantos minutos?'),
+        title: Text(tr('Quantos minutos?')),
         content: TextField(
           controller: ctl,
           autofocus: true,
           keyboardType: TextInputType.number,
           inputFormatters: digitsFormatters(4),
-          decoration: const InputDecoration(suffixText: 'min', helperText: 'De 1 a 600 minutos'),
+          decoration: InputDecoration(suffixText: 'min', helperText: tr('De 1 a 600 minutos')),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(c), child: Text(tr('Cancelar'))),
           FilledButton.icon(
-              onPressed: () => Navigator.pop(c, int.tryParse(ctl.text)), icon: const Icon(Icons.check, size: 18), label: const Text('Aplicar')),
+              onPressed: () => Navigator.pop(c, int.tryParse(ctl.text)), icon: const Icon(Icons.check, size: 18), label: Text(tr('Aplicar'))),
         ],
       ),
     );
@@ -182,7 +179,7 @@ class _CustomCard extends StatelessWidget {
                     ),
                   ChoiceChip(
                     avatar: const Icon(Icons.edit, size: 15),
-                    label: Text(presets.contains(app.customMinutes) ? 'Outro…' : '${app.customMinutes} min'),
+                    label: Text(presets.contains(app.customMinutes) ? tr('Outro…') : '${app.customMinutes} min'),
                     selected: !presets.contains(app.customMinutes),
                     onSelected: c.running ? null : (_) => _other(context),
                   ),
@@ -191,8 +188,8 @@ class _CustomCard extends StatelessWidget {
               const SizedBox(height: 14),
               Text(
                   done
-                      ? 'Sessão concluída! Bom trabalho.'
-                      : (c.running ? 'Estudando…' : (c.elapsedMs(now) > 0 ? 'Pausado' : 'Pronto para começar')),
+                      ? tr('Sessão concluída! Bom trabalho.')
+                      : (c.running ? tr('Estudando…') : (c.elapsedMs(now) > 0 ? tr('Pausado') : tr('Pronto para começar'))),
                   style: TextStyle(color: done ? AppColors.inTune : AppColors.textDim)),
               const SizedBox(height: 6),
               Text(formatClock(left),
@@ -212,7 +209,7 @@ class _CustomCard extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               _clockButtons(app, c,
-                  startLabel: c.elapsedMs(now) > 0 && !done ? 'Continuar' : 'Iniciar', done: done),
+                  startLabel: c.elapsedMs(now) > 0 && !done ? tr('Continuar') : tr('Iniciar'), done: done),
             ],
           );
         },
@@ -233,7 +230,7 @@ Widget _clockButtons(AppState app, StudyClock c, {required String startLabel, bo
               ? () => app.clockReset(c)
               : (c.running ? () => app.clockPause(c) : () => app.clockStart(c)),
           icon: Icon(done ? Icons.replay : (c.running ? Icons.pause : Icons.play_arrow)),
-          label: Text(done ? 'Nova sessão' : (c.running ? 'Pausar' : startLabel),
+          label: Text(done ? tr('Nova sessão') : (c.running ? tr('Pausar') : startLabel),
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
         ),
       ),
@@ -244,7 +241,7 @@ Widget _clockButtons(AppState app, StudyClock c, {required String startLabel, bo
           style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
           onPressed: () => app.clockReset(c),
           icon: const Icon(Icons.restart_alt),
-          label: const FittedBox(fit: BoxFit.scaleDown, child: Text('Reiniciar')),
+          label: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('Reiniciar'))),
         ),
       ),
     ],

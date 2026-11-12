@@ -17,8 +17,8 @@ import 'theme.dart';
 import 'tuning_pick.dart';
 import 'widgets.dart';
 
-const String kAppName = 'Notemusic';
-const String kAppVersion = '0.1 (protótipo)';
+final String kAppName = 'Notemusic';
+final String kAppVersion = tr('0.1 (protótipo)');
 
 /// E-mail de contato mostrado na política de privacidade. Defina a variável `CONTACT_EMAIL`
 /// na Vercel (e faça um novo deploy); vazio, o app orienta a usar o botão Avaliar o app.
@@ -36,36 +36,36 @@ class SettingsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Ajustes')),
+      appBar: AppBar(title: Text(tr('Ajustes'))),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: Listenable.merge([app, app.feedback]),
           builder: (context, _) {
-            final themeName = switch (app.themeMode) { ThemeMode.light => 'Claro', ThemeMode.dark => 'Escuro', _ => 'Automático' };
-            final soundName = const {ClickSound.click: 'Clique', ClickSound.wood: 'Madeira', ClickSound.clave: 'Clave', ClickSound.drum: 'Tambor', ClickSound.beep: 'Bipe'}[app.metro.sound] ?? 'Clique';
-            final micName = switch (app.micGranted) { true => 'Liberado', false => 'Sem permissão', null => 'Ainda não verificado' };
+            final themeName = switch (app.themeMode) { ThemeMode.light => tr('Claro'), ThemeMode.dark => tr('Escuro'), _ => tr('Automático') };
+            final soundName = {ClickSound.click: tr('Clique'), ClickSound.wood: tr('Madeira'), ClickSound.clave: tr('Clave'), ClickSound.drum: tr('Tambor'), ClickSound.beep: tr('Bipe')}[app.metro.sound] ?? tr('Clique');
+            final micName = switch (app.micGranted) { true => tr('Liberado'), false => tr('Sem permissão'), null => tr('Ainda não verificado') };
             return ListView(
               padding: Ds.screen,
               children: [
                 _header(),
                 const DsGap(Ds.gap),
                 _navCard([
-                  DsNavRow(Icons.palette_rounded, 'Aparência e tela', '$themeName${app.keepAwake ? ' · tela acesa' : ''}', () => _open(context, 'Aparência e tela', (c) => _appearanceList())),
-                  DsNavRow(Icons.straighten, 'Afinação', tuningSummary(app), () => _open(context, 'Afinação', (c) => [_tuningBasic(c)])),
-                  DsNavRow(Icons.graphic_eq_rounded, 'Som de referência', app.toneTimbre == ToneTimbre.fork ? 'Diapasão' : 'Flauta', () => _open(context, 'Som de referência', (c) => [_tone()])),
-                  DsNavRow(Icons.abc_rounded, 'Nomes das notas', app.transpose == 0 ? 'Som real' : 'Transpositor', () => _open(context, 'Nomes das notas', (c) => [_names()])),
-                  DsNavRow(Icons.mic_none_rounded, 'Microfone', micName, () => _open(context, 'Microfone', (c) => [MicSettingsContent(app: app)])),
-                  DsNavRow(Icons.timer_outlined, 'Metrônomo', soundName, () => _open(context, 'Metrônomo', (c) => [_metronome()])),
-                  DsNavRow(Icons.grid_view_rounded, 'Grade', 'Memória ${const {HistoryMode.short: '1 s', HistoryMode.medium: '3 s', HistoryMode.long: '30 s', HistoryMode.unlimited: 'da sessão'}[app.history]}', () => _open(context, 'Grade', (c) => [_grid()])),
-                  DsNavRow(Icons.auto_stories_rounded, 'Estudo', 'Meta ${app.dailyGoalMinutes.round()} min', () => _open(context, 'Estudo', (c) => [_study(c)])),
+                  DsNavRow(Icons.palette_rounded, tr('Aparência e tela'), '$themeName${app.keepAwake ? tr(' · tela acesa') : ''}', () => _open(context, tr('Aparência e tela'), (c) => _appearanceList())),
+                  DsNavRow(Icons.straighten, tr('Afinação'), tuningSummary(app), () => _open(context, tr('Afinação'), (c) => [_tuningBasic(c)])),
+                  DsNavRow(Icons.graphic_eq_rounded, tr('Som de referência'), app.toneTimbre == ToneTimbre.fork ? tr('Diapasão') : tr('Flauta'), () => _open(context, tr('Som de referência'), (c) => [_tone()])),
+                  DsNavRow(Icons.abc_rounded, tr('Nomes das notas'), app.transpose == 0 ? tr('Som real') : tr('Transpositor'), () => _open(context, tr('Nomes das notas'), (c) => [_names()])),
+                  DsNavRow(Icons.mic_none_rounded, tr('Microfone'), micName, () => _open(context, tr('Microfone'), (c) => [MicSettingsContent(app: app)])),
+                  DsNavRow(Icons.timer_outlined, tr('Metrônomo'), soundName, () => _open(context, tr('Metrônomo'), (c) => [_metronome()])),
+                  DsNavRow(Icons.grid_view_rounded, tr('Grade'), tr('Memória {0}', [{HistoryMode.short: tr('1 s'), HistoryMode.medium: tr('3 s'), HistoryMode.long: tr('30 s'), HistoryMode.unlimited: tr('da sessão')}[app.history]]), () => _open(context, tr('Grade'), (c) => [_grid()])),
+                  DsNavRow(Icons.auto_stories_rounded, tr('Estudo'), tr('Meta {0} min', [app.dailyGoalMinutes.round()]), () => _open(context, tr('Estudo'), (c) => [_study(c)])),
                 ]),
                 const DsGap(Ds.gap),
                 _navCard([
-                  DsNavRow(Icons.verified_user_outlined, 'Permissões e privacidade', micName, () => _open(context, 'Permissões e privacidade', (c) => [_permissions(c)])),
-                  DsNavRow(Icons.info_outline_rounded, 'Sobre o app', app.updateAvailable ? 'Versão nova disponível' : 'Versão $kAppVersion', () => _open(context, 'Sobre o app', (c) => [_about(c)]),
+                  DsNavRow(Icons.verified_user_outlined, tr('Permissões e privacidade'), micName, () => _open(context, tr('Permissões e privacidade'), (c) => [_permissions(c)])),
+                  DsNavRow(Icons.info_outline_rounded, tr('Sobre o app'), app.updateAvailable ? tr('Versão nova disponível') : tr('Versão {0}', [kAppVersion]), () => _open(context, tr('Sobre o app'), (c) => [_about(c)]),
                       alert: app.updateAvailable),
-                  DsNavRow(Icons.bug_report_outlined, 'Problemas e diagnóstico', app.errorLog.items.isEmpty ? 'Nenhum problema' : '${app.errorLog.items.length} registrado(s)', () => _open(context, 'Problemas e diagnóstico', (c) => [_diagnostics(c)])),
-                  DsNavRow(Icons.restart_alt_rounded, 'Restaurar e apagar', 'Voltar ao início', () => _open(context, 'Restaurar e apagar', (c) => [_resetAll(c)])),
+                  DsNavRow(Icons.bug_report_outlined, tr('Problemas e diagnóstico'), app.errorLog.items.isEmpty ? tr('Nenhum problema') : tr('{0} registrado(s)', [app.errorLog.items.length]), () => _open(context, tr('Problemas e diagnóstico'), (c) => [_diagnostics(c)])),
+                  DsNavRow(Icons.restart_alt_rounded, tr('Restaurar e apagar'), tr('Voltar ao início'), () => _open(context, tr('Restaurar e apagar'), (c) => [_resetAll(c)])),
                 ]),
               ],
             );
@@ -97,8 +97,8 @@ class SettingsPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(kAppName, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                Text('Afine. Estude. Evolua.', style: Ds.support()),
+                Text(kAppName, style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                Text(tr('Afine. Estude. Evolua.'), style: Ds.support()),
               ],
             ),
           ),
@@ -106,24 +106,24 @@ class SettingsPage extends StatelessWidget {
       );
 
   List<Widget> _appearanceList() => [
-        DsSettingRow(label: 'Tema', child: SizedBox(width: double.infinity, child: _appearance())),
-        DsSettingRow(label: 'Idioma / Language', child: SizedBox(width: double.infinity, child: _language())),
-        _switch('Manter a tela acesa', 'Enquanto você ouve ou estuda.', app.keepAwake, app.setKeepAwake),
+        DsSettingRow(label: tr('Tema'), child: SizedBox(width: double.infinity, child: _appearance())),
+        DsSettingRow(label: tr('Idioma / Language'), child: SizedBox(width: double.infinity, child: _language())),
+        _switch(tr('Manter a tela acesa'), tr('Enquanto você ouve ou estuda.'), app.keepAwake, app.setKeepAwake),
       ];
 
   Widget _diagnostics(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.bug_report_outlined),
-          title: const Text('Problemas recentes'),
-          subtitle: Text(app.errorLog.items.isEmpty ? 'Nenhum problema registrado' : '${app.errorLog.items.length} registrado(s)'),
+          title: Text(tr('Problemas recentes')),
+          subtitle: Text(app.errorLog.items.isEmpty ? tr('Nenhum problema registrado') : tr('{0} registrado(s)', [app.errorLog.items.length])),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ProblemsPage(app: app))),
         ),
         const Divider(height: Ds.sectionGap),
         Row(children: [
-          const Expanded(child: Text('Enviar relatório de erro', style: TextStyle(fontWeight: FontWeight.w700))),
-          HelpButton(title: 'Relatório de erro', sections: const [('O que vai', 'Só dados técnicos: nada de nome, código de perfil, áudio ou o que você toca.')]),
+          Expanded(child: Text(tr('Enviar relatório de erro'), style: TextStyle(fontWeight: FontWeight.w700))),
+          HelpButton(title: tr('Relatório de erro'), sections: [(tr('O que vai'), tr('Só dados técnicos: nada de nome, código de perfil, áudio ou o que você toca.'))]),
         ]),
         const SizedBox(height: Ds.s8),
         Wrap(spacing: 8, children: [
@@ -138,17 +138,17 @@ class SettingsPage extends StatelessWidget {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.science_outlined),
-            title: const Text('Simular erro (teste)'),
+            title: Text(tr('Simular erro (teste)')),
             onTap: () => Future<void>.error(StateError('erro de teste com K7QM-4TXK e ana@exemplo.com')),
           ),
         if (kDevDemo)
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.science_outlined),
-            title: const Text('Ver tela de erro crítico (teste)'),
+            title: Text(tr('Ver tela de erro crítico (teste)')),
             onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
               builder: (c) => CriticalErrorPage(
-                error: AppError(code: 'APP-99', severity: ErrorSeverity.critical, where: 'Início do app', detail: 'StateError: teste', atMs: DateTime.now().millisecondsSinceEpoch),
+                error: AppError(code: 'APP-99', severity: ErrorSeverity.critical, where: tr('Início do app'), detail: 'StateError: teste', atMs: DateTime.now().millisecondsSinceEpoch),
                 onRetry: () => Navigator.pop(c),
               ),
             )),
@@ -184,8 +184,8 @@ class SettingsPage extends StatelessWidget {
         showSelectedIcon: false,
         segments: [
           ButtonSegment(value: 'auto', icon: const Icon(Icons.language), label: Text(tr('Auto'))),
-          const ButtonSegment(value: 'pt', label: Text('Português')),
-          const ButtonSegment(value: 'en', label: Text('English')),
+          ButtonSegment(value: 'pt', label: Text('Português')),
+          ButtonSegment(value: 'en', label: Text('English')),
         ],
         selected: {app.langPref},
         onSelectionChanged: (s) => app.setLangPref(s.first),
@@ -193,10 +193,10 @@ class SettingsPage extends StatelessWidget {
 
   Widget _appearance() => SegmentedButton<ThemeMode>(
         showSelectedIcon: false,
-        segments: const [
-          ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.brightness_auto), label: Text('Auto')),
-          ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode), label: Text('Claro')),
-          ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode), label: Text('Escuro')),
+        segments: [
+          ButtonSegment(value: ThemeMode.system, icon: Icon(Icons.brightness_auto), label: Text(tr('Auto'))),
+          ButtonSegment(value: ThemeMode.light, icon: Icon(Icons.light_mode), label: Text(tr('Claro'))),
+          ButtonSegment(value: ThemeMode.dark, icon: Icon(Icons.dark_mode), label: Text(tr('Escuro'))),
         ],
         selected: {app.themeMode},
         onSelectionChanged: (s) => app.setThemeMode(s.first),
@@ -240,23 +240,23 @@ class SettingsPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _label('Lá de referência', null, const HelpButton(title: 'Lá de referência', sections: Help.refA)),
+        _label(tr('Lá de referência'), null, HelpButton(title: tr('Lá de referência'), sections: Help.refA)),
         Wrap(spacing: 6, runSpacing: 4, children: [
           for (final hz in refs)
             ChoiceChip(label: Text('${hz.round()} Hz'), selected: app.refA == hz, onSelected: (_) => app.setTuning(refA: hz)),
           refAOtherChip(context, app, refs),
         ]),
-        _label('Instrumento padrão'),
+        _label(tr('Instrumento padrão')),
         PickerField<String>(
-          label: 'Instrumento',
+          label: tr('Instrumento'),
           value: app.instrumentId,
           options: instrumentOptions(app.cfg),
           onChanged: (v) => app.setTuning(instrumentId: v),
         ),
-        _label('Sistema de afinação', null, const HelpButton(title: 'Qual sistema de afinação?', sections: Help.system, footer: Help.systemFooter)),
-        _choice('Igual', 'Piano, violão e trastes.', app.system == TuningSystem.equal, () => app.setTuning(system: TuningSystem.equal)),
-        _choice('Pitagórico', 'Arco e melodias.', app.system == TuningSystem.pythagorean, () => app.setTuning(system: TuningSystem.pythagorean)),
-        _choice('Justo', 'Acordes e conjunto.', app.system == TuningSystem.just, () => app.setTuning(system: TuningSystem.just)),
+        _label(tr('Sistema de afinação'), null, HelpButton(title: tr('Qual sistema de afinação?'), sections: Help.system, footer: Help.systemFooter)),
+        _choice(tr('Igual'), tr('Piano, violão e trastes.'), app.system == TuningSystem.equal, () => app.setTuning(system: TuningSystem.equal)),
+        _choice(tr('Pitagórico'), tr('Arco e melodias.'), app.system == TuningSystem.pythagorean, () => app.setTuning(system: TuningSystem.pythagorean)),
+        _choice(tr('Justo'), tr('Acordes e conjunto.'), app.system == TuningSystem.just, () => app.setTuning(system: TuningSystem.just)),
       ],
     );
   }
@@ -265,13 +265,13 @@ class SettingsPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _choice('Diapasão', 'Som puro, para afinar de ouvido.', app.toneTimbre == ToneTimbre.fork, () => app.setToneTimbre(ToneTimbre.fork)),
-        _choice('Flauta', 'Mais cheio no celular.', app.toneTimbre == ToneTimbre.soft, () => app.setToneTimbre(ToneTimbre.soft)),
-        _label('Volume: ${(app.toneVolume * 100).round()}%'),
+        _choice(tr('Diapasão'), tr('Som puro, para afinar de ouvido.'), app.toneTimbre == ToneTimbre.fork, () => app.setToneTimbre(ToneTimbre.fork)),
+        _choice(tr('Flauta'), tr('Mais cheio no celular.'), app.toneTimbre == ToneTimbre.soft, () => app.setToneTimbre(ToneTimbre.soft)),
+        _label(tr('Volume: {0}%', [(app.toneVolume * 100).round()])),
         Slider(min: 0.2, max: 1.0, value: app.toneVolume.clamp(0.2, 1.0), onChanged: app.setToneVolume),
         Align(
           alignment: Alignment.centerLeft,
-          child: OutlinedButton.icon(onPressed: app.testLowTone, icon: const Icon(Icons.volume_up, size: 20), label: const Text('Testar com o Sol3')),
+          child: OutlinedButton.icon(onPressed: app.testLowTone, icon: const Icon(Icons.volume_up, size: 20), label: Text(tr('Testar com o Sol3'))),
         ),
       ],
     );
@@ -281,22 +281,22 @@ class SettingsPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _label('Instrumento transpositor'),
+        _label(tr('Instrumento transpositor')),
         PickerField<int>(
-          label: 'Transpositor',
+          label: tr('Transpositor'),
           value: app.transpose,
-          options: const [
-            OptionItem(0, 'Som real (dó)', subtitle: 'Violino, viola, cello, piano, flauta, oboé'),
-            OptionItem(2, 'Si♭', subtitle: 'Clarinete, trompete, sax soprano e tenor'),
-            OptionItem(3, 'Lá', subtitle: 'Clarinete em Lá'),
-            OptionItem(5, 'Sol', subtitle: 'Flauta alto'),
-            OptionItem(7, 'Fá', subtitle: 'Trompa, corne inglês'),
-            OptionItem(9, 'Mi♭', subtitle: 'Sax alto e barítono'),
-            OptionItem(12, 'Oitava acima', subtitle: 'Violão, guitarra e contrabaixo'),
+          options: [
+            OptionItem(0, tr('Som real (dó)'), subtitle: tr('Violino, viola, cello, piano, flauta, oboé')),
+            OptionItem(2, tr('Si♭'), subtitle: tr('Clarinete, trompete, sax soprano e tenor')),
+            OptionItem(3, tr('Lá'), subtitle: tr('Clarinete em Lá')),
+            OptionItem(5, tr('Sol'), subtitle: tr('Flauta alto')),
+            OptionItem(7, tr('Fá'), subtitle: tr('Trompa, corne inglês')),
+            OptionItem(9, tr('Mi♭'), subtitle: tr('Sax alto e barítono')),
+            OptionItem(12, tr('Oitava acima'), subtitle: tr('Violão, guitarra e contrabaixo')),
           ],
           onChanged: (v) => app.setTuning(transpose: v),
         ),
-        _label('Sustenidos e bemóis'),
+        _label(tr('Sustenidos e bemóis')),
         SpellingPicker(app: app),
       ],
     );
@@ -307,18 +307,18 @@ class SettingsPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _switch('Piscar a tela na batida', 'Um clarão a cada tempo.',
+        _switch(tr('Piscar a tela na batida'), tr('Um clarão a cada tempo.'),
             app.flashEnabled, (v) => app.setTuning(flashEnabled: v)),
-        _switch('Vibrar na batida', 'Só no celular Android.',
+        _switch(tr('Vibrar na batida'), tr('Só no celular Android.'),
             app.hapticEnabled, (v) => app.setTuning(hapticEnabled: v)),
-        _label('Som do metrônomo'),
+        _label(tr('Som do metrônomo')),
         Wrap(spacing: 6, runSpacing: 4, children: [
-          for (final e in const {
-            ClickSound.click: 'Clique',
-            ClickSound.wood: 'Madeira',
-            ClickSound.clave: 'Clave',
-            ClickSound.drum: 'Tambor',
-            ClickSound.beep: 'Bipe',
+          for (final e in {
+            ClickSound.click: tr('Clique'),
+            ClickSound.wood: tr('Madeira'),
+            ClickSound.clave: tr('Clave'),
+            ClickSound.drum: tr('Tambor'),
+            ClickSound.beep: tr('Bipe'),
           }.entries)
             ChoiceChip(
               label: Text(e.value),
@@ -326,14 +326,14 @@ class SettingsPage extends StatelessWidget {
               onSelected: (_) => app.setMetro(m.copyWith(sound: e.key)),
             ),
         ]),
-        _label('Volume'),
+        _label(tr('Volume')),
         Slider(
           min: 0.1,
           max: 1.0,
           value: m.volume.clamp(0.1, 1.0),
           onChanged: (v) => app.setMetro(m.copyWith(volume: v)),
         ),
-        _label('Sincronia: ${app.outputLatencyMs.round()} ms', 'Aumente se a luz vier antes do som (fone Bluetooth).'),
+        _label(tr('Sincronia: {0} ms', [app.outputLatencyMs.round()]), tr('Aumente se a luz vier antes do som (fone Bluetooth).')),
         Slider(
           min: 0,
           max: 250,
@@ -349,14 +349,14 @@ class SettingsPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _switch('Mostrar frequência', 'Os Hz da nota que você toca.', app.showFreq, app.setShowFreq),
-        _label('Memória da nota'),
+        _switch(tr('Mostrar frequência'), tr('Os Hz da nota que você toca.'), app.showFreq, app.setShowFreq),
+        _label(tr('Memória da nota')),
         Wrap(spacing: 6, runSpacing: 4, children: [
-          for (final e in const {
-            HistoryMode.short: '1 s',
-            HistoryMode.medium: '3 s',
-            HistoryMode.long: '30 s',
-            HistoryMode.unlimited: 'Sessão toda',
+          for (final e in {
+            HistoryMode.short: tr('1 s'),
+            HistoryMode.medium: tr('3 s'),
+            HistoryMode.long: tr('30 s'),
+            HistoryMode.unlimited: tr('Sessão toda'),
           }.entries)
             ChoiceChip(
               label: Text(e.value),
@@ -364,9 +364,9 @@ class SettingsPage extends StatelessWidget {
               onSelected: (_) => app.setTuning(history: e.key),
             ),
         ]),
-        _label('Cor fica na tela por'),
+        _label(tr('Cor fica na tela por')),
         Wrap(spacing: 6, runSpacing: 4, children: [
-          for (final e in {10.0: '10 s', 30.0: '30 s', 120.0: '2 min', 0.0: 'Até zerar'}.entries)
+          for (final e in {10.0: tr('10 s'), 30.0: tr('30 s'), 120.0: tr('2 min'), 0.0: tr('Até zerar')}.entries)
             ChoiceChip(
               label: Text(e.value),
               selected: app.holdSeconds == e.key,
@@ -381,7 +381,7 @@ class SettingsPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _label('Meta diária: ${app.dailyGoalMinutes.round()} min'),
+        _label(tr('Meta diária: {0} min', [app.dailyGoalMinutes.round()])),
         Slider(
           min: 5,
           max: 120,
@@ -391,16 +391,16 @@ class SettingsPage extends StatelessWidget {
         ),
         OutlinedButton.icon(
           onPressed: () async {
-            final ok = await _confirm(context, 'Apagar histórico?',
-                'Remove o tempo de estudo e as escalas salvas deste aparelho. Não dá para desfazer.',
-                'Apagar');
+            final ok = await _confirm(context, tr('Apagar histórico?'),
+                tr('Remove o tempo de estudo e as escalas salvas deste aparelho. Não dá para desfazer.'),
+                tr('Apagar'));
             if (ok) {
               await app.clearHistory();
-              app.say('Histórico apagado');
+              app.say(tr('Histórico apagado'));
             }
           },
           icon: const Icon(Icons.delete_outline),
-          label: const Text('Apagar histórico'),
+          label: Text(tr('Apagar histórico')),
         ),
       ],
     );
@@ -413,11 +413,11 @@ class SettingsPage extends StatelessWidget {
       children: [
         OutlinedButton.icon(
           onPressed: () async {
-            final ok = await _confirm(context, 'Restaurar padrões?', 'Os ajustes voltam ao início. O histórico de estudo é mantido.', 'Restaurar');
+            final ok = await _confirm(context, tr('Restaurar padrões?'), tr('Os ajustes voltam ao início. O histórico de estudo é mantido.'), tr('Restaurar'));
             if (ok) await app.resetSettings();
           },
           icon: const Icon(Icons.settings_backup_restore),
-          label: const Text('Restaurar ajustes'),
+          label: Text(tr('Restaurar ajustes')),
         ),
         const DsGap(Ds.s12),
         FilledButton.icon(
@@ -425,16 +425,16 @@ class SettingsPage extends StatelessWidget {
           onPressed: () async {
             final ok = await _confirm(
                 context,
-                'Apagar tudo e recomeçar?',
-                'Apaga neste aparelho os ajustes, o histórico, as análises de IA e o cache. O app volta ao primeiro uso. Não dá para desfazer.',
-                'Apagar tudo');
+                tr('Apagar tudo e recomeçar?'),
+                tr('Apaga neste aparelho os ajustes, o histórico, as análises de IA e o cache. O app volta ao primeiro uso. Não dá para desfazer.'),
+                tr('Apagar tudo'));
             if (ok) await app.resetEverything();
           },
           icon: const Icon(Icons.delete_forever_outlined),
-          label: const Text('Apagar tudo e recomeçar', style: TextStyle(fontWeight: FontWeight.w700)),
+          label: Text(tr('Apagar tudo e recomeçar'), style: TextStyle(fontWeight: FontWeight.w700)),
         ),
         const DsGap(Ds.s8),
-        Text('Use se algo estiver estranho.', style: Ds.support()),
+        Text(tr('Use se algo estiver estranho.'), style: Ds.support()),
       ],
     );
   }
@@ -448,11 +448,11 @@ class SettingsPage extends StatelessWidget {
           false => (Icons.cancel, AppColors.sharp, no),
           null => (Icons.help_outline, AppColors.textDim, unknown),
         };
-    final (micIcon, micColor, micStatus) = st(g, 'Liberado', 'Sem permissão', 'Não verificado');
-    final (camIcon, camColor, camStatus) = st(cam, 'Liberada', 'Sem permissão', 'Ainda não pedida');
+    final (micIcon, micColor, micStatus) = st(g, tr('Liberado'), tr('Sem permissão'), tr('Não verificado'));
+    final (camIcon, camColor, camStatus) = st(cam, tr('Liberada'), tr('Sem permissão'), tr('Ainda não pedida'));
     final (vibIcon, vibColor, vibStatus) = v == false
-        ? (Icons.remove_circle_outline, AppColors.textDim, 'Indisponível aqui')
-        : st(v, 'Disponível', '', 'Não verificado');
+        ? (Icons.remove_circle_outline, AppColors.textDim, tr('Indisponível aqui'))
+        : st(v, tr('Disponível'), '', tr('Não verificado'));
     Widget row(IconData i, Color c, String title, String status, String action, VoidCallback on) => ListTile(
           contentPadding: EdgeInsets.zero,
           leading: Icon(i, color: c, size: 28),
@@ -463,34 +463,34 @@ class SettingsPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        DsPrimaryButton(onPressed: app.requestAllPermissions, icon: Icons.verified_user_outlined, label: 'Permitir tudo'),
+        DsPrimaryButton(onPressed: app.requestAllPermissions, icon: Icons.verified_user_outlined, label: tr('Permitir tudo')),
         const DsGap(Ds.s12),
-        row(micIcon, micColor, 'Microfone', micStatus, g == true ? 'Verificar' : 'Permitir', app.checkMicPermission),
-        row(camIcon, camColor, 'Câmera', camStatus, cam == true ? 'Testar' : 'Permitir',
-            () => scanShareCode(context, title: 'Testar a câmera', onCamera: app.setCameraStatus)),
-        row(vibIcon, vibColor, 'Vibração', vibStatus, 'Testar', app.testVibration),
+        row(micIcon, micColor, tr('Microfone'), micStatus, g == true ? tr('Verificar') : tr('Permitir'), app.checkMicPermission),
+        row(camIcon, camColor, tr('Câmera'), camStatus, cam == true ? tr('Testar') : tr('Permitir'),
+            () => scanShareCode(context, title: tr('Testar a câmera'), onCamera: app.setCameraStatus)),
+        row(vibIcon, vibColor, tr('Vibração'), vibStatus, tr('Testar'), app.testVibration),
         if (g == false || cam == false)
           Padding(
             padding: const EdgeInsets.only(top: Ds.s8),
-            child: Text('Negou antes? Libere no cadeado do navegador ou em Configurações › Apps › $kAppName.', style: TextStyle(color: AppColors.sharp, fontSize: Ds.fontLabel)),
+            child: Text(tr('Negou antes? Libere no cadeado do navegador ou em Configurações › Apps › {0}.', [kAppName]), style: TextStyle(color: AppColors.sharp, fontSize: Ds.fontLabel)),
           ),
         const Divider(height: Ds.sectionGap),
-        _switch('Vibrar na batida e nas escalas', 'Metrônomo e exercícios.', app.hapticEnabled, (x) => app.setTuning(hapticEnabled: x)),
-        _switch('Batida leve ao dar certo', 'Ao pegar horário, marcar aula e enviar tarefa.', app.successHaptic, app.setSuccessHaptic),
+        _switch(tr('Vibrar na batida e nas escalas'), tr('Metrônomo e exercícios.'), app.hapticEnabled, (x) => app.setTuning(hapticEnabled: x)),
+        _switch(tr('Batida leve ao dar certo'), tr('Ao pegar horário, marcar aula e enviar tarefa.'), app.successHaptic, app.setSuccessHaptic),
         Row(children: [
           Expanded(
-            child: _switch('Estatísticas anônimas', 'Sem identificar você.', app.statsEnabled, app.setStatsEnabled),
+            child: _switch(tr('Estatísticas anônimas'), tr('Sem identificar você.'), app.statsEnabled, app.setStatsEnabled),
           ),
-          const HelpButton(title: 'Estatísticas anônimas', sections: [
-            ('O que vai', 'Que o app foi aberto, o tipo de aparelho (sistema, tela, idioma, região aproximada) e as abas mais usadas, só como categorias.'),
-            ('O que não vai', 'Nome, áudio, localização nem o que você toca.'),
+          HelpButton(title: tr('Estatísticas anônimas'), sections: [
+            (tr('O que vai'), tr('Que o app foi aberto, o tipo de aparelho (sistema, tela, idioma, região aproximada) e as abas mais usadas, só como categorias.')),
+            (tr('O que não vai'), tr('Nome, áudio, localização nem o que você toca.')),
           ]),
         ]),
-        _info(Icons.shield_outlined, 'Seu áudio fica com você', 'Analisado no aparelho e descartado na hora.'),
+        _info(Icons.shield_outlined, tr('Seu áudio fica com você'), tr('Analisado no aparelho e descartado na hora.')),
         TextButton.icon(
           onPressed: () => _showPrivacy(context),
           icon: const Icon(Icons.privacy_tip_outlined),
-          label: const Text('Política de privacidade'),
+          label: Text(tr('Política de privacidade')),
         ),
       ],
     );
@@ -518,26 +518,26 @@ class SettingsPage extends StatelessWidget {
       children: [
         DsPrimaryButton(
           onPressed: () async {
-            final ok = await _confirm(context, 'Atualizar o app?', 'Busca a versão mais nova e reinicia. Seus ajustes e histórico ficam.', 'Atualizar');
+            final ok = await _confirm(context, tr('Atualizar o app?'), tr('Busca a versão mais nova e reinicia. Seus ajustes e histórico ficam.'), tr('Atualizar'));
             if (ok) await app.updateApp();
           },
           icon: Icons.system_update,
-          label: app.updateAvailable ? 'Atualizar (versão nova!)' : 'Atualizar o app',
+          label: app.updateAvailable ? tr('Atualizar (versão nova!)') : tr('Atualizar o app'),
         ),
         const DsGap(Ds.s8),
-        Text('Versão $kAppVersion', style: Ds.support()),
+        Text(tr('Versão {0}', [kAppVersion]), style: Ds.support()),
         const DsGap(Ds.s8),
-        if (kIsWeb && !webIsStandalone()) tile(Icons.install_mobile, 'Instalar no celular', () => runInstall(context, app), sub: 'Abre em tela cheia e funciona sem internet.'),
-        tile(Icons.school_outlined, 'Rever tutoriais', () {
+        if (kIsWeb && !webIsStandalone()) tile(Icons.install_mobile, tr('Instalar no celular'), () => runInstall(context, app), sub: tr('Abre em tela cheia e funciona sem internet.')),
+        tile(Icons.school_outlined, tr('Rever tutoriais'), () {
           app.resetTutorials();
-          app.say('Pronto: o "Comece por aqui" volta ao Meu espaço e os tutoriais podem ser vistos de novo.');
-        }, sub: 'Mostra de novo os guias de como usar.'),
-        tile(app.feedback.rating > 0 ? Icons.star_rounded : Icons.star_outline_rounded, app.feedback.rating > 0 ? 'Sua nota: ${app.feedback.rating}/5' : 'Avaliar o app', () => showRatingSheet(context, app)),
-        if (!app.feedback.surveyAnswered) tile(Icons.poll_outlined, 'Pesquisa rápida', () => showSurveySheet(context, app)),
-        tile(Icons.qr_code_2, 'Compartilhar o app', () => showShareSheet(context), sub: 'Link e QR code.'),
+          app.say(tr('Pronto: o "Comece por aqui" volta ao Meu espaço e os tutoriais podem ser vistos de novo.'));
+        }, sub: tr('Mostra de novo os guias de como usar.')),
+        tile(app.feedback.rating > 0 ? Icons.star_rounded : Icons.star_outline_rounded, app.feedback.rating > 0 ? tr('Sua nota: {0}/5', [app.feedback.rating]) : tr('Avaliar o app'), () => showRatingSheet(context, app)),
+        if (!app.feedback.surveyAnswered) tile(Icons.poll_outlined, tr('Pesquisa rápida'), () => showSurveySheet(context, app)),
+        tile(Icons.qr_code_2, tr('Compartilhar o app'), () => showShareSheet(context), sub: tr('Link e QR code.')),
         tile(
             Icons.description_outlined,
-            'Licenças',
+            tr('Licenças'),
             () => showLicensePage(
                 context: context,
                 applicationName: kAppName,
@@ -554,7 +554,7 @@ class SettingsPage extends StatelessWidget {
         title: Text(title),
         content: Text(body),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Cancelar'))),
           FilledButton(onPressed: () => Navigator.pop(ctx, true), child: Text(action)),
         ],
       ),
@@ -577,33 +577,33 @@ class SettingsPage extends StatelessWidget {
           controller: scroll,
           padding: const EdgeInsets.all(20),
           children: [
-            const Text('Política de privacidade',
+            Text(tr('Política de privacidade'),
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
-            Text('Atualizada em novembro de 2026',
+            Text(tr('Atualizada em novembro de 2026'),
                 style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
             const SizedBox(height: 14),
             for (final p in [
-              ('O que o app usa', 'O microfone, somente enquanto você toca em "Ouvir", para identificar a altura das notas.'),
-              ('O que acontece com o som', 'É analisado em tempo real no próprio aparelho e descartado em seguida. Nenhum áudio é gravado, guardado ou enviado.'),
-              ('O que fica salvo', 'Suas configurações, o tempo de estudo e as escalas que você salvar. Tudo fica apenas neste aparelho.'),
-              ('Análise por IA (opcional)', 'Só se você tocar em "Analisar com IA" no Treinador, e depois de autorizar. O app envia um resumo só com números (desvios por nota e taxas de acerto) a um serviço de inteligência artificial, por um servidor intermediário que guarda as chaves e limita o uso. Nunca vão áudio, nome ou localização.'),
-              ('Câmera (opcional)', 'Só quando você toca em "Ler QR", para ler o QR de um aluno ou de um professor. A imagem é lida no aparelho e nunca é gravada nem enviada. Você também pode digitar o código.'),
-              ('Escrever falando (opcional)', 'Só quando você toca no microfone de um campo de texto. Quem transforma a voz em texto é o serviço de voz do seu aparelho ou do navegador (por exemplo, o do Google ou o da Apple), que pode usar a internet. O Notemusic não grava nem guarda o áudio.'),
-              ('Nota e pesquisa rápida (opcional)', 'Só se você tocar em Enviar. Vão a sua resposta, a versão do app e um código do aparelho que o servidor embaralha, sem nome, e-mail nem áudio. Você pode ignorar o convite.'),
-              ('Seu perfil e o vínculo online', 'O app cria no seu aparelho um código de identificação, sem cadastro. Seu histórico de exercícios fica só neste aparelho. Se você ligar o Vínculo online (ou vincular alguém lendo um QR), o servidor passa a guardar o seu código, um apelido opcional, um resumo criptográfico do seu segredo e a lista de vínculos com as datas. Se você é professor e encerra uma aula, as tarefas e as observações PASSADAS NAQUELA AULA são enviadas ao servidor para o aluno vinculado buscar (até 60 aulas por aluno). Nunca vão áudio nem o histórico de exercícios. Você pode encerrar um vínculo a qualquer momento: as aulas daquele professor deixam de valer para o aluno. Perfis sem vínculo e sem uso há 60 dias são apagados do servidor automaticamente.'),
-              ('Estatísticas anônimas de uso', 'Para saber quantas pessoas usam o app e em que tipo de aparelho, o app avisa o servidor quando é aberto e, enquanto está aberto, a cada poucos minutos. Vão apenas: um código aleatório do aparelho (que não é o seu código de perfil e não identifica você), o tipo de aparelho e de navegador, o sistema, a faixa de tamanho da tela, o idioma, se o tema é claro ou escuro, se a tela é de toque, se o microfone e as notificações estão liberados, o fuso horário, a memória e o número de núcleos do aparelho, a qualidade da conexão, a densidade da tela, a região aproximada (país e estado, que o servidor deduz da conexão, sem guardar o endereço de IP), a versão do app e quais abas você abriu (tudo em categorias curtas). Não vão nome, e-mail, localização, áudio, o que você toca e o endereço de IP não é guardado (só um resumo temporário, por até 1 hora, para barrar abusos). Você pode desligar em Configurações › Permissões e privacidade › Estatísticas anônimas de uso.'),
-              ('Acervo do professor (só testes)', 'Se o seu professor liberar, ele pode cadastrar títulos e links de materiais (Google Drive, IMSLP, YouTube…). O servidor guarda só o título, o autor, o link e para quem é; nenhum arquivo. Ao tocar em Abrir, você sai do Notemusic para o site do link. Quem publica é responsável pelo conteúdo; dá para denunciar um item.'),
-              ('Presença no vínculo online', 'Com o vínculo online ligado e o app aberto, o servidor guarda só o seu código e o horário do último sinal (no máximo a cada 10 minutos). O administrador usa isso para ver quantos perfis estão online e dar suporte. Para parar, desligue o vínculo online em Minha conta.'),
-              ('Conta e dados pessoais', 'Não há login, cadastro nem anúncios. O app não pede nome, e-mail nem localização, e não rastreia o que você faz fora dele.'),
+              (tr('O que o app usa'), tr('O microfone, somente enquanto você toca em "Ouvir", para identificar a altura das notas.')),
+              (tr('O que acontece com o som'), tr('É analisado em tempo real no próprio aparelho e descartado em seguida. Nenhum áudio é gravado, guardado ou enviado.')),
+              (tr('O que fica salvo'), tr('Suas configurações, o tempo de estudo e as escalas que você salvar. Tudo fica apenas neste aparelho.')),
+              (tr('Análise por IA (opcional)'), tr('Só se você tocar em "Analisar com IA" no Treinador, e depois de autorizar. O app envia um resumo só com números (desvios por nota e taxas de acerto) a um serviço de inteligência artificial, por um servidor intermediário que guarda as chaves e limita o uso. Nunca vão áudio, nome ou localização.')),
+              (tr('Câmera (opcional)'), tr('Só quando você toca em "Ler QR", para ler o QR de um aluno ou de um professor. A imagem é lida no aparelho e nunca é gravada nem enviada. Você também pode digitar o código.')),
+              (tr('Escrever falando (opcional)'), tr('Só quando você toca no microfone de um campo de texto. Quem transforma a voz em texto é o serviço de voz do seu aparelho ou do navegador (por exemplo, o do Google ou o da Apple), que pode usar a internet. O Notemusic não grava nem guarda o áudio.')),
+              (tr('Nota e pesquisa rápida (opcional)'), tr('Só se você tocar em Enviar. Vão a sua resposta, a versão do app e um código do aparelho que o servidor embaralha, sem nome, e-mail nem áudio. Você pode ignorar o convite.')),
+              (tr('Seu perfil e o vínculo online'), tr('O app cria no seu aparelho um código de identificação, sem cadastro. Seu histórico de exercícios fica só neste aparelho. Se você ligar o Vínculo online (ou vincular alguém lendo um QR), o servidor passa a guardar o seu código, um apelido opcional, um resumo criptográfico do seu segredo e a lista de vínculos com as datas. Se você é professor e encerra uma aula, as tarefas e as observações PASSADAS NAQUELA AULA são enviadas ao servidor para o aluno vinculado buscar (até 60 aulas por aluno). Nunca vão áudio nem o histórico de exercícios. Você pode encerrar um vínculo a qualquer momento: as aulas daquele professor deixam de valer para o aluno. Perfis sem vínculo e sem uso há 60 dias são apagados do servidor automaticamente.')),
+              (tr('Estatísticas anônimas de uso'), tr('Para saber quantas pessoas usam o app e em que tipo de aparelho, o app avisa o servidor quando é aberto e, enquanto está aberto, a cada poucos minutos. Vão apenas: um código aleatório do aparelho (que não é o seu código de perfil e não identifica você), o tipo de aparelho e de navegador, o sistema, a faixa de tamanho da tela, o idioma, se o tema é claro ou escuro, se a tela é de toque, se o microfone e as notificações estão liberados, o fuso horário, a memória e o número de núcleos do aparelho, a qualidade da conexão, a densidade da tela, a região aproximada (país e estado, que o servidor deduz da conexão, sem guardar o endereço de IP), a versão do app e quais abas você abriu (tudo em categorias curtas). Não vão nome, e-mail, localização, áudio, o que você toca e o endereço de IP não é guardado (só um resumo temporário, por até 1 hora, para barrar abusos). Você pode desligar em Configurações › Permissões e privacidade › Estatísticas anônimas de uso.')),
+              (tr('Acervo do professor (só testes)'), tr('Se o seu professor liberar, ele pode cadastrar títulos e links de materiais (Google Drive, IMSLP, YouTube…). O servidor guarda só o título, o autor, o link e para quem é; nenhum arquivo. Ao tocar em Abrir, você sai do Notemusic para o site do link. Quem publica é responsável pelo conteúdo; dá para denunciar um item.')),
+              (tr('Presença no vínculo online'), tr('Com o vínculo online ligado e o app aberto, o servidor guarda só o seu código e o horário do último sinal (no máximo a cada 10 minutos). O administrador usa isso para ver quantos perfis estão online e dar suporte. Para parar, desligue o vínculo online em Minha conta.')),
+              (tr('Conta e dados pessoais'), tr('Não há login, cadastro nem anúncios. O app não pede nome, e-mail nem localização, e não rastreia o que você faz fora dele.')),
               (
-                'Contato e seus direitos',
+                tr('Contato e seus direitos'),
                 kContactEmail.isEmpty
-                    ? 'Para dúvidas ou pedidos sobre os seus dados (acesso, correção ou exclusão), escreva em Configurações › Sobre › Avaliar o app (campo de comentário). Os dados do perfil ficam só no seu aparelho; os do vínculo online (códigos, apelidos e aulas) saem do servidor quando você encerra o vínculo ou usa Apagar tudo.'
-                    : 'Para dúvidas ou pedidos sobre os seus dados (acesso, correção ou exclusão), escreva para $kContactEmail. Os dados do perfil ficam só no seu aparelho; os do vínculo online (códigos, apelidos e aulas) saem do servidor quando você encerra o vínculo ou usa Apagar tudo.',
+                    ? tr('Para dúvidas ou pedidos sobre os seus dados (acesso, correção ou exclusão), escreva em Configurações › Sobre › Avaliar o app (campo de comentário). Os dados do perfil ficam só no seu aparelho; os do vínculo online (códigos, apelidos e aulas) saem do servidor quando você encerra o vínculo ou usa Apagar tudo.')
+                    : tr('Para dúvidas ou pedidos sobre os seus dados (acesso, correção ou exclusão), escreva para {0}. Os dados do perfil ficam só no seu aparelho; os do vínculo online (códigos, apelidos e aulas) saem do servidor quando você encerra o vínculo ou usa Apagar tudo.', [kContactEmail]),
               ),
-              ('Como apagar', 'Em Configurações › Estudo › Apagar histórico, ou desinstalando o app.'),
-              ('Menores de idade', 'Como não coleta dados pessoais, o app é adequado para todas as idades.'),
+              (tr('Como apagar'), tr('Em Configurações › Estudo › Apagar histórico, ou desinstalando o app.')),
+              (tr('Menores de idade'), tr('Como não coleta dados pessoais, o app é adequado para todas as idades.')),
             ]) ...[
               Text(p.$1, style: const TextStyle(fontWeight: FontWeight.w700)),
               const SizedBox(height: 2),

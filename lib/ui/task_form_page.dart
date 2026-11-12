@@ -96,23 +96,23 @@ class _TaskFormPageState extends State<TaskFormPage> {
   }
 
   String get _subjectLabel => switch (kind) {
-        TaskKind.method => 'Método ou livro',
-        TaskKind.repertoire => 'Peça ou obra',
-        _ => 'O que estudar',
+        TaskKind.method => tr('Método ou livro'),
+        TaskKind.repertoire => tr('Peça ou obra'),
+        _ => tr('O que estudar'),
       };
 
   String? get _detailLabel => switch (kind) {
-        TaskKind.method => 'Lição ou exercício (ex.: Lição 5)',
-        TaskKind.repertoire => 'Trecho ou compassos (opcional)',
+        TaskKind.method => tr('Lição ou exercício (ex.: Lição 5)'),
+        TaskKind.repertoire => tr('Trecho ou compassos (opcional)'),
         _ => null,
       };
 
   String _scaleTitle(TuningConfig names) =>
-      '${type.display(noteName(pc + 60, names))} · $oct oitava${oct > 1 ? 's' : ''}';
+      tr('{0} · {1} oitava{2}', [type.display(noteName(pc + 60, names)), oct, oct > 1 ? 's' : '']);
 
   void _submit(TuningConfig names) {
     if (kind != TaskKind.scale && subject.text.trim().isEmpty) {
-      setState(() => subjectErr = kind == TaskKind.material ? 'Escolha o material' : 'Escreva o que o aluno vai estudar');
+      setState(() => subjectErr = kind == TaskKind.material ? tr('Escolha o material') : tr('Escreva o que o aluno vai estudar'));
       final c = _subjectKey.currentContext;
       if (c != null) Scrollable.ensureVisible(c, duration: const Duration(milliseconds: 250), alignment: 0.1);
       return;
@@ -151,7 +151,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
     final willSend = !isEdit && sendNow && rule.canSend;
 
     return Scaffold(
-      appBar: AppBar(title: Text(isEdit ? 'Editar tarefa' : 'Nova tarefa')),
+      appBar: AppBar(title: Text(isEdit ? tr('Editar tarefa') : tr('Nova tarefa'))),
       body: SafeArea(
         child: Column(children: [
           Expanded(
@@ -167,7 +167,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
 
                 // ---- O que passar ----
                 if (!isEdit) ...[
-                  _label('O que passar'),
+                  _label(tr('O que passar')),
                   ChipGrid(
                     columns: 2,
                     labels: [
@@ -189,7 +189,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
                 if (kind == TaskKind.scale) ..._scaleFields(names) else if (kind == TaskKind.material) ..._materialFields() else ..._textFields(),
 
                 // ---- Observações ----
-                _label('Observações (opcional)', help: 'O que merece atenção ou estudar mais.'),
+                _label(tr('Observações (opcional)'), help: tr('O que merece atenção ou estudar mais.')),
                 TextField(
                   controller: note,
                   inputFormatters: const [SafeText.note()],
@@ -198,14 +198,14 @@ class _TaskFormPageState extends State<TaskFormPage> {
                   maxLength: 500,
                   textCapitalization: TextCapitalization.sentences,
                   decoration: InputDecoration(
-                    hintText: 'Ex.: cuidar do arco na corda solta',
+                    hintText: tr('Ex.: cuidar do arco na corda solta'),
                     alignLabelWithHint: true,
                     suffixIcon: DictationButton(app: app, controller: note),
                   ),
                 ),
 
                 // ---- Como chega ao aluno ----
-                _label('Como chega ao aluno'),
+                _label(tr('Como chega ao aluno')),
                 _delivery(s, rule),
               ],
             ),
@@ -223,7 +223,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
                 child: OutlinedButton(
                   style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(50)),
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar'),
+                  child: Text(tr('Cancelar')),
                 ),
               ),
               const SizedBox(width: 10),
@@ -233,7 +233,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
                   style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
                   onPressed: () => _submit(names),
                   icon: Icon(isEdit ? Icons.check : (willSend ? Icons.send : Icons.add_task), size: 20),
-                  label: Text(isEdit ? 'Salvar' : (willSend ? 'Passar e enviar' : 'Passar tarefa'),
+                  label: Text(isEdit ? tr('Salvar') : (willSend ? tr('Passar e enviar') : tr('Passar tarefa')),
                       style: const TextStyle(fontWeight: FontWeight.w700)),
                 ),
               ),
@@ -247,21 +247,21 @@ class _TaskFormPageState extends State<TaskFormPage> {
   List<Widget> _scaleFields(TuningConfig names) {
     if (isEdit) {
       return [
-        _label('Tarefa'),
+        _label(tr('Tarefa')),
         Text(edit!.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-        Text('Escala e meta não mudam depois de passadas. Para outra escala, passe uma nova tarefa.',
+        Text(tr('Escala e meta não mudam depois de passadas. Para outra escala, passe uma nova tarefa.'),
             style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
       ];
     }
     return [
-      _label('Escala ou arpejo'),
+      _label(tr('Escala ou arpejo')),
       PickerField<ScaleType>(
-        label: 'Escala ou arpejo',
+        label: tr('Escala ou arpejo'),
         value: type,
         options: [for (final t in ScaleType.values) OptionItem(t, t.label)],
         onChanged: (v) => setState(() => type = v),
       ),
-      _label('Nota inicial'),
+      _label(tr('Nota inicial')),
       ChipGrid(
         columns: 6,
         labels: [
@@ -271,13 +271,13 @@ class _TaskFormPageState extends State<TaskFormPage> {
         selected: pc,
         onSelected: (i) => setState(() => pc = i),
       ),
-      _label('Oitavas'),
+      _label(tr('Oitavas')),
       ChipGrid(
         labels: [for (final o in [1, 2, 3, 4]) Text('$o')],
         selected: oct - 1,
         onSelected: (i) => setState(() => oct = i + 1),
       ),
-      _label('Meta de acerto', help: 'O aluno cumpre a tarefa ao atingir essa porcentagem.'),
+      _label(tr('Meta de acerto'), help: tr('O aluno cumpre a tarefa ao atingir essa porcentagem.')),
       ChipGrid(
         labels: [for (final g in _goals) Text('${(g * 100).round()}%')],
         selected: _goals.contains(goal) ? _goals.indexOf(goal) : null,
@@ -295,7 +295,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
             Icon(Icons.piano, size: 18, color: AppColors.accent),
             const SizedBox(width: 8),
             Expanded(
-              child: Text('${_scaleTitle(names)} · meta ${(goal * 100).round()}%',
+              child: Text(tr('{0} · meta {1}%', [_scaleTitle(names), (goal * 100).round()]),
                   style: const TextStyle(fontWeight: FontWeight.w700)),
             ),
           ]),
@@ -311,15 +311,15 @@ class _TaskFormPageState extends State<TaskFormPage> {
     final items = app.libCached();
     final picked = subject.text.trim().isEmpty ? '' : Assignment.titleFor(subject.text, detail.text);
     return [
-      _label('Qual material', help: 'O aluno abre no acervo, já filtrado.'),
+      _label(tr('Qual material'), help: tr('O aluno abre no acervo, já filtrado.')),
       OutlinedButton.icon(
         key: _subjectKey,
         onPressed: () => _pickMaterial(items),
         icon: const Icon(Icons.folder_open_rounded, size: 20),
-        label: Text(picked.isEmpty ? 'Escolher no acervo' : picked, maxLines: 1, overflow: TextOverflow.ellipsis),
+        label: Text(picked.isEmpty ? tr('Escolher no acervo') : picked, maxLines: 1, overflow: TextOverflow.ellipsis),
       ),
       if (subjectErr != null) Padding(padding: const EdgeInsets.only(top: 6), child: Text(subjectErr!, style: TextStyle(color: AppColors.sharp, fontSize: 12.5))),
-      if (items.isEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Text('Seu acervo está vazio. Dá para escolher "Acervo todo" ou cadastrar materiais em Meu espaço.', style: Ds.support())),
+      if (items.isEmpty) Padding(padding: const EdgeInsets.only(top: 6), child: Text(tr('Seu acervo está vazio. Dá para escolher "Acervo todo" ou cadastrar materiais em Meu espaço.'), style: Ds.support())),
     ];
   }
 
@@ -345,19 +345,19 @@ class _TaskFormPageState extends State<TaskFormPage> {
         return ConstrainedBox(
           constraints: BoxConstraints(maxHeight: MediaQuery.of(c).size.height * 0.85),
           child: ListView(padding: const EdgeInsets.fromLTRB(Ds.screenPad, 0, Ds.screenPad, Ds.s24), shrinkWrap: true, children: [
-            Text('Escolher material', style: Ds.title()),
+            Text(tr('Escolher material'), style: Ds.title()),
             const DsGap(Ds.s12),
             ListTile(
               leading: const DsIconBadge(Icons.all_inbox_rounded, size: 36),
-              title: const Text('Acervo todo'),
-              subtitle: const Text('O aluno procura lá dentro'),
+              title: Text(tr('Acervo todo')),
+              subtitle: Text(tr('O aluno procura lá dentro')),
               onTap: () => choose(kMaterialAll, ''),
             ),
             for (final f in folders) ...[
               ListTile(
                 leading: const DsIconBadge(Icons.folder_rounded, size: 36),
-                title: Text('Pasta: $f'),
-                subtitle: Text('${items.where((i) => i.folder == f).length} material(is)'),
+                title: Text(tr('Pasta: {0}', [f])),
+                subtitle: Text(tr('{0} material(is)', [items.where((i) => i.folder == f).length])),
                 onTap: () => choose(f, ''),
               ),
               for (final i in items.where((x) => x.folder == f))
@@ -410,7 +410,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
                 .push(MaterialPageRoute<void>(builder: (_) => MethodsPage(app: app)))
                 .then((_) => setState(() {})),
             icon: const Icon(Icons.library_books_outlined, size: 18),
-            label: const Text('Meus métodos e lições'),
+            label: Text(tr('Meus métodos e lições')),
           ),
         ),
       ],
@@ -454,9 +454,8 @@ class _TaskFormPageState extends State<TaskFormPage> {
       return _info(
         sent ? Icons.info_outline : Icons.edit_outlined,
         sent
-            ? 'Esta tarefa já foi enviada. O que você mudar fica só na sua ficha: o aluno continua com a versão '
-                'que recebeu. Se precisar corrigir para ele, passe uma nova tarefa.'
-            : 'Você pode ajustar antes de enviar. Ao salvar, nada é enviado automaticamente.',
+            ? tr('Esta tarefa já foi enviada. O que você mudar fica só na sua ficha: o aluno continua com a versão que recebeu. Se precisar corrigir para ele, passe uma nova tarefa.')
+            : tr('Você pode ajustar antes de enviar. Ao salvar, nada é enviado automaticamente.'),
         sent ? AppColors.flat : AppColors.textDim,
       );
     }
@@ -472,12 +471,11 @@ class _TaskFormPageState extends State<TaskFormPage> {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: Text('Enviar para ${s.name} agora', style: const TextStyle(fontWeight: FontWeight.w700)),
+              title: Text(tr('Enviar para {0} agora', [s.name]), style: const TextStyle(fontWeight: FontWeight.w700)),
               subtitle: Text(
                 sendNow
                     ? rule.text
-                    : 'Fica na ficha como "a enviar". Você envia depois pelo botão da ficha, ou ela vai junto '
-                        'com a próxima aula.',
+                    : tr('Fica na ficha como "a enviar". Você envia depois pelo botão da ficha, ou ela vai junto com a próxima aula.'),
                 style: const TextStyle(fontSize: 12.5),
               ),
               value: sendNow,
@@ -486,7 +484,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: Text(
-                'Não precisa estar em aula para passar uma tarefa.',
+                tr('Não precisa estar em aula para passar uma tarefa.'),
                 style: TextStyle(color: AppColors.textDim, fontSize: 12),
               ),
             ),

@@ -41,7 +41,7 @@ Future<void> _start() async {
   try {
     await app.load();
   } catch (e, st) {
-    final err = classifyError(e, stack: st, where: 'Início do app');
+    final err = classifyError(e, stack: st, where: tr('Início do app'));
     final critical = AppError(
         code: 'APP-99', severity: ErrorSeverity.critical, where: err.where, detail: err.detail, atMs: err.atMs);
     // Falha ao abrir é grave: avisa o desenvolvedor sozinho (anônimo, só dados técnicos).
@@ -73,7 +73,7 @@ void main() {
     WidgetsFlutterBinding.ensureInitialized();
     FlutterError.onError = (details) {
       if (kDebugMode) FlutterError.presentError(details);
-      _app?.reportError(details.exception, details.stack, where: 'Interface');
+      _app?.reportError(details.exception, details.stack, where: tr('Interface'));
     };
     PlatformDispatcher.instance.onError = (error, stack) {
       _app?.reportError(error, stack);
@@ -82,7 +82,7 @@ void main() {
     // Bloco que quebra ao desenhar: cartão amigável com código, no lugar da tela cinza/vermelha.
     if (!kDebugMode) {
       ErrorWidget.builder = (details) {
-        final id = classifyError(details.exception, stack: details.stack, where: 'Interface').shortId;
+        final id = classifyError(details.exception, stack: details.stack, where: tr('Interface')).shortId;
         return FriendlyErrorWidget(id: id);
       };
     }
@@ -130,7 +130,7 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
       context: ctx,
       barrierDismissible: false,
       builder: (c) => AlertDialog(
-        title: const Text('Vamos deixar tudo pronto'),
+        title: Text(tr('Vamos deixar tudo pronto')),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -138,21 +138,21 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
             children: [
               const Center(child: AppLogo(size: 56)),
               const SizedBox(height: 14),
-              const Text('O Notemusic usa:'),
+              Text(tr('O Notemusic usa:')),
               item(
                 Icons.mic,
-                'Microfone',
-                'Para ouvir seu instrumento. O som é analisado no aparelho e nunca é gravado nem enviado.',
+                tr('Microfone'),
+                tr('Para ouvir seu instrumento. O som é analisado no aparelho e nunca é gravado nem enviado.'),
               ),
               item(
                 Icons.vibration,
-                'Vibração',
-                'Na batida do metrônomo, no fim do timer e nas notas das escalas. Você pode desligar depois.',
+                tr('Vibração'),
+                tr('Na batida do metrônomo, no fim do timer e nas notas das escalas. Você pode desligar depois.'),
               ),
               item(
                 Icons.cloud_outlined,
-                'Internet (opcional)',
-                'Só se você pedir a análise por IA. O resto funciona sem internet.',
+                tr('Internet (opcional)'),
+                tr('Só se você pedir a análise por IA. O resto funciona sem internet.'),
               ),
             ],
           ),
@@ -160,11 +160,11 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
-            child: const Text('Agora não'),
+            child: Text(tr('Agora não')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, true),
-            child: const Text('Permitir'),
+            child: Text(tr('Permitir')),
           ),
         ],
       ),
@@ -180,27 +180,26 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
     final r = await showDialog<bool>(
       context: ctx,
       builder: (c) => AlertDialog(
-        title: const Text('Usar o microfone?'),
-        content: const Column(
+        title: Text(tr('Usar o microfone?')),
+        content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(child: AppLogo(size: 56)),
             SizedBox(height: 16),
             Text(
-              'Para dizer se a nota está afinada, o Notemusic precisa ouvir seu instrumento.\n\n'
-              'O som é analisado no próprio aparelho e descartado na hora: nada é gravado nem enviado.',
+              tr('Para dizer se a nota está afinada, o Notemusic precisa ouvir seu instrumento.\n\nO som é analisado no próprio aparelho e descartado na hora: nada é gravado nem enviado.'),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
-            child: const Text('Agora não'),
+            child: Text(tr('Agora não')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, true),
-            child: const Text('Continuar'),
+            child: Text(tr('Continuar')),
           ),
         ],
       ),
@@ -236,7 +235,7 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
       WidgetsBinding.instance
         ..addPostFrameCallback((_) {
           if (!mounted) return;
-          showToast(context, '${e.title}. Código ${e.shortId}.',
+          showToast(context, tr('{0}. Código {1}.', [e.title, e.shortId]),
               icon: errorIcon(e.severity), color: errorTint(e.severity), duration: const Duration(seconds: 4));
         })
         ..scheduleFrame();
@@ -256,8 +255,8 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
     // Avisos curtos ao ligar/desligar funções.
     widget.app.onMessage = (msg) {
       if (!mounted) return;
-      final micOn = msg.startsWith('Microfone ligado');
-      final micOff = msg.startsWith('Microfone desligado');
+      final micOn = msg.startsWith(tr('Microfone ligado'));
+      final micOff = msg.startsWith(tr('Microfone desligado'));
       // Mostra depois do quadro atual: se o aviso veio de uma troca de tema, as
       // cores do aviso já são as do tema novo.
       WidgetsBinding.instance
@@ -387,7 +386,7 @@ class _HomeShellState extends State<HomeShell> {
   /// a abertura do app e evita construir telas que talvez nunca sejam usadas.
   final Set<int> _visited = {kHomeTab};
 
-  static const _titles = ['Afinador', 'Metrônomo', 'Grade', 'Escalas', 'Meu espaço'];
+  static final _titles = [tr('Afinador'), tr('Metrônomo'), tr('Grade'), tr('Escalas'), tr('Meu espaço')];
 
   static const _tabNames = ['tuner', 'metronome', 'grid', 'scales', 'study'];
 
@@ -549,7 +548,7 @@ class _HomeShellState extends State<HomeShell> {
             ListenableBuilder(
               listenable: app,
               builder: (context, _) => IconButton(
-                tooltip: 'Avisos',
+                tooltip: tr('Avisos'),
                 icon: Badge(
                   label: (app.unseenNotices + suggestionCount(app)) > 0 ? Text('${app.unseenNotices + suggestionCount(app)}') : null,
                   isLabelVisible: (app.unseenNotices + suggestionCount(app)) > 0,
@@ -566,7 +565,7 @@ class _HomeShellState extends State<HomeShell> {
             ListenableBuilder(
               listenable: app,
               builder: (context, _) => IconButton(
-                tooltip: 'Minha conta: perfil, ajustes e compartilhar',
+                tooltip: tr('Minha conta: perfil, ajustes e compartilhar'),
                 icon: Badge(
                   smallSize: 8,
                   isLabelVisible: app.profile.recoveryShownAt == null,

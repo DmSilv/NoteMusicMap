@@ -16,7 +16,7 @@ class SpeedTrainerCard extends StatelessWidget {
   void _openSheet(BuildContext context) {
     showDsSheet(
       context,
-      title: 'Acelerar aos poucos',
+      title: tr('Acelerar aos poucos'),
       listenable: app,
       children: (c) {
         final m = app.metro;
@@ -46,9 +46,9 @@ class SpeedTrainerCard extends StatelessWidget {
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
               secondary: Icon(Icons.speed_rounded, color: on ? AppColors.accent : AppColors.textDim),
-              title: const Text('Acelerar aos poucos', style: TextStyle(fontWeight: FontWeight.w800)),
+              title: Text(tr('Acelerar aos poucos'), style: TextStyle(fontWeight: FontWeight.w800)),
               subtitle: Text(
-                on ? trainerSummary(t, m.bpm, m.beatsPerBar) : 'O metrônomo sobe a velocidade sozinho, de tempos em tempos.',
+                on ? trainerSummary(t, m.bpm, m.beatsPerBar) : tr('O metrônomo sobe a velocidade sozinho, de tempos em tempos.'),
                 style: const TextStyle(fontSize: Ds.fontLabel, height: 1.35),
               ),
               value: on,
@@ -66,7 +66,7 @@ class SpeedTrainerCard extends StatelessWidget {
                   child: TextButton.icon(
                     onPressed: () => _openSheet(context),
                     icon: const Icon(Icons.tune, size: 18),
-                    label: const Text('Ajustar'),
+                    label: Text(tr('Ajustar')),
                   ),
                 ),
               ),
@@ -96,7 +96,7 @@ class SpeedTrainerCard extends StatelessWidget {
         Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
           Text('${b.bpm.round()}', style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w800, height: 1.0)),
           const SizedBox(width: Ds.s8),
-          Expanded(child: Text('BPM agora · teto ${t.maxBpm.round()}', style: Ds.support())),
+          Expanded(child: Text(tr('BPM agora · teto {0}', [t.maxBpm.round()]), style: Ds.support())),
         ]),
         const SizedBox(height: Ds.s8),
         Text(trainerLiveText(atMax: b.trainerAtMax, byTime: b.trainerByTime, left: left, stepBpm: t.stepBpm),
@@ -108,7 +108,7 @@ class SpeedTrainerCard extends StatelessWidget {
         ),
         const SizedBox(height: Ds.s8),
         Row(children: [
-          Text('Até o teto', style: Ds.support().copyWith(fontSize: 12.5)),
+          Text(tr('Até o teto'), style: Ds.support().copyWith(fontSize: 12.5)),
           const SizedBox(width: Ds.s8),
           Expanded(
             child: ClipRRect(

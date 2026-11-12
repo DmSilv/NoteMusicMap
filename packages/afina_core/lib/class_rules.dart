@@ -4,6 +4,7 @@
 library;
 
 import 'agenda.dart';
+import 'i18n.dart';
 
 /// Quantos minutos antes da aula ela passa a ser "começando".
 const int kSoonMinutes = 15;
@@ -22,9 +23,9 @@ ClassPhase classPhase(int startMs, int endMs, int nowMs) {
 
 String classPhaseLabel(ClassPhase p) => switch (p) {
       ClassPhase.upcoming => '',
-      ClassPhase.soon => 'começa em breve',
-      ClassPhase.ongoing => 'em andamento',
-      ClassPhase.finished => 'encerrada',
+      ClassPhase.soon => tr('começa em breve'),
+      ClassPhase.ongoing => tr('em andamento'),
+      ClassPhase.finished => tr('encerrada'),
     };
 
 /// Quem está olhando para a aula.

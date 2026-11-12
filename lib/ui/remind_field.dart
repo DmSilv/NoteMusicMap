@@ -13,7 +13,7 @@ class RemindField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PickerField<int>(
-      label: 'Lembrete para os dois',
+      label: tr('Lembrete para os dois'),
       value: value,
       icon: value == 0 ? Icons.notifications_off_outlined : Icons.notifications_active_outlined,
       options: [
@@ -21,7 +21,7 @@ class RemindField extends StatelessWidget {
           OptionItem<int>(
             m,
             remindLabel(m),
-            subtitle: m == kReminderMinutes ? 'Padrão' : null,
+            subtitle: m == kReminderMinutes ? tr('Padrão') : null,
             icon: m == 0 ? Icons.notifications_off_outlined : Icons.notifications_active_outlined,
           ),
       ],

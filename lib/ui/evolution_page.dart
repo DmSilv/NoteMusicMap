@@ -5,6 +5,7 @@ import 'design_system.dart';
 import 'progress_cards.dart';
 import 'theme.dart';
 import 'widgets.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// "Evolução": segunda tela do Meu espaço, com os dados de estudo e os gráficos
 /// (últimos 7 dias, taxa de acerto nas escalas e orientações do treinador).
@@ -12,12 +13,12 @@ class EvolutionPage extends StatelessWidget {
   final AppState app;
   const EvolutionPage({super.key, required this.app});
 
-  static const _dias = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
+  static final _dias = [tr('seg'), tr('ter'), tr('qua'), tr('qui'), tr('sex'), tr('sáb'), tr('dom')];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Evolução')),
+      appBar: AppBar(title: Text(tr('Evolução'))),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: app,
@@ -47,7 +48,7 @@ class EvolutionPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Últimos 7 dias', style: TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody)),
+          Text(tr('Últimos 7 dias'), style: TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody)),
           const SizedBox(height: Ds.s16),
           SizedBox(
             height: 130,
@@ -80,7 +81,7 @@ class EvolutionPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: Ds.s8),
-          Text('Meta diária: ${goal.round()} min', style: Ds.support()),
+          Text(tr('Meta diária: {0} min', [goal.round()]), style: Ds.support()),
         ],
       ),
     );

@@ -3,6 +3,7 @@ library;
 export 'absence.dart';
 export 'agenda.dart';
 export 'i18n.dart';
+export 'i18n_en.dart' show kEn;
 export 'speed_trainer.dart';
 export 'hub.dart';
 export 'identity.dart';

@@ -8,6 +8,7 @@ import 'grid_widgets.dart';
 import 'note_widgets.dart';
 import 'smooth_color.dart';
 import 'theme.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// Grade em tela cheia para usar durante o estudo: notas nas colunas (Dó a Si)
 /// e oitavas nas linhas (agudos no topo), em pé ou deitado. Embaixo: legenda de cores e navegação de oitavas.
@@ -127,7 +128,7 @@ class _GridFullscreenState extends State<GridFullscreen> {
       child: Row(
         children: [
           IconButton(
-            tooltip: 'Fechar',
+            tooltip: tr('Fechar'),
             icon: const Icon(Icons.close),
             onPressed: () => Navigator.of(context).pop(),
           ),
@@ -173,7 +174,7 @@ class _GridFullscreenState extends State<GridFullscreen> {
           const Expanded(child: SizedBox.shrink()),
           // Zerar a sessão: em destaque, ao lado do microfone.
           IconButton.filled(
-            tooltip: 'Zerar a sessão',
+            tooltip: tr('Zerar a sessão'),
             style: IconButton.styleFrom(
               minimumSize: const Size(44, 44),
               backgroundColor: AppColors.sharp.withValues(alpha: 0.22),
@@ -186,7 +187,7 @@ class _GridFullscreenState extends State<GridFullscreen> {
           const SizedBox(width: 6),
           // Ação principal, bem visível e com área de toque grande.
           IconButton.filled(
-            tooltip: app.listening ? 'Parar de ouvir' : 'Ouvir',
+            tooltip: app.listening ? tr('Parar de ouvir') : tr('Ouvir'),
             style: IconButton.styleFrom(
               minimumSize: const Size(48, 48),
               backgroundColor: app.listening ? AppColors.surface2 : AppColors.accent,
@@ -198,7 +199,7 @@ class _GridFullscreenState extends State<GridFullscreen> {
           const SizedBox(width: 6),
           // Ações secundárias ficam num menu, para a barra respirar.
           PopupMenuButton<String>(
-            tooltip: 'Mais opções',
+            tooltip: tr('Mais opções'),
             icon: const Icon(Icons.more_vert),
             color: AppColors.surface,
             onSelected: (v) {
@@ -217,15 +218,15 @@ class _GridFullscreenState extends State<GridFullscreen> {
                   leading: Icon(_lockLandscape
                       ? Icons.screen_lock_landscape
                       : Icons.screen_rotation),
-                  title: Text(_lockLandscape ? 'Liberar rotação' : 'Forçar horizontal'),
+                  title: Text(_lockLandscape ? tr('Liberar rotação') : tr('Forçar horizontal')),
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'hide',
                 child: ListTile(
                   dense: true,
                   leading: Icon(Icons.fullscreen),
-                  title: Text('Esconder controles'),
+                  title: Text(tr('Esconder controles')),
                 ),
               ),
             ],
@@ -239,7 +240,7 @@ class _GridFullscreenState extends State<GridFullscreen> {
         right: 4,
         top: 4,
         child: IconButton.filledTonal(
-          tooltip: 'Mostrar controles',
+          tooltip: tr('Mostrar controles'),
           icon: const Icon(Icons.keyboard_arrow_down),
           onPressed: () => setState(() => _showControls = true),
         ),

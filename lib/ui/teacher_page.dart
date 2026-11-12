@@ -26,7 +26,7 @@ String _day(DateTime d) =>
     '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
 
 Future<String?> _askText(BuildContext context, String title, String label,
-    {String initial = '', bool multiline = false, String action = 'Salvar', AppState? voice}) async {
+    {String initial = '', bool multiline = false, String? action, AppState? voice}) async {
   final ctl = TextEditingController(text: initial);
   final v = await showDialog<String>(
     context: context,
@@ -46,8 +46,8 @@ Future<String?> _askText(BuildContext context, String title, String label,
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancelar')),
-        FilledButton(onPressed: () => Navigator.pop(c, ctl.text), child: Text(action)),
+        TextButton(onPressed: () => Navigator.pop(c), child: Text(tr('Cancelar'))),
+        FilledButton(onPressed: () => Navigator.pop(c, ctl.text), child: Text(action ?? tr('Salvar'))),
       ],
     ),
   );
@@ -65,7 +65,7 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
     context: context,
     builder: (c) => StatefulBuilder(
       builder: (c, setS) => AlertDialog(
-        title: const Text('Novo aluno'),
+        title: Text(tr('Novo aluno')),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -77,7 +77,7 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
                 autofocus: true,
                 textCapitalization: TextCapitalization.words,
                 decoration: InputDecoration(
-                  labelText: 'Nome do aluno',
+                  labelText: tr('Nome do aluno'),
                   errorText: nameErr,
                   suffixIcon: DictationButton(app: app, controller: name),
                 ),
@@ -89,18 +89,18 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
                 autocorrect: false,
                 textCapitalization: TextCapitalization.characters,
                 decoration: InputDecoration(
-                  labelText: 'Código do aluno',
+                  labelText: tr('Código do aluno'),
                   hintText: 'K7QM-4TXD',
-                  helperText: 'Toque na câmera para ler o QR do aluno, ou digite o código (ele vê no perfil).',
+                  helperText: tr('Toque na câmera para ler o QR do aluno, ou digite o código (ele vê no perfil).'),
                   helperMaxLines: 3,
                   errorText: codeErr,
                   errorMaxLines: 3,
                   suffixIcon: IconButton(
-                    tooltip: 'Ler QR do aluno',
+                    tooltip: tr('Ler QR do aluno'),
                     icon: const Icon(Icons.qr_code_scanner),
                     onPressed: () async {
                       final s = await scanShareCode(c,
-                          title: 'Ler QR do aluno',
+                          title: tr('Ler QR do aluno'),
                           want: 'aluno',
                           check: (code) => app.checkStudent('aluno', code).code,
                           onCamera: app.setCameraStatus);
@@ -117,7 +117,7 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
           ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(c), child: Text(tr('Cancelar'))),
           FilledButton.icon(
             onPressed: () {
               final n = name.text.trim();
@@ -132,7 +132,7 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
               }
               Navigator.pop(c, (n, code.text.trim().isEmpty ? null : code.text));
             },
-            icon: const Icon(Icons.add, size: 18), label: const Text('Adicionar'),
+            icon: const Icon(Icons.add, size: 18), label: Text(tr('Adicionar')),
           ),
         ],
       ),
@@ -151,7 +151,7 @@ Future<void> handleIncomingStudentCode(BuildContext context, AppState app) async
   app.incomingStudentCode = null;
   final known = app.studentByCode(code);
   if (known != null) {
-    app.say('${known.name} já está na sua lista.');
+    app.say(tr('{0} já está na sua lista.', [known.name]));
     return;
   }
   final problem = app.checkStudent('aluno', code).code; // próprio código, professor etc.
@@ -163,24 +163,23 @@ Future<void> handleIncomingStudentCode(BuildContext context, AppState app) async
     final on = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Código de aluno recebido'),
-        content: Text('O código $code foi lido. Para cadastrar e acompanhar este aluno, ligue o modo professor '
-            '(você continua usando o app normalmente como aluno).'),
+        title: Text(tr('Código de aluno recebido')),
+        content: Text(tr('O código {0} foi lido. Para cadastrar e acompanhar este aluno, ligue o modo professor (você continua usando o app normalmente como aluno).', [code])),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Agora não')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Ligar e adicionar')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Agora não'))),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Ligar e adicionar'))),
         ],
       ),
     );
     if (on != true || !context.mounted) return;
-    if (!await requireNickname(context, app, reason: 'Para ser professor, seus alunos precisam ver o seu nome.')) return;
+    if (!await requireNickname(context, app, reason: tr('Para ser professor, seus alunos precisam ver o seu nome.'))) return;
     if (!context.mounted) return;
     app.setTeacherMode(true);
   }
   final r = await _newStudentDialog(context, app, code0: code);
   if (r != null) {
     app.addStudent(r.$1, code: r.$2);
-    app.say('${r.$1} foi adicionado à sua lista.');
+    app.say(tr('{0} foi adicionado à sua lista.', [r.$1]));
   }
 }
 
@@ -189,40 +188,31 @@ class _HowItWorks extends StatelessWidget {
   final bool open;
   const _HowItWorks({required this.open});
 
-  static const _steps = <(IconData, String, String)>[
+  static final _steps = <(IconData, String, String)>[
     (
       Icons.person_add_alt_1,
-      '1. Cadastre o aluno',
-      'Mais rápido: peça ao aluno para abrir o perfil dele (ícone no topo do app) e aponte a câmera '
-          'do seu celular para o QR. O Notemusic abre já com o código e você só confirma o nome. '
-          'Também dá para digitar o código (algo como K7QM-4TXD) em "Novo aluno", ou cadastrar só pelo nome '
-          'e colocar o código depois, no menu do aluno. Não precisa de e-mail nem de cadastro completo.'
+      tr('1. Cadastre o aluno'),
+      tr('Mais rápido: peça ao aluno para abrir o perfil dele (ícone no topo do app) e aponte a câmera do seu celular para o QR. O Notemusic abre já com o código e você só confirma o nome. Também dá para digitar o código (algo como K7QM-4TXD) em "Novo aluno", ou cadastrar só pelo nome e colocar o código depois, no menu do aluno. Não precisa de e-mail nem de cadastro completo.')
     ),
     (
       Icons.play_circle_outline,
-      '2. Comece a aula',
-      'Abra o aluno e toque em "Começar a aula". Enquanto ela durar, cada exercício feito no app entra no '
-          'histórico desse aluno, e não no seu. Dá para pausar e, ao encerrar, o que você passou vai para o aluno.'
+      tr('2. Comece a aula'),
+      tr('Abra o aluno e toque em "Começar a aula". Enquanto ela durar, cada exercício feito no app entra no histórico desse aluno, e não no seu. Dá para pausar e, ao encerrar, o que você passou vai para o aluno.')
     ),
     (
       Icons.assignment_outlined,
-      '3. Passe tarefas',
-      'Abra o aluno e toque em "Nova tarefa". Escolha o tipo: escala ou arpejo (com meta de acerto, '
-          'concluída sozinha), método e lição (ex.: Suzuki · Lição 5), repertório ou outra atividade. '
-          'Em todas há um campo de observações para o que merece atenção; use o microfone do teclado para ditar. '
-          'Toque numa tarefa para editar.'
+      tr('3. Passe tarefas'),
+      tr('Abra o aluno e toque em "Nova tarefa". Escolha o tipo: escala ou arpejo (com meta de acerto, concluída sozinha), método e lição (ex.: Suzuki · Lição 5), repertório ou outra atividade. Em todas há um campo de observações para o que merece atenção; use o microfone do teclado para ditar. Toque numa tarefa para editar.')
     ),
     (
       Icons.insights,
-      '4. Acompanhe a evolução',
-      'Na página do aluno você vê a média, o melhor resultado, a tendência e orientações automáticas '
-          'sobre as notas que ele mais desafina. Use "Anotar" para registrar suas observações.'
+      tr('4. Acompanhe a evolução'),
+      tr('Na página do aluno você vê a média, o melhor resultado, a tendência e orientações automáticas sobre as notas que ele mais desafina. Use "Anotar" para registrar suas observações.')
     ),
     (
       Icons.ios_share,
-      '5. Compartilhe',
-      'No menu ⋮ do aluno: "Copiar relatório" (para enviar por mensagem ou e-mail), "Relatório com IA" '
-          'e "Copiar dados" para levar o aluno a outro aparelho (use "Importar dados de um aluno" lá).'
+      tr('5. Compartilhe'),
+      tr('No menu ⋮ do aluno: "Copiar relatório" (para enviar por mensagem ou e-mail), "Relatório com IA" e "Copiar dados" para levar o aluno a outro aparelho (use "Importar dados de um aluno" lá).')
     ),
   ];
 
@@ -238,8 +228,8 @@ class _HowItWorks extends StatelessWidget {
           tilePadding: const EdgeInsets.symmetric(horizontal: 10),
           childrenPadding: const EdgeInsets.fromLTRB(10, 0, 10, 12),
           leading: Icon(Icons.help_outline, color: AppColors.accent),
-          title: const Text('Como funciona', style: TextStyle(fontWeight: FontWeight.w800)),
-          subtitle: Text('Cadastrar, acompanhar e compartilhar, passo a passo',
+          title: Text(tr('Como funciona'), style: TextStyle(fontWeight: FontWeight.w800)),
+          subtitle: Text(tr('Cadastrar, acompanhar e compartilhar, passo a passo'),
               style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
           expandedCrossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -272,14 +262,8 @@ class _HowItWorks extends StatelessWidget {
                 color: AppColors.accent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                'Vínculo online: quando você lê o QR do aluno (ou ele lê o seu), o vínculo aparece nos dois '
-                'aparelhos em poucos segundos. O aluno que ler o seu QR entra sozinho na sua lista, e você '
-                'entra na lista de professores dele. Qualquer um pode encerrar o vínculo quando quiser. '
-                'Funciona com o "Vínculo online" ligado (no perfil de cada um).\n\n'
-                'Aulas: na ficha do aluno, toque em "Começar a aula". Passe as tarefas e observações normalmente e, '
-                'ao tocar em "Encerrar", tudo o que você passou naquela aula vai para o aluno, em Minha conta › Minhas aulas. '
-                'Dá para pausar. O histórico de exercícios do aluno continua só no aparelho dele e no seu.',
+              child: Text(
+                tr('Vínculo online: quando você lê o QR do aluno (ou ele lê o seu), o vínculo aparece nos dois aparelhos em poucos segundos. O aluno que ler o seu QR entra sozinho na sua lista, e você entra na lista de professores dele. Qualquer um pode encerrar o vínculo quando quiser. Funciona com o "Vínculo online" ligado (no perfil de cada um).\n\nAulas: na ficha do aluno, toque em "Começar a aula". Passe as tarefas e observações normalmente e, ao tocar em "Encerrar", tudo o que você passou naquela aula vai para o aluno, em Minha conta › Minhas aulas. Dá para pausar. O histórico de exercícios do aluno continua só no aparelho dele e no seu.'),
                 style: TextStyle(fontSize: 12.5, height: 1.35),
               ),
             ),
@@ -333,30 +317,29 @@ class _TeacherPageState extends State<TeacherPage> {
     if (n == 0) return;
     final ok = await _confirmDelete(
         context,
-        n == 1 ? 'Excluir 1 aluno?' : 'Excluir $n alunos?',
-        'Apaga o histórico, as tarefas e as observações ${n == 1 ? 'deste aluno' : 'destes alunos'} '
-            'neste aparelho${_selected.any(app.hasLessonWith) ? ', e descarta a aula em andamento' : ''}. Não dá para desfazer.');
+        n == 1 ? tr('Excluir 1 aluno?') : tr('Excluir {0} alunos?', [n]),
+        tr('Apaga o histórico, as tarefas e as observações {0} neste aparelho{1}. Não dá para desfazer.', [n == 1 ? tr('deste aluno') : tr('destes alunos'), _selected.any(app.hasLessonWith) ? tr(', e descarta a aula em andamento') : '']));
     if (!ok) return;
     final removed = app.removeStudents(Set.of(_selected));
     setState(() {
       _selected.clear();
       _manage = false;
     });
-    app.say(removed == 1 ? 'Aluno excluído.' : '$removed alunos excluídos.');
+    app.say(removed == 1 ? tr('Aluno excluído.') : tr('{0} alunos excluídos.', [removed]));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Alunos'),
+        title: Text(tr('Alunos')),
         actions: [
           HelpButton(
-            title: 'Como funciona',
+            title: tr('Como funciona'),
             sections: [for (final (_, t, x) in _HowItWorks._steps) (t, x)],
           ),
           IconButton(
-            tooltip: 'Agenda do professor',
+            tooltip: tr('Agenda do professor'),
             icon: const Icon(Icons.calendar_month_outlined),
             onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AgendaPage(app: app))),
           ),
@@ -370,7 +353,7 @@ class _TeacherPageState extends State<TeacherPage> {
                       _selected.clear();
                     }),
                     icon: Icon(_manage ? Icons.check : Icons.checklist, size: 20),
-                    label: Text(_manage ? 'Concluir' : 'Gerenciar'),
+                    label: Text(_manage ? tr('Concluir') : tr('Gerenciar')),
                   ),
           ),
           // O que não é do dia a dia fica num menu: ler QR, importar, métodos e a senha da tela.
@@ -379,7 +362,7 @@ class _TeacherPageState extends State<TeacherPage> {
             builder: (context, _) => app.teacherLocked
                 ? const SizedBox.shrink()
                 : PopupMenuButton<String>(
-                    tooltip: 'Mais opções',
+                    tooltip: tr('Mais opções'),
                     onSelected: (v) {
                       switch (v) {
                         case 'qr':
@@ -393,15 +376,15 @@ class _TeacherPageState extends State<TeacherPage> {
                       }
                     },
                     itemBuilder: (c) => [
-                      const PopupMenuItem(value: 'qr', child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.qr_code_scanner), title: Text('Ler QR do aluno'))),
-                      const PopupMenuItem(value: 'import', child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.download), title: Text('Importar aluno'))),
+                      PopupMenuItem(value: 'qr', child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.qr_code_scanner), title: Text(tr('Ler QR do aluno')))),
+                      PopupMenuItem(value: 'import', child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.download), title: Text(tr('Importar aluno')))),
                       PopupMenuItem(
                         value: 'methods',
-                        child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: const Icon(Icons.library_books_outlined), title: Text(app.methodLibrary.isEmpty ? 'Meus métodos e lições' : 'Meus métodos e lições (${app.methodLibrary.length})')),
+                        child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: const Icon(Icons.library_books_outlined), title: Text(app.methodLibrary.isEmpty ? tr('Meus métodos e lições') : tr('Meus métodos e lições ({0})', [app.methodLibrary.length]))),
                       ),
                       PopupMenuItem(
                         value: 'pin',
-                        child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(app.teacherPinHash == null ? Icons.lock_open : Icons.lock_outline), title: Text(app.teacherPinHash == null ? 'Senha desta tela' : 'Trocar ou remover a senha')),
+                        child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(app.teacherPinHash == null ? Icons.lock_open : Icons.lock_outline), title: Text(app.teacherPinHash == null ? tr('Senha desta tela') : tr('Trocar ou remover a senha'))),
                       ),
                     ],
                   ),
@@ -418,7 +401,7 @@ class _TeacherPageState extends State<TeacherPage> {
                   if (r != null) app.addStudent(r.$1, code: r.$2);
                 },
                 icon: const Icon(Icons.person_add_alt_1),
-                label: const Text('Novo aluno', style: TextStyle(fontWeight: FontWeight.w700)),
+                label: Text(tr('Novo aluno'), style: TextStyle(fontWeight: FontWeight.w700)),
               ),
       ),
       body: SafeArea(
@@ -446,7 +429,7 @@ class _TeacherPageState extends State<TeacherPage> {
               onChanged: (v) => setState(() => _query = v),
               decoration: InputDecoration(
                 prefixIcon: const Icon(Icons.search),
-                hintText: 'Buscar aluno por nome ou código',
+                hintText: tr('Buscar aluno por nome ou código'),
                 suffixIcon: _query.isEmpty
                     ? null
                     : IconButton(
@@ -472,7 +455,7 @@ class _TeacherPageState extends State<TeacherPage> {
                       _selected.addAll(shown);
                     }
                   }),
-                  child: const Text('Selecionar todos'),
+                  child: Text(tr('Selecionar todos')),
                 ),
                 const Spacer(),
                 FilledButton.icon(
@@ -480,7 +463,7 @@ class _TeacherPageState extends State<TeacherPage> {
                       backgroundColor: AppColors.sharp, foregroundColor: readableOn(AppColors.sharp)),
                   onPressed: _selected.isEmpty ? null : _deleteSelected,
                   icon: const Icon(Icons.delete_outline),
-                  label: Text(_selected.isEmpty ? 'Excluir' : 'Excluir (${_selected.length})'),
+                  label: Text(_selected.isEmpty ? tr('Excluir') : tr('Excluir ({0})', [_selected.length])),
                 ),
               ],
             ),
@@ -489,13 +472,13 @@ class _TeacherPageState extends State<TeacherPage> {
         if (app.students.isNotEmpty && !app.students.any(_matches))
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 18),
-            child: Text('Nenhum aluno encontrado.',
+            child: Text(tr('Nenhum aluno encontrado.'),
                 textAlign: TextAlign.center, style: TextStyle(color: AppColors.textDim)),
           ),
         if (app.students.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 18),
-            child: Text('Nenhum aluno ainda. Toque em "Novo aluno" ou no "?" para ver como funciona.',
+            child: Text(tr('Nenhum aluno ainda. Toque em "Novo aluno" ou no "?" para ver como funciona.'),
                 textAlign: TextAlign.center, style: TextStyle(color: AppColors.textDim)),
           ),
       ],
@@ -504,29 +487,29 @@ class _TeacherPageState extends State<TeacherPage> {
 
   Future<void> _scanQr(BuildContext context) async {
     final s = await scanShareCode(context,
-        title: 'Ler QR do aluno', want: 'aluno', check: (code) => app.checkStudent('aluno', code).code, onCamera: app.setCameraStatus);
+        title: tr('Ler QR do aluno'), want: 'aluno', check: (code) => app.checkStudent('aluno', code).code, onCamera: app.setCameraStatus);
     if (s == null || !context.mounted) return;
     final r = await _newStudentDialog(context, app, code0: s.code);
     if (r != null) app.addStudent(r.$1, code: r.$2);
   }
 
   Future<void> _importStudent(BuildContext context) async {
-    final t = await _askText(context, 'Importar aluno', 'Cole aqui os dados copiados do outro aparelho', multiline: true, action: 'Importar');
+    final t = await _askText(context, tr('Importar aluno'), tr('Cole aqui os dados copiados do outro aparelho'), multiline: true, action: tr('Importar'));
     if (t != null && t.trim().isNotEmpty) app.say(app.importStudentText(t));
   }
 
   Future<void> _setPin(BuildContext context) async {
-    final pin = await _askText(context, 'Trava com senha (opcional)', 'Senha de 4 números (vazio remove)', action: 'Definir');
+    final pin = await _askText(context, tr('Trava com senha (opcional)'), tr('Senha de 4 números (vazio remove)'), action: tr('Definir'));
     if (pin == null) return;
     final p = pin.trim();
     if (p.isEmpty) {
       app.setTeacherPin(null);
-      app.say('Trava removida');
+      app.say(tr('Trava removida'));
     } else if (RegExp(r'^\d{4}$').hasMatch(p)) {
       app.setTeacherPin(p);
-      app.say('Trava definida: peça a senha ao abrir esta área');
+      app.say(tr('Trava definida: peça a senha ao abrir esta área'));
     } else {
-      app.say('Use exatamente 4 números');
+      app.say(tr('Use exatamente 4 números'));
     }
   }
 
@@ -550,9 +533,9 @@ class _TeacherPageState extends State<TeacherPage> {
       }
     }
     final groups = <(String, IconData, List<Student>)>[
-      ('Aula hoje', Icons.event_available_outlined, today),
-      ('Para validar', Icons.fact_check_outlined, waiting),
-      (today.isEmpty && waiting.isEmpty ? '' : 'Todos os outros', Icons.groups_outlined, rest),
+      (tr('Aula hoje'), Icons.event_available_outlined, today),
+      (tr('Para validar'), Icons.fact_check_outlined, waiting),
+      (today.isEmpty && waiting.isEmpty ? '' : tr('Todos os outros'), Icons.groups_outlined, rest),
     ].where((g) => g.$3.isNotEmpty).toList();
     return [
       for (final g in groups) ...[
@@ -595,9 +578,9 @@ class _TeacherPageState extends State<TeacherPage> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Wrap(spacing: 8, runSpacing: 8, children: [
-        chip(Icons.groups_outlined, n == 1 ? '1 aluno' : '$n alunos'),
-        if (waiting > 0) chip(Icons.fact_check_outlined, '$waiting para validar', alert: true),
-        if (today > 0) chip(Icons.event_outlined, today == 1 ? '1 aula hoje' : '$today aulas hoje'),
+        chip(Icons.groups_outlined, n == 1 ? tr('1 aluno') : tr('{0} alunos', [n])),
+        if (waiting > 0) chip(Icons.fact_check_outlined, tr('{0} para validar', [waiting]), alert: true),
+        if (today > 0) chip(Icons.event_outlined, today == 1 ? tr('1 aula hoje') : tr('{0} aulas hoje', [today])),
       ]),
     );
   }
@@ -618,8 +601,8 @@ class _TeacherPageState extends State<TeacherPage> {
     final absences = absencesSince(s.absences, sinceMs: nowD.millisecondsSinceEpoch - 60 * kMsDay);
     final hm = nextOcc == null ? '' : '${nextOcc.start.hour.toString().padLeft(2, '0')}:${nextOcc.start.minute.toString().padLeft(2, '0')}';
     final subtitle = nextOcc != null
-        ? (classToday ? 'Aula hoje às $hm' : 'Próxima aula: ${fmtSlotWhen(nextOcc.start, nowD)}')
-        : (sum.sessions == 0 ? 'Sem aula marcada' : '${sum.sessions} sessões · média ${(sum.recentAverage! * 100).round()}%');
+        ? (classToday ? tr('Aula hoje às {0}', [hm]) : tr('Próxima aula: {0}', [fmtSlotWhen(nextOcc.start, nowD)]))
+        : (sum.sessions == 0 ? tr('Sem aula marcada') : tr('{0} sessões · média {1}%', [sum.sessions, (sum.recentAverage! * 100).round()]));
     final ring = classToday ? AppColors.accent : (awaiting > 0 ? AppColors.accent : Colors.transparent);
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -675,9 +658,9 @@ class _TeacherPageState extends State<TeacherPage> {
                     if (awaiting > 0 || open > 0 || absences > 0) ...[
                       const SizedBox(height: 7),
                       Wrap(spacing: 6, runSpacing: 4, children: [
-                        if (awaiting > 0) _tag('$awaiting para validar', AppColors.accent),
-                        if (open > 0) _tag('$open em aberto', AppColors.flat),
-                        if (absences > 0) _tag('$absences falta${absences == 1 ? '' : 's'}', AppColors.sharp),
+                        if (awaiting > 0) _tag(tr('{0} para validar', [awaiting]), AppColors.accent),
+                        if (open > 0) _tag(tr('{0} em aberto', [open]), AppColors.flat),
+                        if (absences > 0) _tag(tr('{0} falta{1}', [absences, absences == 1 ? '' : 's']), AppColors.sharp),
                       ]),
                     ],
                   ],
@@ -685,7 +668,7 @@ class _TeacherPageState extends State<TeacherPage> {
               ),
               if (!_manage)
                 PopupMenuButton<String>(
-                  tooltip: 'Opções de ${s.name}',
+                  tooltip: tr('Opções de {0}', [s.name]),
                   icon: Icon(Icons.more_vert, color: AppColors.textDim),
                   onSelected: (v) async {
                     switch (v) {
@@ -697,20 +680,19 @@ class _TeacherPageState extends State<TeacherPage> {
                       case 'code':
                         await _editStudentCode(context, app, s);
                       case 'delete':
-                        final ok = await _confirmDelete(context, 'Excluir ${s.name}?',
-                            'Apaga o histórico, as tarefas e as observações deste aluno neste aparelho'
-                                '${app.hasLessonWith(s.id) ? ', e descarta a aula em andamento com ele' : ''}. Não dá para desfazer.');
+                        final ok = await _confirmDelete(context, tr('Excluir {0}?', [s.name]),
+                            tr('Apaga o histórico, as tarefas e as observações deste aluno neste aparelho{0}. Não dá para desfazer.', [app.hasLessonWith(s.id) ? tr(', e descarta a aula em andamento com ele') : '']));
                         if (ok) {
                           app.removeStudent(s.id);
-                          app.say('${s.name} foi excluído.');
+                          app.say(tr('{0} foi excluído.', [s.name]));
                         }
                     }
                   },
-                  itemBuilder: (c) => const [
-                    PopupMenuItem(value: 'open', child: Text('Abrir')),
-                    PopupMenuItem(value: 'rename', child: Text('Renomear')),
-                    PopupMenuItem(value: 'code', child: Text('Código do aluno')),
-                    PopupMenuItem(value: 'delete', child: Text('Excluir aluno')),
+                  itemBuilder: (c) => [
+                    PopupMenuItem(value: 'open', child: Text(tr('Abrir'))),
+                    PopupMenuItem(value: 'rename', child: Text(tr('Renomear'))),
+                    PopupMenuItem(value: 'code', child: Text(tr('Código do aluno'))),
+                    PopupMenuItem(value: 'delete', child: Text(tr('Excluir aluno'))),
                   ],
                 ),
             ],
@@ -728,12 +710,12 @@ Future<bool> _confirmDelete(BuildContext context, String title, String text) asy
       title: Text(title),
       content: Text(text),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
+        TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
         FilledButton.icon(
           style: FilledButton.styleFrom(
               backgroundColor: AppColors.sharp, foregroundColor: readableOn(AppColors.sharp)),
           onPressed: () => Navigator.pop(c, true),
-          icon: const Icon(Icons.delete_outline, size: 18), label: const Text('Excluir'),
+          icon: const Icon(Icons.delete_outline, size: 18), label: Text(tr('Excluir')),
         ),
       ],
     ),
@@ -742,7 +724,7 @@ Future<bool> _confirmDelete(BuildContext context, String title, String text) asy
 }
 
 Future<void> _renameStudent(BuildContext context, AppState app, Student s) async {
-  final n = await _askText(context, 'Renomear', 'Nome', initial: s.name, voice: app);
+  final n = await _askText(context, tr('Renomear'), tr('Nome'), initial: s.name, voice: app);
   if (n == null || n.trim().isEmpty) return;
   final err = app.checkStudent(n, s.code ?? '', exceptId: s.id).name;
   if (err != null) {
@@ -754,8 +736,8 @@ Future<void> _renameStudent(BuildContext context, AppState app, Student s) async
 }
 
 Future<void> _editStudentCode(BuildContext context, AppState app, Student s) async {
-  final c = await _askText(context, 'Código do aluno', 'Código (ex.: K7QM-4TXD)',
-      initial: s.code ?? '', action: 'Salvar');
+  final c = await _askText(context, tr('Código do aluno'), tr('Código (ex.: K7QM-4TXD)'),
+      initial: s.code ?? '', action: tr('Salvar'));
   if (c == null) return;
   final err = app.checkStudentCode(c, exceptId: s.id);
   if (err != null) {
@@ -785,7 +767,7 @@ class _PinGateState extends State<_PinGate> {
 
   void _try() {
     if (!widget.app.unlockTeacher(_ctl.text.trim())) {
-      setState(() => _error = 'Senha incorreta');
+      setState(() => _error = tr('Senha incorreta'));
       _ctl.clear();
     }
   }
@@ -800,9 +782,9 @@ class _PinGateState extends State<_PinGate> {
           children: [
             const Icon(Icons.lock_outline, size: 44),
             const SizedBox(height: 10),
-            const Text('Alunos protegidos', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+            Text(tr('Alunos protegidos'), style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
             const SizedBox(height: 6),
-            Text('Digite a senha de 4 números.', style: TextStyle(color: AppColors.textDim)),
+            Text(tr('Digite a senha de 4 números.'), style: TextStyle(color: AppColors.textDim)),
             const SizedBox(height: 14),
             SizedBox(
               width: 180,
@@ -846,7 +828,7 @@ class StudentPage extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('Alunos', style: TextStyle(fontSize: 12, color: AppColors.textDim, fontWeight: FontWeight.w600)),
+              Text(tr('Alunos'), style: TextStyle(fontSize: 12, color: AppColors.textDim, fontWeight: FontWeight.w600)),
               Text(s.name, maxLines: 1, overflow: TextOverflow.ellipsis),
             ]),
             actions: [
@@ -855,34 +837,33 @@ class StudentPage extends StatelessWidget {
                   switch (v) {
                     case 'report':
                       await Clipboard.setData(ClipboardData(text: studentReport(s, flats: app.flatsForText)));
-                      app.say('Relatório copiado: cole numa conversa ou e-mail');
+                      app.say(tr('Relatório copiado: cole numa conversa ou e-mail'));
                     case 'ai':
                       await _aiReport(context, s);
                     case 'data':
                       await Clipboard.setData(ClipboardData(text: exportStudent(s)));
-                      app.say('Dados copiados: use "Importar" no outro aparelho');
+                      app.say(tr('Dados copiados: use "Importar" no outro aparelho'));
                     case 'code':
                       await _editStudentCode(context, app, s);
                     case 'rename':
                       await _renameStudent(context, app, s);
                     case 'delete':
-                      final ok = await _confirmDelete(context, 'Excluir ${s.name}?',
-                          'Apaga o histórico, as tarefas e as observações deste aluno neste aparelho'
-                              '${app.hasLessonWith(s.id) ? ', e descarta a aula em andamento com ele' : ''}. Não dá para desfazer.');
+                      final ok = await _confirmDelete(context, tr('Excluir {0}?', [s.name]),
+                          tr('Apaga o histórico, as tarefas e as observações deste aluno neste aparelho{0}. Não dá para desfazer.', [app.hasLessonWith(s.id) ? tr(', e descarta a aula em andamento com ele') : '']));
                       if (ok) {
                         app.removeStudent(s.id);
-                        app.say('${s.name} foi excluído.');
+                        app.say(tr('{0} foi excluído.', [s.name]));
                         if (context.mounted) Navigator.of(context).pop();
                       }
                   }
                 },
-                itemBuilder: (c) => const [
-                  PopupMenuItem(value: 'report', child: Text('Copiar relatório')),
-                  PopupMenuItem(value: 'ai', child: Text('Relatório com IA')),
-                  PopupMenuItem(value: 'data', child: Text('Copiar dados (para outro aparelho)')),
-                  PopupMenuItem(value: 'code', child: Text('Código do aluno')),
-                  PopupMenuItem(value: 'rename', child: Text('Renomear')),
-                  PopupMenuItem(value: 'delete', child: Text('Excluir aluno')),
+                itemBuilder: (c) => [
+                  PopupMenuItem(value: 'report', child: Text(tr('Copiar relatório'))),
+                  PopupMenuItem(value: 'ai', child: Text(tr('Relatório com IA'))),
+                  PopupMenuItem(value: 'data', child: Text(tr('Copiar dados (para outro aparelho)'))),
+                  PopupMenuItem(value: 'code', child: Text(tr('Código do aluno'))),
+                  PopupMenuItem(value: 'rename', child: Text(tr('Renomear'))),
+                  PopupMenuItem(value: 'delete', child: Text(tr('Excluir aluno'))),
                 ],
               ),
             ],
@@ -909,7 +890,7 @@ class StudentPage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('Orientações do treinador', style: TextStyle(fontWeight: FontWeight.w800)),
+                        Text(tr('Orientações do treinador'), style: TextStyle(fontWeight: FontWeight.w800)),
                         const SizedBox(height: 4),
                         for (final t in tips) InsightTile(insight: t),
                       ],
@@ -941,29 +922,26 @@ class StudentPage extends StatelessWidget {
     if (waiting == 0 || s.code == null || s.linkState == 'ended') return const SizedBox.shrink();
     final issue = app.deliveryIssue[s.code];
 
-    String title = 'Aguardando envio para ${s.name}';
+    String title = tr('Aguardando envio para {0}', [s.name]);
     String text;
     var showInvite = false;
     var showTurnOn = false;
     if (!app.linkEnabled) {
-      text = 'O vínculo online está desligado no SEU app, por isso nada sai daqui. Ligue para enviar.';
+      text = tr('O vínculo online está desligado no SEU app, por isso nada sai daqui. Ligue para enviar.');
       showTurnOn = true;
     } else if (app.linkUnavailable) {
-      text = 'O servidor ainda não recebe aulas. Elas ficam guardadas e vão quando ele voltar.';
+      text = tr('O servidor ainda não recebe aulas. Elas ficam guardadas e vão quando ele voltar.');
     } else if (issue == 'not_ready') {
-      title = '${s.name} ainda não recebeu';
-      text = 'O app de ${s.name} ainda não ligou o "Vínculo online" (ele vem desligado). Sem isso o servidor não '
-          'entrega nada. Peça para abrir Minha conta › Vínculo online e ligar, ou mande o convite abaixo: ao abrir o '
-          'link, o vínculo liga sozinho. Quando ele ligar, chega em até 30 segundos.';
+      title = tr('{0} ainda não recebeu', [s.name]);
+      text = tr('O app de {0} ainda não ligou o "Vínculo online" (ele vem desligado). Sem isso o servidor não entrega nada. Peça para abrir Minha conta › Vínculo online e ligar, ou mande o convite abaixo: ao abrir o link, o vínculo liga sozinho. Quando ele ligar, chega em até 30 segundos.', [s.name]);
       showInvite = true;
     } else if (issue == 'offline' || app.linkOnline == false) {
-      text = 'Sem conexão com o servidor agora. Fica guardado e vai quando a internet voltar.';
+      text = tr('Sem conexão com o servidor agora. Fica guardado e vai quando a internet voltar.');
     } else if (s.linkState != 'active') {
-      text = '${s.name} ainda não está vinculado. Vai assim que o vínculo for confirmado. '
-          'Se ele nunca abriu o app com o vínculo ligado, mande o convite.';
+      text = tr('{0} ainda não está vinculado. Vai assim que o vínculo for confirmado. Se ele nunca abriu o app com o vínculo ligado, mande o convite.', [s.name]);
       showInvite = true;
     } else {
-      text = 'Na fila. O envio é tentado a cada 30 segundos; toque em "Tentar agora" para forçar.';
+      text = tr('Na fila. O envio é tentado a cada 30 segundos; toque em "Tentar agora" para forçar.');
     }
 
     return Padding(
@@ -983,24 +961,24 @@ class StudentPage extends StatelessWidget {
               FilledButton.icon(
                 onPressed: () => app.setLinkEnabled(true),
                 icon: const Icon(Icons.cloud_outlined, size: 18),
-                label: const Text('Ligar vínculo online'),
+                label: Text(tr('Ligar vínculo online')),
               )
             else ...[
               if (showInvite)
                 FilledButton.icon(
                   onPressed: () => shareTeacherInvite(app),
                   icon: const Icon(Icons.send, size: 18),
-                  label: const Text('Enviar convite'),
+                  label: Text(tr('Enviar convite')),
                 ),
               OutlinedButton.icon(
                 onPressed: () async {
                   await app.syncLinks();
                   await app.flushLessons();
                   final still = s.lessons.any((r) => r.sent == false);
-                  app.say(still ? 'Ainda não chegou. Veja o motivo no cartão.' : 'Enviado para ${s.name}.');
+                  app.say(still ? tr('Ainda não chegou. Veja o motivo no cartão.') : tr('Enviado para {0}.', [s.name]));
                 },
                 icon: const Icon(Icons.refresh, size: 18),
-                label: const Text('Tentar agora'),
+                label: Text(tr('Tentar agora')),
               ),
             ],
           ]),
@@ -1012,20 +990,19 @@ class StudentPage extends StatelessWidget {
   /// Relatório pedagógico por IA. Vai só um resumo numérico, SEM nome e SEM observações.
   Future<void> _aiReport(BuildContext context, Student s) async {
     if (s.sessions.isEmpty) {
-      app.say('Sem exercícios ainda: faça uma sessão com o aluno primeiro.');
+      app.say(tr('Sem exercícios ainda: faça uma sessão com o aluno primeiro.'));
       return;
     }
     if (!app.ai.consent) {
       final ok = await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
-          title: const Text('Relatório com IA'),
-          content: const Text(
-              'O app envia à IA um resumo só com números do aluno (afinação por nota, escalas e taxas de acerto). '
-              'O nome e as suas observações NÃO são enviados. Nunca vai áudio.'),
+          title: Text(tr('Relatório com IA')),
+          content: Text(
+              tr('O app envia à IA um resumo só com números do aluno (afinação por nota, escalas e taxas de acerto). O nome e as suas observações NÃO são enviados. Nunca vai áudio.')),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Agora não')),
-            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Autorizar')),
+            TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Agora não'))),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Autorizar'))),
           ],
         ),
       );
@@ -1033,7 +1010,7 @@ class StudentPage extends StatelessWidget {
       await app.ai.setConsent(true);
     }
     // Só números e tipos: texto livre (título, lição, observação) pode ter nomes e não sai do aparelho.
-    final anon = Student(id: 'x', name: 'o aluno', sessions: s.sessions, tasks: [
+    final anon = Student(id: 'x', name: tr('o aluno'), sessions: s.sessions, tasks: [
       for (final t in s.tasks)
         t.isScale
             ? t.copyWith(note: '')
@@ -1058,33 +1035,33 @@ class StudentPage extends StatelessWidget {
               controller: scroll,
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
               children: [
-                Text('Relatório de ${s.name}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                Text(tr('Relatório de {0}', [s.name]), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
                 const SizedBox(height: 10),
                 if (ai.phase == AiPhase.sending)
-                  const Row(children: [
+                  Row(children: [
                     SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
                     SizedBox(width: 10),
-                    Expanded(child: Text('Preparando o relatório…')),
+                    Expanded(child: Text(tr('Preparando o relatório…'))),
                   ])
                 else if (ai.phase == AiPhase.queued)
                   Text(ai.queuePosition != null
-                      ? 'Você é o ${ai.queuePosition}º da fila: sua vez em ${ai.queuedSeconds}s.'
-                      : 'Muita gente usando agora: nova tentativa em ${ai.queuedSeconds}s.')
+                      ? tr('Você é o {0}º da fila: sua vez em {1}s.', [ai.queuePosition, ai.queuedSeconds])
+                      : tr('Muita gente usando agora: nova tentativa em {0}s.', [ai.queuedSeconds]))
                 else if (ai.phase == AiPhase.failed)
-                  Text(ai.message ?? 'Não deu certo agora.', style: TextStyle(color: AppColors.sharp))
+                  Text(ai.message ?? tr('Não deu certo agora.'), style: TextStyle(color: AppColors.sharp))
                 else if (ai.lastResult != null && ai.lastKind == 'teacher_report') ...[
                   MarkdownLite(ai.lastResult!),
                   const SizedBox(height: 8),
-                  Text('Gerado por IA: pode errar. Revise antes de enviar.',
+                  Text(tr('Gerado por IA: pode errar. Revise antes de enviar.'),
                       style: TextStyle(color: AppColors.textDim, fontSize: 12)),
                   const SizedBox(height: 10),
                   OutlinedButton.icon(
                     onPressed: () async {
                       await Clipboard.setData(ClipboardData(text: ai.lastResult!));
-                      app.say('Relatório copiado');
+                      app.say(tr('Relatório copiado'));
                     },
                     icon: const Icon(Icons.copy),
-                    label: const Text('Copiar relatório'),
+                    label: Text(tr('Copiar relatório')),
                   ),
                 ],
               ],
@@ -1103,7 +1080,7 @@ class StudentPage extends StatelessWidget {
           Row(children: [
             Expanded(
               child: Text(
-                sum.sessions == 0 ? 'Ainda sem exercícios' : '${(sum.recentAverage! * 100).round()}% de acerto (média recente)',
+                sum.sessions == 0 ? tr('Ainda sem exercícios') : tr('{0}% de acerto (média recente)', [(sum.recentAverage! * 100).round()]),
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
               ),
             ),
@@ -1113,8 +1090,7 @@ class StudentPage extends StatelessWidget {
           ]),
           if (sum.sessions > 0)
             Text(
-              '${sum.sessions} sessões · melhor ${(sum.best! * 100).round()}% · última ${_day(sum.last!)}'
-              '${sum.trendPoints == null ? '' : ' · ${sum.trendPoints! >= 0 ? '+' : ''}${sum.trendPoints!.round()} pts nas últimas 3'}',
+              tr('{0} sessões · melhor {1}% · última {2}{3}', [sum.sessions, (sum.best! * 100).round(), _day(sum.last!), sum.trendPoints == null ? '' : tr(' · {0}{1} pts nas últimas 3', [sum.trendPoints! >= 0 ? '+' : '', sum.trendPoints!.round()])]),
               style: TextStyle(color: AppColors.textDim, fontSize: 13),
             ),
         ],
@@ -1128,16 +1104,16 @@ class StudentPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            const Expanded(child: Text('Tarefas', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+            Expanded(child: Text(tr('Tarefas'), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
             TextButton.icon(
               onPressed: () => _taskDialog(context, s),
               icon: const Icon(Icons.add),
-              label: const Text('Nova tarefa'),
+              label: Text(tr('Nova tarefa')),
             ),
           ]),
           if (s.tasks.isEmpty)
             Text(
-                'Nenhuma tarefa. Toque em "Nova tarefa" para passar escala, lição, repertório ou atividade.',
+                tr('Nenhuma tarefa. Toque em "Nova tarefa" para passar escala, lição, repertório ou atividade.'),
                 style: TextStyle(color: AppColors.textDim, fontSize: 13)),
           _pendingBanner(s),
           for (final t in s.tasks)
@@ -1157,7 +1133,7 @@ class StudentPage extends StatelessWidget {
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(t.isScale ? 'Meta ${(t.goal * 100).round()}% de acerto' : t.kind.label),
+                  Text(t.isScale ? tr('Meta {0}% de acerto', [(t.goal * 100).round()]) : t.kind.label),
                   _sentChip(s, t),
                   _claimChip(t),
                   if (t.note.isNotEmpty)
@@ -1171,17 +1147,17 @@ class StudentPage extends StatelessWidget {
                 if (t.isScale && !t.done)
                   FilledButton.tonalIcon(
                     onPressed: () => _startTask(context, s, t),
-                    icon: const Icon(Icons.play_arrow, size: 18), label: const Text('Iniciar'),
+                    icon: const Icon(Icons.play_arrow, size: 18), label: Text(tr('Iniciar')),
                   ),
                 PopupMenuButton<String>(
-                  tooltip: 'Opções da tarefa',
+                  tooltip: tr('Opções da tarefa'),
                   onSelected: (v) {
                     if (v == 'edit') _taskDialog(context, s, edit: t);
                     if (v == 'delete') app.removeAssignment(s, t.id);
                   },
-                  itemBuilder: (c) => const [
-                    PopupMenuItem(value: 'edit', child: Text('Editar')),
-                    PopupMenuItem(value: 'delete', child: Text('Apagar')),
+                  itemBuilder: (c) => [
+                    PopupMenuItem(value: 'edit', child: Text(tr('Editar'))),
+                    PopupMenuItem(value: 'delete', child: Text(tr('Apagar'))),
                   ],
                 ),
               ]),
@@ -1204,7 +1180,7 @@ class StudentPage extends StatelessWidget {
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(sent ? Icons.mark_email_read_outlined : Icons.schedule_send_outlined, size: 13, color: color),
         const SizedBox(width: 4),
-        Text(sent ? 'Enviada ao aluno' : (queued ? 'Na fila de envio' : 'A enviar'),
+        Text(sent ? tr('Enviada ao aluno') : (queued ? tr('Na fila de envio') : tr('A enviar')),
             style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.w700)),
       ]),
     );
@@ -1218,7 +1194,7 @@ class StudentPage extends StatelessWidget {
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(Icons.fact_check_outlined, size: 13, color: AppColors.accent),
         const SizedBox(width: 4),
-        Text('Aluno marcou como feita',
+        Text(tr('Aluno marcou como feita'),
             style: TextStyle(color: AppColors.accent, fontSize: 11.5, fontWeight: FontWeight.w700)),
       ]),
     );
@@ -1239,12 +1215,12 @@ class StudentPage extends StatelessWidget {
         Icon(Icons.schedule_send_outlined, size: 20, color: AppColors.flat),
         const SizedBox(width: 10),
         Expanded(
-          child: Text('$n tarefa${n == 1 ? '' : 's'} ainda não enviada${n == 1 ? '' : 's'} a ${s.name}.',
+          child: Text(tr('{0} tarefa{1} ainda não enviada{2} a {3}.', [n, n == 1 ? '' : 's', n == 1 ? '' : 's', s.name]),
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
         ),
         FilledButton.tonal(
           onPressed: () => app.say(app.sendPendingTasks(s)),
-          child: const Text('Enviar'),
+          child: Text(tr('Enviar')),
         ),
       ]),
     );
@@ -1264,12 +1240,11 @@ class StudentPage extends StatelessWidget {
       final start = await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
-          title: Text('Começar a aula com ${s.name}?'),
-          content: const Text('Em aula, o resultado do exercício entra no histórico do aluno. '
-              'Sem aula, o exercício fica só no seu próprio histórico.'),
+          title: Text(tr('Começar a aula com {0}?', [s.name])),
+          content: Text(tr('Em aula, o resultado do exercício entra no histórico do aluno. Sem aula, o exercício fica só no seu próprio histórico.')),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Só treinar')),
-            FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.play_arrow, size: 18), label: const Text('Começar a aula')),
+            TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Só treinar'))),
+            FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.play_arrow, size: 18), label: Text(tr('Começar a aula'))),
           ],
         ),
       );
@@ -1290,7 +1265,7 @@ class StudentPage extends StatelessWidget {
     if (edit != null) {
       app.editAssignment(s, edit.id,
           subject: edit.isScale ? null : d.subject, detail: edit.isScale ? null : d.detail, note: d.note);
-      app.say('Tarefa salva.');
+      app.say(tr('Tarefa salva.'));
       return;
     }
     final rule = app.deliveryFor(s);
@@ -1307,14 +1282,14 @@ class StudentPage extends StatelessWidget {
           title: d.title, kind: d.kind, subject: d.subject, detail: d.detail, note: d.note);
     }
     if (rule.mode == DeliveryMode.inLesson) {
-      app.say('Tarefa passada. Vai para ${s.name} quando você encerrar a aula.');
+      app.say(tr('Tarefa passada. Vai para {0} quando você encerrar a aula.', [s.name]));
     } else if (d.sendNow && rule.canSend) {
       if (rule.mode == DeliveryMode.now) app.celebrateNextDelivery(s.code);
       app.say(app.sendPendingTasks(s));
     } else if (rule.mode == DeliveryMode.localOnly) {
-      app.say('Tarefa passada. Fica só na sua ficha: ${s.name} ainda não pode receber.');
+      app.say(tr('Tarefa passada. Fica só na sua ficha: {0} ainda não pode receber.', [s.name]));
     } else {
-      app.say('Tarefa passada. Ainda não foi enviada: use "Enviar" na ficha ou ela vai com a próxima aula.');
+      app.say(tr('Tarefa passada. Ainda não foi enviada: use "Enviar" na ficha ou ela vai com a próxima aula.'));
     }
   }
 
@@ -1324,7 +1299,7 @@ class StudentPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Aulas dadas', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          Text(tr('Aulas dadas'), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
           const SizedBox(height: 4),
           for (final l in s.lessons.take(8))
             ListTile(
@@ -1335,15 +1310,14 @@ class StudentPage extends StatelessWidget {
                 color: l.sent == true ? AppColors.inTune : (l.sent == false ? AppColors.flat : AppColors.textDim),
               ),
               title: Text(l.durationSec == 0
-                  ? '${_day(l.endedAt)} · tarefas enviadas fora de aula'
-                  : '${_day(l.endedAt)} · aula de ${fmtLessonDuration(l.durationSec)}'),
+                  ? tr('{0} · tarefas enviadas fora de aula', [_day(l.endedAt)])
+                  : tr('{0} · aula de {1}', [_day(l.endedAt), fmtLessonDuration(l.durationSec)])),
               subtitle: Text(
-                '${l.taskCount} tarefa${l.taskCount == 1 ? '' : 's'}${l.noteCount > 0 ? ', ${l.noteCount} observaç${l.noteCount == 1 ? 'ão' : 'ões'}' : ''} · '
-                '${l.sent == true ? 'enviada ao aluno' : (l.sent == false ? 'aguardando envio' : 'só neste aparelho')}',
+                tr('{0} tarefa{1}{2} · {3}', [l.taskCount, l.taskCount == 1 ? '' : 's', l.noteCount > 0 ? tr(', {0} observaç{1}', [l.noteCount, l.noteCount == 1 ? tr('ão') : tr('ões')]) : '', l.sent == true ? tr('enviada ao aluno') : (l.sent == false ? tr('aguardando envio') : tr('só neste aparelho'))]),
                 style: const TextStyle(fontSize: 12.5),
               ),
               trailing: l.sent == false
-                  ? TextButton(onPressed: app.flushLessons, child: const Text('Enviar'))
+                  ? TextButton(onPressed: app.flushLessons, child: Text(tr('Enviar')))
                   : null,
             ),
         ],
@@ -1356,10 +1330,10 @@ class StudentPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Últimos exercícios', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+          Text(tr('Últimos exercícios'), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
           const SizedBox(height: 6),
           if (s.sessions.isEmpty)
-            Text('Quando este aluno estiver "em aula", os resultados aparecem aqui.',
+            Text(tr('Quando este aluno estiver "em aula", os resultados aparecem aqui.'),
                 style: TextStyle(color: AppColors.textDim, fontSize: 13)),
           for (final r in s.sessions.take(8))
             Padding(
@@ -1384,7 +1358,7 @@ class StudentPage extends StatelessWidget {
   }
 
   Future<void> _newNote(BuildContext context, Student s) async {
-    final t = await _askText(context, 'Nova observação', 'O que anotar?', multiline: true, voice: app);
+    final t = await _askText(context, tr('Nova observação'), tr('O que anotar?'), multiline: true, voice: app);
     if (t != null) app.addTeacherNote(s, t);
   }
 
@@ -1394,15 +1368,15 @@ class StudentPage extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            const Expanded(child: Text('Observações', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+            Expanded(child: Text(tr('Observações'), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
             TextButton.icon(
               onPressed: () => _newNote(context, s),
               icon: const Icon(Icons.edit_note),
-              label: const Text('Anotar'),
+              label: Text(tr('Anotar')),
             ),
           ]),
           if (s.notes.isEmpty)
-            Text('Anote pontos de atenção, elogios e combinados.',
+            Text(tr('Anote pontos de atenção, elogios e combinados.'),
                 style: TextStyle(color: AppColors.textDim, fontSize: 13)),
           for (final n in s.notes.take(10))
             Padding(
@@ -1462,20 +1436,19 @@ class _LessonCardState extends State<_LessonCard> {
   /// Para onde a aula vai ao encerrar.
   String _destination() {
     if (s.code == null) {
-      return 'Este aluno não tem código: a aula fica só neste aparelho. Para enviar, informe o código dele (menu ⋮ › Código do aluno).';
+      return tr('Este aluno não tem código: a aula fica só neste aparelho. Para enviar, informe o código dele (menu ⋮ › Código do aluno).');
     }
     if (!app.linkEnabled) {
-      return 'O vínculo online está desligado: a aula fica guardada e é enviada quando você ligá-lo (Minha conta).';
+      return tr('O vínculo online está desligado: a aula fica guardada e é enviada quando você ligá-lo (Minha conta).');
     }
-    if (app.linkUnavailable) return 'O servidor ainda não recebe aulas: ela fica guardada e vai quando ficar disponível.';
+    if (app.linkUnavailable) return tr('O servidor ainda não recebe aulas: ela fica guardada e vai quando ficar disponível.');
     if (s.linkState != 'active') {
-      return 'O aluno ainda não está vinculado: a aula fica guardada e vai quando ele se vincular.';
+      return tr('O aluno ainda não está vinculado: a aula fica guardada e vai quando ele se vincular.');
     }
     if (app.deliveryIssue[s.code] == 'not_ready') {
-      return 'O app de ${s.name} ainda não ligou o "Vínculo online": a aula fica na fila e chega assim que ele ligar. '
-          'Você pode mandar um convite pela ficha.';
+      return tr('O app de {0} ainda não ligou o "Vínculo online": a aula fica na fila e chega assim que ele ligar. Você pode mandar um convite pela ficha.', [s.name]);
     }
-    return 'Ao encerrar, as tarefas e observações desta aula vão para ${s.name}, em Estudo › Tarefas do professor.';
+    return tr('Ao encerrar, as tarefas e observações desta aula vão para {0}, em Estudo › Tarefas do professor.', [s.name]);
   }
 
   Future<void> _end() async {
@@ -1486,18 +1459,17 @@ class _LessonCardState extends State<_LessonCard> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Encerrar a aula?'),
+        title: Text(tr('Encerrar a aula?')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Duração: $dur'),
+            Text(tr('Duração: {0}', [dur])),
             const SizedBox(height: 6),
-            Text('Será enviado ao aluno: ${tally.tasks} tarefa${tally.tasks == 1 ? '' : 's'} e '
-                '${tally.notes} observaç${tally.notes == 1 ? 'ão' : 'ões'}.'),
+            Text(tr('Será enviado ao aluno: {0} tarefa{1} e {2} observaç{3}.', [tally.tasks, tally.tasks == 1 ? '' : 's', tally.notes, tally.notes == 1 ? tr('ão') : tr('ões')])),
             if (tally.tasks == 0) ...[
               const SizedBox(height: 6),
-              Text('Nenhuma tarefa foi passada nesta aula. Para passar uma, volte e toque em "Nova tarefa".',
+              Text(tr('Nenhuma tarefa foi passada nesta aula. Para passar uma, volte e toque em "Nova tarefa".'),
                   style: TextStyle(color: AppColors.flat)),
             ],
             const SizedBox(height: 8),
@@ -1505,8 +1477,8 @@ class _LessonCardState extends State<_LessonCard> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Continuar aula')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Encerrar aula')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Continuar aula'))),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Encerrar aula'))),
         ],
       ),
     );
@@ -1514,8 +1486,8 @@ class _LessonCardState extends State<_LessonCard> {
     final rec = app.endLesson();
     if (rec == null) return;
     app.say(rec.sent == false
-        ? 'Aula encerrada. Enviando para ${s.name}…'
-        : 'Aula encerrada e guardada neste aparelho.');
+        ? tr('Aula encerrada. Enviando para {0}…', [s.name])
+        : tr('Aula encerrada e guardada neste aparelho.'));
   }
 
   /// "Aula de hoje às 17:00" quando há uma aula deste aluno por perto (a que ele pode estar perdendo); senão null.
@@ -1527,13 +1499,13 @@ class _LessonCardState extends State<_LessonCard> {
     if (o == null) return null;
     final hm = '${o.start.hour.toString().padLeft(2, '0')}:${o.start.minute.toString().padLeft(2, '0')}';
     final today = o.start.year == now.year && o.start.month == now.month && o.start.day == now.day;
-    return today ? 'Aula de hoje às $hm' : 'Aula às $hm';
+    return today ? tr('Aula de hoje às {0}', [hm]) : tr('Aula às {0}', [hm]);
   }
 
   String _absenceSummary() {
     final n = s.absences.length;
     final d = DateTime.fromMillisecondsSinceEpoch(s.absences.first.lessonMs);
-    return '$n falta${n == 1 ? '' : 's'} registrada${n == 1 ? '' : 's'} · última em ${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}';
+    return tr('{0} falta{1} registrada{2} · última em {3}/{4}', [n, n == 1 ? '' : 's', n == 1 ? '' : 's', d.day.toString().padLeft(2, '0'), d.month.toString().padLeft(2, '0')]);
   }
 
   @override
@@ -1552,12 +1524,12 @@ class _LessonCardState extends State<_LessonCard> {
                 Row(children: [
                   Icon(Icons.school_outlined, color: AppColors.accent),
                   const SizedBox(width: 8),
-                  const Expanded(child: Text('Aula', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+                  Expanded(child: Text(tr('Aula'), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
                 ]),
                 const SizedBox(height: 4),
                 Text(
                   other != null
-                      ? 'Há uma aula em andamento com ${other.name}. Encerre-a para começar outra.'
+                      ? tr('Há uma aula em andamento com {0}. Encerre-a para começar outra.', [other.name])
                       : _destination(),
                   style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
                 ),
@@ -1569,7 +1541,7 @@ class _LessonCardState extends State<_LessonCard> {
                       MaterialPageRoute<void>(builder: (_) => StudentPage(app: app, studentId: other.id)),
                     ),
                     icon: const Icon(Icons.arrow_forward),
-                    label: Text('Ir para a aula de ${other.name}'),
+                    label: Text(tr('Ir para a aula de {0}', [other.name])),
                   )
                 else ...[
                   // Duas rotas claras para quando o aluno chega ou não: começar a aula ou registrar que não veio.
@@ -1591,10 +1563,10 @@ class _LessonCardState extends State<_LessonCard> {
                           // Primeiro confere o que o aluno marcou como feito desde a última aula.
                           await showValidationDialog(context, app, s);
                           final err = app.startLesson(s);
-                          app.say(err ?? 'Aula começou. As tarefas e observações que você passar agora vão para ${s.name} ao encerrar.');
+                          app.say(err ?? tr('Aula começou. As tarefas e observações que você passar agora vão para {0} ao encerrar.', [s.name]));
                         },
                         icon: const Icon(Icons.play_arrow),
-                        label: const FittedBox(fit: BoxFit.scaleDown, child: Text('Começar a aula', style: TextStyle(fontWeight: FontWeight.w800))),
+                        label: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('Começar a aula'), style: TextStyle(fontWeight: FontWeight.w800))),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -1604,7 +1576,7 @@ class _LessonCardState extends State<_LessonCard> {
                         style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(52)),
                         onPressed: () => absenceFlow(context, app, s),
                         icon: const Icon(Icons.person_off_outlined, size: 19),
-                        label: const FittedBox(fit: BoxFit.scaleDown, child: Text('Aluno faltou', style: TextStyle(fontWeight: FontWeight.w700))),
+                        label: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('Aluno faltou'), style: TextStyle(fontWeight: FontWeight.w700))),
                       ),
                     ),
                   ]),
@@ -1618,9 +1590,9 @@ class _LessonCardState extends State<_LessonCard> {
                         TextButton(
                           style: TextButton.styleFrom(minimumSize: const Size(0, 36), padding: const EdgeInsets.symmetric(horizontal: 8)),
                           onPressed: () {
-                            if (app.undoLastAbsence(s)) app.say('Registro desfeito.');
+                            if (app.undoLastAbsence(s)) app.say(tr('Registro desfeito.'));
                           },
-                          child: const Text('Desfazer última'),
+                          child: Text(tr('Desfazer última')),
                         ),
                       ]),
                     ),
@@ -1639,7 +1611,7 @@ class _LessonCardState extends State<_LessonCard> {
                 Icon(paused ? Icons.pause_circle_outline : Icons.fiber_manual_record,
                     color: paused ? AppColors.flat : AppColors.sharp, size: paused ? 22 : 16),
                 const SizedBox(width: 8),
-                Text(paused ? 'Aula pausada' : 'Aula em andamento',
+                Text(paused ? tr('Aula pausada') : tr('Aula em andamento'),
                     style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                 const Spacer(),
                 Text(_clock(l.elapsed(DateTime.now())),
@@ -1647,7 +1619,7 @@ class _LessonCardState extends State<_LessonCard> {
               ]),
               const SizedBox(height: 4),
               Text(
-                '${tally.tasks} tarefa${tally.tasks == 1 ? '' : 's'} e ${tally.notes} observaç${tally.notes == 1 ? 'ão' : 'ões'} nesta aula até agora.',
+                tr('{0} tarefa{1} e {2} observaç{3} nesta aula até agora.', [tally.tasks, tally.tasks == 1 ? '' : 's', tally.notes, tally.notes == 1 ? tr('ão') : tr('ões')]),
                 style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
               ),
               const SizedBox(height: 10),
@@ -1657,7 +1629,7 @@ class _LessonCardState extends State<_LessonCard> {
                   child: FilledButton.tonalIcon(
                     onPressed: widget.onNewTask,
                     icon: const Icon(Icons.add_task, size: 18),
-                    label: const Text('Nova tarefa'),
+                    label: Text(tr('Nova tarefa')),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -1665,7 +1637,7 @@ class _LessonCardState extends State<_LessonCard> {
                   child: FilledButton.tonalIcon(
                     onPressed: widget.onNewNote,
                     icon: const Icon(Icons.edit_note, size: 18),
-                    label: const Text('Anotar'),
+                    label: Text(tr('Anotar')),
                   ),
                 ),
               ]),
@@ -1676,7 +1648,7 @@ class _LessonCardState extends State<_LessonCard> {
                     style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                     onPressed: paused ? app.resumeLesson : app.pauseLesson,
                     icon: Icon(paused ? Icons.play_arrow : Icons.pause),
-                    label: Text(paused ? 'Retomar' : 'Pausar'),
+                    label: Text(paused ? tr('Retomar') : tr('Pausar')),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -1689,7 +1661,7 @@ class _LessonCardState extends State<_LessonCard> {
                     ),
                     onPressed: _end,
                     icon: const Icon(Icons.stop),
-                    label: const Text('Encerrar'),
+                    label: Text(tr('Encerrar')),
                   ),
                 ),
               ]),
@@ -1700,7 +1672,7 @@ class _LessonCardState extends State<_LessonCard> {
                 child: TextButton.icon(
                   onPressed: _discard,
                   icon: const Icon(Icons.delete_outline, size: 18),
-                  label: const Text('Descartar esta aula'),
+                  label: Text(tr('Descartar esta aula')),
                 ),
               ),
             ],
@@ -1714,18 +1686,17 @@ class _LessonCardState extends State<_LessonCard> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Descartar a aula?'),
-        content: const Text('A aula é apagada e nada é enviado ao aluno. As tarefas e observações que você já '
-            'passou continuam na ficha dele.'),
+        title: Text(tr('Descartar a aula?')),
+        content: Text(tr('A aula é apagada e nada é enviado ao aluno. As tarefas e observações que você já passou continuam na ficha dele.')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Voltar')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Descartar')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Voltar'))),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Descartar'))),
         ],
       ),
     );
     if (ok == true) {
       app.cancelLesson();
-      app.say('Aula descartada.');
+      app.say(tr('Aula descartada.'));
     }
   }
 }
@@ -1769,7 +1740,7 @@ class _LessonBannerState extends State<_LessonBanner> {
           Icon(Icons.school_outlined, color: AppColors.textDim),
           const SizedBox(width: 10),
           Expanded(
-            child: Text('Para dar uma aula, abra o aluno e toque em "Começar a aula".',
+            child: Text(tr('Para dar uma aula, abra o aluno e toque em "Começar a aula".'),
                 style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
           ),
         ]),
@@ -1793,7 +1764,7 @@ class _LessonBannerState extends State<_LessonBanner> {
                 color: l.paused ? AppColors.flat : AppColors.sharp),
             const SizedBox(width: 10),
             Expanded(
-              child: Text('${l.paused ? 'Aula pausada' : 'Aula em andamento'} com ${s.name}',
+              child: Text(tr('{0} com {1}', [l.paused ? tr('Aula pausada') : tr('Aula em andamento'), s.name]),
                   style: const TextStyle(fontWeight: FontWeight.w800)),
             ),
             Text(clock, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),

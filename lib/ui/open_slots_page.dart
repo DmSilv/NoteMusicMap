@@ -7,7 +7,7 @@ import 'remind_field.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
-const _days = ['segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado', 'domingo'];
+final _days = [tr('segunda'), tr('terça'), tr('quarta'), tr('quinta'), tr('sexta'), tr('sábado'), tr('domingo')];
 
 String _two(int n) => n.toString().padLeft(2, '0');
 
@@ -30,11 +30,11 @@ class _OpenSlotsPageState extends State<OpenSlotsPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Apagar este horário?'),
-        content: Text('${describeOpenSlot(s)}\n\nOs alunos deixam de vê-lo. Aulas já marcadas não mudam.'),
+        title: Text(tr('Apagar este horário?')),
+        content: Text(tr('{0}\n\nOs alunos deixam de vê-lo. Aulas já marcadas não mudam.', [describeOpenSlot(s)])),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Voltar')),
-          FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.delete_outline, size: 18), label: const Text('Apagar')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Voltar'))),
+          FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.delete_outline, size: 18), label: Text(tr('Apagar'))),
         ],
       ),
     );
@@ -45,7 +45,7 @@ class _OpenSlotsPageState extends State<OpenSlotsPage> {
     final slot = await showDialog<ClassSlot>(context: context, builder: (_) => _NewOpenSlotDialog(app: app));
     if (slot == null || !mounted) return;
     final err = app.saveOpenSlot(slot);
-    app.say(err ?? 'Horário publicado. Seus alunos já podem pegá-lo.');
+    app.say(err ?? tr('Horário publicado. Seus alunos já podem pegá-lo.'));
   }
 
   @override
@@ -55,22 +55,22 @@ class _OpenSlotsPageState extends State<OpenSlotsPage> {
       builder: (context, _) {
         final list = app.openSlotsActive;
         return Scaffold(
-          appBar: AppBar(title: const Text('Horários livres')),
+          appBar: AppBar(title: Text(tr('Horários livres'))),
           floatingActionButton: FloatingActionButton.extended(
             onPressed: _add,
             icon: const Icon(Icons.add),
-            label: const Text('Novo horário'),
+            label: Text(tr('Novo horário')),
           ),
           body: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
             children: [
               Text(
-                'O aluno vinculado escolhe um horário livre e a aula entra na agenda dos dois. O primeiro que pegar leva.',
+                tr('O aluno vinculado escolhe um horário livre e a aula entra na agenda dos dois. O primeiro que pegar leva.'),
                 style: TextStyle(color: AppColors.textDim, fontSize: 13, height: 1.35),
               ),
               const SizedBox(height: 12),
               if (list.isEmpty)
-                const AppCard(child: Text('Nenhum horário livre agora. Toque em "Novo horário".'))
+                AppCard(child: Text(tr('Nenhum horário livre agora. Toque em "Novo horário".')))
               else
                 for (final s in list)
                   Padding(
@@ -80,9 +80,9 @@ class _OpenSlotsPageState extends State<OpenSlotsPage> {
                         Icon(s.weekly ? Icons.repeat : Icons.event_available_outlined, color: AppColors.accent),
                         const SizedBox(width: 12),
                         Expanded(child: Text(describeOpenSlot(s), style: const TextStyle(fontWeight: FontWeight.w700))),
-                        if (s.pending == true) Text('enviando…', style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+                        if (s.pending == true) Text(tr('enviando…'), style: TextStyle(color: AppColors.textDim, fontSize: 12)),
                         IconButton(
-                          tooltip: 'Apagar horário',
+                          tooltip: tr('Apagar horário'),
                           icon: const Icon(Icons.delete_outline),
                           onPressed: () => _remove(s),
                         ),
@@ -140,7 +140,7 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Novo horário livre'),
+      title: Text(tr('Novo horário livre')),
       content: SingleChildScrollView(
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           OutlinedButton.icon(
@@ -161,8 +161,8 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
           ]),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Repetir toda semana'),
-            subtitle: const Text('Quem pegar fica com esse horário toda semana.'),
+            title: Text(tr('Repetir toda semana')),
+            subtitle: Text(tr('Quem pegar fica com esse horário toda semana.')),
             value: weekly,
             onChanged: (v) => setState(() => weekly = v),
           ),
@@ -184,13 +184,13 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
         ]),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+        TextButton(onPressed: () => Navigator.pop(context), child: Text(tr('Cancelar'))),
         FilledButton.icon(
           onPressed: () {
             final now = DateTime.now();
             final online = widget.app.onlineClassesOn;
             if (online && mode == kModeOnline && link.isNotEmpty && meetingUrl(link) == null) {
-              setState(() => error = 'O link da aula não é válido.');
+              setState(() => error = tr('O link da aula não é válido.'));
               return;
             }
             if (widget.app.remindChoiceOn) widget.app.setRemindDefault(remind);
@@ -208,7 +208,7 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
               ),
             );
           },
-          icon: const Icon(Icons.publish_rounded, size: 18), label: const Text('Publicar'),
+          icon: const Icon(Icons.publish_rounded, size: 18), label: Text(tr('Publicar')),
         ),
       ],
     );
@@ -261,11 +261,11 @@ class _PickSlotPageState extends State<PickSlotPage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Pegar este horário?'),
-        content: Text('${describeOpenSlot(s)}\n\nA aula entra na sua agenda e seu professor é avisado.'),
+        title: Text(tr('Pegar este horário?')),
+        content: Text(tr('{0}\n\nA aula entra na sua agenda e seu professor é avisado.', [describeOpenSlot(s)])),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
-          FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.event_available_outlined, size: 18), label: const Text('Pegar')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
+          FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.event_available_outlined, size: 18), label: Text(tr('Pegar'))),
         ],
       ),
     );
@@ -273,7 +273,7 @@ class _PickSlotPageState extends State<PickSlotPage> {
     setState(() => taking = true);
     final err = await app.takeOpenSlot(teacher!, s);
     if (err == null) {
-      app.celebrate('Horário garantido!', detail: describeOpenSlot(s));
+      app.celebrate(tr('Horário garantido!'), detail: describeOpenSlot(s));
     } else {
       app.say(err);
     }
@@ -287,12 +287,12 @@ class _PickSlotPageState extends State<PickSlotPage> {
   Widget build(BuildContext context) {
     final teachers = app.myTeachers;
     return Scaffold(
-      appBar: AppBar(title: const Text('Pegar horário')),
+      appBar: AppBar(title: Text(tr('Pegar horário'))),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           if (teachers.isEmpty)
-            const AppCard(child: Text('Você ainda não tem um professor vinculado. Peça o convite a ele.'))
+            AppCard(child: Text(tr('Você ainda não tem um professor vinculado. Peça o convite a ele.')))
           else ...[
             if (teachers.length > 1)
               Padding(
@@ -314,13 +314,13 @@ class _PickSlotPageState extends State<PickSlotPage> {
             else if (failed)
               AppCard(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Não foi possível ver os horários agora.'),
+                  Text(tr('Não foi possível ver os horários agora.')),
                   const SizedBox(height: 8),
-                  OutlinedButton.icon(onPressed: _load, icon: const Icon(Icons.refresh, size: 18), label: const Text('Tentar de novo')),
+                  OutlinedButton.icon(onPressed: _load, icon: const Icon(Icons.refresh, size: 18), label: Text(tr('Tentar de novo'))),
                 ]),
               )
             else if ((slots ?? const []).isEmpty)
-              const AppCard(child: Text('Seu professor não deixou horários livres no momento.'))
+              AppCard(child: Text(tr('Seu professor não deixou horários livres no momento.')))
             else
               for (final s in slots!)
                 Padding(
@@ -330,7 +330,7 @@ class _PickSlotPageState extends State<PickSlotPage> {
                       Icon(s.weekly ? Icons.repeat : Icons.event_available_outlined, color: AppColors.accent),
                       const SizedBox(width: 12),
                       Expanded(child: Text(describeOpenSlot(s), style: const TextStyle(fontWeight: FontWeight.w700))),
-                      FilledButton.icon(onPressed: taking ? null : () => _take(s), icon: const Icon(Icons.event_available_outlined, size: 18), label: Text(taking ? 'Enviando…' : 'Pegar')),
+                      FilledButton.icon(onPressed: taking ? null : () => _take(s), icon: const Icon(Icons.event_available_outlined, size: 18), label: Text(taking ? tr('Enviando…') : tr('Pegar'))),
                     ]),
                   ),
                 ),

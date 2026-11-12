@@ -12,19 +12,19 @@ import 'theme.dart';
 Future<void> openMeetingLink(BuildContext context, AppState app, String link) async {
   final url = meetingUrl(link);
   if (url == null) {
-    app.say('O link desta aula não é válido.');
+    app.say(tr('O link desta aula não é válido.'));
     return;
   }
   if (!isKnownMeetingLink(url)) {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Abrir este link?'),
-        content: Text('Você vai abrir ${meetingHost(url)}.\nSó continue se você confia em quem enviou.'),
+        title: Text(tr('Abrir este link?')),
+        content: Text(tr('Você vai abrir {0}.\nSó continue se você confia em quem enviou.', [meetingHost(url)])),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Voltar')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Voltar'))),
           FilledButton.icon(
-              onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.open_in_new, size: 18), label: const Text('Abrir')),
+              onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.open_in_new, size: 18), label: Text(tr('Abrir'))),
         ],
       ),
     );
@@ -32,9 +32,9 @@ Future<void> openMeetingLink(BuildContext context, AppState app, String link) as
   }
   try {
     final opened = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-    if (!opened) app.say('Não foi possível abrir o link.');
+    if (!opened) app.say(tr('Não foi possível abrir o link.'));
   } catch (_) {
-    app.say('Não foi possível abrir o link.');
+    app.say(tr('Não foi possível abrir o link.'));
   }
 }
 
@@ -76,20 +76,20 @@ class _MeetingEditorState extends State<MeetingEditor> {
   void _emit() => widget.onChanged(mode, mode == kModeOnline ? c.text.trim() : '');
 
   String? get _err => mode == kModeOnline && c.text.trim().isNotEmpty && meetingUrl(c.text) == null
-      ? 'Link inválido. Use um endereço https, como o do Meet ou do Zoom.'
+      ? tr('Link inválido. Use um endereço https, como o do Meet ou do Zoom.')
       : null;
 
   Future<void> _create() async {
     try {
       await launchUrl(Uri.parse('https://meet.new'), mode: LaunchMode.externalApplication);
     } catch (_) {
-      app.say('Não foi possível abrir o Meet.');
+      app.say(tr('Não foi possível abrir o Meet.'));
     }
   }
 
   Future<void> _saveDefault() async {
     final e = await app.setMeetDefault(c.text);
-    app.say(e ?? 'Link padrão guardado: as próximas aulas online já saem com ele.');
+    app.say(e ?? tr('Link padrão guardado: as próximas aulas online já saem com ele.'));
     if (mounted) setState(() {});
   }
 
@@ -100,13 +100,13 @@ class _MeetingEditorState extends State<MeetingEditor> {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Padding(
         padding: EdgeInsets.only(top: widget.compact ? 0 : 16, bottom: Ds.s8),
-        child: Text('Onde será a aula', style: Ds.section()),
+        child: Text(tr('Onde será a aula'), style: Ds.section()),
       ),
       SegmentedButton<String>(
         showSelectedIcon: false,
-        segments: const [
-          ButtonSegment(value: kModeInPerson, icon: Icon(Icons.place_outlined, size: 18), label: Text('Presencial')),
-          ButtonSegment(value: kModeOnline, icon: Icon(Icons.videocam_outlined, size: 18), label: Text('Online')),
+        segments: [
+          ButtonSegment(value: kModeInPerson, icon: Icon(Icons.place_outlined, size: 18), label: Text(tr('Presencial'))),
+          ButtonSegment(value: kModeOnline, icon: Icon(Icons.videocam_outlined, size: 18), label: Text(tr('Online'))),
         ],
         selected: {mode},
         onSelectionChanged: (s) => setState(() {
@@ -123,7 +123,7 @@ class _MeetingEditorState extends State<MeetingEditor> {
           autocorrect: false,
           inputFormatters: const [SafeText(kMaxMeetLink)],
           decoration: InputDecoration(
-            labelText: 'Link da sala (pode deixar para depois)',
+            labelText: tr('Link da sala (pode deixar para depois)'),
             hintText: 'https://meet.google.com/…',
             errorText: _err,
             prefixIcon: const Icon(Icons.link, size: 20),
@@ -131,13 +131,13 @@ class _MeetingEditorState extends State<MeetingEditor> {
           onChanged: (_) => setState(_emit),
         ),
         Wrap(spacing: Ds.s8, children: [
-          TextButton.icon(onPressed: _create, icon: const Icon(Icons.add_link, size: 18), label: const Text('Criar sala no Meet')),
+          TextButton.icon(onPressed: _create, icon: const Icon(Icons.add_link, size: 18), label: Text(tr('Criar sala no Meet'))),
           if (valid && !isDefault)
-            TextButton.icon(onPressed: _saveDefault, icon: const Icon(Icons.bookmark_add_outlined, size: 18), label: const Text('Guardar como link padrão')),
+            TextButton.icon(onPressed: _saveDefault, icon: const Icon(Icons.bookmark_add_outlined, size: 18), label: Text(tr('Guardar como link padrão'))),
         ]),
         if (!valid && c.text.trim().isEmpty)
-          Text('Sem link por enquanto: a aula fica marcada como online e você coloca o link depois.', style: Ds.support()),
-        if (isDefault) Text('Este é o seu link padrão.', style: Ds.support()),
+          Text(tr('Sem link por enquanto: a aula fica marcada como online e você coloca o link depois.'), style: Ds.support()),
+        if (isDefault) Text(tr('Este é o seu link padrão.'), style: Ds.support()),
       ],
     ]);
   }
@@ -159,7 +159,7 @@ Future<String?> showMeetLinkSheet(BuildContext context, AppState app, {String in
         builder: (ctx, setS) {
           final bad = c.text.trim().isNotEmpty && meetingUrl(c.text) == null;
           return Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Link da aula online', style: Ds.title()),
+            Text(tr('Link da aula online'), style: Ds.title()),
             const SizedBox(height: Ds.s12),
             TextField(
               controller: c,
@@ -169,7 +169,7 @@ Future<String?> showMeetLinkSheet(BuildContext context, AppState app, {String in
               inputFormatters: const [SafeText(kMaxMeetLink)],
               decoration: InputDecoration(
                 hintText: 'https://meet.google.com/…',
-                errorText: bad ? 'Link inválido. Use um endereço https.' : null,
+                errorText: bad ? tr('Link inválido. Use um endereço https.') : null,
                 prefixIcon: const Icon(Icons.link, size: 20),
               ),
               onChanged: (_) => setS(() {}),
@@ -177,13 +177,13 @@ Future<String?> showMeetLinkSheet(BuildContext context, AppState app, {String in
             const SizedBox(height: Ds.s16),
             Row(children: [
               if (initial.isNotEmpty)
-                TextButton(onPressed: () => Navigator.pop(ctx, ''), child: const Text('Tirar link')),
+                TextButton(onPressed: () => Navigator.pop(ctx, ''), child: Text(tr('Tirar link'))),
               const Spacer(),
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+              TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('Cancelar'))),
               const SizedBox(width: Ds.s8),
               FilledButton(
                 onPressed: bad || c.text.trim().isEmpty ? null : () => Navigator.pop(ctx, meetingUrl(c.text)),
-                child: const Text('Salvar'),
+                child: Text(tr('Salvar')),
               ),
             ]),
           ]);

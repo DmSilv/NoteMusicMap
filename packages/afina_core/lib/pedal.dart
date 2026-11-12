@@ -8,6 +8,7 @@ import 'dart:math' as math;
 
 import 'system_guide.dart' show kIntervalRoles;
 import 'tuning.dart';
+import 'i18n.dart';
 
 /// Quantas notas soam juntas (mais que isso distorce e pesa no navegador).
 const int kMaxPedalVoices = 4;
@@ -33,15 +34,16 @@ enum PedalToggle { added, removed, full, outOfRange }
 
 /// Atalhos de notas a partir de uma nota raiz.
 enum PedalPreset {
-  fifth('Quinta', [0, 7]),
-  octave('Oitava', [0, 12]),
-  rootFifth('Tônica + 5ª', [0, 7, 12]),
-  major('Acorde maior', [0, 4, 7]),
-  minor('Acorde menor', [0, 3, 7]);
+  fifth(/*tr*/'Quinta', [0, 7]),
+  octave(/*tr*/'Oitava', [0, 12]),
+  rootFifth(/*tr*/'Tônica + 5ª', [0, 7, 12]),
+  major(/*tr*/'Acorde maior', [0, 4, 7]),
+  minor(/*tr*/'Acorde menor', [0, 3, 7]);
 
-  final String label;
+  final String _label;
+  String get label => tr(_label);
   final List<int> steps;
-  const PedalPreset(this.label, this.steps);
+  const PedalPreset(this._label, this.steps);
 }
 
 /// As notas do atalho [p] com raiz [root] (as que saem da faixa do teclado são descartadas).
@@ -109,13 +111,13 @@ PedalInterval pedalInterval(int lowMidi, int highMidi, double lowHz, double high
   final String name;
   final String ratio;
   if (semis == 0) {
-    name = 'uníssono';
+    name = tr('uníssono');
     ratio = '1:1';
   } else if (cls == 0) {
-    name = octaves == 1 ? 'oitava' : '$octaves oitavas';
+    name = octaves == 1 ? tr('oitava') : tr('{0} oitavas', [octaves]);
     ratio = '${math.pow(2, octaves).toInt()}:1';
   } else {
-    name = octaves == 0 ? kIntervalRoles[cls] : '${kIntervalRoles[cls]} + ${octaves == 1 ? 'oitava' : '$octaves oitavas'}';
+    name = octaves == 0 ? kIntervalRoles[cls] : '${kIntervalRoles[cls]} + ${octaves == 1 ? tr('oitava') : tr('{0} oitavas', [octaves])}';
     ratio = '$num:$q';
   }
   return PedalInterval(semis, name, ratio, centsBetween(hi, lo).abs(), beat, p * q <= 40);

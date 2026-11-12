@@ -4,6 +4,7 @@
 /// números minúsculos, o que permite combinar filtros sem identificar ninguém.
 library;
 
+
 /// Faixa de largura da tela (pixels CSS): celular, tablet ou pc. "-" = desconhecido.
 String screenTag(int width) {
   if (width <= 0) return '-';
@@ -63,7 +64,7 @@ String cpuTag(int? cores) {
 }
 
 /// Qualidade da conexão (navigator.connection.effectiveType): "4g", "3g", "2g", "slow2g" ou "-".
-String netTag(String t) => const {'4g', '3g', '2g', 'slow-2g'}.contains(t) ? t.replaceAll('-', '') : '-';
+String netTag(String t) => {'4g', '3g', '2g', 'slow-2g'}.contains(t) ? t.replaceAll('-', '') : '-';
 
 /// Densidade de pixels da tela em faixas: "d1", "d2", "d3" (3 ou mais) ou "-".
 String dprTag(double? dpr) {

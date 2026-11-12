@@ -50,65 +50,56 @@ class _TuningSystemGuideState extends State<TuningSystemGuide> {
     }
   }
 
-  static const _titles = {
-    TuningSystem.equal: 'Afinação igual',
-    TuningSystem.pythagorean: 'Afinação pitagórica',
-    TuningSystem.just: 'Afinação justa',
+  static final _titles = {
+    TuningSystem.equal: tr('Afinação igual'),
+    TuningSystem.pythagorean: tr('Afinação pitagórica'),
+    TuningSystem.just: tr('Afinação justa'),
   };
 
-  static const _summary = {
+  static final _summary = {
     TuningSystem.equal:
-        'As 12 notas ficam à mesma distância umas das outras. É a afinação do piano, do violão e de '
-            'qualquer instrumento de trastes: todos os tons soam iguais, mas nenhum intervalo é 100% puro.',
+        tr('As 12 notas ficam à mesma distância umas das outras. É a afinação do piano, do violão e de qualquer instrumento de trastes: todos os tons soam iguais, mas nenhum intervalo é 100% puro.'),
     TuningSystem.pythagorean:
-        'As notas são construídas empilhando quintas puras (proporção 3:2) a partir da tônica. '
-            'Os violinistas costumam tocar assim as melodias: a terça maior sobe e a sensível (7ª maior) '
-            'chega mais perto da tônica, o que soa mais brilhante e expressivo.',
+        tr('As notas são construídas empilhando quintas puras (proporção 3:2) a partir da tônica. Os violinistas costumam tocar assim as melodias: a terça maior sobe e a sensível (7ª maior) chega mais perto da tônica, o que soa mais brilhante e expressivo.'),
     TuningSystem.just:
-        'Cada nota é medida contra a tônica por proporções simples entre as frequências: quinta 3:2, '
-            'terça maior 5:4, quarta 4:3. Quando duas notas têm essa proporção, as ondas se encaixam e o som '
-            'fica "parado", sem o tremor chamado batimento. É por isso que acordes soam tão limpos.',
+        tr('Cada nota é medida contra a tônica por proporções simples entre as frequências: quinta 3:2, terça maior 5:4, quarta 4:3. Quando duas notas têm essa proporção, as ondas se encaixam e o som fica "parado", sem o tremor chamado batimento. É por isso que acordes soam tão limpos.'),
   };
 
-  static const _change = {
+  static final _change = {
     TuningSystem.equal:
-        'Nenhuma nota é "puxada": o alvo de cada nota é o do piano. A tônica não faz diferença neste sistema.',
+        tr('Nenhuma nota é "puxada": o alvo de cada nota é o do piano. A tônica não faz diferença neste sistema.'),
     TuningSystem.pythagorean:
-        'A mesma nota tem outro alvo: a terça maior (e a sensível) ficam mais altas que no piano e a quinta é pura. '
-            'A coluna Diferença da tabela mostra quantos Hz cada nota sobe ou desce.',
+        tr('A mesma nota tem outro alvo: a terça maior (e a sensível) ficam mais altas que no piano e a quinta é pura. A coluna Diferença da tabela mostra quantos Hz cada nota sobe ou desce.'),
     TuningSystem.just:
-        'A mesma nota tem outro alvo: a terça maior fica mais baixa que no piano e a quinta um pouco mais alta. '
-            'A coluna Diferença mostra o quanto o alvo se afasta da afinação igual (negativo = mais baixo). '
-            'Por isso uma nota certa no Justo pode aparecer "baixa" se você olhar pelo Igual: não é erro do app.',
+        tr('A mesma nota tem outro alvo: a terça maior fica mais baixa que no piano e a quinta um pouco mais alta. A coluna Diferença mostra o quanto o alvo se afasta da afinação igual (negativo = mais baixo). Por isso uma nota certa no Justo pode aparecer "baixa" se você olhar pelo Igual: não é erro do app.'),
   };
 
-  static const _steps = {
+  static final _steps = {
     TuningSystem.equal: [
-      'Use ao tocar junto com piano, teclado ou violão: eles não mudam de nota.',
-      'Instrumentos de trastes (violão, guitarra, ukulele) devem ficar sempre no Igual.',
-      'Na dúvida, escolha este.',
+      tr('Use ao tocar junto com piano, teclado ou violão: eles não mudam de nota.'),
+      tr('Instrumentos de trastes (violão, guitarra, ukulele) devem ficar sempre no Igual.'),
+      tr('Na dúvida, escolha este.'),
     ],
     TuningSystem.pythagorean: [
-      'Escolha a tônica: a nota que dá nome ao tom da peça (em Sol maior, Sol).',
-      'Toque a escala ou a melodia. O app mostra o alvo pitagórico de cada nota.',
-      'Confira as terças e as sensíveis: no Pitagórico elas precisam estar um pouco mais altas que no piano.',
-      'Mudou de tom? Troque a tônica.',
+      tr('Escolha a tônica: a nota que dá nome ao tom da peça (em Sol maior, Sol).'),
+      tr('Toque a escala ou a melodia. O app mostra o alvo pitagórico de cada nota.'),
+      tr('Confira as terças e as sensíveis: no Pitagórico elas precisam estar um pouco mais altas que no piano.'),
+      tr('Mudou de tom? Troque a tônica.'),
     ],
     TuningSystem.just: [
-      'Escolha a tônica: a nota que dá nome ao tom da peça ou do acorde (em Sol maior, Sol).',
-      'Toque na linha "Tônica" da tabela para ouvi-la como referência (ou toque-a no instrumento).',
-      'Toque a terça ou a quinta e afine contra a tônica. A cor verde no app significa que o intervalo está puro.',
-      'Em acorde ou dueto: deixe a tônica soando e ajuste a terça e a quinta até o tremor (batimento) sumir.',
-      'Mudou de tom ou de acorde? Troque a tônica.',
+      tr('Escolha a tônica: a nota que dá nome ao tom da peça ou do acorde (em Sol maior, Sol).'),
+      tr('Toque na linha "Tônica" da tabela para ouvi-la como referência (ou toque-a no instrumento).'),
+      tr('Toque a terça ou a quinta e afine contra a tônica. A cor verde no app significa que o intervalo está puro.'),
+      tr('Em acorde ou dueto: deixe a tônica soando e ajuste a terça e a quinta até o tremor (batimento) sumir.'),
+      tr('Mudou de tom ou de acorde? Troque a tônica.'),
     ],
   };
 
-  static const _caution = {
+  static final _caution = {
     TuningSystem.just:
-        'Use o Justo para acordes e música em conjunto sem piano. Ao tocar junto com piano ou violão, volte ao Igual: '
-            'eles não podem mudar de nota.',
+        tr('Use o Justo para acordes e música em conjunto sem piano. Ao tocar junto com piano ou violão, volte ao Igual: eles não podem mudar de nota.'),
     TuningSystem.pythagorean:
-        'O Pitagórico é para tocar melodias sozinho ou com outros instrumentos de arco. Para acordes, prefira o Justo.',
+        tr('O Pitagórico é para tocar melodias sozinho ou com outros instrumentos de arco. Para acordes, prefira o Justo.'),
   };
 
   @override
@@ -130,14 +121,14 @@ class _TuningSystemGuideState extends State<TuningSystemGuide> {
         childrenPadding: const EdgeInsets.only(bottom: 4),
         expandedCrossAxisAlignment: CrossAxisAlignment.start,
         leading: Icon(Icons.school_outlined, color: AppColors.accent),
-        title: Text('Entender: ${_titles[sys]}', style: const TextStyle(fontWeight: FontWeight.w800)),
-        subtitle: Text('O que é, o que muda e como usar', style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+        title: Text(tr('Entender: {0}', [_titles[sys]]), style: const TextStyle(fontWeight: FontWeight.w800)),
+        subtitle: Text(tr('O que é, o que muda e como usar'), style: TextStyle(color: AppColors.textDim, fontSize: 12)),
         children: [
-          _block('O que é', _summary[sys]!),
-          _block('O que muda nas notas', _change[sys]!),
+          _block(tr('O que é'), _summary[sys]!),
+          _block(tr('O que muda nas notas'), _change[sys]!),
           Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: Text('Como usar na prática', style: _head),
+            child: Text(tr('Como usar na prática'), style: _head),
           ),
           for (var i = 0; i < _steps[sys]!.length; i++)
             Padding(
@@ -157,10 +148,10 @@ class _TuningSystemGuideState extends State<TuningSystemGuide> {
           if (_caution[sys] != null) _note(_caution[sys]!),
           if (sys != TuningSystem.equal) ...[
             const SizedBox(height: 12),
-            Text('Alvo de cada nota (tônica: $tonicName)', style: _head),
+            Text(tr('Alvo de cada nota (tônica: {0})', [tonicName]), style: _head),
             const SizedBox(height: 2),
             Text(
-              'Toque numa linha para ouvir a nota. "Diferença" é o alvo menos a afinação igual, em Hz.',
+              tr('Toque numa linha para ouvir a nota. "Diferença" é o alvo menos a afinação igual, em Hz.'),
               style: TextStyle(color: AppColors.textDim, fontSize: 12),
             ),
             const SizedBox(height: 6),
@@ -191,19 +182,17 @@ class _TuningSystemGuideState extends State<TuningSystemGuide> {
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     alignment: Alignment.centerLeft),
                 onPressed: () => setState(() => _all = !_all),
-                child: Text(_all ? 'Mostrar só as notas da escala maior' : 'Mostrar as 12 notas'),
+                child: Text(_all ? tr('Mostrar só as notas da escala maior') : tr('Mostrar as 12 notas')),
               ),
             ),
             if (app.anchor == Anchor.a4)
               _note(
                 shift.abs() < 0.005
-                    ? 'Lá fixo ligado: o Lá continua em ${_hz(app.refA)} Hz.'
-                    : 'Lá fixo ligado: o Lá continua em ${_hz(app.refA)} Hz e a tônica se ajusta em volta dele '
-                        '(por isso a tônica aparece ${_signed(rows.first.diffHz)} Hz diferente do Igual). '
-                        'Desligue para deixar a tônica na afinação igual.',
+                    ? tr('Lá fixo ligado: o Lá continua em {0} Hz.', [_hz(app.refA)])
+                    : tr('Lá fixo ligado: o Lá continua em {0} Hz e a tônica se ajusta em volta dele (por isso a tônica aparece {1} Hz diferente do Igual). Desligue para deixar a tônica na afinação igual.', [_hz(app.refA), _signed(rows.first.diffHz)]),
               )
             else
-              _note('Lá fixo desligado: a tônica fica na afinação igual e o Lá passa a ${_hz(targetFreq(69, cfg))} Hz.'),
+              _note(tr('Lá fixo desligado: a tônica fica na afinação igual e o Lá passa a {0} Hz.', [_hz(targetFreq(69, cfg))])),
           ],
         ],
       ),
@@ -245,10 +234,10 @@ class _TuningSystemGuideState extends State<TuningSystemGuide> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8),
       child: Row(children: [
-        Expanded(flex: 5, child: Text('Nota', style: s)),
-        Expanded(flex: 3, child: Text('Alvo (Hz)', style: s, textAlign: TextAlign.right)),
-        Expanded(flex: 3, child: Text('Igual (Hz)', style: s, textAlign: TextAlign.right)),
-        Expanded(flex: 3, child: Text('Diferença', style: s, textAlign: TextAlign.right)),
+        Expanded(flex: 5, child: Text(tr('Nota'), style: s)),
+        Expanded(flex: 3, child: Text(tr('Alvo (Hz)'), style: s, textAlign: TextAlign.right)),
+        Expanded(flex: 3, child: Text(tr('Igual (Hz)'), style: s, textAlign: TextAlign.right)),
+        Expanded(flex: 3, child: Text(tr('Diferença'), style: s, textAlign: TextAlign.right)),
       ]),
     );
   }
@@ -259,7 +248,7 @@ class _TuningSystemGuideState extends State<TuningSystemGuide> {
     final num = TextStyle(fontSize: 13, fontFeatures: const [FontFeature.tabularFigures()]);
     return Semantics(
       button: true,
-      label: '${r.name}, ${r.role}, alvo ${_hz(r.target)} hertz, diferença ${_signed(r.diffHz)} hertz. Toque para ouvir.',
+      label: tr('{0}, {1}, alvo {2} hertz, diferença {3} hertz. Toque para ouvir.', [r.name, r.role, _hz(r.target), _signed(r.diffHz)]),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: () => _toggle(r),

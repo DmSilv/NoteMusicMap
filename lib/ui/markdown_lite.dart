@@ -86,10 +86,10 @@ class CopyAnswerButton extends StatelessWidget {
           if (context.mounted) {
             ScaffoldMessenger.of(context)
               ..hideCurrentSnackBar()
-              ..showSnackBar(const SnackBar(content: Text('Resposta copiada.'), duration: Duration(seconds: 2)));
+              ..showSnackBar(SnackBar(content: Text(tr('Resposta copiada.')), duration: Duration(seconds: 2)));
           }
         },
         icon: const Icon(Icons.copy, size: 18),
-        label: const Text('Copiar resposta'),
+        label: Text(tr('Copiar resposta')),
       );
 }

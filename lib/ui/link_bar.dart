@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'theme.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// Aviso do alto da tela quando o vínculo online está DESLIGADO mas há quem dependa dele
 /// (modo professor, professor ou aluno vinculado): sem ele, nada chega ao aparelho.
@@ -31,8 +32,8 @@ class LinkOffBar extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                    const Text('Você está offline', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                    Text('Vínculo desligado: sem avisos de alunos, aulas nem tarefas.',
+                    Text(tr('Você está offline'), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                    Text(tr('Vínculo desligado: sem avisos de alunos, aulas nem tarefas.'),
                         style: TextStyle(color: AppColors.textDim, fontSize: 12)),
                   ]),
                 ),
@@ -41,9 +42,9 @@ class LinkOffBar extends StatelessWidget {
                       visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 14)),
                   onPressed: () {
                     app.setLinkEnabled(true);
-                    app.say('Vínculo online ligado.');
+                    app.say(tr('Vínculo online ligado.'));
                   },
-                  child: const Text('Ligar'),
+                  child: Text(tr('Ligar')),
                 ),
               ]),
             ),
@@ -61,31 +62,27 @@ Future<bool> confirmDisableLink(BuildContext context, AppState app) async {
     context: context,
     builder: (c) => AlertDialog(
       icon: Icon(Icons.cloud_off_outlined, color: AppColors.sharp),
-      title: const Text('Desligar o vínculo online?'),
+      title: Text(tr('Desligar o vínculo online?')),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Você ficará offline:', style: TextStyle(fontWeight: FontWeight.w800)),
+          Text(tr('Você ficará offline:'), style: TextStyle(fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
-          const Text('• não recebe avisos de alunos nem do professor\n'
-              '• novos vínculos com você não chegam\n'
-              '• aulas, tarefas e horários não são enviados nem recebidos\n'
-              '• os lembretes de aula param'),
+          Text(tr('• não recebe avisos de alunos nem do professor\n• novos vínculos com você não chegam\n• aulas, tarefas e horários não são enviados nem recebidos\n• os lembretes de aula param')),
           const SizedBox(height: 8),
           Text(
-            'Seus dados continuam neste aparelho${q > 0 ? ', e os $q itens da fila ficam guardados até você ligar de novo' : ''}. '
-            'Você pode ligar de novo quando quiser.',
+            tr('Seus dados continuam neste aparelho{0}. Você pode ligar de novo quando quiser.', [q > 0 ? tr(', e os {0} itens da fila ficam guardados até você ligar de novo', [q]) : '']),
             style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
           ),
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Continuar online')),
+        TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Continuar online'))),
         TextButton(
           style: TextButton.styleFrom(foregroundColor: AppColors.sharp),
           onPressed: () => Navigator.pop(c, true),
-          child: const Text('Desligar mesmo assim'),
+          child: Text(tr('Desligar mesmo assim')),
         ),
       ],
     ),
@@ -121,8 +118,8 @@ class UpdateBar extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                    const Text('Versão nova disponível', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                    Text('Atualize para receber as correções.',
+                    Text(tr('Versão nova disponível'), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                    Text(tr('Atualize para receber as correções.'),
                         style: TextStyle(color: AppColors.textDim, fontSize: 12)),
                   ]),
                 ),
@@ -130,10 +127,10 @@ class UpdateBar extends StatelessWidget {
                   style: FilledButton.styleFrom(
                       visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 14)),
                   onPressed: () => app.updateApp(),
-                  child: const Text('Atualizar'),
+                  child: Text(tr('Atualizar')),
                 ),
                 IconButton(
-                  tooltip: 'Depois',
+                  tooltip: tr('Depois'),
                   visualDensity: VisualDensity.compact,
                   icon: const Icon(Icons.close, size: 18),
                   onPressed: () => app.hideUpdatePrompt(hours: 6),

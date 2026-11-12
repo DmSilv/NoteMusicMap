@@ -6,6 +6,7 @@ library;
 import 'dart:convert';
 
 import 'input_guard.dart';
+import 'i18n.dart';
 
 class MethodEntry {
   String name;
@@ -20,7 +21,7 @@ class MethodEntry {
       final m = (j as Map).cast<String, dynamic>();
       final name = _clean((m['name'] ?? m['nome'] ?? '') as String);
       if (name.isEmpty) return null;
-      final raw = (m['lessons'] ?? m['licoes'] ?? m['lições'] ?? const []) as List;
+      final raw = (m['lessons'] ?? m['licoes'] ?? m[tr('lições')] ?? const []) as List;
       return MethodEntry(name, _uniq([for (final l in raw.take(kMaxLessons)) _clean('$l')]));
     } catch (_) {
       return null;

@@ -136,7 +136,7 @@ class MicSettingsContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Captação do microfone', style: TextStyle(fontWeight: FontWeight.w700)),
+          Text(tr('Captação do microfone'), style: TextStyle(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
           ChipGrid(
             labels: [for (final s in MicSensitivity.values) Text(s.label)],
@@ -146,10 +146,10 @@ class MicSettingsContent extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             switch (app.sensitivity) {
-              MicSensitivity.rigorous => 'Só notas limpas e fortes. Mais exato, mas perde sons fracos.',
-              MicSensitivity.normal => 'Equilíbrio entre precisão e alcance.',
+              MicSensitivity.rigorous => tr('Só notas limpas e fortes. Mais exato, mas perde sons fracos.'),
+              MicSensitivity.normal => tr('Equilíbrio entre precisão e alcance.'),
               MicSensitivity.free =>
-                'Pega quase tudo: notas fracas, com ar, vibrato forte e ruído. Pode errar a oitava às vezes.',
+                tr('Pega quase tudo: notas fracas, com ar, vibrato forte e ruído. Pode errar a oitava às vezes.'),
             },
             style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
           ),
@@ -166,10 +166,10 @@ class MicSettingsContent extends StatelessWidget {
             ),
             SizedBox(
                 width: 44,
-                child: Text('${app.micGain.toStringAsFixed(app.micGain < 10 ? 1 : 0)}×',
+                child: Text(tr('{0}×', [app.micGain.toStringAsFixed(app.micGain < 10 ? 1 : 0)]),
                     textAlign: TextAlign.right)),
           ]),
-          Text('Ganho: aumente se o instrumento estiver longe ou baixo.',
+          Text(tr('Ganho: aumente se o instrumento estiver longe ou baixo.'),
               style: TextStyle(color: AppColors.textDim, fontSize: 12)),
           const SizedBox(height: 12),
           MicDiagPanel(app: app),
@@ -203,19 +203,19 @@ class MicDiagPanel extends StatelessWidget {
         String msg;
         Color color;
         if (!app.listening) {
-          msg = 'Ligue o microfone e toque uma nota para ajustar.';
+          msg = tr('Ligue o microfone e toque uma nota para ajustar.');
           color = AppColors.textDim;
         } else if (clipping) {
-          msg = 'Som alto demais: diminua o ganho.';
+          msg = tr('Som alto demais: diminua o ganho.');
           color = AppColors.sharp;
         } else if (d == null || d.rms < minRms) {
-          msg = 'Som fraco: aumente o ganho ou chegue mais perto.';
+          msg = tr('Som fraco: aumente o ganho ou chegue mais perto.');
           color = AppColors.sharp;
         } else if (d.reject == PitchReject.none) {
-          msg = 'Captação boa.';
+          msg = tr('Captação boa.');
           color = AppColors.inTune;
         } else {
-          msg = 'Ouvindo… sustente a nota.';
+          msg = tr('Ouvindo… sustente a nota.');
           color = AppColors.textDim;
         }
 
@@ -223,14 +223,14 @@ class MicDiagPanel extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              const Expanded(
-                child: Text('Nível do som', style: TextStyle(fontWeight: FontWeight.w700)),
+              Expanded(
+                child: Text(tr('Nível do som'), style: TextStyle(fontWeight: FontWeight.w700)),
               ),
               if (!app.listening)
                 TextButton.icon(
                   onPressed: app.startListening,
                   icon: const Icon(Icons.mic, size: 18),
-                  label: const Text('Ligar'),
+                  label: Text(tr('Ligar')),
                 ),
             ]),
             const SizedBox(height: 6),
@@ -272,7 +272,7 @@ class MicDiagPanel extends StatelessWidget {
             const SizedBox(height: 6),
             Text(msg, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13)),
             const SizedBox(height: 2),
-            Text('O traço branco é o mínimo que o app precisa ouvir.',
+            Text(tr('O traço branco é o mínimo que o app precisa ouvir.'),
                 style: TextStyle(color: AppColors.textDim, fontSize: 11.5)),
           ],
         );
@@ -294,7 +294,7 @@ class SpellingPicker extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ChipGrid(
-          labels: const [Text('Automático'), Text('Sustenidos'), Text('Bemóis')],
+          labels: [Text(tr('Automático')), Text(tr('Sustenidos')), Text(tr('Bemóis'))],
           selected: sel,
           onSelected: (i) => app.setTuning(
               spellingAuto: i == 0, preferFlats: i == 2 ? true : (i == 1 ? false : null)),
@@ -302,10 +302,10 @@ class SpellingPicker extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           sel == 0
-              ? 'Alterna entre sustenidos e bemóis e segue a tonalidade da escala que você escolher.'
+              ? tr('Alterna entre sustenidos e bemóis e segue a tonalidade da escala que você escolher.')
               : (sel == 1
-                  ? 'As teclas pretas aparecem sempre como sustenido (Lá sustenido, Sol sustenido…).'
-                  : 'As teclas pretas aparecem sempre como bemol (Si bemol, Lá bemol…).'),
+                  ? tr('As teclas pretas aparecem sempre como sustenido (Lá sustenido, Sol sustenido…).')
+                  : tr('As teclas pretas aparecem sempre como bemol (Si bemol, Lá bemol…).')),
           style: TextStyle(color: AppColors.textDim, fontSize: 12),
         ),
       ],
@@ -364,7 +364,7 @@ class PickerField<T> extends StatelessWidget {
     final cur = options.firstWhere((o) => o.value == value, orElse: () => options.first);
     return Semantics(
       button: true,
-      label: '$label: ${cur.title}. Toque para trocar.',
+      label: tr('{0}: {1}. Toque para trocar.', [label, cur.title]),
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: () => showOptionSheet<T>(
@@ -535,7 +535,7 @@ List<OptionItem<String>> instrumentOptions(TuningConfig cfg) {
         i.id,
         i.name,
         subtitle:
-            '${i.strings.map((s) => noteName(s.midi, plain)).join(' · ')}  |  ${i.fretted ? 'com trastes, afinação igual' : 'sem trastes, quintas puras'}',
+            '${i.strings.map((s) => noteName(s.midi, plain)).join(' · ')}  |  ${i.fretted ? tr('com trastes, afinação igual') : tr('sem trastes, quintas puras')}',
         icon: i.fretted ? Icons.music_note : Icons.graphic_eq,
       ),
   ];
@@ -588,7 +588,7 @@ Future<void> showInfoSheet(BuildContext context, String title, List<(String, Str
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Entendi'),
+                  child: Text(tr('Entendi')),
                 ),
               ),
             ],
@@ -608,7 +608,7 @@ class HelpButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => IconButton(
-        tooltip: 'Ajuda: $title',
+        tooltip: tr('Ajuda: {0}', [title]),
         visualDensity: VisualDensity.compact,
         constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
         padding: EdgeInsets.zero,
@@ -619,40 +619,40 @@ class HelpButton extends StatelessWidget {
 
 /// Textos de ajuda (um só lugar, para as telas não se contradizerem).
 class Help {
-  static const modes = <(String, String)>[
-    ('Cordas soltas: para AFINAR o instrumento',
-        'Você escolhe o instrumento e o app mostra qual corda está soando (por exemplo Sol, Ré, Lá, Mi) e quanto falta para ela ficar certa. Toque a corda solta e gire a cravelha até a agulha ficar no verde. Cada corda tem um botão para ouvir a nota de referência.'),
-    ('Cromático: para ESTUDAR',
-        'Reconhece qualquer nota (Dó, Dó♯, Ré…) e mostra a afinação dela. Use ao tocar peças e escalas, ou para conferir uma nota apertada com o dedo. Aqui vale o sistema de afinação que você escolheu (igual, pitagórico ou justo).'),
-    ('Pedal: para OUVIR notas juntas',
-        'Um teclado onde você liga até 4 notas que ficam soando ao mesmo tempo (um bordão). Toque uma melodia por cima, ou treine o ouvido com quintas, oitavas e acordes. As notas seguem o Lá de referência e o sistema de afinação: em Justo, uma quinta fica pura e o tremor (batimento) some. O microfone fica desligado neste modo.'),
+  static final modes = <(String, String)>[
+    (tr('Cordas soltas: para AFINAR o instrumento'),
+        tr('Você escolhe o instrumento e o app mostra qual corda está soando (por exemplo Sol, Ré, Lá, Mi) e quanto falta para ela ficar certa. Toque a corda solta e gire a cravelha até a agulha ficar no verde. Cada corda tem um botão para ouvir a nota de referência.')),
+    (tr('Cromático: para ESTUDAR'),
+        tr('Reconhece qualquer nota (Dó, Dó♯, Ré…) e mostra a afinação dela. Use ao tocar peças e escalas, ou para conferir uma nota apertada com o dedo. Aqui vale o sistema de afinação que você escolheu (igual, pitagórico ou justo).')),
+    (tr('Pedal: para OUVIR notas juntas'),
+        tr('Um teclado onde você liga até 4 notas que ficam soando ao mesmo tempo (um bordão). Toque uma melodia por cima, ou treine o ouvido com quintas, oitavas e acordes. As notas seguem o Lá de referência e o sistema de afinação: em Justo, uma quinta fica pura e o tremor (batimento) some. O microfone fica desligado neste modo.')),
   ];
-  static const modesFooter =
-      'Em dúvida? Para afinar antes de tocar, use Cordas soltas. Para estudar entonação, use Cromático. Para ouvir uma nota ou um intervalo soando, use Pedal.';
+  static final modesFooter =
+      tr('Em dúvida? Para afinar antes de tocar, use Cordas soltas. Para estudar entonação, use Cromático. Para ouvir uma nota ou um intervalo soando, use Pedal.');
 
-  static const system = <(String, String)>[
-    ('Igual',
-        'As 12 notas ficam à mesma distância umas das outras. É a afinação do piano, do violão e da guitarra (os trastes são fixos). Escolha ao tocar junto com piano, teclado ou em instrumentos de trastes.'),
-    ('Pitagórico',
-        'Constrói as notas com quintas puras (proporção 3:2). A terça maior e a sensível ficam mais altas que no piano, o que deixa as melodias mais brilhantes. É assim que violinistas, violistas e violoncelistas costumam tocar melodias. Escolha ao estudar melodias e escalas em instrumentos de arco.'),
-    ('Justo',
-        'Mede cada nota contra a tônica por proporções simples (quinta 3:2, terça maior 5:4). Com essas proporções as ondas se encaixam e some o tremor chamado batimento. A terça maior fica mais baixa que no piano e a quinta um pouco mais alta. Escolha para acordes e música em conjunto sem piano: toque a tônica como referência e afine a terça e a quinta contra ela.'),
+  static final system = <(String, String)>[
+    (tr('Igual'),
+        tr('As 12 notas ficam à mesma distância umas das outras. É a afinação do piano, do violão e da guitarra (os trastes são fixos). Escolha ao tocar junto com piano, teclado ou em instrumentos de trastes.')),
+    (tr('Pitagórico'),
+        tr('Constrói as notas com quintas puras (proporção 3:2). A terça maior e a sensível ficam mais altas que no piano, o que deixa as melodias mais brilhantes. É assim que violinistas, violistas e violoncelistas costumam tocar melodias. Escolha ao estudar melodias e escalas em instrumentos de arco.')),
+    (tr('Justo'),
+        tr('Mede cada nota contra a tônica por proporções simples (quinta 3:2, terça maior 5:4). Com essas proporções as ondas se encaixam e some o tremor chamado batimento. A terça maior fica mais baixa que no piano e a quinta um pouco mais alta. Escolha para acordes e música em conjunto sem piano: toque a tônica como referência e afine a terça e a quinta contra ela.')),
   ];
-  static const systemFooter =
-      'Mudar o sistema muda o ALVO de cada nota: a mesma nota pode aparecer "baixa" no Igual e "afinada" no Justo, e isso não é erro do app. Na tabela "Entender" você vê, em Hz, o alvo de cada nota. Se não tiver certeza, use Igual. As cordas soltas não dependem desta opção.';
+  static final systemFooter =
+      tr('Mudar o sistema muda o ALVO de cada nota: a mesma nota pode aparecer "baixa" no Igual e "afinada" no Justo, e isso não é erro do app. Na tabela "Entender" você vê, em Hz, o alvo de cada nota. Se não tiver certeza, use Igual. As cordas soltas não dependem desta opção.');
 
-  static const tonic = <(String, String)>[
-    ('Tônica (tom da peça)',
-        'É a nota que dá nome ao tom: em Sol maior, a tônica é Sol. Só importa nos sistemas Pitagórico e Justo, porque nesses as notas são afinadas em relação à tônica.'),
-    ('Manter o Lá fixo',
-        'Ligado: o Lá continua exatamente na referência (por exemplo 440 Hz) e as outras notas se ajustam em torno dele. É o recomendado para instrumentos de arco, que se afinam pelo Lá. Desligado: a tônica fica na afinação igual e o Lá pode mudar um pouco.'),
+  static final tonic = <(String, String)>[
+    (tr('Tônica (tom da peça)'),
+        tr('É a nota que dá nome ao tom: em Sol maior, a tônica é Sol. Só importa nos sistemas Pitagórico e Justo, porque nesses as notas são afinadas em relação à tônica.')),
+    (tr('Manter o Lá fixo'),
+        tr('Ligado: o Lá continua exatamente na referência (por exemplo 440 Hz) e as outras notas se ajustam em torno dele. É o recomendado para instrumentos de arco, que se afinam pelo Lá. Desligado: a tônica fica na afinação igual e o Lá pode mudar um pouco.')),
   ];
 
-  static const refA = <(String, String)>[
-    ('Lá de referência',
-        'É a altura do Lá que o app usa como base para todas as notas. O padrão é 440 Hz. Algumas orquestras usam 442 ou 443 Hz.'),
-    ('Quando mudar',
-        'Só mude se o seu grupo, professor ou piano usa outra referência. Com o Lá errado, todas as notas parecem fora do lugar, mesmo com o instrumento certo.'),
+  static final refA = <(String, String)>[
+    (tr('Lá de referência'),
+        tr('É a altura do Lá que o app usa como base para todas as notas. O padrão é 440 Hz. Algumas orquestras usam 442 ou 443 Hz.')),
+    (tr('Quando mudar'),
+        tr('Só mude se o seu grupo, professor ou piano usa outra referência. Com o Lá errado, todas as notas parecem fora do lugar, mesmo com o instrumento certo.')),
   ];
 }
 
@@ -670,14 +670,14 @@ class SystemAdvice extends StatelessWidget {
     String rec;
     String? warn;
     if (fretted) {
-      rec = '${inst.name} tem trastes: o recomendado é Igual.';
+      rec = tr('{0} tem trastes: o recomendado é Igual.', [inst.name]);
       if (sys != TuningSystem.equal) {
-        warn = 'Com trastes, as notas já saem fixas pelo traste. No Pitagórico/Justo, notas certas vão aparecer como "fora". Prefira Igual.';
+        warn = tr('Com trastes, as notas já saem fixas pelo traste. No Pitagórico/Justo, notas certas vão aparecer como "fora". Prefira Igual.');
       }
     } else {
-      rec = '${inst.name} é de arco: Pitagórico para melodias e escalas, Justo para acordes e conjunto.';
+      rec = tr('{0} é de arco: Pitagórico para melodias e escalas, Justo para acordes e conjunto.', [inst.name]);
       if (sys == TuningSystem.equal) {
-        warn = 'No Igual, algumas notas boas do arco (como terças e sensíveis) podem aparecer um pouco "fora". Para estudar melodias, experimente o Pitagórico.';
+        warn = tr('No Igual, algumas notas boas do arco (como terças e sensíveis) podem aparecer um pouco "fora". Para estudar melodias, experimente o Pitagórico.');
       }
     }
     return Column(

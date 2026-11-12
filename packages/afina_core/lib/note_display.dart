@@ -7,20 +7,23 @@
 library;
 
 import 'pitch_grid.dart' show TrackedNote;
+import 'i18n.dart';
 
 /// Velocidade com que o destaque troca de uma nota para outra.
 enum NoteSwitchSpeed {
   /// Acompanha quase em tempo real (para passagens rápidas).
-  fast('Rápida', 'Troca logo; bom para passagens rápidas', 0.04, 0.05, 0.10),
+  fast(/*tr*/'Rápida', /*tr*/'Troca logo; bom para passagens rápidas', 0.04, 0.05, 0.10),
 
   /// Padrão: ignora notas de passagem e deixa cada nota tempo na tela.
-  normal('Normal', 'Equilibrada: dá tempo de ler cada nota', 0.10, 0.18, 0.25),
+  normal(/*tr*/'Normal', /*tr*/'Equilibrada: dá tempo de ler cada nota', 0.10, 0.18, 0.25),
 
   /// Mais lenta: ideal para estudar devagar e analisar cada nota.
-  calm('Calma', 'Fica mais tempo em cada nota; ideal para estudar devagar', 0.30, 0.80, 0.50);
+  calm(/*tr*/'Calma', /*tr*/'Fica mais tempo em cada nota; ideal para estudar devagar', 0.30, 0.80, 0.50);
 
-  final String label;
-  final String hint;
+  final String _label;
+  String get label => tr(_label);
+  final String _hint;
+  String get hint => tr(_hint);
 
   /// Quanto a nota nova precisa se manter (s) antes de assumir o destaque.
   final double commit;
@@ -31,7 +34,7 @@ enum NoteSwitchSpeed {
   /// Quanto o destaque espera (s) depois que o som some, antes de apagar.
   final double release;
 
-  const NoteSwitchSpeed(this.label, this.hint, this.commit, this.dwell, this.release);
+  const NoteSwitchSpeed(this._label, this._hint, this.commit, this.dwell, this.release);
 }
 
 /// Filtra a sequência de notas detectadas e devolve a nota a destacar.

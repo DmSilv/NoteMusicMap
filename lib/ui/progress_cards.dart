@@ -29,14 +29,14 @@ class EvolutionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Row(children: [
+            Row(children: [
               Icon(Icons.show_chart),
               SizedBox(width: 8),
-              Text('Sua evolução', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+              Text(tr('Sua evolução'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
             ]),
             const SizedBox(height: 8),
             Text(
-              'Faça uma escala guiada em Escalas: a taxa de acerto aparece aqui.',
+              tr('Faça uma escala guiada em Escalas: a taxa de acerto aparece aqui.'),
               style: TextStyle(color: AppColors.textDim),
             ),
           ],
@@ -59,10 +59,10 @@ class EvolutionCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(children: [
+          Row(children: [
             Icon(Icons.show_chart),
             SizedBox(width: 8),
-            Text('Sua evolução', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
+            Text(tr('Sua evolução'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
           ]),
           const SizedBox(height: 12),
           Row(
@@ -78,7 +78,7 @@ class EvolutionCard extends StatelessWidget {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.only(bottom: 4),
-                  child: Text('na última escala\n${last.title}',
+                  child: Text(tr('na última escala\n{0}', [last.title]),
                       style: TextStyle(color: AppColors.textDim, fontSize: 13)),
                 ),
               ),
@@ -101,9 +101,9 @@ class EvolutionCard extends StatelessWidget {
           const SizedBox(height: 10),
           Row(
             children: [
-              _stat('Média (5 últimas)', _pct(avg5)),
-              _stat('Melhor', _pct(best)),
-              _stat('Escalas feitas', '${all.length}'),
+              _stat(tr('Média (5 últimas)'), _pct(avg5)),
+              _stat(tr('Melhor'), _pct(best)),
+              _stat(tr('Escalas feitas'), '${all.length}'),
             ],
           ),
           const Divider(height: 24),
@@ -260,22 +260,22 @@ class CoachCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(children: [
+          Row(children: [
             Icon(Icons.psychology_alt_outlined),
             SizedBox(width: 8),
             Expanded(
-              child: Text('Treinador',
+              child: Text(tr('Treinador'),
                   style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
             ),
           ]),
           const SizedBox(height: 4),
           Text(
-            'Aponta o que ajustar nas suas últimas escalas. Dicas calculadas no aparelho; a IA é opcional.',
+            tr('Aponta o que ajustar nas suas últimas escalas. Dicas calculadas no aparelho; a IA é opcional.'),
             style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
           ),
           const SizedBox(height: 10),
           if (!has)
-            Text('Faça um exercício guiado para receber orientações.',
+            Text(tr('Faça um exercício guiado para receber orientações.'),
                 style: TextStyle(color: AppColors.textDim))
           else ...[
             for (final i in app.insights) InsightTile(insight: i),
@@ -299,14 +299,12 @@ class _AiSection extends StatelessWidget {
       final ok = await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
-          title: const Text('Análise por IA'),
-          content: const Text(
-              'Para gerar a análise, o app envia à IA um resumo só com números: '
-              'desvios de afinação por nota, escalas e taxas de acerto.\n\n'
-              'Nunca vão áudio, nome ou qualquer dado pessoal. Dá para usar até 5 vezes por dia.'),
+          title: Text(tr('Análise por IA')),
+          content: Text(
+              tr('Para gerar a análise, o app envia à IA um resumo só com números: desvios de afinação por nota, escalas e taxas de acerto.\n\nNunca vão áudio, nome ou qualquer dado pessoal. Dá para usar até 5 vezes por dia.')),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Agora não')),
-            FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Autorizar e analisar')),
+            TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Agora não'))),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Autorizar e analisar'))),
           ],
         ),
       );
@@ -326,36 +324,35 @@ class _AiSection extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Análise por IA: orientações sobre os últimos exercícios. Só números vão, nunca áudio. Precisa de internet.',
+              tr('Análise por IA: orientações sobre os últimos exercícios. Só números vão, nunca áudio. Precisa de internet.'),
               style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
             ),
             const SizedBox(height: 8),
             if (ai.phase == AiPhase.sending)
-              const Row(children: [
+              Row(children: [
                 SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
                 SizedBox(width: 10),
-                Expanded(child: Text('Analisando seus exercícios…')),
+                Expanded(child: Text(tr('Analisando seus exercícios…'))),
               ])
             else if (ai.phase == AiPhase.queued)
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(ai.queuePosition != null
-                    ? 'Muita gente usando agora. Você é o ${ai.queuePosition}º da fila: sua vez em ${ai.queuedSeconds}s.'
-                    : 'Muita gente usando agora. Você está na fila: nova tentativa em ${ai.queuedSeconds}s '
-                        '(tentativa ${ai.attempt}/${CoachAi.maxAttempts}).'),
+                    ? tr('Muita gente usando agora. Você é o {0}º da fila: sua vez em {1}s.', [ai.queuePosition, ai.queuedSeconds])
+                    : tr('Muita gente usando agora. Você está na fila: nova tentativa em {0}s (tentativa {1}/{2}).', [ai.queuedSeconds, ai.attempt, CoachAi.maxAttempts])),
                 const SizedBox(height: 8),
-                OutlinedButton(onPressed: ai.cancel, child: const Text('Cancelar')),
+                OutlinedButton(onPressed: ai.cancel, child: Text(tr('Cancelar'))),
               ])
             else
               Wrap(spacing: 8, runSpacing: 8, children: [
                 FilledButton.icon(
                   onPressed: () => _ask(context),
                   icon: const Icon(Icons.auto_awesome),
-                  label: Text(ai.text == null ? 'Analisar com IA' : 'Analisar de novo'),
+                  label: Text(ai.text == null ? tr('Analisar com IA') : tr('Analisar de novo')),
                 ),
                 OutlinedButton.icon(
                   onPressed: () => copyAiSummary(app),
                   icon: const Icon(Icons.copy),
-                  label: const Text('Copiar resumo'),
+                  label: Text(tr('Copiar resumo')),
                 ),
               ]),
             if (ai.phase == AiPhase.failed && ai.message != null)
@@ -376,7 +373,7 @@ class _AiSection extends StatelessWidget {
               ),
               Align(alignment: Alignment.centerRight, child: CopyAnswerButton(ai.text!)),
               const SizedBox(height: 2),
-              Text('Gerado por IA: pode errar. Use como sugestão, junto com o seu professor.',
+              Text(tr('Gerado por IA: pode errar. Use como sugestão, junto com o seu professor.'),
                   style: TextStyle(color: AppColors.textDim, fontSize: 11.5)),
             ],
           ],

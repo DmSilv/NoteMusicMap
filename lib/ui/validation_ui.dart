@@ -12,8 +12,8 @@ String _when(DateTime at) {
   final today = DateTime(now.year, now.month, now.day);
   final day = DateTime(d.year, d.month, d.day);
   final hh = '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
-  if (day == today) return 'hoje, $hh';
-  if (day == today.subtract(const Duration(days: 1))) return 'ontem, $hh';
+  if (day == today) return tr('hoje, {0}', [hh]);
+  if (day == today.subtract(const Duration(days: 1))) return tr('ontem, {0}', [hh]);
   return '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}, $hh';
 }
 
@@ -37,14 +37,14 @@ class ValidationCard extends StatelessWidget {
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                list.length == 1 ? '1 tarefa para validar' : '${list.length} tarefas para validar',
+                list.length == 1 ? tr('1 tarefa para validar') : tr('{0} tarefas para validar', [list.length]),
                 style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
               ),
             ),
           ]),
           const SizedBox(height: 4),
           Text(
-            '${student.name} marcou como feita. Confirme para finalizar ou devolva para ficar pendente.',
+            tr('{0} marcou como feita. Confirme para finalizar ou devolva para ficar pendente.', [student.name]),
             style: TextStyle(color: AppColors.textDim, fontSize: 12.5, height: 1.3),
           ),
           for (final t in list)
@@ -56,16 +56,16 @@ class ValidationCard extends StatelessWidget {
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(t.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
-                    Text('Marcada ${_when(t.claimedAt!)}', style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+                    Text(tr('Marcada {0}', [_when(t.claimedAt!)]), style: TextStyle(color: AppColors.textDim, fontSize: 12)),
                   ]),
                 ),
                 TextButton.icon(
                   onPressed: () => app.validateAssignment(student, t.id, ok: false),
-                  icon: const Icon(Icons.undo, size: 18), label: const Text('Devolver'),
+                  icon: const Icon(Icons.undo, size: 18), label: Text(tr('Devolver')),
                 ),
                 FilledButton.tonalIcon(
                   onPressed: () => app.validateAssignment(student, t.id, ok: true),
-                  icon: const Icon(Icons.check, size: 18), label: const Text('Confirmar'),
+                  icon: const Icon(Icons.check, size: 18), label: Text(tr('Confirmar')),
                 ),
               ]),
             ),
@@ -78,10 +78,10 @@ class ValidationCard extends StatelessWidget {
                   for (final t in list) {
                     app.validateAssignment(student, t.id, ok: true);
                   }
-                  app.say('${list.length} tarefas confirmadas.');
+                  app.say(tr('{0} tarefas confirmadas.', [list.length]));
                 },
                 icon: const Icon(Icons.done_all, size: 18),
-                label: const Text('Confirmar todas'),
+                label: Text(tr('Confirmar todas')),
               ),
             ),
           ],
@@ -103,9 +103,9 @@ Future<void> showValidationDialog(BuildContext context, AppState app, Student s)
     await showDialog<void>(
       context: context,
       builder: (c) => AlertDialog(
-        title: Text('Resumo de ${s.name}'),
+        title: Text(tr('Resumo de {0}', [s.name])),
         content: SingleChildScrollView(child: _summaryBody(sum, showValidateHint: false)),
-        actions: [FilledButton.icon(onPressed: () => Navigator.pop(c), icon: const Icon(Icons.play_arrow, size: 18), label: const Text('Começar a aula'))],
+        actions: [FilledButton.icon(onPressed: () => Navigator.pop(c), icon: const Icon(Icons.play_arrow, size: 18), label: Text(tr('Começar a aula')))],
       ),
     );
     return;
@@ -115,11 +115,11 @@ Future<void> showValidationDialog(BuildContext context, AppState app, Student s)
     context: context,
     builder: (c) => StatefulBuilder(
       builder: (c, setS) => AlertDialog(
-        title: Text('${s.name} fez ${list.length == 1 ? 'esta tarefa' : 'estas tarefas'}?'),
+        title: Text(tr('{0} fez {1}?', [s.name, list.length == 1 ? tr('esta tarefa') : tr('estas tarefas')])),
         content: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(
-              'Ele marcou como feita. Deixe marcada a que está boa e desmarque a que precisa refazer.',
+              tr('Ele marcou como feita. Deixe marcada a que está boa e desmarque a que precisa refazer.'),
               style: TextStyle(color: AppColors.textDim, fontSize: 13, height: 1.3),
             ),
             const SizedBox(height: 6),
@@ -133,7 +133,7 @@ Future<void> showValidationDialog(BuildContext context, AppState app, Student s)
                 value: keep[t.id],
                 onChanged: (v) => setS(() => keep[t.id] = v ?? false),
                 title: Text(t.title, style: const TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: Text('Marcada ${_when(t.claimedAt!)}', style: const TextStyle(fontSize: 12)),
+                subtitle: Text(tr('Marcada {0}', [_when(t.claimedAt!)]), style: const TextStyle(fontSize: 12)),
               ),
             if (sum.pending.isNotEmpty) ...[
               const Divider(height: 18),
@@ -142,8 +142,8 @@ Future<void> showValidationDialog(BuildContext context, AppState app, Student s)
           ]),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Decidir depois')),
-          FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.check, size: 18), label: const Text('Aplicar')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Decidir depois'))),
+          FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.check, size: 18), label: Text(tr('Aplicar'))),
         ],
       ),
     ),
@@ -155,7 +155,7 @@ Future<void> showValidationDialog(BuildContext context, AppState app, Student s)
     app.validateAssignment(s, t.id, ok: yes);
     yes ? done++ : back++;
   }
-  app.say('$done confirmada${done == 1 ? '' : 's'}${back > 0 ? ', $back devolvida${back == 1 ? '' : 's'}' : ''}.');
+  app.say(tr('{0} confirmada{1}{2}.', [done, done == 1 ? '' : 's', back > 0 ? tr(', {0} devolvida{1}', [back, back == 1 ? '' : 's']) : '']));
 }
 
 Widget _summaryBody(TaskSummary sum, {required bool showValidateHint}) => Column(
@@ -173,7 +173,7 @@ Widget _pendingList(TaskSummary sum) {
   final shown = sum.pending.take(5).toList();
   final more = sum.pending.length - shown.length;
   return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text('Ainda pendentes', style: TextStyle(color: AppColors.textDim, fontSize: 12.5, fontWeight: FontWeight.w700)),
+    Text(tr('Ainda pendentes'), style: TextStyle(color: AppColors.textDim, fontSize: 12.5, fontWeight: FontWeight.w700)),
     const SizedBox(height: 4),
     for (final t in shown)
       Padding(
@@ -184,6 +184,6 @@ Widget _pendingList(TaskSummary sum) {
           Expanded(child: Text(t.title, style: const TextStyle(height: 1.25))),
         ]),
       ),
-    if (more > 0) Text('e mais $more', style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+    if (more > 0) Text(tr('e mais {0}', [more]), style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
   ]);
 }

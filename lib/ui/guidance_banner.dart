@@ -30,8 +30,8 @@ class GuidanceBanner extends StatefulWidget {
   final String idleDetail;
 
   /// Texto do estado afinado.
-  final String tunedTitle;
-  final String tunedDetail;
+  final String? tunedTitle;
+  final String? tunedDetail;
 
   /// Nomes para o aviso de nota errada.
   final String Function(int midi)? noteLabel;
@@ -44,8 +44,8 @@ class GuidanceBanner extends StatefulWidget {
     this.targetName,
     required this.idleTitle,
     required this.idleDetail,
-    this.tunedTitle = 'AFINADA!',
-    this.tunedDetail = 'Segure assim.',
+    this.tunedTitle,
+    this.tunedDetail,
     this.noteLabel,
   });
 
@@ -77,7 +77,7 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
     super.dispose();
   }
 
-  String _amount(double a) => a <= 12 ? ' um pouco' : (a <= 30 ? '' : ' bastante');
+  String _amount(double a) => a <= 12 ? tr(' um pouco') : (a <= 30 ? '' : tr(' bastante'));
 
   _Guide? _compute() {
     final cue = widget.cue;
@@ -87,28 +87,28 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
       final exp = label?.call(cue.expectedMidi) ?? '${cue.expectedMidi}';
       final heard = label?.call(cue.heardMidi) ?? '${cue.heardMidi}';
       if (!cue.inScale) {
-        return _Guide(GuideKind.other, 'FORA DA ESCALA', '$heard não é desta escala. Procure $exp.');
+        return _Guide(GuideKind.other, tr('FORA DA ESCALA'), tr('{0} não é desta escala. Procure {1}.', [heard, exp]));
       }
       if (!cue.near) {
-        return _Guide(GuideKind.other, 'OUTRA NOTA', 'Você está em $heard. Procure $exp.');
+        return _Guide(GuideKind.other, tr('OUTRA NOTA'), tr('Você está em {0}. Procure {1}.', [heard, exp]));
       }
-      final how = cue.amount == 0 ? ' um pouco' : (cue.amount == 1 ? '' : ' bastante');
+      final how = cue.amount == 0 ? tr(' um pouco') : (cue.amount == 1 ? '' : tr(' bastante'));
       return _Guide(
         cue.goUp ? GuideKind.raise : GuideKind.lower,
-        cue.goUp ? 'SUBA A AFINAÇÃO' : 'DESÇA A AFINAÇÃO',
-        'Ainda não é $exp: ${cue.goUp ? 'suba' : 'desça'}$how.',
+        cue.goUp ? tr('SUBA A AFINAÇÃO') : tr('DESÇA A AFINAÇÃO'),
+        tr('Ainda não é {0}: {1}{2}.', [exp, cue.goUp ? tr('suba') : tr('desça'), how]),
       );
     }
     if (c == null) return null;
     if (c.abs() <= widget.zone) {
-      return _Guide(GuideKind.tuned, widget.tunedTitle, widget.tunedDetail);
+      return _Guide(GuideKind.tuned, widget.tunedTitle ?? tr('AFINADA!'), widget.tunedDetail ?? tr('Segure assim.'));
     }
     final a = c.abs();
     return c < 0
-        ? _Guide(GuideKind.raise, 'SUBA A AFINAÇÃO',
-            'Está abaixo da nota: suba${_amount(a)}.')
-        : _Guide(GuideKind.lower, 'DESÇA A AFINAÇÃO',
-            'Está acima da nota: desça${_amount(a)}.');
+        ? _Guide(GuideKind.raise, tr('SUBA A AFINAÇÃO'),
+            tr('Está abaixo da nota: suba{0}.', [_amount(a)]))
+        : _Guide(GuideKind.lower, tr('DESÇA A AFINAÇÃO'),
+            tr('Está acima da nota: desça{0}.', [_amount(a)]));
   }
 
   @override
@@ -207,7 +207,7 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
                       const SizedBox(height: 2),
                       Text(
                         stale && data.kind != GuideKind.idle
-                            ? 'Última orientação: ${data.detail}'
+                            ? tr('Última orientação: {0}', [data.detail])
                             : data.detail,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,

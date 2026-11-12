@@ -3,9 +3,10 @@
 library;
 
 import 'input_guard.dart';
+import 'i18n.dart';
 
 /// Sites aceitos (https). Subdomínios valem.
-const List<String> kLibraryHosts = [
+final List<String> kLibraryHosts = [
   'drive.google.com',
   'docs.google.com',
   'dropbox.com',
@@ -47,10 +48,10 @@ class LibItem {
   final bool hidden;
   final int created;
   final int modified;
-  const LibItem({
+  LibItem({
     required this.id,
     this.kind = 'a',
-    this.folder = 'Geral',
+    this.folder = /*tr*/'Geral',
     required this.title,
     this.author = '',
     required this.url,
@@ -104,7 +105,7 @@ class LibItem {
       return LibItem(
         id: id,
         kind: m['k'] == 'r' ? 'r' : 'a',
-        folder: cleanText(m['f'] as String?, max: 40).isEmpty ? 'Geral' : cleanText(m['f'] as String?, max: 40),
+        folder: cleanText(m['f'] as String?, max: 40).isEmpty ? tr('Geral') : cleanText(m['f'] as String?, max: 40),
         title: t,
         author: cleanText(m['a'] as String?, max: 60),
         url: u,
@@ -134,7 +135,7 @@ List<String> libraryFolders(Iterable<LibItem> items, {String? kind}) {
 /// Uma tarefa "Material do professor" aponta para o acervo: [subject] é o título do item (ou da pasta, ou
 /// vazio = acervo todo) e [detail] é a pasta. Nada novo vai ao servidor: é o texto da própria tarefa.
 /// Texto de uma tarefa que aponta para o acervo inteiro.
-const String kMaterialAll = 'Material do professor';
+final String kMaterialAll = tr('Material do professor');
 
 class MaterialRef {
   /// Título do item procurado (vazio = só a pasta, ou o acervo todo).
@@ -167,7 +168,7 @@ class MaterialRef {
 
   /// "Wohlfahrt · Estudos op. 45" / "Wohlfahrt" / "Material do professor".
   String get label {
-    if (isAll) return 'Material do professor';
+    if (isAll) return tr('Material do professor');
     if (title.isEmpty) return folder;
     return folder.isEmpty || folder == title ? title : '$title · $folder';
   }

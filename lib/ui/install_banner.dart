@@ -5,6 +5,7 @@ import '../app_state.dart';
 import '../platform/web_install.dart';
 import '../platform/web_vibrate.dart' show webIsIos;
 import 'theme.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// Dá para oferecer a instalação? Só no navegador (não no app já instalado), em
 /// celular/tablet, ou no computador quando o navegador libera a janela de instalação.
@@ -18,7 +19,7 @@ Future<void> runInstall(BuildContext context, AppState app) async {
     final ok = await webPromptInstall();
     if (ok) {
       app.markInstalled();
-      app.say('Instalado! Procure o ícone do Notemusic na tela inicial.');
+      app.say(tr('Instalado! Procure o ícone do Notemusic na tela inicial.'));
     } else {
       app.hideInstall(days: 3);
     }
@@ -27,33 +28,33 @@ Future<void> runInstall(BuildContext context, AppState app) async {
   final ios = webIsIos();
   final android = webIsAndroidBrowser();
   final steps = ios
-      ? const [
-          (Icons.ios_share, 'Toque em Compartilhar', 'O ícone do quadrado com uma seta para cima, na barra do Safari (no iPhone fica embaixo).'),
-          (Icons.add_box_outlined, 'Toque em "Adicionar à Tela de Início"', 'Role a lista de opções até achar.'),
-          (Icons.check_circle_outline, 'Toque em "Adicionar"', 'O ícone do Notemusic aparece na tela inicial.'),
+      ? [
+          (Icons.ios_share, tr('Toque em Compartilhar'), tr('O ícone do quadrado com uma seta para cima, na barra do Safari (no iPhone fica embaixo).')),
+          (Icons.add_box_outlined, tr('Toque em "Adicionar à Tela de Início"'), tr('Role a lista de opções até achar.')),
+          (Icons.check_circle_outline, tr('Toque em "Adicionar"'), tr('O ícone do Notemusic aparece na tela inicial.')),
         ]
       : android
-          ? const [
-              (Icons.more_vert, 'Abra o menu do navegador', 'Os três pontinhos no canto de cima. Funciona melhor no Chrome.'),
-              (Icons.install_mobile, 'Toque em "Instalar app"', 'Em alguns navegadores o nome é "Adicionar à tela inicial".'),
-              (Icons.check_circle_outline, 'Confirme', 'O ícone do Notemusic aparece na tela inicial.'),
+          ? [
+              (Icons.more_vert, tr('Abra o menu do navegador'), tr('Os três pontinhos no canto de cima. Funciona melhor no Chrome.')),
+              (Icons.install_mobile, tr('Toque em "Instalar app"'), tr('Em alguns navegadores o nome é "Adicionar à tela inicial".')),
+              (Icons.check_circle_outline, tr('Confirme'), tr('O ícone do Notemusic aparece na tela inicial.')),
             ]
-          : const [
-              (Icons.install_desktop, 'Procure o ícone de instalar', 'Na barra de endereço do Chrome ou do Edge, à direita.'),
-              (Icons.more_vert, 'Ou use o menu do navegador', 'Três pontinhos › "Instalar Notemusic" (ou "Salvar e compartilhar › Instalar").'),
+          : [
+              (Icons.install_desktop, tr('Procure o ícone de instalar'), tr('Na barra de endereço do Chrome ou do Edge, à direita.')),
+              (Icons.more_vert, tr('Ou use o menu do navegador'), tr('Três pontinhos › "Instalar Notemusic" (ou "Salvar e compartilhar › Instalar").')),
             ];
   if (!context.mounted) return;
   final installed = await showDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
       icon: const Icon(Icons.install_mobile),
-      title: const Text('Instalar o Notemusic'),
+      title: Text(tr('Instalar o Notemusic')),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Fica na tela inicial como um app, abre em tela cheia e funciona sem internet.',
+            Text(tr('Fica na tela inicial como um app, abre em tela cheia e funciona sem internet.'),
                 style: TextStyle(color: AppColors.textDim, fontSize: 13)),
             const SizedBox(height: 12),
             for (var i = 0; i < steps.length; i++)
@@ -83,8 +84,8 @@ Future<void> runInstall(BuildContext context, AppState app) async {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Fechar')),
-        FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Já instalei')),
+        TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Fechar'))),
+        FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Já instalei'))),
       ],
     ),
   );
@@ -139,12 +140,12 @@ class _InstallBannerState extends State<InstallBanner> {
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                      const Text('Instale o Notemusic no celular',
+                      Text(tr('Instale o Notemusic no celular'),
                           style: TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
                       Text(
                           oneTap
-                              ? 'Um toque: fica na tela inicial e abre como app.'
-                              : 'Veja como colocar na tela inicial (30 segundos).',
+                              ? tr('Um toque: fica na tela inicial e abre como app.')
+                              : tr('Veja como colocar na tela inicial (30 segundos).'),
                           style: TextStyle(color: AppColors.textDim, fontSize: 12)),
                     ]),
                   ),
@@ -152,10 +153,10 @@ class _InstallBannerState extends State<InstallBanner> {
                     style: FilledButton.styleFrom(
                         visualDensity: VisualDensity.compact, padding: const EdgeInsets.symmetric(horizontal: 14)),
                     onPressed: () => runInstall(context, app),
-                    child: const Text('Instalar'),
+                    child: Text(tr('Instalar')),
                   ),
                   IconButton(
-                    tooltip: 'Agora não',
+                    tooltip: tr('Agora não'),
                     visualDensity: VisualDensity.compact,
                     icon: const Icon(Icons.close, size: 18),
                     onPressed: () => app.hideInstall(days: 7),

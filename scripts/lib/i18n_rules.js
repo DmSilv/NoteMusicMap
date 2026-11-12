@@ -73,6 +73,7 @@ function skipReason(s, g, key) {
   const accent = /[À-ÿ]/.test(words);
   if (/^\w+:\/\//.test(words) || /^\/[\w\/\-.]*$/.test(words)) return 'url/caminho';
   if (NEUTRAL.has(words)) return 'neutro';
+  if (/^[A-Z]{1,5}-d{1,3}$/.test(words)) return 'código de erro';
   if (!hasSpace && !accent) {
     if (/^[A-Z0-9_#♯♭]+$/.test(words)) return 'sigla/nota';
     const lower = /^[a-z][a-z0-9_\-./:#@?&=%+]*$/.test(words);

@@ -8,10 +8,10 @@ import 'agenda_sheets.dart';
 /// Toda mudança mostra antes o que vai acontecer e quem é avisado, e só vale se couber na agenda (sem choque).
 
 String _two(int n) => n.toString().padLeft(2, '0');
-const _dow = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
+final _dow = [tr('seg'), tr('ter'), tr('qua'), tr('qui'), tr('sex'), tr('sáb'), tr('dom')];
 String _when(DateTime d) => '${_dow[d.weekday - 1]} ${_two(d.day)}/${_two(d.month)} ${_two(d.hour)}:${_two(d.minute)}';
 
-String _nameOf(AppState app, ClassSlot s) => app.studentByCode(s.studentCode)?.name ?? 'o aluno';
+String _nameOf(AppState app, ClassSlot s) => app.studentByCode(s.studentCode)?.name ?? tr('o aluno');
 
 Future<bool> _ask(BuildContext context, String title, String body, String ok, {bool danger = false}) =>
     showConfirmSheet(context, title: title, body: body, ok: ok, danger: danger, icon: danger ? Icons.event_busy_rounded : Icons.help_outline_rounded);
@@ -22,7 +22,7 @@ Future<bool> moveOccurrenceFlow(BuildContext context, AppState app, SlotOccurren
   final newId = newSlotId(DateTime.now());
   SlotPlan planFor(DateTime to) => planMoveOccurrence(o.slot, o.startMs, to.millisecondsSinceEpoch, newId: newId);
   String? check(DateTime to) =>
-      validatePlan(planFor(to), app.agenda, DateTime.now().millisecondsSinceEpoch, nameOf: (c) => app.studentByCode(c)?.name ?? 'outro aluno');
+      validatePlan(planFor(to), app.agenda, DateTime.now().millisecondsSinceEpoch, nameOf: (c) => app.studentByCode(c)?.name ?? tr('outro aluno'));
   final who = _nameOf(app, o.slot);
   final to = await showMoveSheet(
     context,
@@ -30,9 +30,9 @@ Future<bool> moveOccurrenceFlow(BuildContext context, AppState app, SlotOccurren
     from: o.start,
     weekly: o.slot.weekly,
     check: check,
-    commit: (to) => app.commitPlan(planFor(to), crumbName: 'Remarcar aula'),
+    commit: (to) => app.commitPlan(planFor(to), crumbName: tr('Remarcar aula')),
   );
-  if (to != null) app.celebrate('Aula remarcada', detail: '$who · ${_when(to)}');
+  if (to != null) app.celebrate(tr('Aula remarcada'), detail: '$who · ${_when(to)}');
   return to != null;
 }
 
@@ -43,7 +43,7 @@ Future<void> swapFlow(BuildContext context, AppState app, SlotOccurrence o) asyn
       .where((x) => x.slot.id != o.slot.id && x.slot.studentCode != o.slot.studentCode)
       .toList();
   if (others.isEmpty) {
-    app.say('Não há aulas de outros alunos nas próximas 3 semanas para trocar.');
+    app.say(tr('Não há aulas de outros alunos nas próximas 3 semanas para trocar.'));
     return;
   }
   final nowId = newSlotId(DateTime.now());
@@ -54,10 +54,10 @@ Future<void> swapFlow(BuildContext context, AppState app, SlotOccurrence o) asyn
     aName: a,
     aStart: o.start,
     options: [for (final x in others) SwapOption(_nameOf(app, x.slot), x.start)],
-    check: (i) => validatePlan(planFor(i), app.agenda, DateTime.now().millisecondsSinceEpoch, nameOf: (c) => app.studentByCode(c)?.name ?? 'outro aluno'),
-    commit: (i) => app.commitPlan(planFor(i), crumbName: 'Trocar horários'),
+    check: (i) => validatePlan(planFor(i), app.agenda, DateTime.now().millisecondsSinceEpoch, nameOf: (c) => app.studentByCode(c)?.name ?? tr('outro aluno')),
+    commit: (i) => app.commitPlan(planFor(i), crumbName: tr('Trocar horários')),
   );
-  if (i != null) app.celebrate('Horários trocados', detail: '$a ↔ ${_nameOf(app, others[i].slot)}');
+  if (i != null) app.celebrate(tr('Horários trocados'), detail: '$a ↔ ${_nameOf(app, others[i].slot)}');
 }
 
 /// Cancelar uma aula: a semanal pergunta se é só esta data ou todas; a avulsa só confirma. O aluno é avisado.
@@ -73,11 +73,11 @@ Future<void> cancelOccurrenceFlow(BuildContext context, AppState app, SlotOccurr
       app.cancelSlot(s.id);
     }
   } else {
-    final ok = await _ask(context, 'Cancelar a aula?', '$who é avisado.', 'Cancelar aula', danger: true);
+    final ok = await _ask(context, tr('Cancelar a aula?'), tr('{0} é avisado.', [who]), tr('Cancelar aula'), danger: true);
     if (!ok) return;
     app.cancelSlot(s.id);
   }
-  app.say('Aula cancelada.');
+  app.say(tr('Aula cancelada.'));
 }
 
 /// "Aluno não veio": registra a falta na ficha e, conforme a escolha, cancela só a aula de hoje ou abre o remarcar.
@@ -86,21 +86,21 @@ Future<void> absenceFlow(BuildContext context, AppState app, Student s, {SlotOcc
   final now = DateTime.now();
   occ ??= s.code == null ? null : lessonForAbsence(app.slotsOf(s.code!), now.millisecondsSinceEpoch);
   final sameDay = occ != null && occ.start.year == now.year && occ.start.month == now.month && occ.start.day == now.day;
-  final label = occ == null ? null : '${sameDay ? 'Aula de hoje' : 'Aula'} · ${_when(occ.start)}';
+  final label = occ == null ? null : '${sameDay ? tr('Aula de hoje') : tr('Aula')} · ${_when(occ.start)}';
   final choice = await showAbsenceSheet(context, who: s.name, lessonLabel: label, hasLesson: occ != null, weekly: occ?.slot.weekly ?? false);
   if (choice == null || !context.mounted) return;
   final lessonMs = occ?.startMs ?? DateTime(now.year, now.month, now.day).millisecondsSinceEpoch;
   switch (choice) {
     case AbsenceChoice.noShow:
       app.recordAbsence(s, lessonMs: lessonMs, kind: AbsenceKind.noShow);
-      app.say('Falta registrada na ficha de ${s.name}.');
+      app.say(tr('Falta registrada na ficha de {0}.', [s.name]));
     case AbsenceChoice.notified:
       app.recordAbsence(s, lessonMs: lessonMs, kind: AbsenceKind.notified);
       if (occ != null) {
         app.skipOccurrence(occ.slot.id, occ.startMs);
-        app.say('Falta registrada. A aula foi cancelada e ${s.name} foi avisado.');
+        app.say(tr('Falta registrada. A aula foi cancelada e {0} foi avisado.', [s.name]));
       } else {
-        app.say('Falta registrada na ficha de ${s.name}.');
+        app.say(tr('Falta registrada na ficha de {0}.', [s.name]));
       }
     case AbsenceChoice.reschedule:
       // Só registra se a aula foi mesmo remarcada (se voltou do modal, nada mudou).
@@ -118,8 +118,8 @@ Future<void> pauseFlow(BuildContext context, AppState app) async {
     context: context,
     firstDate: first,
     lastDate: DateTime(now.year + 2),
-    helpText: 'Pausar aulas de… até…',
-    saveText: 'Continuar',
+    helpText: tr('Pausar aulas de… até…'),
+    saveText: tr('Continuar'),
   );
   if (r == null || !context.mounted) return;
   final from = DateTime(r.start.year, r.start.month, r.start.day);
@@ -132,22 +132,21 @@ Future<void> pauseFlow(BuildContext context, AppState app) async {
   }
   final hit = agendaBetween(app.visibleAgenda, from.millisecondsSinceEpoch, to.millisecondsSinceEpoch);
   if (hit.isEmpty) {
-    app.say('Não há aulas nesse período.');
+    app.say(tr('Não há aulas nesse período.'));
     return;
   }
   final students = {for (final h in hit) h.slot.studentCode};
   final ok = await _ask(
       context,
-      'Pausar as aulas?',
-      '${hit.length} aula${hit.length == 1 ? '' : 's'} de ${_two(from.day)}/${_two(from.month)} a ${_two(r.end.day)}/${_two(r.end.month)} '
-          'ser${hit.length == 1 ? 'á cancelada' : 'ão canceladas'}.\n${students.length} aluno${students.length == 1 ? ' é avisado' : 's são avisados'}.\nAs aulas semanais voltam depois do período.',
-      'Pausar',
+      tr('Pausar as aulas?'),
+      tr('{0} aula{1} de {2}/{3} a {4}/{5} ser{6}.\n{7} aluno{8}.\nAs aulas semanais voltam depois do período.', [hit.length, hit.length == 1 ? '' : 's', _two(from.day), _two(from.month), _two(r.end.day), _two(r.end.month), hit.length == 1 ? tr('á cancelada') : tr('ão canceladas'), students.length, students.length == 1 ? tr(' é avisado') : tr('s são avisados')]),
+      tr('Pausar'),
       danger: true);
   if (!ok) return;
-  final e = app.commitPlan(plan, crumbName: 'Pausar aulas');
+  final e = app.commitPlan(plan, crumbName: tr('Pausar aulas'));
   if (e != null) {
     app.say(e);
   } else {
-    app.celebrate('Aulas pausadas', detail: '${hit.length} aula${hit.length == 1 ? '' : 's'} · ${students.length} aluno${students.length == 1 ? '' : 's'} avisado${students.length == 1 ? '' : 's'}');
+    app.celebrate(tr('Aulas pausadas'), detail: tr('{0} aula{1} · {2} aluno{3} avisado{4}', [hit.length, hit.length == 1 ? '' : 's', students.length, students.length == 1 ? '' : 's', students.length == 1 ? '' : 's']));
   }
 }

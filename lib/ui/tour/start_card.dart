@@ -38,10 +38,10 @@ class StartCard extends StatelessWidget {
 
   Future<void> _tour(BuildContext context) async {
     final ok = await runTour(context, [
-      TourStep(TourKeys.startCard, 'Comece por aqui', 'Três passos para o app render: vincular um aluno, marcar uma aula e passar uma tarefa.'),
-      TourStep(TourKeys.hubAgenda, 'Agenda completa', 'Veja a semana ou o mês, marque aulas e mude horários. Tem remarcar só uma aula e pausar as férias.'),
-      TourStep(TourKeys.hubOpenSlots, 'Horários livres', 'Publique horários e o primeiro aluno que pegar fica com ele. A aula entra na agenda dos dois.'),
-      TourStep(TourKeys.hubStudents, 'Seus alunos', 'A ficha de cada aluno, as tarefas que você passou e o que ele já fez.'),
+      TourStep(TourKeys.startCard, tr('Comece por aqui'), tr('Três passos para o app render: vincular um aluno, marcar uma aula e passar uma tarefa.')),
+      TourStep(TourKeys.hubAgenda, tr('Agenda completa'), tr('Veja a semana ou o mês, marque aulas e mude horários. Tem remarcar só uma aula e pausar as férias.')),
+      TourStep(TourKeys.hubOpenSlots, tr('Horários livres'), tr('Publique horários e o primeiro aluno que pegar fica com ele. A aula entra na agenda dos dois.')),
+      TourStep(TourKeys.hubStudents, tr('Seus alunos'), tr('A ficha de cada aluno, as tarefas que você passou e o que ele já fez.')),
     ]);
     if (ok) app.markTourSeen('hub_teacher');
   }
@@ -62,8 +62,8 @@ class StartCard extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Expanded(child: Text('Comece por aqui', style: Ds.title())),
-          Text('$done de ${list.length}', style: Ds.support()),
+          Expanded(child: Text(tr('Comece por aqui'), style: Ds.title())),
+          Text(tr('{0} de {1}', [done, list.length]), style: Ds.support()),
         ]),
         const SizedBox(height: Ds.s8),
         ClipRRect(
@@ -92,9 +92,9 @@ class StartCard extends StatelessWidget {
             onTap: i.done ? null : () => _open(context, i),
           ),
         Row(children: [
-          TextButton.icon(onPressed: () => _tour(context), icon: const Icon(Icons.play_circle_outline, size: 18), label: const Text('Ver como funciona')),
+          TextButton.icon(onPressed: () => _tour(context), icon: const Icon(Icons.play_circle_outline, size: 18), label: Text(tr('Ver como funciona'))),
           const Spacer(),
-          TextButton(onPressed: app.hideStartCard, child: const Text('Esconder')),
+          TextButton(onPressed: app.hideStartCard, child: Text(tr('Esconder'))),
         ]),
       ]),
     );

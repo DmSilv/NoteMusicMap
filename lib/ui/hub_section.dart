@@ -74,9 +74,9 @@ class HubSection extends StatelessWidget {
           width: double.infinity,
           child: SegmentedButton<HubView>(
             showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(value: HubView.student, icon: Icon(Icons.person_outline, size: 18), label: Text('Aluno')),
-              ButtonSegment(value: HubView.teacher, icon: Icon(Icons.school_outlined, size: 18), label: Text('Professor')),
+            segments: [
+              ButtonSegment(value: HubView.student, icon: Icon(Icons.person_outline, size: 18), label: Text(tr('Aluno'))),
+              ButtonSegment(value: HubView.teacher, icon: Icon(Icons.school_outlined, size: 18), label: Text(tr('Professor'))),
             ],
             selected: {view},
             onSelectionChanged: (s) => app.setHubView(s.first),
@@ -141,7 +141,7 @@ class HubSection extends StatelessWidget {
             child: Row(mainAxisSize: MainAxisSize.min, children: [
               Icon(icon, size: 15, color: color),
               const SizedBox(width: 5),
-              Text(loud ? '${st.title} · toque para ver' : st.title,
+              Text(loud ? tr('{0} · toque para ver', [st.title]) : st.title,
                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: color)),
             ]),
           ),
@@ -173,10 +173,10 @@ class HubSection extends StatelessWidget {
                 app.dismissNotice(n);
                 openNoticeTarget(context, app, n);
               },
-              icon: const Icon(Icons.arrow_forward, size: 18), label: const Text('Ver'),
+              icon: const Icon(Icons.arrow_forward, size: 18), label: Text(tr('Ver')),
             ),
             IconButton(
-              tooltip: 'Dispensar',
+              tooltip: tr('Dispensar'),
               visualDensity: VisualDensity.compact,
               onPressed: () => app.dismissNotice(n),
               icon: const Icon(Icons.close, size: 18),
@@ -199,16 +199,16 @@ class HubSection extends StatelessWidget {
       switch (d) {
         case HubDest.studentFile:
           final first = student!.name.split(' ').first;
-          buttons.add(primary(urgent ? 'Abrir ficha' : 'Ficha de $first', Icons.person_outline,
+          buttons.add(primary(urgent ? tr('Abrir ficha') : tr('Ficha de {0}', [first]), Icons.person_outline,
               () => _push(context, StudentPage(app: app, studentId: student.id))));
         case HubDest.markClass:
-          buttons.add(primary('Marcar aula', Icons.add, () => openSlotForm(context, app)));
+          buttons.add(primary(tr('Marcar aula'), Icons.add, () => openSlotForm(context, app)));
         case HubDest.inviteStudent:
-          buttons.add(primary('Convidar aluno', Icons.person_add_alt_1, () => shareTeacherInvite(app)));
+          buttons.add(primary(tr('Convidar aluno'), Icons.person_add_alt_1, () => shareTeacherInvite(app)));
         case HubDest.scanTeacher:
-          buttons.add(primary('Ler QR do professor', Icons.qr_code_scanner, () => _scanTeacher(context)));
+          buttons.add(primary(tr('Ler QR do professor'), Icons.qr_code_scanner, () => _scanTeacher(context)));
           if (!app.teacherMode) {
-            buttons.add(soft('Sou professor', Icons.school_outlined, () => _push(context, ProfilePage(app: app, initialTab: 1))));
+            buttons.add(soft(tr('Sou professor'), Icons.school_outlined, () => _push(context, ProfilePage(app: app, initialTab: 1))));
           }
         default:
       }
@@ -252,8 +252,8 @@ class HubSection extends StatelessWidget {
   String _shortWhen(DateTime d, DateTime now) {
     String two(int n) => n.toString().padLeft(2, '0');
     final day = DateTime(d.year, d.month, d.day).difference(DateTime(now.year, now.month, now.day)).inDays;
-    const wd = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
-    final label = day == 0 ? 'Hoje' : (day == 1 ? 'Amanhã' : '${wd[d.weekday - 1]} ${two(d.day)}/${two(d.month)}');
+    final wd = [tr('Seg'), tr('Ter'), tr('Qua'), tr('Qui'), tr('Sex'), tr('Sáb'), tr('Dom')];
+    final label = day == 0 ? tr('Hoje') : (day == 1 ? tr('Amanhã') : '${wd[d.weekday - 1]} ${two(d.day)}/${two(d.month)}');
     return '$label · ${two(d.hour)}:${two(d.minute)}';
   }
 
@@ -277,22 +277,22 @@ class HubSection extends StatelessWidget {
         FilledButton.icon(
           onPressed: () => openMeetingLink(context, app, nc.slot.link),
           icon: const Icon(Icons.videocam, size: 18),
-          label: Text(isT ? 'Abrir a sala da aula online' : 'Entrar na aula online'),
+          label: Text(isT ? tr('Abrir a sala da aula online') : tr('Entrar na aula online')),
         ),
       if (isT || app.hasTeacherSide)
         KeyedSubtree(
             key: isT ? TourKeys.hubAgenda : null,
-            child: act(Icons.calendar_month_outlined, 'Agenda completa',
+            child: act(Icons.calendar_month_outlined, tr('Agenda completa'),
                 () => _push(context, isT ? AgendaPage(app: app) : MyAgendaPage(app: app)))),
       if (tools.contains(HubDest.openSlots))
-        KeyedSubtree(key: TourKeys.hubOpenSlots, child: act(Icons.event_available_outlined, 'Horários livres', () => _push(context, OpenSlotsPage(app: app)))),
+        KeyedSubtree(key: TourKeys.hubOpenSlots, child: act(Icons.event_available_outlined, tr('Horários livres'), () => _push(context, OpenSlotsPage(app: app)))),
       if (tools.contains(HubDest.pickSlot))
-        act(Icons.event_available_outlined, 'Pegar horário', () => _push(context, PickSlotPage(app: app))),
+        act(Icons.event_available_outlined, tr('Pegar horário'), () => _push(context, PickSlotPage(app: app))),
     ];
     if (later.isEmpty && actions.isEmpty) return null;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       if (later.isNotEmpty) ...[
-        Text('Depois', style: Ds.section()),
+        Text(tr('Depois'), style: Ds.section()),
         const SizedBox(height: Ds.s8),
         for (final o in later)
           Padding(
@@ -370,10 +370,10 @@ class HubSection extends StatelessWidget {
   }
 
   Future<void> _scanTeacher(BuildContext context) async {
-    if (!await requireNickname(context, app, reason: 'Para vincular a um professor, ele precisa saber quem você é.')) return;
+    if (!await requireNickname(context, app, reason: tr('Para vincular a um professor, ele precisa saber quem você é.'))) return;
     if (!context.mounted) return;
     final s = await scanShareCode(context,
-        title: 'Ler QR do professor', want: 'professor', check: app.checkTeacherCode, onCamera: app.setCameraStatus);
+        title: tr('Ler QR do professor'), want: 'professor', check: app.checkTeacherCode, onCamera: app.setCameraStatus);
     if (s == null) return;
     final err = await app.addMyTeacher(s.code);
     if (err != null) app.say(err);
@@ -384,13 +384,12 @@ class HubSection extends StatelessWidget {
 /// Abrir o link também liga o "Vínculo online" no app do aluno.
 Future<void> shareTeacherInvite(AppState app) async {
   final link = '${shareLink()}/?professor=${app.profile.shareCode}';
-  final text = 'Sou seu professor no $kAppName. Abra este link e toque em "Vincular" para eu acompanhar '
-      'suas tarefas: $link';
+  final text = tr('Sou seu professor no {0}. Abra este link e toque em "Vincular" para eu acompanhar suas tarefas: {1}', [kAppName, link]);
   try {
     await SharePlus.instance.share(ShareParams(text: text, title: kAppName));
   } catch (_) {
     await Clipboard.setData(ClipboardData(text: text));
-    app.say('Convite copiado. Cole numa conversa para enviar.');
+    app.say(tr('Convite copiado. Cole numa conversa para enviar.'));
   }
 }
 

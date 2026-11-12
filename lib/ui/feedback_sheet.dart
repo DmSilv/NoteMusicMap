@@ -7,16 +7,16 @@ import '../feedback/feedback_service.dart';
 import 'dictation_button.dart';
 import 'theme.dart';
 import 'widgets.dart';
+import 'package:afina_core/afina_core.dart';
 
 String _version() => kBuildId.isEmpty ? 'dev' : kBuildId.substring(0, kBuildId.length < 7 ? kBuildId.length : 7);
 String _platform() => kIsWeb ? 'web' : defaultTargetPlatform.name;
 
-const String _privacy =
-    'Enviamos só a sua resposta e a versão do app, sem nome, e-mail nem áudio. '
-    'Você escolhe se envia.';
+final String _privacy =
+    tr('Enviamos só a sua resposta e a versão do app, sem nome, e-mail nem áudio. Você escolhe se envia.');
 
 void _afterSend(AppState app, bool delivered, String thanks) {
-  app.say(delivered ? thanks : 'Sem conexão agora: guardei sua resposta e envio depois. Obrigado!');
+  app.say(delivered ? thanks : tr('Sem conexão agora: guardei sua resposta e envio depois. Obrigado!'));
 }
 
 /// Dar uma nota de 1 a 5 ao app (com comentário opcional).
@@ -58,7 +58,7 @@ class _RatingSheetState extends State<_RatingSheet> {
     super.dispose();
   }
 
-  static const _labels = ['', 'Ruim', 'Pode melhorar', 'Bom', 'Muito bom', 'Excelente'];
+  static final _labels = ['', tr('Ruim'), tr('Pode melhorar'), tr('Bom'), tr('Muito bom'), tr('Excelente')];
 
   Future<void> _send() async {
     setState(() => _busy = true);
@@ -66,7 +66,7 @@ class _RatingSheetState extends State<_RatingSheet> {
         .sendRating(_stars, _comment.text, version: _version(), platform: _platform());
     if (!mounted) return;
     Navigator.pop(context);
-    _afterSend(widget.app, ok, 'Obrigado pela sua nota!');
+    _afterSend(widget.app, ok, tr('Obrigado pela sua nota!'));
   }
 
   @override
@@ -79,10 +79,10 @@ class _RatingSheetState extends State<_RatingSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Que nota você dá ao Notemusic?',
+            Text(tr('Que nota você dá ao Notemusic?'),
                 style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
-            Text(fb.rating > 0 ? 'Sua nota atual é ${fb.rating}. Você pode mudar.' : 'Toque nas estrelas.',
+            Text(fb.rating > 0 ? tr('Sua nota atual é {0}. Você pode mudar.', [fb.rating]) : tr('Toque nas estrelas.'),
                 style: TextStyle(color: AppColors.textDim, fontSize: 13)),
             const SizedBox(height: 10),
             Row(
@@ -91,7 +91,7 @@ class _RatingSheetState extends State<_RatingSheet> {
                 for (var i = 1; i <= 5; i++)
                   IconButton(
                     iconSize: 40,
-                    tooltip: '$i estrela${i > 1 ? 's' : ''}',
+                    tooltip: tr('{0} estrela{1}', [i, i > 1 ? 's' : '']),
                     onPressed: () => setState(() => _stars = i),
                     icon: Icon(i <= _stars ? Icons.star_rounded : Icons.star_outline_rounded,
                         color: i <= _stars ? const Color(0xFFFFC53D) : AppColors.textDim),
@@ -113,7 +113,7 @@ class _RatingSheetState extends State<_RatingSheet> {
               maxLines: 4,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
-                labelText: 'Quer contar o motivo? (opcional)',
+                labelText: tr('Quer contar o motivo? (opcional)'),
                 alignLabelWithHint: true,
                 suffixIcon: DictationButton(app: widget.app, controller: _comment),
               ),
@@ -123,7 +123,7 @@ class _RatingSheetState extends State<_RatingSheet> {
             FilledButton(
               style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
               onPressed: _stars == 0 || _busy ? null : _send,
-              child: Text(_busy ? 'Enviando…' : 'Enviar nota'),
+              child: Text(_busy ? tr('Enviando…') : tr('Enviar nota')),
             ),
           ],
         ),
@@ -157,7 +157,7 @@ class _SurveySheetState extends State<_SurveySheet> {
         .sendSurvey(_feature!, _improve.text, version: _version(), platform: _platform());
     if (!mounted) return;
     Navigator.pop(context);
-    _afterSend(widget.app, ok, 'Obrigado! Sua opinião ajuda a melhorar o app.');
+    _afterSend(widget.app, ok, tr('Obrigado! Sua opinião ajuda a melhorar o app.'));
   }
 
   @override
@@ -169,10 +169,10 @@ class _SurveySheetState extends State<_SurveySheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Pesquisa rápida · 2 perguntas',
+            Text(tr('Pesquisa rápida · 2 perguntas'),
                 style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
             const SizedBox(height: 14),
-            const Text('1. Qual recurso você mais usa?', style: TextStyle(fontWeight: FontWeight.w700)),
+            Text(tr('1. Qual recurso você mais usa?'), style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 6,
@@ -187,7 +187,7 @@ class _SurveySheetState extends State<_SurveySheet> {
               ],
             ),
             const SizedBox(height: 16),
-            const Text('2. O que poderia melhorar? (opcional)', style: TextStyle(fontWeight: FontWeight.w700)),
+            Text(tr('2. O que poderia melhorar? (opcional)'), style: TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 6),
             TextField(
               controller: _improve,
@@ -197,7 +197,7 @@ class _SurveySheetState extends State<_SurveySheet> {
               maxLines: 4,
               textCapitalization: TextCapitalization.sentences,
               decoration: InputDecoration(
-                hintText: 'Escreva em poucas palavras',
+                hintText: tr('Escreva em poucas palavras'),
                 suffixIcon: DictationButton(app: widget.app, controller: _improve),
               ),
             ),
@@ -206,7 +206,7 @@ class _SurveySheetState extends State<_SurveySheet> {
             FilledButton(
               style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
               onPressed: _feature == null || _busy ? null : _send,
-              child: Text(_busy ? 'Enviando…' : 'Enviar respostas'),
+              child: Text(_busy ? tr('Enviando…') : tr('Enviar respostas')),
             ),
           ],
         ),
@@ -236,23 +236,23 @@ class FeedbackInviteCard extends StatelessWidget {
                 Row(children: [
                   Icon(Icons.forum_outlined, color: AppColors.accent),
                   const SizedBox(width: 8),
-                  const Expanded(
-                      child: Text('Ajude a melhorar o app',
+                  Expanded(
+                      child: Text(tr('Ajude a melhorar o app'),
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
                 ]),
                 const SizedBox(height: 4),
-                Text('São 2 perguntas rápidas, de menos de 1 minuto. Anônimo.',
+                Text(tr('São 2 perguntas rápidas, de menos de 1 minuto. Anônimo.'),
                     style: TextStyle(color: AppColors.textDim, fontSize: 13)),
                 const SizedBox(height: 10),
                 Row(children: [
                   Expanded(
                     child: FilledButton(
                       onPressed: () => showSurveySheet(context, app),
-                      child: const Text('Responder'),
+                      child: Text(tr('Responder')),
                     ),
                   ),
                   const SizedBox(width: 8),
-                  TextButton(onPressed: app.feedback.snooze, child: const Text('Agora não')),
+                  TextButton(onPressed: app.feedback.snooze, child: Text(tr('Agora não'))),
                 ]),
               ],
             ),

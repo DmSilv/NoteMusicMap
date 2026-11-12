@@ -9,6 +9,7 @@ import 'identity.dart';
 import 'input_guard.dart';
 import 'lesson.dart';
 import 'practice_coach.dart';
+import 'i18n.dart';
 
 class TeacherNote {
   final DateTime date;
@@ -29,18 +30,19 @@ class TeacherNote {
 /// Tipos de tarefa. Só a escala/arpejo é medida pelo app (acerto); as demais o
 /// professor marca como feitas.
 enum TaskKind {
-  scale('Escala ou arpejo'),
-  method('Método e lição'),
-  repertoire('Repertório'),
-  free('Outra atividade'),
-  material('Material do professor');
+  scale(/*tr*/'Escala ou arpejo'),
+  method(/*tr*/'Método e lição'),
+  repertoire(/*tr*/'Repertório'),
+  free(/*tr*/'Outra atividade'),
+  material(/*tr*/'Material do professor');
 
-  final String label;
-  const TaskKind(this.label);
+  final String _label;
+  String get label => tr(_label);
+  const TaskKind(this._label);
 }
 
 /// Métodos e livros de estudo comuns (sugestões; o professor digita o que quiser).
-const List<String> kMethodSuggestions = [
+final List<String> kMethodSuggestions = [
   'Suzuki',
   'Ševčík',
   'Kayser',
@@ -169,7 +171,7 @@ class Assignment {
       final kind = TaskKind.values.where((k) => k.name == kindName).firstOrNull ?? TaskKind.scale;
       return Assignment(
         id: j['id'] as String,
-        title: cleanText((j['title'] as String?) ?? 'Tarefa', max: kMaxTitle),
+        title: cleanText((j['title'] as String?) ?? tr('Tarefa'), max: kMaxTitle),
         kind: kind,
         subject: cleanText(j['sub'] as String?, max: kMaxTitle),
         detail: cleanText(j['det'] as String?, max: kMaxLine),
@@ -281,7 +283,7 @@ class Student {
 
 String _nameOr(String? raw) {
   final n = cleanText(raw, max: kMaxName);
-  return n.isEmpty ? 'Aluno' : n;
+  return n.isEmpty ? tr('Aluno') : n;
 }
 
 /// Problemas encontrados ao cadastrar um aluno (null = sem problema naquele campo).
@@ -316,15 +318,15 @@ StudentEntryCheck checkStudentEntry({
   final code = typed.isEmpty ? null : formatShareCode(typed);
   if (typed.isNotEmpty) {
     if (code == null) {
-      codeErr = 'Código inválido. Ele tem 8 letras e números, como K7QM-4TXD. Confira com o aluno.';
+      codeErr = tr('Código inválido. Ele tem 8 letras e números, como K7QM-4TXD. Confira com o aluno.');
     } else if (code == ownCode) {
-      codeErr = 'Este é o seu próprio código: você não pode ser aluno de si mesmo. Peça o código do aluno.';
+      codeErr = tr('Este é o seu próprio código: você não pode ser aluno de si mesmo. Peça o código do aluno.');
     } else if (teacherCodes.contains(code)) {
-      codeErr = 'Este é o código do seu professor. Ele não pode ser cadastrado como seu aluno.';
+      codeErr = tr('Este é o código do seu professor. Ele não pode ser cadastrado como seu aluno.');
     } else {
       for (final s in existing) {
         if (s.id != exceptId && s.code == code) {
-          codeErr = 'Este código já é de ${s.name}.';
+          codeErr = tr('Este código já é de {0}.', [s.name]);
           break;
         }
       }
@@ -334,16 +336,15 @@ StudentEntryCheck checkStudentEntry({
   String? nameErr;
   final n = _nameKey(name);
   if (n.isEmpty) {
-    nameErr = 'Digite o nome do aluno.';
+    nameErr = tr('Digite o nome do aluno.');
   } else if (code == null && ownName != null && _nameKey(ownName) == n) {
-    nameErr = 'Este é o seu nome. Para estudar você mesmo, use o app normalmente: não precisa se cadastrar '
-        'como aluno. Se for outra pessoa com o mesmo nome, acrescente o sobrenome.';
+    nameErr = tr('Este é o seu nome. Para estudar você mesmo, use o app normalmente: não precisa se cadastrar como aluno. Se for outra pessoa com o mesmo nome, acrescente o sobrenome.');
   } else {
     for (final s in existing) {
       if (s.id == exceptId || _nameKey(s.name) != n) continue;
       final bothHaveCodes = code != null && s.code != null;
       if (!bothHaveCodes) {
-        nameErr = 'Já existe um aluno com este nome. Acrescente o sobrenome, ou use o código para diferenciar.';
+        nameErr = tr('Já existe um aluno com este nome. Acrescente o sobrenome, ou use o código para diferenciar.');
         break;
       }
     }
@@ -382,34 +383,34 @@ String _day(DateTime d) =>
 /// Relatório em texto para enviar ao aluno ou guardar.
 String studentReport(Student s, {bool? flats = false}) {
   final sum = summarizeStudent(s);
-  final b = StringBuffer('Relatório de ${s.name}\n');
-  b.writeln('Sessões: ${sum.sessions}');
+  final b = StringBuffer(tr('Relatório de {0}\n', [s.name]));
+  b.writeln(tr('Sessões: {0}', [sum.sessions]));
   if (sum.recentAverage != null) {
-    b.writeln('Taxa de acerto média (últimas 5): ${_pct(sum.recentAverage!)} · melhor: ${_pct(sum.best!)}');
-    b.writeln('Última sessão: ${_day(sum.last!)}');
+    b.writeln(tr('Taxa de acerto média (últimas 5): {0} · melhor: {1}', [_pct(sum.recentAverage!), _pct(sum.best!)]));
+    b.writeln(tr('Última sessão: {0}', [_day(sum.last!)]));
     if (sum.trendPoints != null) {
       final t = sum.trendPoints!;
-      b.writeln('Tendência: ${t >= 0 ? '+' : ''}${t.round()} pontos nas últimas 3 sessões');
+      b.writeln(tr('Tendência: {0}{1} pontos nas últimas 3 sessões', [t >= 0 ? '+' : '', t.round()]));
     }
   }
   final open = s.tasks.where((t) => !t.done).toList();
   if (open.isNotEmpty) {
-    b.writeln('\nTarefas em aberto:');
+    b.writeln(tr('\nTarefas em aberto:'));
     for (final t in open) {
-      final meta = t.isScale ? ' (meta ${_pct(t.goal)})' : '';
+      final meta = t.isScale ? tr(' (meta {0})', [_pct(t.goal)]) : '';
       b.writeln('- ${t.kind == TaskKind.scale ? '' : '${t.kind.label}: '}${t.title}$meta');
-      if (t.note.isNotEmpty) b.writeln('  Observação: ${t.note}');
+      if (t.note.isNotEmpty) b.writeln(tr('  Observação: {0}', [t.note]));
     }
   }
   final tips = analyzePractice(s.sessions, flats: flats);
   if (tips.isNotEmpty) {
-    b.writeln('\nOrientações:');
+    b.writeln(tr('\nOrientações:'));
     for (final t in tips) {
       b.writeln('- ${t.text}');
     }
   }
   if (s.notes.isNotEmpty) {
-    b.writeln('\nObservações do professor:');
+    b.writeln(tr('\nObservações do professor:'));
     for (final n in s.notes.take(5)) {
       b.writeln('- ${_day(n.date)}: ${n.text}');
     }

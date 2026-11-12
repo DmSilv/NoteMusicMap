@@ -32,16 +32,16 @@ const List<_Sig> _sigs = [
 ];
 
 String tempoName(double bpm) {
-  if (bpm < 40) return 'Grave';
-  if (bpm < 60) return 'Largo';
-  if (bpm < 66) return 'Larghetto';
-  if (bpm < 76) return 'Adagio';
-  if (bpm < 108) return 'Andante';
-  if (bpm < 120) return 'Moderato';
-  if (bpm < 156) return 'Allegro';
-  if (bpm < 176) return 'Vivace';
-  if (bpm < 200) return 'Presto';
-  return 'Prestissimo';
+  if (bpm < 40) return tr('Grave');
+  if (bpm < 60) return tr('Largo');
+  if (bpm < 66) return tr('Larghetto');
+  if (bpm < 76) return tr('Adagio');
+  if (bpm < 108) return tr('Andante');
+  if (bpm < 120) return tr('Moderato');
+  if (bpm < 156) return tr('Allegro');
+  if (bpm < 176) return tr('Vivace');
+  if (bpm < 200) return tr('Presto');
+  return tr('Prestissimo');
 }
 
 class MetronomePage extends StatefulWidget {
@@ -109,9 +109,9 @@ class _MetronomePageState extends State<MetronomePage>
             // Duas visões na mesma aba: o metrônomo e o estudo (timers). O estudo fica escondido até a pessoa escolher.
             SegmentedButton<int>(
               showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(value: kMetroSectionMetronome, icon: Icon(Icons.timer_outlined, size: 18), label: Text('Metrônomo')),
-                ButtonSegment(value: kMetroSectionStudy, icon: Icon(Icons.auto_stories_rounded, size: 18), label: Text('Estudo e timers')),
+              segments: [
+                ButtonSegment(value: kMetroSectionMetronome, icon: Icon(Icons.timer_outlined, size: 18), label: Text(tr('Metrônomo'))),
+                ButtonSegment(value: kMetroSectionStudy, icon: Icon(Icons.auto_stories_rounded, size: 18), label: Text(tr('Estudo e timers'))),
               ],
               selected: {section},
               onSelectionChanged: (v) => metroSection.value = v.first,
@@ -126,7 +126,7 @@ class _MetronomePageState extends State<MetronomePage>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _roundBtn(Icons.remove, () => app.setBpm(m.bpm - 1), 'Diminuir 1 BPM',
+                      _roundBtn(Icons.remove, () => app.setBpm(m.bpm - 1), tr('Diminuir 1 BPM'),
                           onLong: () => app.setBpm(m.bpm - 5)),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -141,10 +141,10 @@ class _MetronomePageState extends State<MetronomePage>
                               return Column(
                                 children: [
                                   Text(shown.round().toString(),
-                                      semanticsLabel: '${shown.round()} batidas por minuto',
+                                      semanticsLabel: tr('{0} batidas por minuto', [shown.round()]),
                                       style: TextStyle(
                                           fontSize: 84, fontWeight: FontWeight.w800, height: 1.0, color: live ? AppColors.accent : null)),
-                                  Text(live ? 'BPM · ${tempoName(shown)} · partiu de ${m.bpm.round()}' : 'BPM · ${tempoName(m.bpm)}',
+                                  Text(live ? tr('BPM · {0} · partiu de {1}', [tempoName(shown), m.bpm.round()]) : tr('BPM · {0}', [tempoName(m.bpm)]),
                                       style: TextStyle(color: AppColors.textDim)),
                                 ],
                               );
@@ -152,7 +152,7 @@ class _MetronomePageState extends State<MetronomePage>
                           ),
                         ),
                       ),
-                      _roundBtn(Icons.add, () => app.setBpm(m.bpm + 1), 'Aumentar 1 BPM',
+                      _roundBtn(Icons.add, () => app.setBpm(m.bpm + 1), tr('Aumentar 1 BPM'),
                           onLong: () => app.setBpm(m.bpm + 5)),
                     ],
                   ),
@@ -186,7 +186,7 @@ class _MetronomePageState extends State<MetronomePage>
                     child: FilledButton.tonalIcon(
                       onPressed: app.tapTempo,
                       icon: const Icon(Icons.touch_app),
-                      label: const Text('Toque no ritmo (Tap tempo)'),
+                      label: Text(tr('Toque no ritmo (Tap tempo)')),
                     ),
                   ),
                 ],
@@ -221,15 +221,15 @@ class _MetronomePageState extends State<MetronomePage>
                     Text(
                       running
                           ? (b.hidden
-                              ? 'Sumiço! Segure o pulso…'
+                              ? tr('Sumiço! Segure o pulso…')
                               : (b.bar < 0
-                                  ? 'Contagem inicial'
+                                  ? tr('Contagem inicial')
                                   : switch (b.challenge) {
-                                      ChallengeKind.faster => 'Mais rápido! Acompanhe…',
-                                      ChallengeKind.slower => 'Mais lento! Acompanhe…',
-                                      _ => app.challengeOn ? 'No seu andamento' : 'Compasso ${b.bar + 1}',
+                                      ChallengeKind.faster => tr('Mais rápido! Acompanhe…'),
+                                      ChallengeKind.slower => tr('Mais lento! Acompanhe…'),
+                                      _ => app.challengeOn ? tr('No seu andamento') : tr('Compasso {0}', [b.bar + 1]),
                                     }))
-                          : 'Toque numa bolinha para mudar o acento',
+                          : tr('Toque numa bolinha para mudar o acento'),
                       textAlign: TextAlign.center,
                       style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
                     ),
@@ -242,7 +242,7 @@ class _MetronomePageState extends State<MetronomePage>
             Center(
               child: Semantics(
                 button: true,
-                label: running ? 'Parar metrônomo' : 'Iniciar metrônomo',
+                label: running ? tr('Parar metrônomo') : tr('Iniciar metrônomo'),
                 child: GestureDetector(
                   onTap: app.toggleMetronome,
                   child: Container(
@@ -266,7 +266,7 @@ class _MetronomePageState extends State<MetronomePage>
             const DsGap(Ds.gap),
             _challengeQuick(m),
             const DsGap(Ds.gap),
-            SizedBox(width: double.infinity, child: DsSettingsButton(onPressed: _openSettings, label: 'Ajustes do metrônomo')),
+            SizedBox(width: double.infinity, child: DsSettingsButton(onPressed: _openSettings, label: tr('Ajustes do metrônomo'))),
             ],
           ],
         ));
@@ -279,7 +279,7 @@ class _MetronomePageState extends State<MetronomePage>
     app.checkVibration(); // mostra se este aparelho vibra de verdade
     showDsSheet(
       context,
-      title: 'Ajustes do metrônomo',
+      title: tr('Ajustes do metrônomo'),
       listenable: app,
       children: (c) => _settingsList(app.metro),
     );
@@ -291,7 +291,7 @@ class _MetronomePageState extends State<MetronomePage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Compasso', style: TextStyle(fontWeight: FontWeight.w700)),
+                  Text(tr('Compasso'), style: TextStyle(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
                   Wrap(spacing: 6, runSpacing: 4, children: [
                     for (final s in _sigs)
@@ -302,10 +302,10 @@ class _MetronomePageState extends State<MetronomePage>
                       ),
                   ]),
                   const SizedBox(height: 14),
-                  const Text('Subdivisão', style: TextStyle(fontWeight: FontWeight.w700)),
+                  Text(tr('Subdivisão'), style: TextStyle(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
                   Wrap(spacing: 6, runSpacing: 4, children: [
-                    for (final e in const {1: 'Tempo', 2: 'Colcheias', 3: 'Tercinas', 4: 'Semicolcheias'}.entries)
+                    for (final e in {1: tr('Tempo'), 2: tr('Colcheias'), 3: tr('Tercinas'), 4: tr('Semicolcheias')}.entries)
                       ChoiceChip(
                         label: Text(e.value),
                         selected: m.subdivision == e.key,
@@ -313,15 +313,15 @@ class _MetronomePageState extends State<MetronomePage>
                       ),
                   ]),
                   const SizedBox(height: 14),
-                  const Text('Som', style: TextStyle(fontWeight: FontWeight.w700)),
+                  Text(tr('Som'), style: TextStyle(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
                   Wrap(spacing: 6, children: [
-                    for (final e in const {
-                      ClickSound.click: 'Clique',
-                      ClickSound.wood: 'Madeira',
-                      ClickSound.beep: 'Bipe',
-                      ClickSound.clave: 'Clave',
-                      ClickSound.drum: 'Tambor',
+                    for (final e in {
+                      ClickSound.click: tr('Clique'),
+                      ClickSound.wood: tr('Madeira'),
+                      ClickSound.beep: tr('Bipe'),
+                      ClickSound.clave: tr('Clave'),
+                      ClickSound.drum: tr('Tambor'),
                     }.entries)
                       ChoiceChip(
                         label: Text(e.value),
@@ -345,8 +345,8 @@ class _MetronomePageState extends State<MetronomePage>
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     dense: true,
-                    title: const Text('Piscar a tela na batida'),
-                    subtitle: const Text('Um clarão a cada tempo e a bolinha acende. Não usa a lanterna.',
+                    title: Text(tr('Piscar a tela na batida')),
+                    subtitle: Text(tr('Um clarão a cada tempo e a bolinha acende. Não usa a lanterna.'),
                         style: TextStyle(fontSize: Ds.fontLabel)),
                     value: app.flashEnabled,
                     onChanged: (v) => app.setTuning(flashEnabled: v),
@@ -354,11 +354,11 @@ class _MetronomePageState extends State<MetronomePage>
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     dense: true,
-                    title: const Text('Vibrar na batida'),
+                    title: Text(tr('Vibrar na batida')),
                     subtitle: Text(
                         app.vibrationAvailable == false
                             ? app.vibrationWhy()
-                            : 'Uma pulsação a cada tempo. Funciona no celular Android.',
+                            : tr('Uma pulsação a cada tempo. Funciona no celular Android.'),
                         style: const TextStyle(fontSize: Ds.fontLabel)),
                     value: app.hapticEnabled && app.vibrationAvailable != false,
                     onChanged: app.vibrationAvailable == false ? null : (v) => app.setTuning(hapticEnabled: v),
@@ -369,7 +369,7 @@ class _MetronomePageState extends State<MetronomePage>
                       child: TextButton.icon(
                         onPressed: app.testVibration,
                         icon: const Icon(Icons.vibration, size: 18),
-                        label: const Text('Testar vibração'),
+                        label: Text(tr('Testar vibração')),
                       ),
                     ),
                 ],
@@ -381,15 +381,15 @@ class _MetronomePageState extends State<MetronomePage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Contagem e pulso interno',
+                  Text(tr('Contagem e pulso interno'),
                       style: TextStyle(fontWeight: FontWeight.w700)),
                   ...[
                     const SizedBox(height: 8),
-                    Text('Contagem inicial', style: TextStyle(color: AppColors.textDim)),
+                    Text(tr('Contagem inicial'), style: TextStyle(color: AppColors.textDim)),
                     Wrap(spacing: 6, children: [
                       for (final n in [0, 1, 2])
                         ChoiceChip(
-                          label: Text(n == 0 ? 'Sem' : '$n compasso${n > 1 ? 's' : ''}'),
+                          label: Text(n == 0 ? tr('Sem') : tr('{0} compasso{1}', [n, n > 1 ? 's' : ''])),
                           selected: m.countInBars == n,
                           onSelected: (_) => app.setMetro(m.copyWith(countInBars: n)),
                         ),
@@ -397,20 +397,20 @@ class _MetronomePageState extends State<MetronomePage>
                     const Divider(height: 24),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Compassos em silêncio'),
+                      title: Text(tr('Compassos em silêncio')),
                       subtitle: Text(m.silent == null
-                          ? 'Treina o pulso interno: o metrônomo cala e volta'
-                          : 'Toca ${m.silent!.playBars}, silencia ${m.silent!.muteBars}'),
+                          ? tr('Treina o pulso interno: o metrônomo cala e volta')
+                          : tr('Toca {0}, silencia {1}', [m.silent!.playBars, m.silent!.muteBars])),
                       value: m.silent != null,
                       onChanged: (v) => app.setMetro(m.copyWith(
                           silent: v ? const SilentBars(playBars: 2, muteBars: 1) : null)),
                     ),
                     if (m.silent != null) ...[
-                      _stepper('Compassos tocando', m.silent!.playBars.toDouble(), 1, 8,
+                      _stepper(tr('Compassos tocando'), m.silent!.playBars.toDouble(), 1, 8,
                           (v) => app.setMetro(m.copyWith(
                               silent: SilentBars(
                                   playBars: v.round(), muteBars: m.silent!.muteBars)))),
-                      _stepper('Compassos em silêncio', m.silent!.muteBars.toDouble(), 1, 8,
+                      _stepper(tr('Compassos em silêncio'), m.silent!.muteBars.toDouble(), 1, 8,
                           (v) => app.setMetro(m.copyWith(
                               silent: SilentBars(
                                   playBars: m.silent!.playBars, muteBars: v.round())))),
@@ -431,11 +431,11 @@ class _MetronomePageState extends State<MetronomePage>
       child: SwitchListTile(
         contentPadding: EdgeInsets.zero,
         secondary: Icon(Icons.psychology_alt_outlined, color: on ? AppColors.accent : AppColors.textDim),
-        title: const Text('Modo desafio', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: Text(tr('Modo desafio'), style: TextStyle(fontWeight: FontWeight.w800)),
         subtitle: Text(
             on
-                ? '${switch (app.challengeCfg.name) { ChallengeName.sumico => 'Sumiço', ChallengeName.elastico => 'Elástico', ChallengeName.total => 'Surpresa total' }} · ${switch (app.challengeCfg.level) { 1 => 'Leve', 3 => 'Intenso', _ => 'Médio' }}. Troque em Ajustes.'
-                : 'Treine o pulso: o ritmo some ou muda de surpresa.',
+                ? tr('{0} · {1}. Troque em Ajustes.', [switch (app.challengeCfg.name) { ChallengeName.sumico => tr('Sumiço'), ChallengeName.elastico => tr('Elástico'), ChallengeName.total => tr('Surpresa total') }, switch (app.challengeCfg.level) { 1 => tr('Leve'), 3 => tr('Intenso'), _ => tr('Médio') }])
+                : tr('Treine o pulso: o ritmo some ou muda de surpresa.'),
             style: const TextStyle(fontSize: Ds.fontLabel)),
         value: on,
         onChanged: (v) => app.setChallenge(on: v),
@@ -448,10 +448,10 @@ class _MetronomePageState extends State<MetronomePage>
     final on = app.challengeOn;
     final c = app.challengeCfg;
     final bpm = m.bpm.round();
-    const names = [
-      (ChallengeName.sumico, Icons.volume_off_rounded, 'Sumiço', 'O metrônomo some e volta'),
-      (ChallengeName.elastico, Icons.swap_horiz_rounded, 'Elástico', 'O andamento estica e encolhe'),
-      (ChallengeName.total, Icons.casino_rounded, 'Surpresa total', 'Qualquer um dos dois'),
+    final names = [
+      (ChallengeName.sumico, Icons.volume_off_rounded, tr('Sumiço'), tr('O metrônomo some e volta')),
+      (ChallengeName.elastico, Icons.swap_horiz_rounded, tr('Elástico'), tr('O andamento estica e encolhe')),
+      (ChallengeName.total, Icons.casino_rounded, tr('Surpresa total'), tr('Qualquer um dos dois')),
     ];
     return AppCard(
       child: Column(
@@ -460,8 +460,8 @@ class _MetronomePageState extends State<MetronomePage>
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             secondary: DsIconBadge(Icons.psychology_alt_rounded, size: 36, color: on ? AppColors.accent : AppColors.textDim),
-            title: const Text('Modo desafio', style: TextStyle(fontWeight: FontWeight.w800)),
-            subtitle: Text('Treine o pulso por dentro. Sempre volta aos $bpm BPM.', style: const TextStyle(fontSize: Ds.fontLabel)),
+            title: Text(tr('Modo desafio'), style: TextStyle(fontWeight: FontWeight.w800)),
+            subtitle: Text(tr('Treine o pulso por dentro. Sempre volta aos {0} BPM.', [bpm]), style: const TextStyle(fontSize: Ds.fontLabel)),
             value: on,
             onChanged: (v) => app.setChallenge(on: v),
           ),
@@ -499,20 +499,20 @@ class _MetronomePageState extends State<MetronomePage>
                 ),
               ),
             const DsGap(Ds.s8),
-            Text('Dificuldade', style: Ds.section()),
+            Text(tr('Dificuldade'), style: Ds.section()),
             const DsGap(Ds.s8),
             SegmentedButton<int>(
               showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(value: 1, label: Text('Leve')),
-                ButtonSegment(value: 2, label: Text('Médio')),
-                ButtonSegment(value: 3, label: Text('Intenso')),
+              segments: [
+                ButtonSegment(value: 1, label: Text(tr('Leve'))),
+                ButtonSegment(value: 2, label: Text(tr('Médio'))),
+                ButtonSegment(value: 3, label: Text(tr('Intenso'))),
               ],
               selected: {c.level},
               onSelectionChanged: (s) => app.setChallenge(cfg: c.copyWith(level: s.first)),
             ),
             const DsGap(Ds.s16),
-            Text('Vai acontecer', style: Ds.section()),
+            Text(tr('Vai acontecer'), style: Ds.section()),
             const DsGap(Ds.s4),
             Text(c.describe(bpm), style: const TextStyle(fontSize: Ds.fontBody, height: 1.35)),
             const DsGap(Ds.s12),
@@ -560,7 +560,7 @@ class _MetronomePageState extends State<MetronomePage>
     final v = await showDialog<double>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Digitar BPM'),
+        title: Text(tr('Digitar BPM')),
         content: TextField(
           controller: ctl,
           autofocus: true,
@@ -570,7 +570,7 @@ class _MetronomePageState extends State<MetronomePage>
           onSubmitted: (s) => Navigator.pop(ctx, double.tryParse(s)),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: Text(tr('Cancelar'))),
           FilledButton(
               onPressed: () => Navigator.pop(ctx, double.tryParse(ctl.text)),
               child: const Text('OK')),
@@ -613,7 +613,7 @@ class _BeatDot extends StatelessWidget {
     return Semantics(
       button: true,
       label:
-          'Tempo ${index + 1}, acento ${switch (accent) { Accent.strong => 'forte', Accent.medium => 'médio', Accent.weak => 'fraco', Accent.mute => 'mudo' }}',
+          tr('Tempo {0}, acento {1}', [index + 1, switch (accent) { Accent.strong => 'forte', Accent.medium => tr('médio'), Accent.weak => 'fraco', Accent.mute => 'mudo' }]),
       child: GestureDetector(
         onTap: onTap,
         child: SizedBox(
@@ -728,13 +728,13 @@ class _ChallengePreview extends StatelessWidget {
       ),
       const DsGap(Ds.s8),
       Wrap(spacing: Ds.s16, runSpacing: Ds.s4, children: [
-        _key(AppColors.surface2, 'normal'),
-        if (cfg.tempoChanges) _key(AppColors.sharp, 'mais rápido'),
-        if (cfg.tempoChanges) _key(AppColors.flat, 'mais lento'),
-        if (cfg.silences) _key(null, 'sumiço'),
+        _key(AppColors.surface2, tr('normal')),
+        if (cfg.tempoChanges) _key(AppColors.sharp, tr('mais rápido')),
+        if (cfg.tempoChanges) _key(AppColors.flat, tr('mais lento')),
+        if (cfg.silences) _key(null, tr('sumiço')),
       ]),
       const DsGap(Ds.s4),
-      Text('Exemplo de 16 compassos. A ordem real é sorteada.', style: Ds.support()),
+      Text(tr('Exemplo de 16 compassos. A ordem real é sorteada.'), style: Ds.support()),
     ]);
   }
 

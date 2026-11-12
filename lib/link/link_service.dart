@@ -168,7 +168,7 @@ class LinkService {
         return LinkReply(
             offline: r.statusCode >= 500,
             rejected: r.statusCode >= 400 && r.statusCode < 500 && r.statusCode != 429,
-            error: (j['error'] as String?) ?? 'Não foi possível vincular.');
+            error: (j['error'] as String?) ?? tr('Não foi possível vincular.'));
       }
       List<LinkedPerson> list(Object? v) => [for (final x in (v as List? ?? const [])) ?LinkedPerson.tryFrom(x)];
       return LinkReply(

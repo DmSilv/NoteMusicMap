@@ -12,6 +12,7 @@ library;
 
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'i18n.dart';
 
 class PitchResult {
   final double frequency;
@@ -28,19 +29,20 @@ enum PitchReject {
   none('ok'),
 
   /// Sinal abaixo do nível mínimo.
-  quiet('sinal fraco'),
+  quiet(/*tr*/'sinal fraco'),
 
   /// Nenhum período encontrado (ruído, silêncio, som sem altura).
-  noPeak('sem altura definida'),
+  noPeak(/*tr*/'sem altura definida'),
 
   /// Achou um período, mas pouco "limpo" (abaixo da clareza mínima).
-  unclear('som pouco limpo'),
+  unclear(/*tr*/'som pouco limpo'),
 
   /// Frequência fora da faixa do instrumento.
-  range('fora da faixa');
+  range(/*tr*/'fora da faixa');
 
-  final String label;
-  const PitchReject(this.label);
+  final String _label;
+  String get label => tr(_label);
+  const PitchReject(this._label);
 }
 
 class McLeodPitchDetector {

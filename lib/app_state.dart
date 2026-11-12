@@ -68,15 +68,16 @@ enum PushStatus { unknown, unsupported, needsInstall, denied, linkOff, serverOff
 /// rigorous: só notas limpas e fortes. free: aceita sons fracos, com ar,
 /// vibrato forte ou ruído de fundo (pode errar mais a oitava).
 enum MicSensitivity {
-  rigorous('Rigoroso', 0.88, 0.006, 3),
-  normal('Normal', 0.72, 0.0018, 2),
-  free('Livre', 0.55, 0.0008, 1);
+  rigorous(/*tr*/'Rigoroso', 0.88, 0.006, 3),
+  normal(/*tr*/'Normal', 0.72, 0.0018, 2),
+  free(/*tr*/'Livre', 0.55, 0.0008, 1);
 
-  final String label;
+  final String _label;
+  String get label => tr(_label);
   final double minClarity;
   final double minRms;
   final int onsetFrames;
-  const MicSensitivity(this.label, this.minClarity, this.minRms, this.onsetFrames);
+  const MicSensitivity(this._label, this.minClarity, this.minRms, this.onsetFrames);
 }
 
 /// Tipos de aviso: teacher (um professor te adicionou), lesson (aula/agenda nova), task (decisão do
@@ -124,7 +125,7 @@ class AppState extends ChangeNotifier {
   /// Tonalidade ativa para a grafia: a da escala/exercício em andamento, ou nada.
   bool? get _keyFlats {
     if (!(scaleMode || exercise != null)) return null;
-    final minor = scaleType.label.toLowerCase().contains('menor');
+    final minor = scaleType.isMinor;
     return keyUsesFlats(scaleTonicMidi % 12, minor: minor);
   }
   int transpose = 0;
@@ -237,14 +238,14 @@ class AppState extends ChangeNotifier {
   /// aparelho. Devolve null se deu certo, ou o texto do problema.
   Future<String?> claimWithSupport(String codeText, String supportText) async {
     final code = formatShareCode(codeText);
-    if (code == null) return 'O código do perfil está incorreto. Confira as letras e números.';
+    if (code == null) return tr('O código do perfil está incorreto. Confira as letras e números.');
     final sup = normalizeSupportCode(supportText);
-    if (sup == null) return 'O código de suporte tem 8 letras e números (ex.: K7QM-4TXD).';
+    if (sup == null) return tr('O código de suporte tem 8 letras e números (ex.: K7QM-4TXD).');
     final p = Profile.withCode(math.Random.secure(), code);
     final r = await links.claim(code, p.secret, sup);
-    if (r.unavailable) return 'O vínculo online não está disponível agora. Tente mais tarde.';
-    if (r.offline) return 'Sem conexão com o servidor. Tente de novo quando a internet voltar.';
-    if (!r.ok) return r.error ?? 'Não foi possível liberar a conta.';
+    if (r.unavailable) return tr('O vínculo online não está disponível agora. Tente mais tarde.');
+    if (r.offline) return tr('Sem conexão com o servidor. Tente de novo quando a internet voltar.');
+    if (!r.ok) return r.error ?? tr('Não foi possível liberar a conta.');
     p.name = profile.name; // é a mesma pessoa, no mesmo aparelho: o nome continua
     _adoptProfile(p);
     return null;
@@ -352,15 +353,15 @@ class AppState extends ChangeNotifier {
   /// (vazio também está certo: o código é opcional). [exceptId] ignora o próprio aluno.
   String? checkStudentCode(String input, {String? exceptId}) {
     if (input.trim().isEmpty) return null;
-    final name = (exceptId == null ? null : studentById(exceptId)?.name) ?? 'aluno';
+    final name = (exceptId == null ? null : studentById(exceptId)?.name) ?? tr('aluno');
     return checkStudent(name, input, exceptId: exceptId).code;
   }
 
   /// Confere um código de professor antes de registrá-lo como "meu professor".
   String? checkTeacherCode(String code) {
     final c = formatShareCode(code);
-    if (c == null) return 'Código inválido. Confira com o professor.';
-    if (c == profile.shareCode) return 'Este é o seu próprio código: você não pode ser o seu próprio professor.';
+    if (c == null) return tr('Código inválido. Confira com o professor.');
+    if (c == profile.shareCode) return tr('Este é o seu próprio código: você não pode ser o seu próprio professor.');
     return null;
   }
 
@@ -434,7 +435,7 @@ class AppState extends ChangeNotifier {
       // A aula era dele: sem aluno não há o que encerrar nem enviar.
       _lesson = null;
       _saveLessons();
-      say('A aula em andamento foi descartada junto com o aluno.');
+      say(tr('A aula em andamento foi descartada junto com o aluno.'));
     }
     _saveTeacher();
     notifyListeners();
@@ -554,18 +555,17 @@ class AppState extends ChangeNotifier {
 
   /// Importa de um texto colado. Devolve o aviso para o usuário.
   String importMethods(String text) {
-    if (text.length > 300000) return 'Esse texto é grande demais. Importe em partes menores.';
+    if (text.length > 300000) return tr('Esse texto é grande demais. Importe em partes menores.');
     final found = parseMethodsText(text);
-    if (found.isEmpty) return 'Não encontrei métodos nesse texto. Use um método por linha, ou "Método: lição 1; lição 2".';
+    if (found.isEmpty) return tr('Não encontrei métodos nesse texto. Use um método por linha, ou "Método: lição 1; lição 2".');
     if (found.length > 500 || found.fold<int>(0, (a, m) => a + m.lessons.length) > 8000) {
-      return 'Muitos itens de uma vez (máximo 500 métodos e 8000 lições). Importe em partes.';
+      return tr('Muitos itens de uma vez (máximo 500 métodos e 8000 lições). Importe em partes.');
     }
     final r = mergeMethods(methodLibrary, found);
     _saveMethods();
     notifyListeners();
-    if (r.nothing) return 'Esses métodos e lições já estavam na sua lista.';
-    return 'Importado: ${r.methods} método${r.methods == 1 ? '' : 's'} novo${r.methods == 1 ? '' : 's'} '
-        'e ${r.lessons} lição${r.lessons == 1 ? '' : 'ões'}.';
+    if (r.nothing) return tr('Esses métodos e lições já estavam na sua lista.');
+    return tr('Importado: {0} método{1} novo{2} e {3} {4}.', [r.methods, r.methods == 1 ? '' : 's', r.methods == 1 ? '' : 's', r.lessons, r.lessons == 1 ? tr('lição') : tr('lições')]);
   }
 
   String exportMethods() => exportMethodsText(methodLibrary);
@@ -652,7 +652,7 @@ class AppState extends ChangeNotifier {
   /// "Reconectar agora": zera o que ficou emperrado (servidor marcado como indisponível, esperas
   /// e intervalos) e tenta de novo. Não apaga nada da fila. Devolve a frase para mostrar à pessoa.
   Future<String> reconnectLink() async {
-    if (!linkEnabled) return 'O vínculo online está desligado. Ligue para conectar.';
+    if (!linkEnabled) return tr('O vínculo online está desligado. Ligue para conectar.');
     linkUnavailable = false;
     _linkOnline = null;
     _idleTicks = 0;
@@ -668,12 +668,12 @@ class AppState extends ChangeNotifier {
       await flushAgenda();
     }
     notifyListeners();
-    if (linkUnavailable) return 'O servidor ainda não está disponível. Tente de novo em alguns minutos.';
+    if (linkUnavailable) return tr('O servidor ainda não está disponível. Tente de novo em alguns minutos.');
     if (_linkOnline == true) {
       final q = linkQueueSize;
-      return q > 0 ? 'Conectado. $q ${q == 1 ? 'item ainda espera' : 'itens ainda esperam'} para ser enviado.' : 'Conectado.';
+      return q > 0 ? tr('Conectado. {0} {1} para ser enviado.', [q, q == 1 ? tr('item ainda espera') : tr('itens ainda esperam')]) : tr('Conectado.');
     }
-    return 'Ainda sem conexão. Confira a internet e tente de novo.';
+    return tr('Ainda sem conexão. Confira a internet e tente de novo.');
   }
 
   /// O servidor não tem o vínculo online configurado (sem Redis): não insistir.
@@ -751,12 +751,12 @@ class AppState extends ChangeNotifier {
     final seen = _prefs?.getInt('sn_seen') ?? 0;
     if (r.snAt <= seen) return;
     _prefs?.setInt('sn_seen', r.snAt);
-    final who = r.snText.isEmpty ? 'outra pessoa' : r.snText;
+    final who = r.snText.isEmpty ? tr('outra pessoa') : r.snText;
     addNotice(
         'support',
         r.snKind == 'unlink'
-            ? 'O suporte encerrou o seu vínculo com $who.'
-            : 'O suporte removeu $who da sua agenda.');
+            ? tr('O suporte encerrou o seu vínculo com {0}.', [who])
+            : tr('O suporte removeu {0} da sua agenda.', [who]));
     notifyListeners();
   }
 
@@ -824,8 +824,8 @@ class AppState extends ChangeNotifier {
     if (listening && !pedalNotes.contains(midi)) unawaited(stopListening(quiet: true));
     if (tone.running) tone.stop();
     final r = togglePedalNote(pedalNotes, midi);
-    if (r.result == PedalToggle.full) return 'No máximo $kMaxPedalVoices notas ao mesmo tempo. Toque numa nota ligada para tirar.';
-    if (r.result == PedalToggle.outOfRange) return 'Essa nota está fora do teclado do pedal.';
+    if (r.result == PedalToggle.full) return tr('No máximo {0} notas ao mesmo tempo. Toque numa nota ligada para tirar.', [kMaxPedalVoices]);
+    if (r.result == PedalToggle.outOfRange) return tr('Essa nota está fora do teclado do pedal.');
     pedalNotes = r.notes;
     _applyPedal();
     return null;
@@ -895,17 +895,17 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  static const _tabLabels = {
-    'tuner': 'Afinador',
-    'pedal': 'Pedal',
-    'metronome': 'Metrônomo',
-    'grid': 'Grade',
-    'scales': 'Escalas',
-    'study': 'Meu espaço',
-    'profile': 'Minha conta',
-    'teacher': 'Alunos',
-    'agenda': 'Agenda',
-    'settings': 'Ajustes',
+  static final _tabLabels = {
+    'tuner': tr('Afinador'),
+    'pedal': tr('Pedal'),
+    'metronome': tr('Metrônomo'),
+    'grid': tr('Grade'),
+    'scales': tr('Escalas'),
+    'study': tr('Meu espaço'),
+    'profile': tr('Minha conta'),
+    'teacher': tr('Alunos'),
+    'agenda': tr('Agenda'),
+    'settings': tr('Ajustes'),
   };
 
   // ---------------- Agenda de aulas ----------------
@@ -964,20 +964,20 @@ class AppState extends ChangeNotifier {
   /// Marca ou muda uma aula. Devolve o motivo se não der (aluno, horário que passou, choque
   /// com outra aula); null se salvou.
   String? saveSlot(ClassSlot s) {
-    crumb('Marcar aula');
+    crumb(tr('Marcar aula'));
     final st = studentByCode(s.studentCode);
-    if (st == null) return 'Escolha o aluno.';
+    if (st == null) return tr('Escolha o aluno.');
     final now = DateTime.now().millisecondsSinceEpoch;
     final old = agenda.where((x) => x.id == s.id).firstOrNull;
     // Mudou o dia ou a hora de uma regra semanal: as datas já canceladas acompanham (senão a aula cancelada voltaria).
     if (old != null && s.weekly && old.startMs != s.startMs) s = s.copyWith(skipped: remapSkipped(old.startMs, s.startMs, s.skipped));
     if (!s.weekly && s.startMs < now - 5 * kMsMinute && (old == null || old.startMs != s.startMs)) {
-      return 'Esse horário já passou. Escolha uma data de hoje em diante.';
+      return tr('Esse horário já passou. Escolha uma data de hoje em diante.');
     }
     final clash = findConflict(s, agenda, now);
     if (clash != null) {
-      final who = studentByCode(clash.slot.studentCode)?.name ?? 'outro aluno';
-      return 'Choca com a aula de $who (${fmtSlotWhen(clash.start, DateTime.now())}). Escolha outro horário.';
+      final who = studentByCode(clash.slot.studentCode)?.name ?? tr('outro aluno');
+      return tr('Choca com a aula de {0} ({1}). Escolha outro horário.', [who, fmtSlotWhen(clash.start, DateTime.now())]);
     }
     final stamp = old == null ? now : (now > old.updatedMs ? now : old.updatedMs + 1);
     final saved = s.copyWith(updatedMs: stamp, pending: _canSendTo(st) ? true : null);
@@ -985,7 +985,7 @@ class AppState extends ChangeNotifier {
     if (i >= 0) {
       agenda[i] = saved;
     } else if (agenda.length >= kMaxSlotsPerTeacher) {
-      return 'Limite de aulas marcadas atingido. Cancele algumas antigas.';
+      return tr('Limite de aulas marcadas atingido. Cancele algumas antigas.');
     } else {
       agenda.add(saved);
     }
@@ -1063,7 +1063,7 @@ class AppState extends ChangeNotifier {
           agenda[i] = agenda[i].copyWith(pending: false);
           deliveryIssue.remove(s.studentCode);
           changed = true;
-          if (!r.ok) fail('Não foi possível avisar ${st.name} da aula.', where: 'Agenda do professor', detail: r.error);
+          if (!r.ok) fail(tr('Não foi possível avisar {0} da aula.', [st.name]), where: tr('Agenda do professor'), detail: r.error);
         }
       }
     } finally {
@@ -1095,7 +1095,7 @@ class AppState extends ChangeNotifier {
 
   /// Cria ou muda um horário disponível. Devolve o motivo se não der; null se salvou.
   String? saveOpenSlot(ClassSlot s) {
-    crumb('Publicar horário livre');
+    crumb(tr('Publicar horário livre'));
     final now = DateTime.now().millisecondsSinceEpoch;
     final p = checkNewOpenSlot(s, open: openSlots.where((x) => !x.canceled), classes: agenda.where((x) => !x.canceled), nowMs: now);
     if (p != null) return slotProblemText(p);
@@ -1139,7 +1139,7 @@ class AppState extends ChangeNotifier {
         if (r.ok || r.rejected) {
           openSlots[i] = s.copyWith(pending: false);
           changed = true;
-          if (!r.ok) fail('Não foi possível publicar o horário: ${_slotError(r.error)}', where: 'Horários livres', detail: r.error);
+          if (!r.ok) fail(tr('Não foi possível publicar o horário: {0}', [_slotError(r.error)]), where: tr('Horários livres'), detail: r.error);
         }
       }
     } finally {
@@ -1153,13 +1153,13 @@ class AppState extends ChangeNotifier {
   }
 
   static String _slotError(String? code) => switch (code) {
-        'slot_gone' => 'Este horário não está mais disponível.',
-        'slot_taken' => 'Alguém acabou de pegar este horário.',
-        'slot_past' => 'Este horário já passou.',
-        'slot_soon' => 'Falta pouco para este horário: peça direto ao professor.',
-        'slot_conflict' => 'Este horário bate com outra aula do professor.',
-        'pick_limit' => 'Você já tem muitas aulas marcadas com este professor.',
-        _ => code ?? 'tente de novo.',
+        'slot_gone' => tr('Este horário não está mais disponível.'),
+        'slot_taken' => tr('Alguém acabou de pegar este horário.'),
+        'slot_past' => tr('Este horário já passou.'),
+        'slot_soon' => tr('Falta pouco para este horário: peça direto ao professor.'),
+        'slot_conflict' => tr('Este horário bate com outra aula do professor.'),
+        'pick_limit' => tr('Você já tem muitas aulas marcadas com este professor.'),
+        _ => code ?? tr('tente de novo.'),
       };
 
   /// PROFESSOR: traz as aulas que alunos pegaram e as coloca na agenda.
@@ -1184,13 +1184,13 @@ class AppState extends ChangeNotifier {
         // O horário disponível que originou essa aula já foi levado no servidor: tira daqui também.
         openSlots.removeWhere((o) => o.startMs == s.startMs && o.durationMin == s.durationMin && o.weekly == s.weekly);
         final at = s.nextStart(now.millisecondsSinceEpoch);
-        notes.add('${st.name} pegou o horário${at == null ? '' : ' de ${fmtSlotWhen(DateTime.fromMillisecondsSinceEpoch(at), now)}'}.');
+        notes.add(tr('{0} pegou o horário{1}.', [st.name, at == null ? '' : tr(' de {0}', [fmtSlotWhen(DateTime.fromMillisecondsSinceEpoch(at), now)])]));
       }
       _picksRev = r.ar;
       _saveAgenda();
       notifyListeners();
       if (notes.isNotEmpty) {
-        final msg = notes.length == 1 ? notes.first : '${notes.length} alunos pegaram horários.';
+        final msg = notes.length == 1 ? notes.first : tr('{0} alunos pegaram horários.', [notes.length]);
         addNotice('pick', msg);
         say(msg);
       }
@@ -1218,7 +1218,7 @@ class AppState extends ChangeNotifier {
   Future<String?> takeOpenSlot(String teacher, ClassSlot slot) async {
     // Trava contra toque duplo: só um pedido por vez (o servidor também impede dois alunos, mas assim
     // o mesmo aluno não dispara duas aulas).
-    if (_taking) return 'Aguarde: o pedido anterior ainda está sendo enviado.';
+    if (_taking) return tr('Aguarde: o pedido anterior ainda está sendo enviado.');
     _taking = true;
     try {
       return await _takeOpenSlot(teacher, slot);
@@ -1230,14 +1230,14 @@ class AppState extends ChangeNotifier {
   bool _taking = false;
 
   Future<String?> _takeOpenSlot(String teacher, ClassSlot slot) async {
-    crumb('Pegar horário');
+    crumb(tr('Pegar horário'));
     final now = DateTime.now().millisecondsSinceEpoch;
     final mine = myAgenda.where((s) => s.teacherCode == teacher && s.nextStart(now) != null).length;
     final p = checkPick(slot, teacherClasses: const [], studentUpcoming: mine, nowMs: now);
     if (p != null && p != SlotProblem.conflict) return slotProblemText(p);
     final r = await links.availTake(profile.shareCode, profile.secret, teacher: teacher, slotId: slot.id);
-    if (r.unavailable) return 'Sem conexão com o servidor. Tente de novo.';
-    if (r.offline) return 'Sem internet. Tente de novo.';
+    if (r.unavailable) return tr('Sem conexão com o servidor. Tente de novo.');
+    if (r.offline) return tr('Sem internet. Tente de novo.');
     if (!r.ok) return _slotError(r.error);
     unawaited(pullAgenda(announce: false));
     return null;
@@ -1264,19 +1264,19 @@ class AppState extends ChangeNotifier {
       for (final s in r.slots) {
         final key = '${s.teacherCode}:${s.id}';
         final who = (s.teacherName.isNotEmpty ? s.teacherName : (names[s.teacherCode] ?? '')).trim();
-        final label = who.isEmpty ? 'Seu professor' : who;
+        final label = who.isEmpty ? tr('Seu professor') : who;
         final old = before[key];
         if (s.canceled) {
-          if (old != null && old.nextStart(nowMs) != null) notes.add('$label cancelou a aula marcada.');
+          if (old != null && old.nextStart(nowMs) != null) notes.add(tr('{0} cancelou a aula marcada.', [label]));
           continue;
         }
         next.add(s);
         final nextAt = s.nextStart(nowMs);
         if (nextAt == null) continue;
         if (old == null) {
-          notes.add('$label marcou uma aula: ${fmtSlotWhen(DateTime.fromMillisecondsSinceEpoch(nextAt), now)}.');
+          notes.add(tr('{0} marcou uma aula: {1}.', [label, fmtSlotWhen(DateTime.fromMillisecondsSinceEpoch(nextAt), now)]));
         } else if (s.updatedMs > old.updatedMs && (s.startMs != old.startMs || s.skipped.length > old.skipped.length)) {
-          notes.add('$label mudou a aula: agora ${fmtSlotWhen(DateTime.fromMillisecondsSinceEpoch(nextAt), now)}.');
+          notes.add(tr('{0} mudou a aula: agora {1}.', [label, fmtSlotWhen(DateTime.fromMillisecondsSinceEpoch(nextAt), now)]));
         }
       }
       myAgenda = next;
@@ -1284,7 +1284,7 @@ class AppState extends ChangeNotifier {
       _saveAgenda();
       notifyListeners();
       if (announce && notes.isNotEmpty) {
-        final msg = notes.length == 1 ? notes.first : '${notes.length} novidades na sua agenda de aulas.';
+        final msg = notes.length == 1 ? notes.first : tr('{0} novidades na sua agenda de aulas.', [notes.length]);
         addNotice('lesson', msg);
         say(msg);
       }
@@ -1368,25 +1368,25 @@ class AppState extends ChangeNotifier {
   Future<String?> enablePush() async {
     if (!webPushSupported()) {
       return webIsIos() && !webPushStandalone()
-          ? 'No iPhone, instale o app na tela inicial (Compartilhar › Adicionar à Tela de Início) e abra por lá.'
-          : 'Este navegador não permite notificações.';
+          ? tr('No iPhone, instale o app na tela inicial (Compartilhar › Adicionar à Tela de Início) e abra por lá.')
+          : tr('Este navegador não permite notificações.');
     }
-    if (!linkEnabled) return 'Ligue o "Vínculo online" no perfil primeiro: é ele que leva a agenda ao outro lado.';
+    if (!linkEnabled) return tr('Ligue o "Vínculo online" no perfil primeiro: é ele que leva a agenda ao outro lado.');
     final k = await links.pushKey(profile.shareCode, profile.secret);
-    if (!k.ok || k.pushKey.isEmpty) return 'Os lembretes ainda não estão ativos no servidor.';
+    if (!k.ok || k.pushKey.isEmpty) return tr('Os lembretes ainda não estão ativos no servidor.');
     final perm = await webPushRequestPermission();
     if (perm != 'granted') {
       await refreshPush();
-      return 'Sem a permissão do navegador não dá para avisar. Libere as notificações deste site nas configurações do navegador.';
+      return tr('Sem a permissão do navegador não dá para avisar. Libere as notificações deste site nas configurações do navegador.');
     }
     final subJson = await webPushSubscribe(k.pushKey);
-    if (subJson == null) return 'Não foi possível ativar neste aparelho.';
+    if (subJson == null) return tr('Não foi possível ativar neste aparelho.');
     try {
       final sub = (jsonDecode(subJson) as Map).cast<String, dynamic>();
       final r = await links.pushSub(profile.shareCode, profile.secret, sub);
-      if (!r.ok) return r.error ?? 'O servidor não aceitou a ativação. Tente de novo.';
+      if (!r.ok) return r.error ?? tr('O servidor não aceitou a ativação. Tente de novo.');
     } catch (_) {
-      return 'Não foi possível ativar neste aparelho.';
+      return tr('Não foi possível ativar neste aparelho.');
     }
     _prefs?.setBool('push_on', true);
     await refreshPush();
@@ -1570,8 +1570,8 @@ class AppState extends ChangeNotifier {
       notifyListeners();
       if (fresh > 0) {
         final msg = fresh == 1 && who != null
-            ? '$who marcou 1 tarefa como feita. Valide na ficha ou ao começar a próxima aula.'
-            : '$fresh tarefas marcadas como feitas pelos alunos. Valide na ficha de cada um.';
+            ? tr('{0} marcou 1 tarefa como feita. Valide na ficha ou ao começar a próxima aula.', [who])
+            : tr('{0} tarefas marcadas como feitas pelos alunos. Valide na ficha de cada um.', [fresh]);
         addNotice('done', msg);
         say(msg);
       }
@@ -1584,7 +1584,7 @@ class AppState extends ChangeNotifier {
 
   /// Confirma (finaliza) ou devolve (volta a pendente) uma tarefa que o aluno marcou.
   void validateAssignment(Student s, String taskId, {required bool ok}) {
-    crumb(ok ? 'Validar tarefa' : 'Devolver tarefa');
+    crumb(ok ? tr('Validar tarefa') : tr('Devolver tarefa'));
     if (!validateTask(s, taskId, ok: ok)) return;
     _saveTeacher();
     // O aluno passa a ver a decisão oficial (vai pela fila e reenvia sozinha se estiver sem conexão).
@@ -1689,11 +1689,11 @@ class AppState extends ChangeNotifier {
       _saveLessons();
       notifyListeners();
       if (returned > 0) {
-        final msg = returned == 1 ? 'Seu professor devolveu 1 tarefa para refazer.' : 'Seu professor devolveu $returned tarefas para refazer.';
+        final msg = returned == 1 ? tr('Seu professor devolveu 1 tarefa para refazer.') : tr('Seu professor devolveu {0} tarefas para refazer.', [returned]);
         addNotice('task', msg);
         say(msg);
       } else if (validated > 0) {
-        say(validated == 1 ? 'Seu professor validou 1 tarefa.' : 'Seu professor validou $validated tarefas.');
+        say(validated == 1 ? tr('Seu professor validou 1 tarefa.') : tr('Seu professor validou {0} tarefas.', [validated]));
       }
     } finally {
       _verdictsPulling = false;
@@ -1792,13 +1792,13 @@ class AppState extends ChangeNotifier {
 
   /// Começa a aula com [s]. Devolve o motivo se não der (já há outra aula em andamento).
   String? startLesson(Student s) {
-    crumb('Começar aula');
+    crumb(tr('Começar aula'));
     final cur = lesson;
     if (cur != null) {
       final other = studentById(cur.studentId);
       return cur.studentId == s.id
-          ? 'A aula com ${s.name} já está em andamento.'
-          : 'Há uma aula em andamento com ${other?.name ?? 'outro aluno'}. Encerre-a antes de começar outra.';
+          ? tr('A aula com {0} já está em andamento.', [s.name])
+          : tr('Há uma aula em andamento com {0}. Encerre-a antes de começar outra.', [other?.name ?? tr('outro aluno')]);
     }
     _lesson = ActiveLesson(
       id: DateTime.now().microsecondsSinceEpoch.toRadixString(36),
@@ -1849,7 +1849,7 @@ class AppState extends ChangeNotifier {
 
   /// Encerra a aula e a coloca para enviar ao aluno. Devolve o registro (ou null).
   LessonRecord? endLesson() {
-    crumb('Encerrar aula');
+    crumb(tr('Encerrar aula'));
     final l = lesson;
     if (l == null) return null;
     final s = studentById(l.studentId);
@@ -1903,11 +1903,11 @@ class AppState extends ChangeNotifier {
   String sendPendingTasks(Student s) {
     final rule = deliveryFor(s);
     if (rule.mode == DeliveryMode.inLesson) {
-      return 'Há uma aula em andamento com ${s.name}: as tarefas vão quando você encerrar a aula.';
+      return tr('Há uma aula em andamento com {0}: as tarefas vão quando você encerrar a aula.', [s.name]);
     }
     if (!rule.canSend) return rule.text;
     final rec = buildTasksPackage(s, DateTime.now(), teacherName: profile.name ?? '');
-    if (rec == null) return 'Nenhuma tarefa esperando envio.';
+    if (rec == null) return tr('Nenhuma tarefa esperando envio.');
     rec.sent = false;
     s.lessons.insert(0, rec);
     while (s.lessons.length > 200) {
@@ -1919,8 +1919,8 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     unawaited(flushLessons());
     final n = rec.taskCount;
-    final what = '$n tarefa${n == 1 ? '' : 's'}';
-    return rule.mode == DeliveryMode.now ? 'Enviando $what para ${s.name}…' : '$what na fila de envio. ${rule.text}';
+    final what = tr('{0} tarefa{1}', [n, n == 1 ? '' : 's']);
+    return rule.mode == DeliveryMode.now ? tr('Enviando {0} para {1}…', [what, s.name]) : tr('{0} na fila de envio. {1}', [what, rule.text]);
   }
 
   /// Envia ao servidor as aulas encerradas que ainda não foram. Roda ao encerrar, a cada
@@ -1956,9 +1956,9 @@ class AppState extends ChangeNotifier {
             deliveryIssue.remove(c);
             if (_celebrateDeliveryFor == c && _celebrateAt != null && DateTime.now().difference(_celebrateAt!) < const Duration(seconds: 90)) {
               _celebrateDeliveryFor = null;
-              celebrate('Tarefa enviada', detail: 'Para ${s.name}');
+              celebrate(tr('Tarefa enviada'), detail: tr('Para {0}', [s.name]));
             } else {
-              say('Enviado para ${s.name}.');
+              say(tr('Enviado para {0}.', [s.name]));
             }
           } else if (rep.unavailable) {
             _markLinkUnavailable();
@@ -1978,7 +1978,7 @@ class AppState extends ChangeNotifier {
             r.sent = null;
             r.wire = null;
             changed = true;
-            fail('Não foi possível enviar a aula de ${s.name}.', where: 'Aulas', detail: rep.error);
+            fail(tr('Não foi possível enviar a aula de {0}.', [s.name]), where: tr('Aulas'), detail: rep.error);
           }
         }
       }
@@ -2058,7 +2058,7 @@ class AppState extends ChangeNotifier {
       0, (a, l) => a + l.tasks.where((t) => !lessonTasksDone.contains('${l.id}:${t.id}')).length);
 
   void setLinkEnabled(bool v) {
-    crumb(v ? 'Ligar vínculo' : 'Desligar vínculo');
+    crumb(v ? tr('Ligar vínculo') : tr('Desligar vínculo'));
     linkEnabled = v;
     linkPref = v ? 'on' : 'off';
     _prefs?.setString('link_pref', linkPref!);
@@ -2121,11 +2121,11 @@ class AppState extends ChangeNotifier {
   /// Registra o professor (li o QR dele ou digitei o código) e vincula online.
   /// Devolve o motivo se não foi possível; null se registrou.
   Future<String?> addMyTeacher(String code) async {
-    if (needsNickname) return 'Antes de vincular, informe o seu nome em Minha conta: o professor precisa saber quem você é.';
+    if (needsNickname) return tr('Antes de vincular, informe o seu nome em Minha conta: o professor precisa saber quem você é.');
     final problem = checkTeacherCode(code);
     if (problem != null) return problem;
     final c = formatShareCode(code)!;
-    if (myTeachers.any((t) => t.code == c)) return 'Este professor já está na sua lista.';
+    if (myTeachers.any((t) => t.code == c)) return tr('Este professor já está na sua lista.');
     myTeachers.add(LinkedPerson(c, '', 0));
     linkEnabled = true;
     _linkPrefOn();
@@ -2134,19 +2134,19 @@ class AppState extends ChangeNotifier {
     final r = await links.link(profile.shareCode, profile.secret, role: 'student', other: c, name: profile.name);
     if (r.unavailable) {
       _markLinkUnavailable();
-      say('O vínculo online ainda não está disponível. O professor foi registrado só neste aparelho.');
+      say(tr('O vínculo online ainda não está disponível. O professor foi registrado só neste aparelho.'));
     } else if (r.offline) {
-      say('Sem conexão: vou vincular com o professor assim que a internet voltar.');
+      say(tr('Sem conexão: vou vincular com o professor assim que a internet voltar.'));
     } else if (!r.ok) {
       myTeachers.removeWhere((t) => t.code == c);
       _saveLinks();
       notifyListeners();
-      return r.error ?? 'Não foi possível vincular.';
+      return r.error ?? tr('Não foi possível vincular.');
     } else {
       linkOnline = true;
       await syncLinks();
       final t = myTeachers.where((x) => x.code == c).firstOrNull;
-      say('Vinculado${t != null && t.name.isNotEmpty ? ' a ${t.name}' : ' ao professor'}. Ele já aparece para você e você aparece para ele.');
+      say(tr('Vinculado{0}. Ele já aparece para você e você aparece para ele.', [t != null && t.name.isNotEmpty ? tr(' a {0}', [t.name]) : tr(' ao professor')]));
     }
     return null;
   }
@@ -2172,17 +2172,17 @@ class AppState extends ChangeNotifier {
     if (r.unavailable) {
       _markLinkUnavailable();
       s.linkState = null;
-      say('O vínculo online ainda não está disponível. ${s.name} ficou só neste aparelho.');
+      say(tr('O vínculo online ainda não está disponível. {0} ficou só neste aparelho.', [s.name]));
     } else if (r.offline) {
       s.linkState = 'pending';
-      say('Sem conexão: vou vincular ${s.name} assim que a internet voltar.');
+      say(tr('Sem conexão: vou vincular {0} assim que a internet voltar.', [s.name]));
     } else if (!r.ok) {
       s.linkState = null;
-      say(r.error ?? 'Não foi possível vincular ${s.name}.');
+      say(r.error ?? tr('Não foi possível vincular {0}.', [s.name]));
     } else {
       s.linkState = 'active';
       linkOnline = true;
-      say('${s.name} vinculado. Ele já vê você como professor.');
+      say(tr('{0} vinculado. Ele já vê você como professor.', [s.name]));
     }
     _saveTeacher();
     notifyListeners();
@@ -2281,13 +2281,13 @@ class AppState extends ChangeNotifier {
   Future<String?> setMeetDefault(String raw) async {
     final t = raw.trim();
     final link = t.isEmpty ? '' : meetingUrl(t);
-    if (link == null) return 'Use um link https de uma sala (Meet, Zoom, Teams…).';
+    if (link == null) return tr('Use um link https de uma sala (Meet, Zoom, Teams…).');
     meetDefault = link;
     _prefs?.setString('meet_default', link);
     notifyListeners();
     if (linkEnabled && !linkUnavailable) {
       final r = await links.meetSet(profile.shareCode, profile.secret, link);
-      if (!r.ok && !r.offline) return 'O link ficou neste aparelho, mas não foi guardado no servidor agora.';
+      if (!r.ok && !r.offline) return tr('O link ficou neste aparelho, mas não foi guardado no servidor agora.');
     }
     return null;
   }
@@ -2297,10 +2297,10 @@ class AppState extends ChangeNotifier {
   String? commitPlan(SlotPlan plan, {String crumbName = 'Mudar agenda'}) {
     crumb(crumbName);
     final now = DateTime.now().millisecondsSinceEpoch;
-    final err = validatePlan(plan, agenda, now, nameOf: (c) => studentByCode(c)?.name ?? 'outro aluno');
+    final err = validatePlan(plan, agenda, now, nameOf: (c) => studentByCode(c)?.name ?? tr('outro aluno'));
     if (err != null) return err;
     final novas = plan.changed.where((c) => !agenda.any((x) => x.id == c.id)).length;
-    if (agenda.length + novas > kMaxSlotsPerTeacher) return 'Limite de aulas marcadas atingido. Cancele algumas antigas.';
+    if (agenda.length + novas > kMaxSlotsPerTeacher) return tr('Limite de aulas marcadas atingido. Cancele algumas antigas.');
     for (final c in plan.changed) {
       final st = studentByCode(c.studentCode);
       final i = agenda.indexWhere((x) => x.id == c.id);
@@ -2321,10 +2321,10 @@ class AppState extends ChangeNotifier {
   /// Troca só o link de uma aula online já marcada (professor). Devolve o motivo se não der; null se salvou.
   String? setSlotLink(String id, String raw) {
     final s = agenda.where((x) => x.id == id).firstOrNull;
-    if (s == null) return 'Aula não encontrada.';
+    if (s == null) return tr('Aula não encontrada.');
     final t = raw.trim();
     final l = t.isEmpty ? '' : meetingUrl(t);
-    if (l == null) return 'Use um link https de uma sala (Meet, Zoom, Teams…).';
+    if (l == null) return tr('Use um link https de uma sala (Meet, Zoom, Teams…).');
     return saveSlot(s.copyWith(mode: kModeOnline, link: l));
   }
 
@@ -2363,10 +2363,10 @@ class AppState extends ChangeNotifier {
   }
 
   static String _libError(LinkReply r) => switch (r.error) {
-        'bad_url' => 'Use um link https do Google Drive, Dropbox, OneDrive, IMSLP, CPDL ou YouTube.',
-        'declaration' => 'Confirme que você tem o direito de compartilhar este material.',
-        'library_off' => 'O acervo não está liberado para você.',
-        _ => r.offline ? 'Sem conexão. Tente de novo.' : (r.error ?? 'Não foi possível salvar.'),
+        'bad_url' => tr('Use um link https do Google Drive, Dropbox, OneDrive, IMSLP, CPDL ou YouTube.'),
+        'declaration' => tr('Confirme que você tem o direito de compartilhar este material.'),
+        'library_off' => tr('O acervo não está liberado para você.'),
+        _ => r.offline ? tr('Sem conexão. Tente de novo.') : (r.error ?? tr('Não foi possível salvar.')),
       };
 
   /// Salva (cria ou muda) um item. Devolve a mensagem de erro, ou null se deu certo.
@@ -2504,7 +2504,7 @@ class AppState extends ChangeNotifier {
       if (s == null) {
         s = Student(
           id: 'v${x.code.replaceAll('-', '').toLowerCase()}',
-          name: x.name.isEmpty ? 'Aluno ${x.code}' : x.name,
+          name: x.name.isEmpty ? tr('Aluno {0}', [x.code]) : x.name,
           code: x.code,
           linkState: 'active',
           remoteName: x.name,
@@ -2515,7 +2515,7 @@ class AppState extends ChangeNotifier {
       } else {
         s.linkState = 'active';
         // Acompanha o apelido novo do aluno enquanto o professor não renomeou.
-        final auto = s.name == (s.remoteName ?? '') || s.name == 'Aluno ${x.code}';
+        final auto = s.name == (s.remoteName ?? '') || isDefaultStudentName(s.name, x.code);
         if (x.name.isNotEmpty && auto) s.name = x.name;
         s.remoteName = x.name;
       }
@@ -2543,22 +2543,22 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     if (newStudents.isNotEmpty) {
       say(newStudents.length == 1
-          ? '${newStudents.first} entrou na sua lista de alunos.'
-          : '${newStudents.length} alunos novos entraram na sua lista.');
+          ? tr('{0} entrou na sua lista de alunos.', [newStudents.first])
+          : tr('{0} alunos novos entraram na sua lista.', [newStudents.length]));
     }
     if (newTeachers.isNotEmpty) {
       for (final t in newTeachers) {
-        addNotice('teacher', '${t.name.isEmpty ? 'Um professor' : t.name} adicionou você como aluno. Agora as aulas e tarefas dele aparecem em Minhas aulas.');
+        addNotice('teacher', tr('{0} adicionou você como aluno. Agora as aulas e tarefas dele aparecem em Minhas aulas.', [t.name.isEmpty ? tr('Um professor') : t.name]));
       }
       notifyListeners();
       final n = newTeachers.first;
-      say('${n.name.isEmpty ? 'Um professor' : n.name} se vinculou a você.');
+      say(tr('{0} se vinculou a você.', [n.name.isEmpty ? tr('Um professor') : n.name]));
     }
     if (endedStudents.isNotEmpty) {
-      say('${endedStudents.join(', ')}: vínculo encerrado pelo aluno. O histórico ficou com você.');
+      say(tr('{0}: vínculo encerrado pelo aluno. O histórico ficou com você.', [endedStudents.join(', ')]));
     }
     if (lost.isNotEmpty) {
-      say('${lost.first.name.isEmpty ? 'Um professor' : lost.first.name} encerrou o vínculo com você.');
+      say(tr('{0} encerrou o vínculo com você.', [lost.first.name.isEmpty ? tr('Um professor') : lost.first.name]));
     }
   }
 
@@ -2586,13 +2586,13 @@ class AppState extends ChangeNotifier {
   /// Importa um aluno colado (ou junta as sessões se o aluno já existe).
   /// Devolve uma mensagem para o usuário.
   String importStudentText(String text) {
-    if (text.length > 3000000) return 'Esse texto é grande demais para ser os dados de um aluno.';
+    if (text.length > 3000000) return tr('Esse texto é grande demais para ser os dados de um aluno.');
     final imp = importStudent(text);
-    if (imp == null || imp.name.isEmpty) return 'Não consegui ler esses dados. Cole o texto exatamente como foi copiado.';
+    if (imp == null || imp.name.isEmpty) return tr('Não consegui ler esses dados. Cole o texto exatamente como foi copiado.');
     // Mesmas regras do cadastro: nada de aluno com o seu código ou o do seu professor.
     final c = imp.code;
     if (c != null && c == profile.shareCode) {
-      return 'Esses dados têm o seu próprio código: você não pode ser aluno de si mesmo. Importação cancelada.';
+      return tr('Esses dados têm o seu próprio código: você não pode ser aluno de si mesmo. Importação cancelada.');
     }
     // Mesmo código de um aluno já cadastrado = é a mesma pessoa: soma ao histórico dele.
     final sameCode = c == null ? null : studentByCode(c);
@@ -2602,12 +2602,12 @@ class AppState extends ChangeNotifier {
       activeStudentId ??= imp.id;
       _saveTeacher();
       notifyListeners();
-      return '${imp.name} adicionado com ${imp.sessions.length} sessões.';
+      return tr('{0} adicionado com {1} sessões.', [imp.name, imp.sessions.length]);
     }
     final n = mergeSessions(cur.sessions, imp.sessions);
     _saveTeacher();
     notifyListeners();
-    return '$n sessões novas somadas ao histórico de ${cur.name}.';
+    return tr('{0} sessões novas somadas ao histórico de {1}.', [n, cur.name]);
   }
 
   void _saveTeacher() {
@@ -2704,7 +2704,7 @@ class AppState extends ChangeNotifier {
       final done = customClock.tick(_nowMs);
       pomoTick.value++;
       if (done) {
-        say('Sessão de $customMinutes min concluída! Bom trabalho.');
+        say(tr('Sessão de {0} min concluída! Bom trabalho.', [customMinutes]));
         if (pomoChime) {
           _chime.play(endOfFocus: true, volume: pomoVolume).catchError((_) {});
         }
@@ -2829,8 +2829,8 @@ class AppState extends ChangeNotifier {
       final focusEnded = e.finished == PomoPhase.focus;
       if (!quiet) {
         say(focusEnded
-            ? 'Foco concluído! Pausa de ${e.next == PomoPhase.longBreak ? pomo.config.longMin : pomo.config.shortMin} min.'
-            : 'Pausa terminou. Hora de voltar ao foco.');
+            ? tr('Foco concluído! Pausa de {0} min.', [e.next == PomoPhase.longBreak ? pomo.config.longMin : pomo.config.shortMin])
+            : tr('Pausa terminou. Hora de voltar ao foco.'));
         if (pomoChime) {
           _chime.play(endOfFocus: focusEnded, volume: pomoVolume).catchError((_) {});
         }
@@ -2885,7 +2885,7 @@ class AppState extends ChangeNotifier {
       if (pomo.running) _runPomoTimer();
       if (expired) {
         Future<void>.delayed(const Duration(seconds: 1),
-            () => say('O tempo do foco acabou enquanto o app estava fechado.'));
+            () => say(tr('O tempo do foco acabou enquanto o app estava fechado.')));
       }
     }
   }
@@ -3045,8 +3045,8 @@ class AppState extends ChangeNotifier {
     }
     if (announce) {
       say(micGranted == true
-          ? 'Microfone liberado'
-          : 'Microfone sem permissão. Libere nas configurações do aparelho ou do navegador.');
+          ? tr('Microfone liberado')
+          : tr('Microfone sem permissão. Libere nas configurações do aparelho ou do navegador.'));
     }
     notifyListeners();
     return micGranted == true;
@@ -3113,14 +3113,13 @@ class AppState extends ChangeNotifier {
   String vibrationWhy() {
     if (kIsWeb) {
       if (webIsIos()) {
-        return 'iPhone e iPad: a Apple não deixa sites e apps da tela inicial vibrarem. Só um app da App Store poderia.';
+        return tr('iPhone e iPad: a Apple não deixa sites e apps da tela inicial vibrarem. Só um app da App Store poderia.');
       }
       if (!webVibrationSupported()) {
-        return 'Este navegador ou aparelho não oferece vibração a sites. No celular Android, use o Chrome; '
-            'computadores não vibram.';
+        return tr('Este navegador ou aparelho não oferece vibração a sites. No celular Android, use o Chrome; computadores não vibram.');
       }
     }
-    return 'Este aparelho não tem motor de vibração.';
+    return tr('Este aparelho não tem motor de vibração.');
   }
 
   /// A vibração existe neste aparelho? No app (Android/iOS) pergunta ao sistema;
@@ -3163,7 +3162,7 @@ class AppState extends ChangeNotifier {
     await checkVibration();
     await buzz(pattern: const [0, 160, 110, 160]);
     say(vibrationAvailable == true
-        ? 'Vibração testada: você deve ter sentido duas pulsações. Se não sentiu, veja se o celular não está no modo silencioso ou economia de bateria.'
+        ? tr('Vibração testada: você deve ter sentido duas pulsações. Se não sentiu, veja se o celular não está no modo silencioso ou economia de bateria.')
         : vibrationWhy());
   }
 
@@ -3236,8 +3235,8 @@ class AppState extends ChangeNotifier {
     await checkVibration();
     if (vibrationAvailable == true) await buzz(pattern: const [0, 120, 90, 120]);
     say(micGranted == true
-        ? 'Tudo pronto: microfone liberado${vibrationAvailable == true ? ' e vibração disponível' : ''}.'
-        : 'Microfone sem permissão. Você pode liberar depois em Configurações.');
+        ? tr('Tudo pronto: microfone liberado{0}.', [vibrationAvailable == true ? tr(' e vibração disponível') : ''])
+        : tr('Microfone sem permissão. Você pode liberar depois em Configurações.'));
     notifyListeners();
   }
 
@@ -3301,7 +3300,7 @@ class AppState extends ChangeNotifier {
     await _prefs?.setDouble('gain', micGain);
     await _prefs?.setInt('theme', themeMode.index);
     await _prefs?.setDouble('latency', 0);
-    say('Configurações restauradas para o padrão');
+    say(tr('Configurações restauradas para o padrão'));
     notifyListeners();
   }
 
@@ -3533,7 +3532,7 @@ class AppState extends ChangeNotifier {
       origin: student != null ? kOriginTeacherDevice : kOriginSelf,
       date: DateTime.now(),
       title:
-          '${scaleType.display(noteName(scaleTonicMidi, cfg))} · $scaleOctaves oitava${scaleOctaves > 1 ? 's' : ''}',
+          tr('{0} · {1} oitava{2}', [scaleType.display(noteName(scaleTonicMidi, cfg)), scaleOctaves, scaleOctaves > 1 ? 's' : '']),
       octaves: scaleOctaves,
       zone: kInTuneCents,
       accuracy: sc.accuracy,
@@ -3562,14 +3561,14 @@ class AppState extends ChangeNotifier {
         }
       }
       _saveTeacher();
-      say('${student.name}: ${(sc.accuracy * 100).round()}% de acerto. Salvo no histórico do aluno${tasksDone > 0 ? ' e tarefa concluída!' : '.'}');
+      say(tr('{0}: {1}% de acerto. Salvo no histórico do aluno{2}', [student.name, (sc.accuracy * 100).round(), tasksDone > 0 ? tr(' e tarefa concluída!') : '.']));
     } else if (!demo) {
       sessionRecords.insert(0, rec);
       if (sessionRecords.length > 200) sessionRecords.removeRange(200, sessionRecords.length);
       _repo?.saveSessions(sessionRecords);
-      say('Exercício concluído: ${(sc.accuracy * 100).round()}% de acerto. Salvo no histórico.');
+      say(tr('Exercício concluído: {0}% de acerto. Salvo no histórico.', [(sc.accuracy * 100).round()]));
     } else {
-      say('Fim da demonstração. Ela não entra no seu histórico.');
+      say(tr('Fim da demonstração. Ela não entra no seu histórico.'));
     }
     notifyListeners();
   }
@@ -3874,7 +3873,7 @@ class AppState extends ChangeNotifier {
     if (!demoMode) micGranted = ok;
     if (!ok) {
       micError =
-          'Sem acesso ao microfone. Permita o acesso nas configurações do aparelho ou do navegador.';
+          tr('Sem acesso ao microfone. Permita o acesso nas configurações do aparelho ou do navegador.');
       notifyListeners();
       return;
     }
@@ -3888,8 +3887,8 @@ class AppState extends ChangeNotifier {
     if (!demoMode && hapticEnabled && !auto) buzz(ms: 30);
     if (!auto) {
       say(demoMode
-          ? 'Simulação de desenvolvimento ligada (sem som)'
-          : 'Microfone ligado. Toque uma nota!');
+          ? tr('Simulação de desenvolvimento ligada (sem som)')
+          : tr('Microfone ligado. Toque uma nota!'));
     }
     notifyListeners();
   }
@@ -4095,10 +4094,10 @@ class AppState extends ChangeNotifier {
       _wake(listening);
       if (metro.challenge != null && (st.tempoChanges + st.silences) > 0) {
         final partes = [
-          if (st.silences > 0) 'o metrônomo sumiu ${st.silences} vez${st.silences > 1 ? 'es' : ''}',
-          if (st.tempoChanges > 0) 'o andamento mudou ${st.tempoChanges} vez${st.tempoChanges > 1 ? 'es' : ''}',
+          if (st.silences > 0) tr('o metrônomo sumiu {0} vez{1}', [st.silences, st.silences > 1 ? 'es' : '']),
+          if (st.tempoChanges > 0) tr('o andamento mudou {0} vez{1}', [st.tempoChanges, st.tempoChanges > 1 ? 'es' : '']),
         ];
-        say('Desafio concluído: ${partes.join(' e ')}. Você segurou o pulso!');
+        say(tr('Desafio concluído: {0}. Você segurou o pulso!', [partes.join(' e ')]));
       }
     } else {
       await metroPlayer.start(metro);
@@ -4281,7 +4280,7 @@ class AppState extends ChangeNotifier {
       final newer = id.isNotEmpty && id.length < 80 && !id.contains('<') && id != kBuildId;
       if (newer && !updateAvailable) {
         updateAvailable = true;
-        say('Há uma versão nova do app. Toque em Atualizar no alto da tela.');
+        say(tr('Há uma versão nova do app. Toque em Atualizar no alto da tela.'));
         notifyListeners();
       }
     } catch (_) {}
@@ -4297,7 +4296,7 @@ class AppState extends ChangeNotifier {
   /// quando não se aplica (celular/desktop nativo: atualiza pela loja).
   Future<bool> updateApp() async {
     final ok = await updateWebAppAndReload();
-    if (!ok) say('Este app se atualiza pela loja de aplicativos.');
+    if (!ok) say(tr('Este app se atualiza pela loja de aplicativos.'));
     return ok;
   }
 

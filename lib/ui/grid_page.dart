@@ -103,7 +103,7 @@ class _GridPageState extends State<GridPage> {
                   : const SizedBox.shrink(),
             ),
             IconButton.filled(
-              tooltip: app.listening ? 'Parar de ouvir' : 'Ouvir',
+              tooltip: app.listening ? tr('Parar de ouvir') : tr('Ouvir'),
               style: IconButton.styleFrom(
                 minimumSize: const Size(44, 44),
                 backgroundColor: app.listening ? AppColors.surface2 : AppColors.accent,
@@ -115,7 +115,7 @@ class _GridPageState extends State<GridPage> {
             const SizedBox(width: 6),
             // Zerar a sessão: botão próprio e em destaque, logo ao lado do microfone.
             IconButton.filled(
-              tooltip: 'Zerar a sessão',
+              tooltip: tr('Zerar a sessão'),
               style: IconButton.styleFrom(
                 minimumSize: const Size(44, 44),
                 backgroundColor: AppColors.sharp.withValues(alpha: 0.22),
@@ -126,7 +126,7 @@ class _GridPageState extends State<GridPage> {
               onPressed: () => confirmResetGrid(context, app),
             ),
             IconButton(
-              tooltip: 'Como ler as cores',
+              tooltip: tr('Como ler as cores'),
               icon: const Icon(Icons.help_outline),
               onPressed: _explainColors,
             ),
@@ -148,13 +148,13 @@ class _GridPageState extends State<GridPage> {
                 ? app.stopListening()
                 : app.startListening(demoMode: true, demoGlide: true),
             icon: const Icon(Icons.play_circle_outline, size: 18),
-            label: const Text('[dev] Glissando'),
+            label: Text(tr('[dev] Glissando')),
           ),
         if (kDevDemo && !app.listening)
           TextButton.icon(
             onPressed: () => app.startListening(demoMode: true),
             icon: const Icon(Icons.play_circle_outline, size: 18),
-            label: const Text('[dev] Melodia (testa a troca de nota)'),
+            label: Text(tr('[dev] Melodia (testa a troca de nota)')),
           ),
         if (app.micError != null)
           Padding(
@@ -185,11 +185,11 @@ class _GridPageState extends State<GridPage> {
     const refs = [415.0, 432.0, 440.0, 442.0, 443.0];
     showDsSheet(
       context,
-      title: 'Afinação da grade',
+      title: tr('Afinação da grade'),
       listenable: app,
       children: (c) => [
         DsSettingRow(
-          label: 'Lá de referência: ${app.refA.toStringAsFixed(app.refA == app.refA.roundToDouble() ? 0 : 1)} Hz',
+          label: tr('Lá de referência: {0} Hz', [app.refA.toStringAsFixed(app.refA == app.refA.roundToDouble() ? 0 : 1)]),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
               for (final hz in refs)
@@ -201,20 +201,20 @@ class _GridPageState extends State<GridPage> {
             ]),
             Row(children: [
               IconButton(onPressed: () => app.setTuning(refA: app.refA - 1), icon: const Icon(Icons.remove_circle_outline)),
-              Text('ajuste fino', style: Ds.support()),
+              Text(tr('ajuste fino'), style: Ds.support()),
               IconButton(onPressed: () => app.setTuning(refA: app.refA + 1), icon: const Icon(Icons.add_circle_outline)),
             ]),
           ]),
         ),
         DsSettingRow(
-          label: 'Sistema de afinação',
+          label: tr('Sistema de afinação'),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             SegmentedButton<TuningSystem>(
               showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(value: TuningSystem.equal, label: Text('Igual')),
-                ButtonSegment(value: TuningSystem.pythagorean, label: Text('Pitagórico')),
-                ButtonSegment(value: TuningSystem.just, label: Text('Justo')),
+              segments: [
+                ButtonSegment(value: TuningSystem.equal, label: Text(tr('Igual'))),
+                ButtonSegment(value: TuningSystem.pythagorean, label: Text(tr('Pitagórico'))),
+                ButtonSegment(value: TuningSystem.just, label: Text(tr('Justo'))),
               ],
               selected: {app.system},
               onSelectionChanged: (s) => app.setTuning(
@@ -237,7 +237,7 @@ class _GridPageState extends State<GridPage> {
   Widget _expandChip() => TextButton.icon(
         onPressed: _openFullscreen,
         icon: const Icon(Icons.open_in_full_rounded, size: 18),
-        label: const Text('Ampliar a grade'),
+        label: Text(tr('Ampliar a grade')),
       );
 
   // =====================================================================
@@ -260,17 +260,17 @@ class _GridPageState extends State<GridPage> {
     final type = app.scaleType;
     if (type.arpeggio) {
       // Arpejos: grafia da raiz (Lá bemol, Fá sustenido) como nas tonalidades.
-      final minorChord = type.label.contains('menor');
+      final minorChord = type.isMinor;
       final flatsA = minorChord ? const {3, 10} : const {1, 3, 8, 10};
       final raiz = _spoken(noteName(tonicPc + 60,
           app.cfg.copyWith(transpose: 0, autoSpelling: false, preferFlats: flatsA.contains(tonicPc) || (app.preferFlats && !minorChord && tonicPc != 6))));
       return type.display(raiz);
     }
     final tipo = switch (type) {
-      ScaleType.major => 'Maior',
-      ScaleType.chromatic => 'Cromática',
-      ScaleType.majorPentatonic => 'Pentatônica Maior',
-      _ => type.label.replaceFirst('Menor', 'menor'),
+      ScaleType.major => tr('Maior'),
+      ScaleType.chromatic => tr('Cromática'),
+      ScaleType.majorPentatonic => tr('Pentatônica Maior'),
+      _ => type.label.isEmpty ? type.label : type.label[0].toLowerCase() + type.label.substring(1),
     };
     // Grafia usual das tonalidades: Lá bemol Maior, Fá sustenido menor etc.
     final minor = type == ScaleType.naturalMinor ||
@@ -279,7 +279,7 @@ class _GridPageState extends State<GridPage> {
     final flats = minor ? const {3, 10} : const {1, 3, 8, 10};
     final nota = _spoken(noteName(tonicPc + 60,
         app.cfg.copyWith(transpose: 0, autoSpelling: false, preferFlats: flats.contains(tonicPc) || (app.preferFlats && !minor && tonicPc != 6))));
-    return type == ScaleType.chromatic ? 'Escala Cromática a partir de $nota' : 'Escala de $nota $tipo';
+    return type == ScaleType.chromatic ? tr('Escala Cromática a partir de {0}', [nota]) : tr('Escala de {0} {1}', [nota, tipo]);
   }
 
   Widget _scaleHero(int tonicPc, TuningConfig names) {
@@ -305,15 +305,14 @@ class _GridPageState extends State<GridPage> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${app.scaleOctaves} ${app.scaleOctaves == 1 ? 'oitava' : 'oitavas'} · '
-                  'começa em ${noteName(app.scaleTonicMidi + app.scaleType.start, app.cfg, withOctave: true)}',
+                  tr('{0} {1} · começa em {2}', [app.scaleOctaves, app.scaleOctaves == 1 ? tr('oitava') : tr('oitavas'), noteName(app.scaleTonicMidi + app.scaleType.start, app.cfg, withOctave: true)]),
                   style: Ds.support(),
                 ),
               ],
             ),
           ),
           if (app.scaleType.hint.isNotEmpty)
-            HelpButton(title: 'Sobre este exercício', sections: [('O que é', app.scaleType.hint)]),
+            HelpButton(title: tr('Sobre este exercício'), sections: [(tr('O que é'), app.scaleType.hint)]),
         ],
       ),
     );
@@ -328,9 +327,9 @@ class _GridPageState extends State<GridPage> {
           width: double.infinity,
           child: SegmentedButton<bool>(
             showSelectedIcon: false,
-            segments: const [
-              ButtonSegment(value: false, icon: Icon(Icons.stairs_rounded), label: Text('Escalas')),
-              ButtonSegment(value: true, icon: Icon(Icons.piano_rounded), label: Text('Arpejos')),
+            segments: [
+              ButtonSegment(value: false, icon: Icon(Icons.stairs_rounded), label: Text(tr('Escalas'))),
+              ButtonSegment(value: true, icon: Icon(Icons.piano_rounded), label: Text(tr('Arpejos'))),
             ],
             selected: {app.scaleType.arpeggio},
             onSelectionChanged: (v) => app.setScale(type: v.first ? ScaleType.majorTriad : ScaleType.major),
@@ -347,12 +346,12 @@ class _GridPageState extends State<GridPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('NOTAS DO EXERCÍCIO', style: TextStyle(color: AppColors.textDim, fontSize: 12, letterSpacing: 1.1, fontWeight: FontWeight.w700)),
+                Text(tr('NOTAS DO EXERCÍCIO'), style: TextStyle(color: AppColors.textDim, fontSize: 12, letterSpacing: 1.1, fontWeight: FontWeight.w700)),
                 const SizedBox(height: Ds.s8),
                 Text(app.scaleNotes.map((m) => noteName(m, app.cfg)).join('  ·  '),
                     style: TextStyle(fontSize: Ds.fontBody, color: AppColors.textDim, height: 1.5)),
                 const SizedBox(height: Ds.s4),
-                Text('${app.scaleNotes.length * 2 - 1} notas no total, subindo e descendo.', style: Ds.support()),
+                Text(tr('{0} notas no total, subindo e descendo.', [app.scaleNotes.length * 2 - 1]), style: Ds.support()),
               ],
             ),
           ),
@@ -366,7 +365,7 @@ class _GridPageState extends State<GridPage> {
             ));
           },
           icon: Icons.play_arrow,
-          label: 'Iniciar exercício guiado',
+          label: tr('Iniciar exercício guiado'),
         ),
         if (kDevDemo)
           TextButton.icon(
@@ -377,10 +376,10 @@ class _GridPageState extends State<GridPage> {
               ));
             },
             icon: const Icon(Icons.play_circle_outline),
-            label: const Text('[dev] Simular exercício (silencioso)'),
+            label: Text(tr('[dev] Simular exercício (silencioso)')),
           ),
         const DsGap(Ds.gap),
-        SizedBox(width: double.infinity, child: DsSettingsButton(onPressed: _openScaleSettings, label: 'Configurar escala')),
+        SizedBox(width: double.infinity, child: DsSettingsButton(onPressed: _openScaleSettings, label: tr('Configurar escala'))),
       ],
     );
   }
@@ -389,7 +388,7 @@ class _GridPageState extends State<GridPage> {
   void _openScaleSettings() {
     showDsSheet(
       context,
-      title: 'Configurar escala',
+      title: tr('Configurar escala'),
       listenable: app,
       children: (c) => _scaleSettingsList(app.scaleTonicMidi % 12, app.cfg.copyWith(transpose: 0)),
     );
@@ -399,7 +398,7 @@ class _GridPageState extends State<GridPage> {
   void _openGridSettings() {
     showDsSheet(
       context,
-      title: 'Ajustes da grade',
+      title: tr('Ajustes da grade'),
       listenable: app,
       children: (c) => [_settingsSection()],
     );
@@ -411,9 +410,9 @@ class _GridPageState extends State<GridPage> {
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(
             children: [
-              _tile(Icons.music_note, 'Tônica (nota inicial)', _spoken(noteName(tonicPc + 60, names)),
+              _tile(Icons.music_note, tr('Tônica (nota inicial)'), _spoken(noteName(tonicPc + 60, names)),
                   () => _pick<int>(
-                        'Tônica',
+                        tr('Tônica'),
                         [for (var pc = 0; pc < 12; pc++) (pc, _tonicLabel(pc))],
                         tonicPc,
                         (pc) {
@@ -424,9 +423,9 @@ class _GridPageState extends State<GridPage> {
                       )),
               const Divider(height: 1),
               _tile(Icons.stacked_line_chart,
-                  app.scaleType.arpeggio ? 'Tipo de arpejo' : 'Tipo de escala', app.scaleType.label,
+                  app.scaleType.arpeggio ? tr('Tipo de arpejo') : tr('Tipo de escala'), app.scaleType.label,
                   () => _pick<ScaleType>(
-                        app.scaleType.arpeggio ? 'Tipo de arpejo' : 'Tipo de escala',
+                        app.scaleType.arpeggio ? tr('Tipo de arpejo') : tr('Tipo de escala'),
                         [
                           for (final t in app.scaleType.arpeggio ? ScaleType.arpeggios : ScaleType.scales)
                             (t, t.label)
@@ -434,21 +433,21 @@ class _GridPageState extends State<GridPage> {
                         app.scaleType,
                         (t) => app.setScale(type: t),
                         hint: app.scaleType.arpeggio
-                            ? 'Como em Flesch: tríades em posição fundamental e nas duas inversões, 7ª da dominante e 7ª diminuta, em 1, 2 e 3 oitavas.'
-                            : 'Na menor melódica, a escala sobe com 6ª e 7ª maiores e desce como menor natural.',
+                            ? tr('Como em Flesch: tríades em posição fundamental e nas duas inversões, 7ª da dominante e 7ª diminuta, em 1, 2 e 3 oitavas.')
+                            : tr('Na menor melódica, a escala sobe com 6ª e 7ª maiores e desce como menor natural.'),
                       )),
               const Divider(height: 1),
-              _tile(Icons.layers, 'Oitavas', '${app.scaleOctaves}',
+              _tile(Icons.layers, tr('Oitavas'), '${app.scaleOctaves}',
                   () => _pick<int>(
-                        'Quantas oitavas',
-                        const [(1, '1 oitava'), (2, '2 oitavas'), (3, '3 oitavas'), (4, '4 oitavas')],
+                        tr('Quantas oitavas'),
+                        [(1, tr('1 oitava')), (2, tr('2 oitavas')), (3, tr('3 oitavas')), (4, tr('4 oitavas'))],
                         app.scaleOctaves,
                         (o) => app.setScale(octaves: o),
                         hint:
-                            'Mais oitavas = exercício mais longo. Comece por 1 e aumente aos poucos.',
+                            tr('Mais oitavas = exercício mais longo. Comece por 1 e aumente aos poucos.'),
                       )),
               const Divider(height: 1),
-              _tile(Icons.straighten, 'Afinação', tuningSummary(app),
+              _tile(Icons.straighten, tr('Afinação'), tuningSummary(app),
                   () => pickTuningSystem(context, app, tonicPc: tonicPc)),
             ],
           ),
@@ -459,11 +458,11 @@ class _GridPageState extends State<GridPage> {
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: SwitchListTile(
             secondary: Icon(Icons.play_circle_outline, color: AppColors.textDim),
-            title: const Text('Execução livre', style: TextStyle(fontWeight: FontWeight.w700)),
+            title: Text(tr('Execução livre'), style: TextStyle(fontWeight: FontWeight.w700)),
             subtitle: Text(
               app.exerciseFlow
-                  ? 'Qualquer ordem, o app valida cada nota.'
-                  : 'Guiado: uma nota por vez.',
+                  ? tr('Qualquer ordem, o app valida cada nota.')
+                  : tr('Guiado: uma nota por vez.'),
               style: const TextStyle(fontSize: Ds.fontLabel),
             ),
             value: app.exerciseFlow,
@@ -476,19 +475,19 @@ class _GridPageState extends State<GridPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                const Expanded(
-                  child: Text('Marcar a escala na grade',
+                Expanded(
+                  child: Text(tr('Marcar a escala na grade'),
                       style: TextStyle(fontWeight: FontWeight.w700)),
                 ),
                 Switch(value: app.scaleMode, onChanged: (v) => app.setScale(enabled: v)),
               ]),
-              Text('Destaca as notas na aba Grade.', style: Ds.support()),
+              Text(tr('Destaca as notas na aba Grade.'), style: Ds.support()),
               if (app.scaleMode) ...[
                 const SizedBox(height: Ds.s12),
                 OutlinedButton.icon(
                   onPressed: _showReport,
                   icon: const Icon(Icons.assessment_outlined),
-                  label: const Text('Ver relatório do que toquei'),
+                  label: Text(tr('Ver relatório do que toquei')),
                 ),
               ],
             ],
@@ -502,19 +501,19 @@ class _GridPageState extends State<GridPage> {
   // =====================================================================
   Widget _settingsSection() {
     final histLabel = switch (app.history) {
-      HistoryMode.short => '1 segundo',
-      HistoryMode.medium => '3 segundos',
-      HistoryMode.long => '30 segundos',
-      HistoryMode.unlimited => 'Toda a sessão',
+      HistoryMode.short => tr('1 segundo'),
+      HistoryMode.medium => tr('3 segundos'),
+      HistoryMode.long => tr('30 segundos'),
+      HistoryMode.unlimited => tr('Toda a sessão'),
     };
     final holdLabel = app.holdSeconds <= 0
-        ? 'Até zerar'
-        : (app.holdSeconds >= 120 ? '2 minutos' : '${app.holdSeconds.round()} segundos');
+        ? tr('Até zerar')
+        : (app.holdSeconds >= 120 ? tr('2 minutos') : tr('{0} segundos', [app.holdSeconds.round()]));
     return Column(
       children: [
         AppCard(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Oitavas na grade: ${app.gridOctCount}', style: const TextStyle(fontWeight: FontWeight.w700)),
+            Text(tr('Oitavas na grade: {0}', [app.gridOctCount]), style: const TextStyle(fontWeight: FontWeight.w700)),
             Slider(
               min: 2,
               max: 7,
@@ -522,11 +521,11 @@ class _GridPageState extends State<GridPage> {
               value: app.gridOctCount.toDouble(),
               onChanged: (v) => app.setOctCount(v.round()),
             ),
-            Text('Menos oitavas = quadrados maiores.', style: Ds.support()),
+            Text(tr('Menos oitavas = quadrados maiores.'), style: Ds.support()),
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
-              title: const Text('Seguir a nota que eu toco'),
-              subtitle: const Text('A grade muda de oitava sozinha.', style: TextStyle(fontSize: Ds.fontLabel)),
+              title: Text(tr('Seguir a nota que eu toco')),
+              subtitle: Text(tr('A grade muda de oitava sozinha.'), style: TextStyle(fontSize: Ds.fontLabel)),
               value: app.gridFollow,
               onChanged: app.setFollow,
             ),
@@ -537,44 +536,44 @@ class _GridPageState extends State<GridPage> {
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(
             children: [
-              _tile(Icons.straighten, 'Afinação', tuningSummary(app), _openTuning),
+              _tile(Icons.straighten, tr('Afinação'), tuningSummary(app), _openTuning),
               const Divider(height: 1),
-              _tile(Icons.history, 'Memória da nota', histLabel,
+              _tile(Icons.history, tr('Memória da nota'), histLabel,
                   () => _pick<HistoryMode>(
-                        'Memória da nota',
-                        const [
-                          (HistoryMode.short, '1 segundo'),
-                          (HistoryMode.medium, '3 segundos'),
-                          (HistoryMode.long, '30 segundos'),
-                          (HistoryMode.unlimited, 'Toda a sessão'),
+                        tr('Memória da nota'),
+                        [
+                          (HistoryMode.short, tr('1 segundo')),
+                          (HistoryMode.medium, tr('3 segundos')),
+                          (HistoryMode.long, tr('30 segundos')),
+                          (HistoryMode.unlimited, tr('Toda a sessão')),
                         ],
                         app.history,
                         (h) => app.setTuning(history: h),
                         hint:
-                            'Quanto tempo o que você tocou antes ainda pesa na cor. Curta = reage rápido; longa = mostra a média.',
+                            tr('Quanto tempo o que você tocou antes ainda pesa na cor. Curta = reage rápido; longa = mostra a média.'),
                       )),
               const Divider(height: 1),
-              _tile(Icons.timer_outlined, 'Cor fica na tela por', holdLabel,
+              _tile(Icons.timer_outlined, tr('Cor fica na tela por'), holdLabel,
                   () => _pick<double>(
-                        'Cor fica na tela por',
-                        const [
-                          (10.0, '10 segundos'),
-                          (30.0, '30 segundos'),
-                          (120.0, '2 minutos'),
-                          (0.0, 'Até zerar'),
+                        tr('Cor fica na tela por'),
+                        [
+                          (10.0, tr('10 segundos')),
+                          (30.0, tr('30 segundos')),
+                          (120.0, tr('2 minutos')),
+                          (0.0, tr('Até zerar')),
                         ],
                         app.holdSeconds,
                         (h) => app.setTuning(holdSeconds: h),
                       )),
               const Divider(height: 1),
-              _tile(Icons.speed, 'Troca de nota', app.noteSwitch.label,
+              _tile(Icons.speed, tr('Troca de nota'), app.noteSwitch.label,
                   () => _pick<NoteSwitchSpeed>(
-                        'Troca de nota',
+                        tr('Troca de nota'),
                         [for (final v in NoteSwitchSpeed.values) (v, '${v.label} · ${v.hint}')],
                         app.noteSwitch,
                         app.setNoteSwitch,
                         hint:
-                            'Velocidade com que o destaque (nome da nota, ponteiro e quadrado aceso) passa de uma nota para a próxima. As cores da grade continuam registrando tudo o que você toca.',
+                            tr('Velocidade com que o destaque (nome da nota, ponteiro e quadrado aceso) passa de uma nota para a próxima. As cores da grade continuam registrando tudo o que você toca.'),
                       )),
             ],
           ),
@@ -584,12 +583,12 @@ class _GridPageState extends State<GridPage> {
           padding: const EdgeInsets.symmetric(vertical: 4),
           child: Column(
             children: [
-              _tile(Icons.mic_none, 'Captação do microfone',
-                  '${app.sensitivity.label} · ganho ${app.micGain.toStringAsFixed(app.micGain < 10 ? 1 : 0)}×',
+              _tile(Icons.mic_none, tr('Captação do microfone'),
+                  tr('{0} · ganho {1}×', [app.sensitivity.label, app.micGain.toStringAsFixed(app.micGain < 10 ? 1 : 0)]),
                   _micSheet),
 
               const Divider(height: 1),
-              _tile(Icons.restart_alt, 'Zerar a grade', 'Apaga as cores acumuladas',
+              _tile(Icons.restart_alt, tr('Zerar a grade'), tr('Apaga as cores acumuladas'),
                   () => confirmResetGrid(context, app)),
             ],
           ),
@@ -654,20 +653,13 @@ class _GridPageState extends State<GridPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Como ler as cores',
+              Text(tr('Como ler as cores'),
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
               const SizedBox(height: 12),
               IntonationLegend(zone: app.zoneCents),
               const SizedBox(height: 12),
               Text(
-                'Cada quadrado é uma nota. Ele ganha cor conforme você toca: azul quando a '
-                'nota está grave, verde quando está afinada e laranja ou vermelho quando está aguda. '
-                'Quanto mais forte a cor, mais longe do ideal: corrija e veja o quadrado virar verde. '
-                'O "×3" diz quantas vezes você tocou aquela nota.\n\n'
-                'A nota que está soando agora ganha uma borda forte, e o topo mostra '
-                'quantos Hz ela está acima (+) ou abaixo (−) do ideal. '
-                'No placar, toque em "notas / afinadas" para ver o resumo por nota. '
-                'O destaque troca de nota com calma, para dar tempo de ler; ajuste em Ajustes › Troca de nota.',
+                tr('Cada quadrado é uma nota. Ele ganha cor conforme você toca: azul quando a nota está grave, verde quando está afinada e laranja ou vermelho quando está aguda. Quanto mais forte a cor, mais longe do ideal: corrija e veja o quadrado virar verde. O "×3" diz quantas vezes você tocou aquela nota.\n\nA nota que está soando agora ganha uma borda forte, e o topo mostra quantos Hz ela está acima (+) ou abaixo (−) do ideal. No placar, toque em "notas / afinadas" para ver o resumo por nota. O destaque troca de nota com calma, para dar tempo de ler; ajuste em Ajustes › Troca de nota.'),
                 style: TextStyle(color: AppColors.textDim),
               ),
             ],
@@ -703,8 +695,8 @@ class _GridPageState extends State<GridPage> {
             const SizedBox(height: 4),
             Text(
               r.played == 0
-                  ? 'Nenhuma nota tocada ainda.'
-                  : '${r.inTune} de ${r.played} notas tocadas estão afinadas (${(r.accuracy * 100).round()}%)',
+                  ? tr('Nenhuma nota tocada ainda.')
+                  : tr('{0} de {1} notas tocadas estão afinadas ({2}%)', [r.inTune, r.played, (r.accuracy * 100).round()]),
               style: TextStyle(color: AppColors.textDim),
             ),
             const SizedBox(height: 14),
@@ -717,10 +709,10 @@ class _GridPageState extends State<GridPage> {
                       final nav = Navigator.of(ctx);
                       await app.saveScaleSession(r);
                       nav.pop();
-                      app.say('Escala salva na aba Estudo');
+                      app.say(tr('Escala salva na aba Estudo'));
                     },
               icon: const Icon(Icons.bookmark_add_outlined),
-              label: const Text('Salvar no estudo'),
+              label: Text(tr('Salvar no estudo')),
             ),
           ],
         ),
@@ -731,10 +723,10 @@ class _GridPageState extends State<GridPage> {
   Widget _reportRow(NoteReport n) {
     final zone = app.zoneCents;
     final (label, color) = switch (n.status) {
-      NoteStatus.notPlayed => ('não tocada', AppColors.textDim),
-      NoteStatus.inTune => ('afinada', AppColors.inTune),
-      NoteStatus.flat => ('grave', AppColors.flat),
-      NoteStatus.sharp => ('aguda', AppColors.sharp),
+      NoteStatus.notPlayed => (tr('não tocada'), AppColors.textDim),
+      NoteStatus.inTune => (tr('afinada'), AppColors.inTune),
+      NoteStatus.flat => (tr('grave'), AppColors.flat),
+      NoteStatus.sharp => (tr('aguda'), AppColors.sharp),
     };
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// Uma cor para cada oitava do exercício (escalas e arpejos), diferente das cores de afinação
 /// (azul, verde, laranja): violeta, rosa, dourado e prata.
@@ -10,7 +11,7 @@ Color octaveColor(int i) => _octaveColors[i.clamp(0, _octaveColors.length - 1)];
 /// A nota final (a tônica uma oitava acima) fica na última oitava, não numa nova.
 int octaveIndex(int midi, int lo, int octaves) => ((midi - lo) ~/ 12).clamp(0, octaves - 1);
 
-String octaveName(int i) => '${i + 1}ª oitava';
+String octaveName(int i) => tr('{0}ª oitava', [i + 1]);
 
 /// Legenda das oitavas: "● 1ª oitava  ● 2ª oitava".
 class OctaveLegend extends StatelessWidget {

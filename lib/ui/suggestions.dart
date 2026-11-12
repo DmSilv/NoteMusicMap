@@ -33,9 +33,9 @@ class SuggestionTiles extends StatelessWidget {
         _tile(
           context,
           icon: Icons.waving_hand_outlined,
-          title: '${greetingFor(DateTime.now().hour)}! Como posso te chamar?',
-          text: 'Coloque seu apelido para o app falar com você.',
-          action: 'Informar',
+          title: tr('{0}! Como posso te chamar?', [greetingFor(DateTime.now().hour)]),
+          text: tr('Coloque seu apelido para o app falar com você.'),
+          action: tr('Informar'),
           onAction: () {
             closeSheet();
             askNickname(context, app);
@@ -46,9 +46,9 @@ class SuggestionTiles extends StatelessWidget {
         _tile(
           context,
           icon: Icons.install_mobile,
-          title: 'Instale o Notemusic no celular',
-          text: 'Fica na tela inicial e abre como app.',
-          action: 'Instalar',
+          title: tr('Instale o Notemusic no celular'),
+          text: tr('Fica na tela inicial e abre como app.'),
+          action: tr('Instalar'),
           onAction: () {
             closeSheet();
             runInstall(context, app);
@@ -92,7 +92,7 @@ class SuggestionTiles extends StatelessWidget {
         Row(children: [
           Expanded(child: FilledButton(onPressed: onAction, child: Text(action))),
           const SizedBox(width: Ds.s8),
-          TextButton(onPressed: onLater, child: const Text('Agora não')),
+          TextButton(onPressed: onLater, child: Text(tr('Agora não'))),
         ]),
       ]),
     );

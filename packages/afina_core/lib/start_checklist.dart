@@ -2,6 +2,8 @@
 /// Dart puro: o app diz o que já aconteceu e esta lógica diz o que falta e qual é o próximo passo.
 library;
 
+import 'i18n.dart';
+
 /// Um passo da lista.
 class StartItem {
   /// 'link', 'class' ou 'task'.
@@ -14,9 +16,9 @@ class StartItem {
 
 /// Os passos do professor, na ordem em que fazem sentido.
 List<StartItem> teacherStartItems({required bool hasLinkedStudent, required bool hasClass, required bool hasTask}) => [
-      StartItem('link', 'Vincule um aluno', 'Ele lê o seu QR ou digita o seu código.', hasLinkedStudent),
-      StartItem('class', 'Marque uma aula', 'Uma vez, ou toda semana.', hasClass),
-      StartItem('task', 'Passe uma tarefa', 'Escala, lição ou repertório; o aluno recebe na hora.', hasTask),
+      StartItem('link', tr('Vincule um aluno'), tr('Ele lê o seu QR ou digita o seu código.'), hasLinkedStudent),
+      StartItem('class', tr('Marque uma aula'), tr('Uma vez, ou toda semana.'), hasClass),
+      StartItem('task', tr('Passe uma tarefa'), tr('Escala, lição ou repertório; o aluno recebe na hora.'), hasTask),
     ];
 
 /// O primeiro passo que ainda falta (null se tudo foi feito).

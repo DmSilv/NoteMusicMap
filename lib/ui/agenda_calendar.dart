@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'design_system.dart';
 import 'theme.dart';
+import 'package:afina_core/afina_core.dart';
 
-const _heads = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'];
-const _monthNames = [
-  'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'
+final _heads = [tr('seg'), tr('ter'), tr('qua'), tr('qui'), tr('sex'), tr('sáb'), tr('dom')];
+final _monthNames = [
+  tr('janeiro'), tr('fevereiro'), tr('março'), tr('abril'), tr('maio'), tr('junho'), tr('julho'), tr('agosto'), tr('setembro'), tr('outubro'), tr('novembro'), tr('dezembro')
 ];
 
 /// Calendário do mês para as agendas (professor e aluno): a semana começa na segunda, cada dia com aula leva
@@ -58,7 +59,7 @@ class AgendaMonthGrid extends StatelessWidget {
       selected: sel,
       excludeSemantics: true, // o rótulo já diz tudo: sem ler o número do dia duas vezes
       onTap: () => onPick(d),
-      label: '${d.day} de ${_monthNames[d.month - 1]}, ${n == 0 ? 'sem aulas' : (n == 1 ? '1 aula' : '$n aulas')}',
+      label: tr('{0} de {1}, {2}', [d.day, _monthNames[d.month - 1], n == 0 ? tr('sem aulas') : (n == 1 ? tr('1 aula') : tr('{0} aulas', [n]))]),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: () => onPick(d),

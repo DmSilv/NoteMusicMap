@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// Logo do Notemusic: um mostrador de afinador (arco verde, a cor do app) com
 /// uma nota musical branca no centro. Mesma geometria de tools/make_icons.mjs.
@@ -11,7 +12,7 @@ class AppLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Semantics(
-        label: 'Logo do Notemusic',
+        label: tr('Logo do Notemusic'),
         image: true,
         child: SizedBox(width: size, height: size, child: CustomPaint(painter: _LogoPainter(rounded))),
       );

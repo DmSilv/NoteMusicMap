@@ -44,9 +44,16 @@ String fillSlots(String text, List<Object?> args) {
   });
 }
 
+/// Quando o mesmo texto em português tem sentidos diferentes em inglês, acrescente `@@contexto` ao final da chave
+/// (`'{0} de {1}@@mês'`): o contexto só distingue as chaves do dicionário e nunca aparece na tela.
+String _noCtx(String s) {
+  final i = s.indexOf('@@');
+  return i < 0 ? s : s.substring(0, i);
+}
+
 /// Texto na língua de hoje. [pt] é o texto em português (e a chave do dicionário); [args] preenchem `{0}`, `{1}`…
 String tr(String pt, [List<Object?> args = const []]) {
-  final base = Lang.isEn ? (kEn[pt] ?? pt) : pt;
+  final base = Lang.isEn ? (kEn[pt] ?? _noCtx(pt)) : _noCtx(pt);
   return fillSlots(base, args);
 }
 

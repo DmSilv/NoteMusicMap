@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// Escrita por voz: toca no microfone de um campo, fala, e o texto aparece.
 ///
@@ -80,7 +81,7 @@ class Dictation extends ChangeNotifier {
     await stop();
     await beforeListen?.call();
     if (!await _init()) {
-      onMessage?.call('Ditado indisponível aqui. Use o microfone do teclado do celular, se houver.');
+      onMessage?.call(tr('Ditado indisponível aqui. Use o microfone do teclado do celular, se houver.'));
       return;
     }
     _base = c.text.trimRight();
@@ -101,7 +102,7 @@ class Dictation extends ChangeNotifier {
     } catch (_) {
       _active = null;
       notifyListeners();
-      onMessage?.call('Não consegui ouvir agora. Tente de novo.');
+      onMessage?.call(tr('Não consegui ouvir agora. Tente de novo.'));
     }
   }
 
@@ -139,13 +140,13 @@ class Dictation extends ChangeNotifier {
     notifyListeners();
     final m = e.errorMsg;
     if (m.contains('permission') || m.contains('not-allowed')) {
-      onMessage?.call('Permita o uso do microfone para ditar.');
+      onMessage?.call(tr('Permita o uso do microfone para ditar.'));
     } else if (m.contains('no_match') || m.contains('no-speech') || m.contains('speech_timeout')) {
-      onMessage?.call('Não ouvi nada. Toque no microfone e fale de novo.');
+      onMessage?.call(tr('Não ouvi nada. Toque no microfone e fale de novo.'));
     } else if (m.contains('network')) {
-      onMessage?.call('Sem internet: o reconhecimento de voz deste aparelho precisa de conexão.');
+      onMessage?.call(tr('Sem internet: o reconhecimento de voz deste aparelho precisa de conexão.'));
     } else {
-      onMessage?.call('O ditado parou. Tente de novo.');
+      onMessage?.call(tr('O ditado parou. Tente de novo.'));
     }
   }
 

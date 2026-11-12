@@ -21,11 +21,11 @@ Color errorTint(ErrorSeverity s) => switch (s) {
 /// "há 5 min" / "ontem" para a hora de um problema.
 String errorAgo(int atMs, {DateTime? now}) {
   final m = (now ?? DateTime.now()).difference(DateTime.fromMillisecondsSinceEpoch(atMs)).inMinutes;
-  if (m < 1) return 'agora';
-  if (m < 60) return 'há $m min';
-  if (m < 60 * 24) return 'há ${m ~/ 60} h';
+  if (m < 1) return tr('agora');
+  if (m < 60) return tr('há {0} min', [m]);
+  if (m < 60 * 24) return tr('há {0} h', [m ~/ 60]);
   final d = m ~/ (60 * 24);
-  return d == 1 ? 'ontem' : 'há $d d';
+  return d == 1 ? tr('ontem') : tr('há {0} d', [d]);
 }
 
 /// Tela cheia para quando o app não consegue seguir (ex.: falha ao abrir).
@@ -67,11 +67,11 @@ class CriticalErrorPage extends StatelessWidget {
                   onPressed: () async {
                     await Clipboard.setData(ClipboardData(text: log.report()));
                     if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Detalhes copiados.')));
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(tr('Detalhes copiados.'))));
                     }
                   },
                   icon: const Icon(Icons.copy, size: 18),
-                  label: const Text('Copiar detalhes'),
+                  label: Text(tr('Copiar detalhes')),
                 ),
               ],
             ),
@@ -94,7 +94,7 @@ class _CodeChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           border: Border.all(color: AppColors.outline),
         ),
-        child: Text('Código $id', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.textDim)),
+        child: Text(tr('Código {0}', [id]), style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.textDim)),
       );
 }
 
@@ -118,8 +118,8 @@ class FriendlyErrorWidget extends StatelessWidget {
           const SizedBox(width: 10),
           Flexible(
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Este bloco não carregou', style: TextStyle(fontWeight: FontWeight.w800)),
-              Text('Código $id', style: TextStyle(fontSize: 12, color: AppColors.textDim)),
+              Text(tr('Este bloco não carregou'), style: TextStyle(fontWeight: FontWeight.w800)),
+              Text(tr('Código {0}', [id]), style: TextStyle(fontSize: 12, color: AppColors.textDim)),
             ]),
           ),
         ]),
@@ -152,8 +152,8 @@ class _ProblemsPageState extends State<ProblemsPage> {
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(e.message, style: const TextStyle(height: 1.35)),
               const SizedBox(height: 10),
-              Text('Código ${e.shortId} · ${e.code}', style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
-              if (e.where.isNotEmpty) Text('Onde: ${e.where}', style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+              Text(tr('Código {0} · {1}', [e.shortId, e.code]), style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+              if (e.where.isNotEmpty) Text(tr('Onde: {0}', [e.where]), style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
               if (e.detail.isNotEmpty) ...[
                 const SizedBox(height: 10),
                 Text(e.detail, style: TextStyle(fontFamily: 'monospace', fontSize: 11.5, color: AppColors.textDim)),
@@ -165,12 +165,12 @@ class _ProblemsPageState extends State<ProblemsPage> {
           TextButton.icon(
             onPressed: () async {
               final ok = await app.sendReport(e);
-              app.say(ok ? 'Relatório enviado. Obrigado!' : 'Não foi possível enviar agora. Tente de novo mais tarde.');
+              app.say(ok ? tr('Relatório enviado. Obrigado!') : tr('Não foi possível enviar agora. Tente de novo mais tarde.'));
             },
             icon: const Icon(Icons.send, size: 18),
-            label: const Text('Enviar relatório'),
+            label: Text(tr('Enviar relatório')),
           ),
-          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Fechar')),
+          TextButton(onPressed: () => Navigator.pop(c), child: Text(tr('Fechar'))),
         ],
       ),
     );
@@ -180,7 +180,7 @@ class _ProblemsPageState extends State<ProblemsPage> {
   Widget build(BuildContext context) {
     final items = app.errorLog.items;
     return Scaffold(
-      appBar: AppBar(title: const Text('Problemas recentes')),
+      appBar: AppBar(title: Text(tr('Problemas recentes'))),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
@@ -189,7 +189,7 @@ class _ProblemsPageState extends State<ProblemsPage> {
               child: Row(children: [
                 Icon(Icons.check_circle_outline, color: AppColors.inTune),
                 const SizedBox(width: 12),
-                const Expanded(child: Text('Nenhum problema registrado. Está tudo certo por aqui.')),
+                Expanded(child: Text(tr('Nenhum problema registrado. Está tudo certo por aqui.'))),
               ]),
             )
           else ...[
@@ -202,7 +202,7 @@ class _ProblemsPageState extends State<ProblemsPage> {
                     leading: Icon(errorIcon(e.severity), color: errorTint(e.severity)),
                     title: Text(e.title, style: const TextStyle(fontWeight: FontWeight.w700)),
                     subtitle: Text(
-                      '${e.shortId} · ${errorAgo(e.atMs)}${app.errorLog.repeatsOf(e) > 1 ? ' · ${app.errorLog.repeatsOf(e)}x' : ''}'
+                      '${e.shortId} · ${errorAgo(e.atMs)}${app.errorLog.repeatsOf(e) > 1 ? tr(' · {0}x', [app.errorLog.repeatsOf(e)]) : ''}'
                       '${e.where.isEmpty ? '' : '\n${e.where}'}',
                       style: TextStyle(color: AppColors.textDim, fontSize: 12.5, height: 1.3),
                     ),
@@ -218,10 +218,10 @@ class _ProblemsPageState extends State<ProblemsPage> {
                 child: FilledButton.tonalIcon(
                   onPressed: () async {
                     await Clipboard.setData(ClipboardData(text: app.errorLog.report()));
-                    app.say('Relatório copiado.');
+                    app.say(tr('Relatório copiado.'));
                   },
                   icon: const Icon(Icons.copy, size: 18),
-                  label: const Text('Copiar relatório'),
+                  label: Text(tr('Copiar relatório')),
                 ),
               ),
               const SizedBox(width: 10),
@@ -229,7 +229,7 @@ class _ProblemsPageState extends State<ProblemsPage> {
                 child: OutlinedButton.icon(
                   onPressed: () => setState(app.clearErrors),
                   icon: const Icon(Icons.delete_sweep, size: 18),
-                  label: const Text('Limpar'),
+                  label: Text(tr('Limpar')),
                 ),
               ),
             ]),

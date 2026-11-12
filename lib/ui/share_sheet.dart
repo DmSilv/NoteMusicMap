@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import 'settings_page.dart' show kAppName;
 import 'theme.dart';
 import 'toast.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// Endereço público do app (usado no celular; na web vale o endereço aberto).
 const String kShareUrl = String.fromEnvironment(
@@ -36,10 +37,10 @@ Future<void> showShareSheet(BuildContext context) {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Compartilhar $kAppName',
+            Text(tr('Compartilhar {0}', [kAppName]),
                 style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
             const SizedBox(height: 4),
-            Text('Aponte a câmera do celular para o código ou envie o link.',
+            Text(tr('Aponte a câmera do celular para o código ou envie o link.'),
                 textAlign: TextAlign.center,
                 style: TextStyle(color: AppColors.textDim, fontSize: 13)),
             const SizedBox(height: 16),
@@ -57,7 +58,7 @@ Future<void> showShareSheet(BuildContext context) {
                 eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Colors.black),
                 dataModuleStyle: const QrDataModuleStyle(
                     dataModuleShape: QrDataModuleShape.square, color: Colors.black),
-                semanticsLabel: 'QR code com o endereço do app',
+                semanticsLabel: tr('QR code com o endereço do app'),
               ),
             ),
             const SizedBox(height: 14),
@@ -77,12 +78,12 @@ Future<void> showShareSheet(BuildContext context) {
                       ok = false; // navegador negou a área de transferência
                     }
                     if (c.mounted) {
-                      showToast(c, ok ? 'Link copiado' : 'Não deu para copiar: selecione o link acima',
+                      showToast(c, ok ? tr('Link copiado') : tr('Não deu para copiar: selecione o link acima'),
                           icon: ok ? Icons.check_circle : Icons.info_outline);
                     }
                   },
                   icon: const Icon(Icons.link),
-                  label: const Text('Copiar link'),
+                  label: Text(tr('Copiar link')),
                 ),
               ),
               const SizedBox(width: 8),
@@ -91,7 +92,7 @@ Future<void> showShareSheet(BuildContext context) {
                   onPressed: () async {
                     try {
                       await SharePlus.instance.share(ShareParams(
-                        text: 'Conheça o $kAppName: afinador, metrônomo e estudo para instrumentos. $link',
+                        text: tr('Conheça o {0}: afinador, metrônomo e estudo para instrumentos. {1}', [kAppName, link]),
                         title: kAppName,
                       ));
                     } catch (_) {
@@ -99,7 +100,7 @@ Future<void> showShareSheet(BuildContext context) {
                     }
                   },
                   icon: const Icon(Icons.ios_share),
-                  label: const Text('Enviar'),
+                  label: Text(tr('Enviar')),
                 ),
               ),
             ]),

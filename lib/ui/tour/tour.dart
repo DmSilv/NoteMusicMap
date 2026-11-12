@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../design_system.dart';
 import '../theme.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// Tutorial guiado: escurece a tela, deixa um buraco redondo no botão e mostra uma caixinha com o que ele faz.
 /// Nunca é obrigatório (sempre tem "Pular") e nunca trava: se um botão não estiver na tela, o passo é pulado.
@@ -125,11 +126,11 @@ class _TourOverlayState extends State<_TourOverlay> {
           Text(step.text, style: const TextStyle(fontSize: 15, height: 1.35)),
           const SizedBox(height: Ds.s8),
           Row(children: [
-            Text('${index + 1} de ${widget.steps.length}', style: Ds.support()),
+            Text(tr('{0} de {1}', [index + 1, widget.steps.length]), style: Ds.support()),
             const Spacer(),
-            TextButton(onPressed: () => widget.onFinish(false), child: const Text('Pular')),
+            TextButton(onPressed: () => widget.onFinish(false), child: Text(tr('Pular'))),
             const SizedBox(width: Ds.s4),
-            FilledButton(onPressed: () => last ? widget.onFinish(true) : _goTo(index + 1), child: Text(last ? 'Entendi' : 'Próximo')),
+            FilledButton(onPressed: () => last ? widget.onFinish(true) : _goTo(index + 1), child: Text(last ? tr('Entendi') : tr('Próximo'))),
           ]),
         ]),
       ),

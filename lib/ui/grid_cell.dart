@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import 'note_widgets.dart';
 import 'theme.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// Quanto tempo (s) o brilho na borda dura depois que a nota soou.
 const double _flashSeconds = 0.45;
@@ -112,7 +113,7 @@ class GridCell extends StatelessWidget {
                     NoteLabel.midi(midi, app.cfg,
                         size: labelSize, weight: weight, color: labelColor),
                     if (v != null)
-                      Text('×${v.plays}',
+                      Text(tr('×{0}', [v.plays]),
                           style: TextStyle(
                               fontSize: 11,
                               height: 1.1,

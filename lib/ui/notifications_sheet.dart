@@ -8,6 +8,7 @@ import 'teacher_page.dart';
 import 'design_system.dart';
 import 'suggestions.dart';
 import 'theme.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// Ícone de cada tipo de aviso.
 IconData noticeIcon(String kind) => switch (kind) {
@@ -23,11 +24,11 @@ IconData noticeIcon(String kind) => switch (kind) {
 String noticeAgo(int atMs, {DateTime? now}) {
   final n = now ?? DateTime.now();
   final m = n.difference(DateTime.fromMillisecondsSinceEpoch(atMs)).inMinutes;
-  if (m < 1) return 'agora';
-  if (m < 60) return 'há $m min';
-  if (m < 60 * 24) return 'há ${m ~/ 60} h';
+  if (m < 1) return tr('agora');
+  if (m < 60) return tr('há {0} min', [m]);
+  if (m < 60 * 24) return tr('há {0} h', [m ~/ 60]);
   final d = m ~/ (60 * 24);
-  return d == 1 ? 'ontem' : 'há $d d';
+  return d == 1 ? tr('ontem') : tr('há {0} d', [d]);
 }
 
 /// Leva ao lugar certo conforme o tipo do aviso (e marca como lido).
@@ -65,16 +66,16 @@ Future<void> showNotificationsSheet(BuildContext context, AppState app) {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
                 Row(children: [
-                  const Expanded(child: Text('Avisos', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18))),
-                  if (app.unseenNotices > 0) TextButton.icon(onPressed: app.markNoticesSeen, icon: const Icon(Icons.done_all, size: 18), label: const Text('Marcar como lidos')),
-                  if (list.isNotEmpty) TextButton.icon(onPressed: app.clearNotices, icon: const Icon(Icons.delete_sweep, size: 18), label: const Text('Limpar')),
+                  Expanded(child: Text(tr('Avisos'), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18))),
+                  if (app.unseenNotices > 0) TextButton.icon(onPressed: app.markNoticesSeen, icon: const Icon(Icons.done_all, size: 18), label: Text(tr('Marcar como lidos'))),
+                  if (list.isNotEmpty) TextButton.icon(onPressed: app.clearNotices, icon: const Icon(Icons.delete_sweep, size: 18), label: Text(tr('Limpar'))),
                 ]),
                 const DsGap.small(),
                 SuggestionTiles(app: app, closeSheet: () => Navigator.of(c).pop()),
                 if (list.isEmpty && suggestionCount(app) == 0)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 28),
-                    child: Text('Nenhum aviso por enquanto. Aulas novas, tarefas validadas e horários aparecem aqui.',
+                    child: Text(tr('Nenhum aviso por enquanto. Aulas novas, tarefas validadas e horários aparecem aqui.'),
                         textAlign: TextAlign.center, style: TextStyle(color: AppColors.textDim, height: 1.35)),
                   )
                 else

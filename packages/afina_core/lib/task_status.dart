@@ -1,5 +1,6 @@
 import 'identity.dart' show formatShareCode;
 import 'teacher.dart';
+import 'i18n.dart';
 
 /// Decisão oficial do professor sobre uma tarefa que o aluno marcou como feita.
 enum Verdict { ok, back }
@@ -20,10 +21,10 @@ StudentTaskState studentTaskState({required bool claimed, Verdict? verdict, bool
 }
 
 String studentTaskLabel(StudentTaskState s) => switch (s) {
-      StudentTaskState.pending => 'Pendente',
-      StudentTaskState.claimed => 'Aguardando o professor',
-      StudentTaskState.validated => 'Validada pelo professor',
-      StudentTaskState.returned => 'Refazer (devolvida)',
+      StudentTaskState.pending => tr('Pendente'),
+      StudentTaskState.claimed => tr('Aguardando o professor'),
+      StudentTaskState.validated => tr('Validada pelo professor'),
+      StudentTaskState.returned => tr('Refazer (devolvida)'),
     };
 
 /// Código curto usado no servidor para a decisão.
@@ -53,9 +54,9 @@ class TaskSummary {
   String get line {
     if (isEmpty) return '';
     final parts = <String>[
-      if (toValidate.isNotEmpty) '${toValidate.length} para validar',
-      if (pending.isNotEmpty) '${pending.length} pendente${pending.length == 1 ? '' : 's'}',
-      if (concluded > 0) '$concluded concluída${concluded == 1 ? '' : 's'}',
+      if (toValidate.isNotEmpty) tr('{0} para validar', [toValidate.length]),
+      if (pending.isNotEmpty) tr('{0} pendente{1}', [pending.length, pending.length == 1 ? '' : 's']),
+      if (concluded > 0) tr('{0} concluída{1}', [concluded, concluded == 1 ? '' : 's']),
     ];
     return parts.join(' · ');
   }

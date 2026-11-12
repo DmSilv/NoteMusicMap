@@ -8,6 +8,7 @@ import 'library_page.dart';
 import 'perf.dart';
 import 'theme.dart';
 import 'widgets.dart';
+import 'package:afina_core/afina_core.dart';
 
 /// "Meu espaço": o foco é a AGENDA (próxima aula e o que vem depois), os alunos, as tarefas e o acervo.
 /// O estudo (resumo, cronômetro e Pomodoro) mora na aba Metrônomo (`study_card.dart`).
@@ -24,10 +25,10 @@ class StudyPage extends StatelessWidget {
       padding: EdgeInsets.zero,
       child: Column(children: [
         if (app.libraryOn)
-          _row(Icons.library_books_rounded, 'Acervo e repertório', 'Seus métodos e peças, com link', () => openLibrary(context, app)),
+          _row(Icons.library_books_rounded, tr('Acervo e repertório'), tr('Seus métodos e peças, com link'), () => openLibrary(context, app)),
         if (both) const Divider(height: 1),
         for (final t in teachers)
-          _row(Icons.folder_open_rounded, 'Material de ${t.name.isEmpty ? 'seu professor' : t.name}', 'Métodos e peças indicados', () => openLibrary(context, app, teacher: t.code, teacherName: t.name)),
+          _row(Icons.folder_open_rounded, tr('Material de {0}', [t.name.isEmpty ? tr('seu professor') : t.name]), tr('Métodos e peças indicados'), () => openLibrary(context, app, teacher: t.code, teacherName: t.name)),
       ]),
     );
   }

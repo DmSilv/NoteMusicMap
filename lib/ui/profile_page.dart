@@ -65,26 +65,25 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _copy(String text, String what) async {
     await Clipboard.setData(ClipboardData(text: text));
-    app.say('$what copiado.');
+    app.say(tr('{0} copiado.', [what]));
   }
 
   Future<void> _doRestore() async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Usar outro perfil neste aparelho?'),
-        content: const Text(
-          'Este aparelho passa a se identificar com o perfil da chave. O histórico que já está aqui '
-          'continua, mas passa a pertencer a esse perfil. Seu código atual deixa de valer neste aparelho.',
+        title: Text(tr('Usar outro perfil neste aparelho?')),
+        content: Text(
+          tr('Este aparelho passa a se identificar com o perfil da chave. O histórico que já está aqui continua, mas passa a pertencer a esse perfil. Seu código atual deixa de valer neste aparelho.'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(c, false),
-            child: const Text('Cancelar'),
+            child: Text(tr('Cancelar')),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, true),
-            child: const Text('Usar este perfil'),
+            child: Text(tr('Usar este perfil')),
           ),
         ],
       ),
@@ -93,10 +92,10 @@ class _ProfilePageState extends State<ProfilePage> {
     if (app.restoreProfile(_restore.text)) {
       _restore.clear();
       _upd(() => _showKey = false);
-      app.say('Perfil restaurado.');
+      app.say(tr('Perfil restaurado.'));
     } else {
       app.say(
-        'Chave inválida. Confira se copiou tudo, sem faltar nem sobrar caracteres.',
+        tr('Chave inválida. Confira se copiou tudo, sem faltar nem sobrar caracteres.'),
       );
     }
   }
@@ -132,7 +131,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Minha conta')),
+      appBar: AppBar(title: Text(tr('Minha conta'))),
       body: SafeArea(child: _mainList()),
     );
   }
@@ -195,62 +194,62 @@ class _ProfilePageState extends State<ProfilePage> {
                   child: Text(name.isEmpty ? '?' : name[0].toUpperCase(),
                       style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800)),
                 ),
-                title: Text(name.isEmpty ? 'Defina o seu nome' : name,
+                title: Text(name.isEmpty ? tr('Defina o seu nome') : name,
                     style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                subtitle: Text('Código ${p.shareCode}'),
+                subtitle: Text(tr('Código {0}', [p.shareCode])),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () => _open('Meu código e QR', (_) => _codeBody()),
+                onTap: () => _open(tr('Meu código e QR'), (_) => _codeBody()),
               ),
             ),
-            _section('Vínculos'),
-            _row(Icons.cloud_outlined, 'Vínculo online',
-                trailing: _pill(st.title, linkColor), onTap: () => _open('Vínculo online', (_) => _linkOnlineCard())),
-            _row(Icons.school_outlined, 'Meus professores',
+            _section(tr('Vínculos')),
+            _row(Icons.cloud_outlined, tr('Vínculo online'),
+                trailing: _pill(st.title, linkColor), onTap: () => _open(tr('Vínculo online'), (_) => _linkOnlineCard())),
+            _row(Icons.school_outlined, tr('Meus professores'),
                 sub: app.myTeachers.isEmpty
-                    ? 'Nenhum ainda'
-                    : '${app.myTeachers.length} ${app.myTeachers.length == 1 ? 'vinculado' : 'vinculados'}',
-                onTap: () => _open('Meus professores', _myTeacherCard)),
+                    ? tr('Nenhum ainda')
+                    : '${app.myTeachers.length} ${app.myTeachers.length == 1 ? tr('vinculado') : tr('vinculados')}',
+                onTap: () => _open(tr('Meus professores'), _myTeacherCard)),
             if (app.hasTeacherSide)
-              _row(Icons.checklist_rtl, 'Minhas aulas',
-                  trailing: plan.open > 0 ? _pill('${plan.open} em aberto', AppColors.accent) : const Icon(Icons.chevron_right),
+              _row(Icons.checklist_rtl, tr('Minhas aulas'),
+                  trailing: plan.open > 0 ? _pill(tr('{0} em aberto', [plan.open]), AppColors.accent) : const Icon(Icons.chevron_right),
                   onTap: () => _push(MyLessonsPage(app: app))),
-            _section('Professor'),
+            _section(tr('Professor')),
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: AppCard(
                 padding: EdgeInsets.zero,
                 child: SwitchListTile(
                   secondary: Icon(Icons.groups_outlined, color: AppColors.textDim),
-                  title: const Text('Modo professor', style: TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: const Text('Cadastre alunos, passe tarefas e gere relatórios.', style: TextStyle(fontSize: 12.5)),
+                  title: Text(tr('Modo professor'), style: TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text(tr('Cadastre alunos, passe tarefas e gere relatórios.'), style: TextStyle(fontSize: 12.5)),
                   value: app.teacherMode,
                   onChanged: (v) async {
-                    if (v && !await requireNickname(context, app, reason: 'Para ser professor, seus alunos precisam ver o seu nome.')) return;
+                    if (v && !await requireNickname(context, app, reason: tr('Para ser professor, seus alunos precisam ver o seu nome.'))) return;
                     app.setTeacherMode(v);
                   },
                 ),
               ),
             ),
             if (app.teacherMode)
-              _row(Icons.groups_rounded, 'Meus alunos',
+              _row(Icons.groups_rounded, tr('Meus alunos'),
                   sub: app.students.isEmpty
-                      ? 'Nenhum aluno ainda'
-                      : '${app.students.length} ${app.students.length == 1 ? 'aluno' : 'alunos'}'
-                          '${waiting > 0 ? ' · $waiting para validar' : ''}',
+                      ? tr('Nenhum aluno ainda')
+                      : '${app.students.length} ${app.students.length == 1 ? tr('aluno') : tr('alunos')}'
+                          '${waiting > 0 ? tr(' · {0} para validar', [waiting]) : ''}',
                   onTap: () => _push(TeacherPage(app: app))),
-            _section('Conta'),
-            _row(Icons.key, 'Chave de recuperação',
-                sub: p.recoveryShownAt == null ? 'Você ainda não guardou a sua chave' : null,
-                onTap: () => _open('Chave de recuperação', (_) => _keyBody())),
-            _row(Icons.settings_outlined, 'Ajustes', onTap: () {
+            _section(tr('Conta')),
+            _row(Icons.key, tr('Chave de recuperação'),
+                sub: p.recoveryShownAt == null ? tr('Você ainda não guardou a sua chave') : null,
+                onTap: () => _open(tr('Chave de recuperação'), (_) => _keyBody())),
+            _row(Icons.settings_outlined, tr('Ajustes'), onTap: () {
               app.markTab('settings');
               _push(SettingsPage(app: app));
             }),
-            _row(Icons.ios_share, 'Compartilhar o app', onTap: () => showShareSheet(context)),
+            _row(Icons.ios_share, tr('Compartilhar o app'), onTap: () => showShareSheet(context)),
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
               child: Text(
-                'Sem cadastro: seus dados ficam neste aparelho. A chave guarda só a sua identidade, não o histórico.',
+                tr('Sem cadastro: seus dados ficam neste aparelho. A chave guarda só a sua identidade, não o histórico.'),
                 style: TextStyle(color: AppColors.textDim, fontSize: 12),
               ),
             ),
@@ -273,9 +272,9 @@ class _ProfilePageState extends State<ProfilePage> {
             inputFormatters: const [SafeText.name()],
             textCapitalization: TextCapitalization.words,
             maxLength: 40,
-            decoration: const InputDecoration(
-              labelText: 'Seu nome',
-              helperText: 'Aparece para o seu professor ou aluno quando você se vincula.',
+            decoration: InputDecoration(
+              labelText: tr('Seu nome'),
+              helperText: tr('Aparece para o seu professor ou aluno quando você se vincula.'),
               helperMaxLines: 2,
             ),
             onChanged: app.setProfileName,
@@ -298,9 +297,9 @@ class _ProfilePageState extends State<ProfilePage> {
               width: double.infinity,
               child: SegmentedButton<int>(
                 showSelectedIcon: false,
-                segments: const [
-                  ButtonSegment(value: 0, label: Text('Para meu professor')),
-                  ButtonSegment(value: 1, label: Text('Para meus alunos')),
+                segments: [
+                  ButtonSegment(value: 0, label: Text(tr('Para meu professor'))),
+                  ButtonSegment(value: 1, label: Text(tr('Para meus alunos'))),
                 ],
                 selected: {mode},
                 onSelectionChanged: (v) => _upd(() => _qrMode = v.first),
@@ -323,9 +322,8 @@ class _ProfilePageState extends State<ProfilePage> {
           const SizedBox(height: 8),
           Text(
             mode == 0
-                ? 'Mostre ao seu professor: ele aponta a câmera e o Notemusic abre com o seu código. '
-                    'Ele só vê seus exercícios se você aceitar o convite.'
-                : 'Seus alunos leem este QR em Meus professores, ou digitam o código. Quem se vincular entra sozinho na sua lista.',
+                ? tr('Mostre ao seu professor: ele aponta a câmera e o Notemusic abre com o seu código. Ele só vê seus exercícios se você aceitar o convite.')
+                : tr('Seus alunos leem este QR em Meus professores, ou digitam o código. Quem se vincular entra sozinho na sua lista.'),
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
           ),
@@ -335,16 +333,16 @@ class _ProfilePageState extends State<ProfilePage> {
               child: OutlinedButton.icon(
                 onPressed: () => app.setLinkEnabled(true),
                 icon: const Icon(Icons.cloud_outlined),
-                label: const Text('Ligar o vínculo online'),
+                label: Text(tr('Ligar o vínculo online')),
               ),
             ),
           ],
           const SizedBox(height: 10),
           Center(
             child: OutlinedButton.icon(
-              onPressed: () => _copy(p.shareCode, 'Código'),
+              onPressed: () => _copy(p.shareCode, tr('Código')),
               icon: const Icon(Icons.copy, size: 18),
-              label: const Text('Copiar código'),
+              label: Text(tr('Copiar código')),
             ),
           ),
         ],
@@ -372,7 +370,7 @@ class _ProfilePageState extends State<ProfilePage> {
               Row(children: [
                 Icon(icon, color: color),
                 const SizedBox(width: 10),
-                const Expanded(child: Text('Vínculo online', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
+                Expanded(child: Text(tr('Vínculo online'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                   decoration: BoxDecoration(color: color.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(10)),
@@ -389,27 +387,27 @@ class _ProfilePageState extends State<ProfilePage> {
                     icon: _reconnecting
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                         : const Icon(Icons.refresh, size: 18),
-                    label: const Text('Reconectar agora'),
+                    label: Text(tr('Reconectar agora')),
                   ),
                 if (app.linkEnabled)
                   OutlinedButton.icon(
                     onPressed: _confirmOff,
                     icon: const Icon(Icons.power_settings_new, size: 18),
-                    label: const Text('Desativar'),
+                    label: Text(tr('Desativar')),
                   )
                 else
                   FilledButton.icon(
                     onPressed: () {
                       app.setLinkEnabled(true);
-                      app.say('Vínculo online ligado.');
+                      app.say(tr('Vínculo online ligado.'));
                     },
                     icon: const Icon(Icons.cloud_outlined, size: 18),
-                    label: const Text('Ativar vínculo'),
+                    label: Text(tr('Ativar vínculo')),
                   ),
               ]),
               const SizedBox(height: 10),
               Text(
-                'O servidor guarda só: código, apelido, datas dos vínculos, último sinal e tarefas das aulas. Nunca áudio nem histórico.',
+                tr('O servidor guarda só: código, apelido, datas dos vínculos, último sinal e tarefas das aulas. Nunca áudio nem histórico.'),
                 style: TextStyle(color: AppColors.textDim, fontSize: 11.5, height: 1.3),
               ),
             ],
@@ -433,7 +431,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final ok = await confirmDisableLink(context, app);
     if (ok) {
       app.setLinkEnabled(false);
-      app.say('Vínculo online desligado. Você está offline.');
+      app.say(tr('Vínculo online desligado. Você está offline.'));
     }
   }
 
@@ -447,15 +445,15 @@ class _ProfilePageState extends State<ProfilePage> {
           Row(children: [
             Icon(Icons.school_outlined, color: AppColors.accent),
             const SizedBox(width: 8),
-            const Expanded(
-              child: Text('Meus professores', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+            Expanded(
+              child: Text(tr('Meus professores'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
             ),
           ]),
           const SizedBox(height: 4),
           Text(
             teachers.isEmpty
-                ? 'Tem professor que usa o Notemusic? Leia o QR dele (ou digite o código): você passa a aparecer na lista dele.'
-                : 'Você aparece na lista de cada professor abaixo.',
+                ? tr('Tem professor que usa o Notemusic? Leia o QR dele (ou digite o código): você passa a aparecer na lista dele.')
+                : tr('Você aparece na lista de cada professor abaixo.'),
             style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
           ),
           for (final t in teachers)
@@ -464,11 +462,11 @@ class _ProfilePageState extends State<ProfilePage> {
               dense: true,
               leading: Icon(t.since > 0 ? Icons.link : Icons.sync_problem,
                   color: t.since > 0 ? AppColors.inTune : AppColors.flat),
-              title: Text(t.name.isEmpty ? 'Professor ${t.code}' : t.name,
+              title: Text(t.name.isEmpty ? tr('Professor {0}', [t.code]) : t.name,
                   style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text(t.since > 0 ? 'Código ${t.code} · vinculado' : 'Código ${t.code} · a vincular quando houver conexão'),
+              subtitle: Text(t.since > 0 ? tr('Código {0} · vinculado', [t.code]) : tr('Código {0} · a vincular quando houver conexão', [t.code])),
               trailing: IconButton(
-                tooltip: 'Encerrar vínculo',
+                tooltip: tr('Encerrar vínculo'),
                 icon: const Icon(Icons.link_off),
                 onPressed: () => _confirmRemoveTeacher(context, t),
               ),
@@ -478,7 +476,7 @@ class _ProfilePageState extends State<ProfilePage> {
             onPressed: () async {
               final s = await scanShareCode(
                 context,
-                title: 'Ler QR do professor',
+                title: tr('Ler QR do professor'),
                 want: 'professor',
                 check: app.checkTeacherCode,
                 onCamera: app.setCameraStatus,
@@ -486,7 +484,7 @@ class _ProfilePageState extends State<ProfilePage> {
               if (s != null) _registerTeacher(s.code);
             },
             icon: const Icon(Icons.qr_code_scanner),
-            label: Text(teachers.isEmpty ? 'Ler QR do professor' : 'Adicionar outro professor'),
+            label: Text(teachers.isEmpty ? tr('Ler QR do professor') : tr('Adicionar outro professor')),
           ),
         ],
       ),
@@ -497,12 +495,11 @@ class _ProfilePageState extends State<ProfilePage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: const Text('Encerrar o vínculo?'),
-        content: Text('Você sai da lista de ${t.name.isEmpty ? 'este professor' : t.name} e ele sai da sua. '
-            'Para vincular de novo, leia o QR outra vez.'),
+        title: Text(tr('Encerrar o vínculo?')),
+        content: Text(tr('Você sai da lista de {0} e ele sai da sua. Para vincular de novo, leia o QR outra vez.', [t.name.isEmpty ? tr('este professor') : t.name])),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancelar')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Encerrar')),
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Encerrar'))),
         ],
       ),
     );
@@ -510,7 +507,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _registerTeacher(String code) async {
-    if (!await requireNickname(context, app, reason: 'Para vincular a um professor, ele precisa saber quem você é.')) return;
+    if (!await requireNickname(context, app, reason: tr('Para vincular a um professor, ele precisa saber quem você é.'))) return;
     final err = await app.addMyTeacher(code);
     if (err != null) app.say(err);
   }
@@ -531,7 +528,7 @@ class _ProfilePageState extends State<ProfilePage> {
               const SizedBox(width: 10),
               Expanded(child: Text(n.text, style: const TextStyle(fontWeight: FontWeight.w700, height: 1.3))),
               IconButton(
-                tooltip: 'Dispensar',
+                tooltip: tr('Dispensar'),
                 visualDensity: VisualDensity.compact,
                 onPressed: () => app.dismissNotice(n),
                 icon: const Icon(Icons.close, size: 20),
@@ -548,7 +545,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   );
                 },
                 icon: const Icon(Icons.menu_book_outlined, size: 18),
-                label: const Text('Ver minhas aulas'),
+                label: Text(tr('Ver minhas aulas')),
               ),
             ),
           ],
@@ -569,12 +566,12 @@ class _ProfilePageState extends State<ProfilePage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Guarde em lugar seguro: com ela você leva o perfil a outro aparelho. Quem a tiver pode se passar por você.',
+                tr('Guarde em lugar seguro: com ela você leva o perfil a outro aparelho. Quem a tiver pode se passar por você.'),
                 style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
               ),
               if (p.recoveryShownAt == null) ...[
                 const SizedBox(height: 8),
-                Text('Você ainda não guardou a sua chave.',
+                Text(tr('Você ainda não guardou a sua chave.'),
                     style: TextStyle(color: AppColors.sharp, fontWeight: FontWeight.w700, fontSize: 13)),
               ],
               const SizedBox(height: 10),
@@ -582,7 +579,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 FilledButton.tonalIcon(
                   onPressed: () => _upd(() => _showKey = true),
                   icon: const Icon(Icons.visibility_outlined),
-                  label: const Text('Mostrar minha chave'),
+                  label: Text(tr('Mostrar minha chave')),
                 )
               else ...[
                 Container(
@@ -596,11 +593,11 @@ class _ProfilePageState extends State<ProfilePage> {
                   Expanded(
                     child: FilledButton.icon(
                       onPressed: () async {
-                        await _copy(key, 'Chave');
+                        await _copy(key, tr('Chave'));
                         app.markRecoveryShown();
                       },
                       icon: const Icon(Icons.copy, size: 18),
-                      label: const Text('Copiar'),
+                      label: Text(tr('Copiar')),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -609,7 +606,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       app.markRecoveryShown();
                       _upd(() => _showKey = false);
                     },
-                    child: const Text('Já guardei'),
+                    child: Text(tr('Já guardei')),
                   ),
                 ]),
               ],
@@ -621,9 +618,9 @@ class _ProfilePageState extends State<ProfilePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Usar um perfil que já tenho', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              Text(tr('Usar um perfil que já tenho'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
-              Text('Cole a chave de recuperação do outro aparelho.',
+              Text(tr('Cole a chave de recuperação do outro aparelho.'),
                   style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
               const SizedBox(height: 8),
               TextField(
@@ -633,14 +630,14 @@ class _ProfilePageState extends State<ProfilePage> {
                 maxLines: 4,
                 autocorrect: false,
                 enableSuggestions: false,
-                decoration: const InputDecoration(hintText: 'NM1-…'),
+                decoration: InputDecoration(hintText: 'NM1-…'),
                 onChanged: (_) => _upd(() {}),
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 onPressed: _restore.text.trim().isEmpty ? null : _doRestore,
                 icon: const Icon(Icons.restore),
-                label: const Text('Restaurar perfil'),
+                label: Text(tr('Restaurar perfil')),
               ),
             ],
           ),
@@ -650,10 +647,10 @@ class _ProfilePageState extends State<ProfilePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Tenho um código de suporte', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              Text(tr('Tenho um código de suporte'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
               Text(
-                'Perdeu a chave? Digite o código do perfil e o de suporte (24 h, uso único). O aparelho antigo perde o acesso.',
+                tr('Perdeu a chave? Digite o código do perfil e o de suporte (24 h, uso único). O aparelho antigo perde o acesso.'),
                 style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
               ),
               const SizedBox(height: 8),
@@ -662,7 +659,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 inputFormatters: [...codeFormatters, LengthLimitingTextInputFormatter(9)],
                 autocorrect: false,
                 textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(labelText: 'Código do seu perfil', hintText: 'K7QM-4TXD'),
+                decoration: InputDecoration(labelText: tr('Código do seu perfil'), hintText: 'K7QM-4TXD'),
                 onChanged: (_) => _upd(() {}),
               ),
               const SizedBox(height: 8),
@@ -671,7 +668,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 inputFormatters: [...codeFormatters, LengthLimitingTextInputFormatter(9)],
                 autocorrect: false,
                 textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(labelText: 'Código de suporte', hintText: 'XXXX-XXXX'),
+                decoration: InputDecoration(labelText: tr('Código de suporte'), hintText: 'XXXX-XXXX'),
                 onChanged: (_) => _upd(() {}),
               ),
               const SizedBox(height: 8),
@@ -680,7 +677,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 icon: _claiming
                     ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.support_agent),
-                label: const Text('Liberar neste aparelho'),
+                label: Text(tr('Liberar neste aparelho')),
               ),
             ],
           ),
@@ -697,7 +694,7 @@ class _ProfilePageState extends State<ProfilePage> {
     if (err == null) {
       _claimCode.clear();
       _claimSupport.clear();
-      app.say('Conta liberada neste aparelho.');
+      app.say(tr('Conta liberada neste aparelho.'));
     } else {
       app.say(err);
     }
@@ -711,7 +708,7 @@ Future<void> handleIncomingTeacherCode(BuildContext context, AppState app) async
   if (code == null) return;
   app.incomingTeacherCode = null;
   if (app.teacherCodes.contains(code)) {
-    app.say('Este professor já está na sua lista.');
+    app.say(tr('Este professor já está na sua lista.'));
     return;
   }
   final problem = app.checkTeacherCode(code);
@@ -722,18 +719,16 @@ Future<void> handleIncomingTeacherCode(BuildContext context, AppState app) async
   final ok = await showDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
-      title: const Text('Código de professor'),
-      content: Text('O código $code foi lido. Vincular como o seu professor? '
-          'Ele passa a aparecer na sua lista e você na lista dele. O servidor guarda os códigos, '
-          'o apelido e a data do vínculo, e as tarefas das aulas que ele encerrar para você; nada dos seus exercícios.'),
+      title: Text(tr('Código de professor')),
+      content: Text(tr('O código {0} foi lido. Vincular como o seu professor? Ele passa a aparecer na sua lista e você na lista dele. O servidor guarda os códigos, o apelido e a data do vínculo, e as tarefas das aulas que ele encerrar para você; nada dos seus exercícios.', [code])),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Agora não')),
-        FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.link, size: 18), label: const Text('Vincular')),
+        TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Agora não'))),
+        FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.link, size: 18), label: Text(tr('Vincular'))),
       ],
     ),
   );
   if (ok == true) {
-    if (!context.mounted || !await requireNickname(context, app, reason: 'Para vincular a um professor, ele precisa saber quem você é.')) return;
+    if (!context.mounted || !await requireNickname(context, app, reason: tr('Para vincular a um professor, ele precisa saber quem você é.'))) return;
     final err = await app.addMyTeacher(code);
     if (err != null) app.say(err);
   }

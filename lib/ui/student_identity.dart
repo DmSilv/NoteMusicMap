@@ -8,10 +8,10 @@ import 'theme.dart';
 /// Selo do vínculo online do aluno.
 Widget linkBadge(Student s) {
   final (icon, color, text) = switch (s.linkState) {
-    'active' => (Icons.link, AppColors.inTune, 'Vinculado'),
-    'pending' => (Icons.sync_problem, AppColors.flat, 'A vincular'),
-    'ended' => (Icons.link_off, AppColors.sharp, 'Encerrado pelo aluno'),
-    _ => (Icons.phone_android, AppColors.textDim, 'Só neste aparelho'),
+    'active' => (Icons.link, AppColors.inTune, tr('Vinculado')),
+    'pending' => (Icons.sync_problem, AppColors.flat, tr('A vincular')),
+    'ended' => (Icons.link_off, AppColors.sharp, tr('Encerrado pelo aluno')),
+    _ => (Icons.phone_android, AppColors.textDim, tr('Só neste aparelho')),
   };
   return Row(mainAxisSize: MainAxisSize.min, children: [
     Icon(icon, size: 13, color: color),
@@ -23,7 +23,7 @@ Widget linkBadge(Student s) {
 /// O nome que o próprio aluno registrou no perfil dele, se for diferente do que o professor usa.
 String? remoteNameOf(Student s) {
   final r = (s.remoteName ?? '').trim();
-  if (r.isEmpty || r == s.name.trim() || r == 'Aluno ${s.code}') return null;
+  if (r.isEmpty || r == s.name.trim() || isDefaultStudentName(r, s.code ?? '')) return null;
   return r;
 }
 
@@ -60,7 +60,7 @@ class StudentIdentity extends StatelessWidget {
           if (s.code != null)
             Row(children: [
               Flexible(
-                child: Text('Código ${s.code}',
+                child: Text(tr('Código {0}', [s.code]),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(color: AppColors.textDim, fontSize: 12.5, letterSpacing: 0.5)),
@@ -69,7 +69,7 @@ class StudentIdentity extends StatelessWidget {
                 radius: 16,
                 onTap: () async {
                   await Clipboard.setData(ClipboardData(text: s.code!));
-                  app.say('Código copiado.');
+                  app.say(tr('Código copiado.'));
                 },
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -78,9 +78,9 @@ class StudentIdentity extends StatelessWidget {
               ),
             ])
           else
-            Text('Sem código ainda', style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+            Text(tr('Sem código ainda'), style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
           if (remote != null)
-            Text('Nome no perfil dele: $remote',
+            Text(tr('Nome no perfil dele: {0}', [remote]),
                 maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
           const SizedBox(height: 2),
           linkBadge(s),

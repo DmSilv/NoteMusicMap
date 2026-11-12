@@ -9,6 +9,7 @@
 library;
 
 import 'dart:math';
+import 'i18n.dart';
 
 /// O que acontece num compasso do desafio.
 enum ChallengeKind { normal, faster, slower, silence }
@@ -63,13 +64,13 @@ class ChallengeConfig {
   /// Frase objetiva do que vai acontecer, com o andamento da pessoa.
   String describe(int bpm) {
     final n = numbers;
-    final tempo = 'o andamento muda de ${n.pctMin} a ${n.pctMax}% (de $bpm para cerca de ${(bpm * (1 + n.pctMax / 100)).round()} ou ${(bpm * (1 - n.pctMax / 100)).round()}) e volta';
-    final sil = 'o metrônomo some por ${n.silMin} a ${n.silMax} compassos e volta';
-    final every = 'A cada ${n.normalMin} a ${n.normalMax} compassos';
+    final tempo = tr('o andamento muda de {0} a {1}% (de {2} para cerca de {3} ou {4}) e volta', [n.pctMin, n.pctMax, bpm, (bpm * (1 + n.pctMax / 100)).round(), (bpm * (1 - n.pctMax / 100)).round()]);
+    final sil = tr('o metrônomo some por {0} a {1} compassos e volta', [n.silMin, n.silMax]);
+    final every = tr('A cada {0} a {1} compassos', [n.normalMin, n.normalMax]);
     return switch (name) {
-      ChallengeName.sumico => '$every, $sil. Segure o pulso sozinho.',
-      ChallengeName.elastico => '$every, $tempo. Acompanhe a mudança.',
-      ChallengeName.total => '$every, uma surpresa: $tempo, ou $sil.',
+      ChallengeName.sumico => tr('{0}, {1}. Segure o pulso sozinho.', [every, sil]),
+      ChallengeName.elastico => tr('{0}, {1}. Acompanhe a mudança.', [every, tempo]),
+      ChallengeName.total => tr('{0}, uma surpresa: {1}, ou {2}.', [every, tempo, sil]),
     };
   }
 
