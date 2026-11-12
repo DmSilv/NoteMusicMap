@@ -2,6 +2,7 @@ library;
 
 export 'absence.dart';
 export 'agenda.dart';
+export 'i18n.dart';
 export 'speed_trainer.dart';
 export 'hub.dart';
 export 'identity.dart';

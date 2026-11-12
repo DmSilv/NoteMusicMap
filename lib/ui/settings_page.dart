@@ -107,6 +107,7 @@ class SettingsPage extends StatelessWidget {
 
   List<Widget> _appearanceList() => [
         DsSettingRow(label: 'Tema', child: SizedBox(width: double.infinity, child: _appearance())),
+        DsSettingRow(label: 'Idioma / Language', child: SizedBox(width: double.infinity, child: _language())),
         _switch('Manter a tela acesa', 'Enquanto você ouve ou estuda.', app.keepAwake, app.setKeepAwake),
       ];
 
@@ -178,6 +179,18 @@ class SettingsPage extends StatelessWidget {
       );
 
   // ------------------------------------------------------------------
+  /// Idioma: 'auto' segue o aparelho. Os nomes dos idiomas ficam sempre na própria língua.
+  Widget _language() => SegmentedButton<String>(
+        showSelectedIcon: false,
+        segments: [
+          ButtonSegment(value: 'auto', icon: const Icon(Icons.language), label: Text(tr('Auto'))),
+          const ButtonSegment(value: 'pt', label: Text('Português')),
+          const ButtonSegment(value: 'en', label: Text('English')),
+        ],
+        selected: {app.langPref},
+        onSelectionChanged: (s) => app.setLangPref(s.first),
+      );
+
   Widget _appearance() => SegmentedButton<ThemeMode>(
         showSelectedIcon: false,
         segments: const [

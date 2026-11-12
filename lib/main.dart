@@ -295,7 +295,7 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: widget.app.themeNotifier,
+      listenable: Listenable.merge([widget.app.themeNotifier, widget.app.langNotifier]),
       builder: (context, _) {
         final platformDark =
             WidgetsBinding.instance.platformDispatcher.platformBrightness ==
@@ -312,7 +312,7 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
             debugShowCheckedModeBanner: false,
             localizationsDelegates: kLocalizationsDelegates,
             supportedLocales: kSupportedLocales,
-            locale: kAppLocale,
+            locale: localeFor(widget.app.langNotifier.value),
             scaffoldMessengerKey: _messengerKey,
             navigatorKey: _navKey,
             theme: theme,
@@ -321,7 +321,7 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
             // A chave recria a árvore ao trocar de tema: as cores do app são
             // lidas de AppColors e precisam ser reavaliadas.
             builder: (context, child) {
-              final tree = KeyedSubtree(key: ValueKey(dark), child: child!);
+              final tree = KeyedSubtree(key: ValueKey('$dark-${widget.app.langNotifier.value.name}'), child: child!);
               final mq = MediaQuery.of(context);
               // No navegador/tela larga o app não estica: fica numa coluna de
               // largura de celular, centralizada, e as laterais ficam escuras.

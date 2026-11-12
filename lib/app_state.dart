@@ -179,6 +179,10 @@ class AppState extends ChangeNotifier {
 
   /// Só muda quando o tema muda: o MaterialApp escuta apenas isto.
   final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.system);
+  /// Idioma em uso (português ou inglês). A raiz do app escuta e refaz as telas ao mudar.
+  final ValueNotifier<AppLang> langNotifier = ValueNotifier(AppLang.pt);
+  /// O que a pessoa escolheu em Ajustes: 'auto' (segue o aparelho), 'pt' ou 'en'.
+  String langPref = 'auto';
 
   // ---------------- Pomodoro ----------------
   PomodoroTimer pomo = PomodoroTimer();
@@ -3305,6 +3309,23 @@ class AppState extends ChangeNotifier {
   ThemeMode get themeMode => themeNotifier.value;
   set themeMode(ThemeMode m) => themeNotifier.value = m;
 
+  /// Idioma do aparelho (ex.: "en-US", "pt-BR").
+  static String get deviceLangTag => PlatformDispatcher.instance.locale.toLanguageTag();
+
+  /// Aplica a escolha ('auto' | 'pt' | 'en') e avisa as telas.
+  void _applyLang() {
+    final l = Lang.resolve(langPref, deviceLangTag);
+    Lang.current = l;
+    langNotifier.value = l;
+  }
+
+  void setLangPref(String pref) {
+    langPref = const {'pt', 'en'}.contains(pref) ? pref : 'auto';
+    _prefs?.setString('lang', langPref);
+    _applyLang();
+    notifyListeners();
+  }
+
   void cycleTheme() {
     const order = [ThemeMode.system, ThemeMode.light, ThemeMode.dark];
     themeMode = order[(order.indexOf(themeMode) + 1) % order.length];
@@ -3643,6 +3664,8 @@ class AppState extends ChangeNotifier {
     exerciseFlow = p.getBool('exFlow') ?? true;
     dailyGoalMinutes = p.getDouble('goal') ?? 20;
     themeMode = ThemeMode.values[p.getInt('theme') ?? 0];
+    langPref = p.getString('lang') ?? 'auto';
+    _applyLang();
     outputLatencyMs = p.getDouble('latency') ?? 0;
     metroPlayer.outputLatencyMs = outputLatencyMs;
     micRationaleSeen = p.getBool('micRationale') ?? false;
