@@ -8,6 +8,9 @@ import 'guidance_banner.dart';
 import 'needle.dart';
 import 'note_widgets.dart';
 import 'octave_colors.dart';
+import 'staff_card.dart';
+import 'staff_settings.dart';
+import 'staff_view.dart';
 import 'theme.dart';
 import 'transitions.dart';
 import 'tuning_pick.dart';
@@ -58,7 +61,7 @@ class ScaleExercisePage extends StatelessWidget {
                 const SizedBox(height: 10),
                 _header(e),
                 const SizedBox(height: 8),
-                _scaleMap(e),
+                _notation(e),
                 const SizedBox(height: 10),
                 if (!e.finished) _controls(context, e),
               ],
@@ -66,6 +69,45 @@ class ScaleExercisePage extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+
+  /// A partitura do exercício, com a nota de agora em destaque e as já tocadas pintadas pelo resultado.
+  /// Sem partitura (ou com instrumento transpositor), cai no mapa de oitavas.
+  Widget _notation(ScaleExercise e) {
+    if (!app.scaleStaff || app.cfg.transpose != 0) return _scaleMap(e);
+    final marks = <int, StaffMark>{};
+    int? cur;
+    if (!e.flow) {
+      // só os passos já concluídos (depois de trocar do modo livre para o guiado sobram resultados antigos)
+      for (var i = 0; i < e.results.length && i < e.index; i++) {
+        final r = e.results[i];
+        final m = staffMarkOf(r.skipped ? null : r.cents, e.zone);
+        if (m != null) marks[i] = m;
+      }
+      cur = e.finished ? null : e.index;
+    } else {
+      for (var i = 0; i < e.sequence.length; i++) {
+        final m = staffMarkOf(e.board[e.sequence[i]]?.cents, e.zone);
+        if (m != null) marks[i] = m;
+      }
+      final heard = e.currentFreeMidi;
+      if (heard != null) {
+        final i = e.sequence.indexOf(heard);
+        if (i >= 0) cur = i;
+      }
+    }
+    return StaffCard(
+      tonicMidi: e.tonicMidi,
+      type: app.scaleType,
+      sequence: e.sequence,
+      upCount: e.upCount,
+      rhythm: app.scaleRhythm,
+      names: app.scaleNames,
+      current: cur,
+      marks: marks,
+      maxHeight: 250,
+      semanticLabel: tr('Partitura do exercício'),
     );
   }
 
@@ -133,6 +175,7 @@ class ScaleExercisePage extends StatelessWidget {
               Text(tr('Muda a ordem das notas e recomeça o exercício.'), style: Ds.support()),
             ]),
           ),
+          ...staffSettingRows(app),
           DsSettingRow(
             label: tr('Afinação'),
             child: OutlinedButton.icon(

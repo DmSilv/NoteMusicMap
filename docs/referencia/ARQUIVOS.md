@@ -82,6 +82,9 @@
 | `lib/ui/slot_form_page.dart` | Formulário de aula marcada (aluno, dia, hora, duração, repetir, observação) com as regras de horário. |
 | `lib/ui/smooth_color.dart` | Transição suave de cor para os quadrados da grade e do ponteiro. |
 | `lib/ui/speed_trainer_card.dart` | "Acelerar aos poucos" na tela do metrônomo: liga e desliga num toque, mostra o resumo em frase e, tocando, mostra o BPM que subiu, quanto falta para o próximo aumento e o caminho até o teto. Os ajustes ficam numa… |
+| `lib/ui/staff_card.dart` | Resultado de uma nota tocada (cents de desvio) -> cor da cabeça da nota; null = ainda não tocada ou pulada. |
+| `lib/ui/staff_settings.dart` | Texto curto do que está valendo na partitura (para o resumo do ajuste). |
+| `lib/ui/staff_view.dart` | Resultado de uma nota já tocada (pinta a cabeça da nota). |
 | `lib/ui/status_strip.dart` | Faixa fina logo abaixo da barra superior com os avisos que ficam ativos: microfone ouvindo e timer do Pomodoro. Só aparece quando há algo ativo, e os dois avisos ficam lado a lado, sem disputar espaço com o título e… |
 | `lib/ui/student_identity.dart` | Selo do vínculo online e campo do código do aluno, na ficha e na lista. |
 | `lib/ui/study_card.dart` | "Seu estudo": o tempo estudado hoje, os dias seguidos, a meta diária e o cronômetro/Pomodoro num cartão só. Mora na aba Metrônomo (onde a pessoa já está praticando); os dados e gráficos ficam na tela "Evolução". |
@@ -134,6 +137,7 @@
 | `packages/afina_core/lib/i18n_en_b09.dart` | Dicionário português → inglês, parte b09 (ver i18n_en.dart). |
 | `packages/afina_core/lib/i18n_en_b10.dart` | Dicionário português → inglês, parte b10 (ver i18n_en.dart). |
 | `packages/afina_core/lib/i18n_en_b11.dart` | Dicionário português → inglês, parte b11 (ver i18n_en.dart). |
+| `packages/afina_core/lib/i18n_en_b12.dart` | Dicionário português → inglês, parte b12 (ver i18n_en.dart). |
 | `packages/afina_core/lib/i18n_en_srv.dart` | Dicionário português → inglês, parte srv (ver i18n_en.dart). |
 | `packages/afina_core/lib/identity.dart` | Identidade do perfil (Fase 1): quem é a pessoa, sem cadastro e sem servidor. - [Profile.id]: UUID do perfil. Todos os dados pertencem a ele, não ao aparelho. - [Profile.secret]: 256 bits aleatórios que provam que… |
 | `packages/afina_core/lib/input_guard.dart` | Limpeza e limites de tudo que a pessoa digita, cola ou lê de um QR. Dart puro. O app não monta HTML nem consulta banco com esses textos, mas eles aparecem na tela, vão para backups colados e (em resumo) para a IA.… |
@@ -158,6 +162,8 @@
 | `packages/afina_core/lib/scale_exercise.dart` | Exercício de escalas guiado (estilo "sistema de escalas" de Carl Flesch): o músico toca a escala subindo e descendo, em 1, 2 ou 3 oitavas, e o app acompanha nota por nota, medindo a afinação de cada uma. Dois jeitos… |
 | `packages/afina_core/lib/scale_spelling.dart` | Grafia das notas de uma escala ou arpejo: cada grau ganha a sua LETRA (Dó, Ré, Mi... em sequência), como está escrito na partitura. É o que faz a Dó menor melódica subir com Lá e Si naturais e descer com Si♭ e Lá♭, e… |
 | `packages/afina_core/lib/speed_trainer.dart` | Ajudantes do "Acelerar aos poucos": opções prontas, textos em linguagem simples e o tempo até o teto. Dart puro (sem Flutter), testado em test/speed_trainer_test.dart. |
+| `packages/afina_core/lib/staff_layout.dart` | Distribuição da partitura na largura da tela: quebra em linhas (sistemas), espaça as notas, calcula hastes, barras, tercinas e linhas suplementares. Tudo em "espaços de pauta" (1 espaço = a distância entre duas… |
+| `packages/afina_core/lib/staff_notation.dart` | Partitura de escalas e arpejos (clave de Sol, compasso 4/4, como no "sistema de escalas" de Flesch). Esta parte é só MÚSICA, em Dart puro e testável: posição da nota na pauta, armadura de clave, quando aparece ♯ ♭ ♮… |
 | `packages/afina_core/lib/start_checklist.dart` | "Comece por aqui": o que o professor novo precisa fazer para o app render (vincular, marcar aula, passar tarefa). Dart puro: o app diz o que já aconteceu e esta lógica diz o que falta e qual é o próximo passo. |
 | `packages/afina_core/lib/study_clock.dart` | Relógios de estudo: CRONÔMETRO (conta para cima) e MINUTERIA (conta para baixo até um tempo escolhido). Dart puro: o relógio de parede é passado de fora (ms), então dá para testar e para retomar depois de fechar o app. |
 | `packages/afina_core/lib/system_guide.dart` | Dados para explicar o "Sistema de afinação" na tela: para a tônica escolhida, qual é o ALVO de cada nota no sistema (igual, pitagórico ou justo) e quanto ele difere do temperamento igual, em Hz. Dart puro e testável. |
@@ -209,6 +215,8 @@
 | `packages/afina_core/test/scale_flow_test.dart` | Sol maior, 1 oitava. |
 | `packages/afina_core/test/scale_spelling_test.dart` | Testes do módulo `scale_spelling`. |
 | `packages/afina_core/test/speed_trainer_test.dart` | Renderiza [seconds] segundos e devolve os eventos de "primeiro tempo" de cada compasso. |
+| `packages/afina_core/test/staff_layout_test.dart` | Testes do módulo `staff_layout`. |
+| `packages/afina_core/test/staff_notation_test.dart` | Leitor independente: lê a partitura como um músico (armadura + acidentes valem até a barra de compasso) e devolve a nota MIDI que cada evento representa. Se bater com a sequência do exercício, a escrita está certa. |
 | `packages/afina_core/test/start_checklist_test.dart` | Testes do módulo `start_checklist`. |
 | `packages/afina_core/test/study_clock_test.dart` | Testes do módulo `study_clock`. |
 | `packages/afina_core/test/system_guide_test.dart` | em Hz, na oitava 4: Mi justo (5/4 de 261,626) = 327,03 Hz contra 329,63 do igual |
@@ -311,4 +319,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **268** arquivos mapeados.
+Total: **276** arquivos mapeados.

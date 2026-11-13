@@ -4,6 +4,8 @@ export 'absence.dart';
 export 'agenda.dart';
 export 'i18n.dart';
 export 'scale_spelling.dart';
+export 'staff_notation.dart';
+export 'staff_layout.dart';
 export 'i18n_en.dart' show kEn;
 export 'speed_trainer.dart';
 export 'hub.dart';

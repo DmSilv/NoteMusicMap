@@ -8,6 +8,8 @@ import 'grid_widgets.dart';
 import 'note_widgets.dart';
 import 'perf.dart';
 import 'scale_exercise_page.dart';
+import 'staff_card.dart';
+import 'staff_settings.dart';
 import 'design_system.dart';
 import 'theme.dart';
 import 'tuning_pick.dart';
@@ -301,7 +303,7 @@ class _GridPageState extends State<GridPage> {
     return DsConfigCard(
       semanticLabel: tr('Configurar escala'),
       onTap: _openScaleSettings,
-      semanticValue: tr('{0}, {1} {2}, começa em {3}', [_scaleTitle(tonicPc), app.scaleOctaves, app.scaleOctaves == 1 ? tr('oitava') : tr('oitavas'), noteName(app.scaleTonicMidi + app.scaleType.start, app.cfg, withOctave: true)]),
+      semanticValue: tr('{0}, {1} {2}, começa em {3}', [_scaleTitle(tonicPc), app.scaleOctaves, app.scaleOctaves == 1 ? tr('oitava') : tr('oitavas'), app.scaleNoteName(app.scaleTonicMidi + app.scaleType.start, ascending: true, withOctave: true)]),
       extra: app.scaleType.hint.isEmpty ? null : HelpButton(outlined: true, title: tr('Sobre este exercício'), sections: [(tr('O que é'), app.scaleType.hint)]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -314,7 +316,7 @@ class _GridPageState extends State<GridPage> {
           ),
           const SizedBox(height: 2),
           Text(
-            tr('{0} {1} · começa em {2}', [app.scaleOctaves, app.scaleOctaves == 1 ? tr('oitava') : tr('oitavas'), noteName(app.scaleTonicMidi + app.scaleType.start, app.cfg, withOctave: true)]),
+            tr('{0} {1} · começa em {2}', [app.scaleOctaves, app.scaleOctaves == 1 ? tr('oitava') : tr('oitavas'), app.scaleNoteName(app.scaleTonicMidi + app.scaleType.start, ascending: true, withOctave: true)]),
             style: Ds.support(),
           ),
         ],
@@ -345,6 +347,40 @@ class _GridPageState extends State<GridPage> {
     return out;
   }
 
+  /// A partitura do exercício (ou, sem partitura, a lista de nomes das notas).
+  Widget _scaleNotes() {
+    if (app.scaleStaff && app.cfg.transpose == 0) {
+      final seq = scaleSequence(app.scaleTonicMidi, app.scaleType, octaves: app.scaleOctaves, direction: app.scaleDirection);
+      final upCount = app.scaleDirection == ScaleDirection.down ? 0 : scaleMidis(app.scaleTonicMidi, app.scaleType, octaves: app.scaleOctaves).length;
+      return StaffCard(
+        tonicMidi: app.scaleTonicMidi,
+        type: app.scaleType,
+        sequence: seq,
+        upCount: upCount,
+        rhythm: app.scaleRhythm,
+        names: app.scaleNames,
+        maxHeight: 300,
+        semanticLabel: tr('Partitura do exercício'),
+      );
+    }
+    return SizedBox(
+      width: double.infinity,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: Ds.s4),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(tr('NOTAS DO EXERCÍCIO'), style: TextStyle(color: AppColors.textDim, fontSize: 12, letterSpacing: 1.1, fontWeight: FontWeight.w700)),
+            const SizedBox(height: Ds.s8),
+            ..._scaleNoteLines(),
+            const SizedBox(height: Ds.s4),
+            Text(tr('{0} notas no total.', [scaleSequence(app.scaleTonicMidi, app.scaleType, octaves: app.scaleOctaves, direction: app.scaleDirection).length]), style: Ds.support()),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _scaleSection() {
     final tonicPc = app.scaleTonicMidi % 12;
     final names = app.cfg.copyWith(transpose: 0);
@@ -365,23 +401,7 @@ class _GridPageState extends State<GridPage> {
         const DsGap(Ds.gap),
         _scaleHero(tonicPc, names),
         const DsGap(Ds.gap),
-        // Só informação (sem moldura, para não parecer botão): as notas que vão ser tocadas.
-        SizedBox(
-          width: double.infinity,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: Ds.s4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(tr('NOTAS DO EXERCÍCIO'), style: TextStyle(color: AppColors.textDim, fontSize: 12, letterSpacing: 1.1, fontWeight: FontWeight.w700)),
-                const SizedBox(height: Ds.s8),
-                ..._scaleNoteLines(),
-                const SizedBox(height: Ds.s4),
-                Text(tr('{0} notas no total.', [scaleSequence(app.scaleTonicMidi, app.scaleType, octaves: app.scaleOctaves, direction: app.scaleDirection).length]), style: Ds.support()),
-              ],
-            ),
-          ),
-        ),
+        _scaleNotes(),
         const DsGap(Ds.sectionGap),
         DsPrimaryButton(
           onPressed: () {
@@ -479,6 +499,9 @@ class _GridPageState extends State<GridPage> {
                         (d) => app.setScale(direction: d),
                         hint: tr('Só descendo começa na nota mais aguda. Na menor melódica a descida usa as notas naturais.'),
                       )),
+              const Divider(height: 1),
+              _tile(Icons.queue_music_rounded, tr('Partitura'), staffSummary(app),
+                  () => showDsSheet(context, title: tr('Partitura'), listenable: app, children: (_) => staffSettingRows(app))),
               const Divider(height: 1),
               _tile(Icons.straighten, tr('Afinação'), tuningSummary(app),
                   () => pickTuningSystem(context, app, tonicPc: tonicPc)),

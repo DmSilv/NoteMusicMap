@@ -38,6 +38,8 @@ Nada de Flutter nem `dart:io` (assim roda no navegador e nos testes de linha de 
 | Área | Módulos | O que decidem |
 |---|---|---|
 | Afinação e som | `tuning`, `pitch_detector` (McLeod), `tone_synth`, `metronome_engine`, `pedal`, `needle_spring`, `note_display`, `note_gate` | Matemática de afinação (igual, pitagórico, justo), detecção de altura, metrônomo por amostra exata, pedal, estabilização da nota exibida |
+| Partitura (modelo) | `staff_notation` | Só música, em Dart puro: posição na pauta de clave de Sol (`staffPos`), linhas suplementares, armadura de clave por tonalidade (`keySignatureFor`), quando mostrar ♯ ♭ ♮ (com acidente de precaução entre compassos), ritmo em 4/4 (`StaffRhythm`: semínimas, mínimas, colcheias, tercinas) e divisão em compassos (`buildStaffScore`). A nota final de cada exercício é longa e completa o compasso |
+| Partitura (distribuição) | `staff_layout` | `layoutStaff`: quebra em linhas na largura da tela, espaçamento, hastes, barras, o "3" das tercinas e a altura de cada linha, tudo em espaços de pauta (sem Flutter). Maior espaço possível, preferindo 2 compassos por linha, encolhendo o ar entre as notas antes de diminuir a pauta |
 | Grafia das escalas | `scale_spelling` (+ direção em `scale_exercise`) | `ScaleSpeller`: nome de cada nota como na partitura (letra por grau; sobe e desce diferente na menor melódica), `ScaleDirection` (subir, descer, os dois) |
 | Idiomas | `i18n` (+ dicionário `i18n_en` e as partes `i18n_en_*`) | `Lang` (idioma do app, datas dia/mês ou mês/dia), `tr()`, `fmtDayMonth`; ver `13_IDIOMAS.md` |
 | Acelerar aos poucos | `speed_trainer` (+ `TempoTrainer` em `metronome_engine`) | Aumento por tempo ou por compassos, resumo em frase, tempo até o teto e texto do acompanhamento ao vivo |

@@ -61,3 +61,8 @@ Afinador (instrumento + Ajustes, Ouvir fixo), Metrônomo (BPM, play e Modo desaf
 - **Leitor de tela:** cartão tocável = um item só, com rótulo, resumo e a dica "Toque para alterar"; ícone decorativo fora da leitura; botão só de ícone sempre com `tooltip`.
 - **Foco e passagem do mouse** visíveis (teclado e computador).
 - Testes: `test/ui/ds_config_card_test.dart` (um controle por área, 48 px, leitor de tela).
+
+## Partitura (regra de cor e tamanho)
+- A partitura é escrita em **tinta do tema** (`AppColors.text`: preto no claro, branco no escuro) sobre o cartão do tema (`AppColors.surface`), como uma partitura impressa. Cor só na **cabeça da nota** tocada (afinada, grave, aguda, as mesmas cores da agulha), nunca para escrever a pauta, a armadura ou as hastes: a leitura não depende de cor nem do tema.
+- Sempre **dentro da largura do celular**: o tamanho do espaço de pauta é calculado pela largura disponível (entre 6 e 10,5 px) e o que não cabe em altura vira páginas (`1 / 2`). Nada de rolagem horizontal.
+- Peça única: `StaffView` / `StaffCard` (`lib/ui/`). Teste: `test/ui/staff_view_test.dart` (claro e escuro, larguras de 300 a 420 px, páginas).

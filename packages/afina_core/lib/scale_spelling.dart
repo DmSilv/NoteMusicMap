@@ -61,6 +61,9 @@ class ScaleSpeller {
         ScaleType.diminishedSeventh => _diminished7,
       };
 
+  /// Letra (0 = Dó ... 6 = Si) e acidente da tônica, como se escreve o nome da tonalidade (base da armadura de clave).
+  (int, int) get tonicSpelling => (type.isMinor ? _minorTonic : _majorTonic)[tonicMidi % 12];
+
   /// A nota [midi] escrita como estaria na partitura, subindo ou descendo.
   SpelledNote spell(int midi, {required bool ascending}) {
     final pc = midi % 12;

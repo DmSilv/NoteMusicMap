@@ -3463,6 +3463,11 @@ class AppState extends ChangeNotifier {
   ScaleDirection scaleDirection = ScaleDirection.both;
   bool scaleMode = false;
 
+  /// Partitura (clave de Sol, 4/4) nas escalas e arpejos: ligada, como se escreve o ritmo e quando mostrar o nome das notas.
+  bool scaleStaff = true;
+  StaffRhythm scaleRhythm = StaffRhythm.quarter;
+  StaffNames scaleNames = StaffNames.ledger;
+
   /// A nota como está escrita na escala (Lá natural ao subir e Lá♭ ao descer em Dó menor melódica), com a oitava.
   /// Com instrumento transpositor a grafia segue a regra comum (o nome já muda pela transposição).
   ({String name, int octave}) scaleNoteParts(int midi, {required bool ascending}) {
@@ -3706,6 +3711,9 @@ class AppState extends ChangeNotifier {
     _display.speed = noteSwitch;
     exerciseFlow = p.getBool('exFlow') ?? true;
     scaleDirection = ScaleDirection.values[(p.getInt('scale_dir') ?? ScaleDirection.both.index).clamp(0, ScaleDirection.values.length - 1)];
+    scaleStaff = p.getBool('scale_staff') ?? true;
+    scaleRhythm = StaffRhythm.values[(p.getInt('scale_rhythm') ?? StaffRhythm.quarter.index).clamp(0, StaffRhythm.values.length - 1)];
+    scaleNames = StaffNames.values[(p.getInt('scale_names') ?? StaffNames.ledger.index).clamp(0, StaffNames.values.length - 1)];
     dailyGoalMinutes = p.getDouble('goal') ?? 20;
     themeMode = ThemeMode.values[p.getInt('theme') ?? 0];
     langPref = p.getString('lang') ?? 'auto';
@@ -4076,6 +4084,23 @@ class AppState extends ChangeNotifier {
     }
     if (enabled != null) {
       scaleMode = enabled;
+    }
+    notifyListeners();
+  }
+
+  /// Ajustes da partitura (só mudam como ela é escrita e mostrada; o exercício toca igual).
+  void setStaff({bool? on, StaffRhythm? rhythm, StaffNames? names}) {
+    if (on != null) {
+      scaleStaff = on;
+      _prefs?.setBool('scale_staff', on);
+    }
+    if (rhythm != null) {
+      scaleRhythm = rhythm;
+      _prefs?.setInt('scale_rhythm', rhythm.index);
+    }
+    if (names != null) {
+      scaleNames = names;
+      _prefs?.setInt('scale_names', names.index);
     }
     notifyListeners();
   }
