@@ -109,7 +109,8 @@ class ScaleExercisePage extends StatelessWidget {
       maxHeight: 250,
       semanticLabel: tr('Partitura do exercício'),
       hints: !e.flow && app.scaleHints,
-      ottava: app.scaleOttava,
+      ottava: app.staffOttavaAuto,
+      ottavaRange: app.staffOttavaRange,
       fingers: app.scaleFingering,
       hintNow: !e.flow && !e.finished && e.waitingSeconds >= kHintAfterSeconds,
     );

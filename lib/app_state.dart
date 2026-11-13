@@ -3478,10 +3478,17 @@ class AppState extends ChangeNotifier {
   bool scaleFingers = true;
 
   /// Dedilhado da escala de agora, na ordem das notas do exercício, ou null (outro instrumento, desligado ou sem tabela).
-  List<String?>? get scaleFingering {
-    if (!scaleFingers || instrument.id != 'violino') return null;
-    return violinFingering(tonicMidi: scaleTonicMidi, type: scaleType, octaves: scaleOctaves, direction: scaleDirection);
+  List<String?>? get scaleFingering => scaleFingers ? scalePlan?.fingers : null;
+
+  /// A escala como o livro escreve (dedilhado e 8va), quando o instrumento é o violino e há tabela.
+  FingeringPlan? get scalePlan {
+    if (instrument.id != 'violino') return null;
+    return violinFingeringPlan(tonicMidi: scaleTonicMidi, type: scaleType, octaves: scaleOctaves, direction: scaleDirection);
   }
+
+  /// 8va do desenho: com tabela do livro, só onde o livro usa (e se o ajuste estiver ligado); sem tabela, a regra automática.
+  bool get staffOttavaAuto => scaleOttava && scalePlan == null;
+  (int, int)? get staffOttavaRange => scaleOttava ? scalePlan?.ottava : null;
 
   /// O instrumento é o violino e esta escala tem dedilhado (para mostrar o ajuste só quando faz sentido).
   bool get hasFingeringHere => instrument.id == 'violino' && hasViolinFingering(scaleTonicMidi, scaleType, scaleOctaves);

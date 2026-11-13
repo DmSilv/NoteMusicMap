@@ -359,9 +359,10 @@ class _GridPageState extends State<GridPage> {
         upCount: upCount,
         rhythm: app.scaleRhythm,
         names: app.scaleNames,
-        ottava: app.scaleOttava,
+        ottava: app.staffOttavaAuto,
+        ottavaRange: app.staffOttavaRange,
         fingers: app.scaleFingering,
-        maxHeight: 300,
+        maxHeight: 400,
         semanticLabel: tr('Partitura do exercício'),
       );
     }

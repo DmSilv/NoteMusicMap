@@ -333,6 +333,16 @@ void _ottavaTests() {
       }
     });
 
+    test('8va do livro: só as notas do trecho, no lugar da regra automática, e o som não muda', () {
+      final seq = scaleSequence(63, ScaleType.major, octaves: 3);
+      final sc = buildStaffScore(
+          tonicMidi: 63, type: ScaleType.major, sequence: seq, upCount: 22, rhythm: StaffRhythm.triplet, ottava: true, ottavaRange: (18, 23));
+      for (final e in sc.events) {
+        expect(e.ottava, e.index >= 18 && e.index <= 23, reason: 'nota ${e.index}');
+      }
+      expect(_readBack(sc), seq);
+    });
+
     test('a nota escrita com 8va nunca passa da 3ª linha suplementar acima', () {
       final s = hi(79, ScaleType.major, StaffRhythm.quarter, octaves: 2); // até Sol7, o limite do violino
       for (final e in s.events.where((e) => e.ottava)) {

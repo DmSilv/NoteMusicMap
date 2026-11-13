@@ -256,6 +256,9 @@ StaffScore buildStaffScore({
 
   /// Escreve as notas muito agudas uma oitava abaixo, com o sinal 8va (e o nome das notas).
   bool ottava = false,
+
+  /// 8va exatamente como o livro escreve: primeira e última nota (índices da sequência); vale no lugar da regra automática.
+  (int, int)? ottavaRange,
 }) {
   final speller = ScaleSpeller(tonicMidi, type);
   final key = keySignatureFor(tonicMidi, type);
@@ -305,7 +308,17 @@ StaffScore buildStaffScore({
     ));
     t += tk;
   }
-  if (ottava) _applyOttava(bars);
+  if (ottavaRange != null) {
+    var idx = 0;
+    for (final b in bars) {
+      for (var k = 0; k < b.length; k++) {
+        b[k] = b[k].withOttava(idx >= ottavaRange.$1 && idx <= ottavaRange.$2);
+        idx++;
+      }
+    }
+  } else if (ottava) {
+    _applyOttava(bars);
+  }
   return StaffScore(key, rhythm, bars);
 }
 
