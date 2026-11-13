@@ -91,6 +91,9 @@ class StaffView extends StatefulWidget {
   /// Algo à esquerda da linha de baixo (o botão sol/lua da cor da partitura), junto do "1 / 2".
   final Widget? footerLeading;
 
+  /// Ocupa toda a altura que o pai der: a partitura fica no meio e a linha de baixo (botão sol/lua e página) encostada no fundo.
+  final bool fill;
+
   const StaffView({
     super.key,
     required this.score,
@@ -103,6 +106,7 @@ class StaffView extends StatefulWidget {
     this.hints = false,
     this.hintNow = false,
     this.footerLeading,
+    this.fill = false,
   });
 
   @override
@@ -153,8 +157,11 @@ class _StaffViewState extends State<StaffView> {
       return Semantics(
         label: w.semanticLabel,
         image: true,
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          ExcludeSemantics(child: CustomPaint(size: Size(width, total), painter: painter)),
+        child: Column(mainAxisSize: w.fill ? MainAxisSize.max : MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          if (w.fill)
+            Expanded(child: Center(child: ExcludeSemantics(child: CustomPaint(size: Size(width, total), painter: painter))))
+          else
+            ExcludeSemantics(child: CustomPaint(size: Size(width, total), painter: painter)),
           if (pages > 1 || w.footerLeading != null)
             Row(children: [
               if (w.footerLeading != null) w.footerLeading!,

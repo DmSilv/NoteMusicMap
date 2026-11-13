@@ -2263,6 +2263,13 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Desfaz o "Esconder": o cartão "Comece por aqui" volta (os tutoriais já vistos continuam como estavam).
+  void showStartCard() {
+    startCardHidden = false;
+    _prefs?.setBool('start_hidden', false);
+    notifyListeners();
+  }
+
   bool tourSeen(String id) => _toursSeen.contains(id);
 
   void markTourSeen(String id) {
@@ -3484,7 +3491,7 @@ class AppState extends ChangeNotifier {
   StaffPaper scalePaper = StaffPaper.auto;
 
   /// "alt" que de fato vale: só quando a tônica atual tem outra grafia.
-  bool get scaleAltActive => scaleAlt && ScaleSpeller.hasAlt(scaleTonicMidi, minor: scaleType.isMinor);
+  bool get scaleAltActive => scaleAlt && scaleType != ScaleType.chromatic && !scaleType.arpeggio && ScaleSpeller.hasAlt(scaleTonicMidi, minor: scaleType.isMinor);
 
   /// Dedilhado da escala de agora, na ordem das notas do exercício, ou null (outro instrumento, desligado ou sem tabela).
   List<String?>? get scaleFingering => scaleFingers ? scalePlan?.fingers : null;

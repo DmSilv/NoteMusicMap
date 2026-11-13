@@ -78,8 +78,8 @@ class PaperPicker extends StatelessWidget {
   }
 }
 
-/// Botão sol/lua que fica no cartão da partitura: duas amostras (uma branca com o sol, uma preta com a lua) e a que vale agora
-/// ganha a borda de destaque. Um toque troca na hora, sem abrir nada.
+/// Botão sol/lua do cartão da partitura: um trilho dividido ao meio (metade branca com o sol, metade preta com a lua) e um anel verde que
+/// desliza para a cor que vale agora. Cada metade é um botão de 50 × 48; um toque troca na hora, sem abrir nada.
 class PaperToggle extends StatelessWidget {
   final StaffPaper value;
   final ValueChanged<StaffPaper> onChanged;
@@ -88,30 +88,22 @@ class PaperToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final darkNow = paperIsDark(value);
-    Widget swatch(bool dark) {
-      final sel = darkNow == dark;
-      final colors = dark ? StaffColors.dark : StaffColors.light;
+    Widget half(bool dark) {
       final label = dark ? tr('Partitura escura') : tr('Partitura clara');
-      return Semantics(
-        button: true,
-        selected: sel,
-        label: label,
-        excludeSemantics: true,
-        child: Tooltip(
-          message: label,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => onChanged(dark ? StaffPaper.dark : StaffPaper.light),
-            child: Padding(
-              padding: const EdgeInsets.all(4),
+      final colors = dark ? StaffColors.dark : StaffColors.light;
+      return Expanded(
+        child: Semantics(
+          button: true,
+          selected: darkNow == dark,
+          label: label,
+          excludeSemantics: true,
+          child: Tooltip(
+            message: label,
+            child: InkWell(
+              borderRadius: BorderRadius.horizontal(left: Radius.circular(dark ? 0 : 22), right: Radius.circular(dark ? 22 : 0)),
+              onTap: () => onChanged(dark ? StaffPaper.dark : StaffPaper.light),
               child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: colors.paper,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: sel ? AppColors.accent : AppColors.outline, width: sel ? 3 : 1),
-                ),
+                alignment: Alignment.center,
                 child: Icon(dark ? Icons.dark_mode_rounded : Icons.light_mode_rounded, size: 22, color: colors.ink),
               ),
             ),
@@ -120,6 +112,39 @@ class PaperToggle extends StatelessWidget {
       );
     }
 
-    return Row(mainAxisSize: MainAxisSize.min, children: [swatch(false), swatch(true)]);
+    return SizedBox(
+      width: 108,
+      height: 52,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Stack(children: [
+          // trilho: metade branca, metade preta
+          Positioned.fill(
+            child: DecoratedBox(
+              position: DecorationPosition.foreground,
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(22), border: Border.all(color: AppColors.textDim, width: 1.5)),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(21),
+                child: Row(children: [Expanded(child: Container(color: StaffColors.light.paper)), Expanded(child: Container(color: StaffColors.dark.paper))]),
+              ),
+            ),
+          ),
+          // anel que desliza para a cor que vale
+          AnimatedAlign(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOutCubic,
+            alignment: darkNow ? Alignment.centerRight : Alignment.centerLeft,
+            child: IgnorePointer(
+              child: Container(
+                width: 52,
+                height: 46,
+                decoration: BoxDecoration(borderRadius: BorderRadius.circular(22), border: Border.all(color: AppColors.accent, width: 3)),
+              ),
+            ),
+          ),
+          Positioned.fill(child: Row(children: [half(false), half(true)])),
+        ]),
+      ),
+    );
   }
 }

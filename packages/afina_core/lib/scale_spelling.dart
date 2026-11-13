@@ -25,6 +25,18 @@ const Map<int, int> _minorTriad = {0: 0, 3: 2, 7: 4};
 const Map<int, int> _dominant7 = {0: 0, 4: 2, 7: 4, 10: 6};
 const Map<int, int> _diminished7 = {0: 0, 3: 2, 6: 4, 9: 5}; // a 7ª diminuta escreve-se como 6ª maior (Dó Mi♭ Sol♭ Lá)
 
+/// A tônica que se escreve com esta letra (0 = Dó ... 6 = Si) e este acidente (-1 ♭, 0, 1 ♯) para o tipo [type], ou null se essa
+/// tonalidade não existe (Mi♯ maior, Fá♭ maior...). Devolve a classe de altura (0..11) e se é a "outra grafia" (Sol♭ em vez de Fá♯).
+({int pc, bool alt})? tonicForSpelling(int letter, int acc, ScaleType type) {
+  final pc = (((_natPc[letter] + acc) % 12) + 12) % 12;
+  final midi = 60 + pc;
+  if (ScaleSpeller(midi, type).tonicSpelling == (letter, acc)) return (pc: pc, alt: false);
+  if (type != ScaleType.chromatic && !type.arpeggio && ScaleSpeller.hasAlt(midi, minor: type.isMinor) && ScaleSpeller(midi, type, alt: true).tonicSpelling == (letter, acc)) {
+    return (pc: pc, alt: true);
+  }
+  return null;
+}
+
 /// Uma nota escrita: letra, acidente e oitava (convenção científica: Dó4 = dó central).
 class SpelledNote {
   final int letter;
@@ -74,7 +86,8 @@ class ScaleSpeller {
   /// Letra (0 = Dó ... 6 = Si) e acidente da tônica, como se escreve o nome da tonalidade (base da armadura de clave).
   (int, int) get tonicSpelling {
     final pc = tonicMidi % 12;
-    if (alt) {
+    // a outra grafia só vale em escalas (não em cromática nem em arpejos, que seguem a grafia usual)
+    if (alt && type != ScaleType.chromatic && !type.arpeggio) {
       final a = (type.isMinor ? _minorAlt : _majorAlt)[pc];
       if (a != null) return a;
     }

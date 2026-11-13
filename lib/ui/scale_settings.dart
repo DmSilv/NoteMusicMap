@@ -29,52 +29,73 @@ Widget _section(String t) => Padding(
       ]),
     );
 
-/// "Lá♭" -> "Lá bemol": por extenso, que cabe certo no botão e é como se fala (os símbolos ♯ ♭ dependem de uma fonte de reserva).
-String _spoken(String n) => n.replaceAll('♭', ' bemol').replaceAll('♯', ' sustenido');
+/// A tônica como o músico pensa: a LETRA (Dó Ré Mi Fá Sol Lá Si) e o acidente (♭ ♮ ♯). Em duas linhas, em vez de uma lista de 17 botões; os
+/// acidentes que não existem para aquela letra ficam apagados (não há Mi♯ maior) e a outra grafia (Sol♭ ou Fá♯) é só questão de escolher o acidente.
+class _TonicPicker extends StatelessWidget {
+  final AppState app;
+  const _TonicPicker({required this.app});
 
-/// Opções de tônica: onde a tonalidade existe nas duas grafias (Fá♯ e Sol♭ maiores, por exemplo) cada uma é uma opção (valor = classe + 100
-/// para a outra grafia); nas demais, a tecla com os dois nomes.
-List<(int, String)> tonicChoices(AppState app) {
-  final minor = app.scaleType.isMinor;
-  final base = app.cfg.copyWith(transpose: 0, keyFlats: null);
-  final out = <(int, String)>[];
-  for (var pc = 0; pc < 12; pc++) {
-    final midi = 60 + pc;
-    if (!app.scaleType.arpeggio && app.scaleType != ScaleType.chromatic && ScaleSpeller.hasAlt(midi, minor: minor)) {
-      final (l1, a1) = ScaleSpeller(midi, app.scaleType).tonicSpelling;
-      final (l2, a2) = ScaleSpeller(midi, app.scaleType, alt: true).tonicSpelling;
-      out.add((pc, _spoken(SpelledNote(l1, a1, 4).name())));
-      out.add((pc + 100, _spoken(SpelledNote(l2, a2, 4).name())));
-    } else {
-      final a = noteName(midi, base);
-      final other = a.contains('♯') ? noteNamesFlat[pc] : (a.contains('♭') ? noteNamesSharp[pc] : a);
-      out.add((pc, a == other ? _spoken(a) : '${_spoken(a)} · ${_spoken(other)}'));
+  static const _letters = ['Dó', 'Ré', 'Mi', 'Fá', 'Sol', 'Lá', 'Si'];
+  static const _glyph = {-1: '\uE260', 0: '\uE261', 1: '\uE262'};
+
+  @override
+  Widget build(BuildContext context) {
+    final type = app.scaleType;
+    final (cl, ca) = ScaleSpeller(app.scaleTonicMidi, type, alt: app.scaleAltActive).tonicSpelling;
+    void pick(int l, int a) {
+      final t = tonicForSpelling(l, a, type);
+      if (t == null) return;
+      app.setScale(tonicPc: t.pc, alt: t.alt);
+      // Justa/pitagórica dependem da tônica: acompanha.
+      if (app.system != TuningSystem.equal) app.setTuning(tonicPc: t.pc);
     }
+
+    // trocar a letra mantém o acidente se ele existir; senão, usa o natural (ou o primeiro que existir)
+    void pickLetter(int l) {
+      for (final a in [ca, 0, -1, 1]) {
+        if (tonicForSpelling(l, a, type) != null) return pick(l, a);
+      }
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<int>(
+          showSelectedIcon: false,
+          style: const ButtonStyle(padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 2))),
+          segments: [for (var i = 0; i < 7; i++) ButtonSegment(value: i, label: Text(tr(_letters[i]), maxLines: 1, softWrap: false))],
+          selected: {cl},
+          onSelectionChanged: (v) => pickLetter(v.first),
+        ),
+      ),
+      const DsGap(Ds.s8),
+      SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<int>(
+          showSelectedIcon: false,
+          segments: [
+            for (final a in const [-1, 0, 1])
+              ButtonSegment(
+                value: a,
+                enabled: tonicForSpelling(cl, a, type) != null,
+                tooltip: a == -1 ? tr('Bemol') : (a == 0 ? tr('Natural') : tr('Sustenido')),
+                label: Text(_glyph[a]!, style: const TextStyle(fontFamily: 'Leland', fontSize: 30, height: 1)),
+              ),
+          ],
+          selected: {ca},
+          onSelectionChanged: (v) => pick(cl, v.first),
+        ),
+      ),
+    ]);
   }
-  return out;
 }
 
 List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required bool exercise, VoidCallback? onReport}) {
   final e = app.exercise;
-  final tonicNow = app.scaleTonicMidi % 12 + (app.scaleAltActive ? 100 : 0);
   return [
     if (!exercise) ...[
       _section(tr('Escala')),
-      DsSettingRow(
-        label: tr('Tônica (nota inicial)'),
-        child: Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
-          for (final (v, l) in tonicChoices(app))
-            ChoiceChip(
-              label: Text(l),
-              selected: v == tonicNow,
-              onSelected: (_) {
-                app.setScale(tonicPc: v % 100, alt: v >= 100);
-                // Justa/pitagórica dependem da tônica: acompanha.
-                if (app.system != TuningSystem.equal) app.setTuning(tonicPc: v % 100);
-              },
-            ),
-        ]),
-      ),
+      DsSettingRow(label: tr('Tônica (nota inicial)'), child: _TonicPicker(app: app)),
       DsSettingRow(
         label: app.scaleType.arpeggio ? tr('Tipo de arpejo') : tr('Tipo de escala'),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

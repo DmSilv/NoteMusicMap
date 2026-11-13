@@ -39,6 +39,9 @@ class StaffCard extends StatefulWidget {
   /// Com isto, o cartão mostra o botão sol/lua (troca a cor da partitura com um toque).
   final ValueChanged<StaffPaper>? onPaper;
 
+  /// Enche a altura que o pai der (e pagina por ela), em vez de ter a altura do que está escrito.
+  final bool expand;
+
   const StaffCard({
     super.key,
     required this.tonicMidi,
@@ -59,6 +62,7 @@ class StaffCard extends StatefulWidget {
     this.alt = false,
     this.paper = StaffPaper.auto,
     this.onPaper,
+    this.expand = false,
   });
 
   @override
@@ -83,8 +87,9 @@ class _StaffCardState extends State<StaffCard> {
   Widget build(BuildContext context) {
     final w = widget;
     final cols = StaffColors.fromTheme(w.paper);
-    return Container(
+    Widget card(double? maxH, {double? height}) => Container(
       width: double.infinity,
+      height: height,
       padding: const EdgeInsets.fromLTRB(8, 10, 8, 8),
       decoration: BoxDecoration(
         color: cols.paper,
@@ -96,7 +101,8 @@ class _StaffCardState extends State<StaffCard> {
         current: w.current,
         marks: w.marks,
         names: w.names,
-        maxHeight: w.maxHeight,
+        maxHeight: maxH,
+        fill: height != null,
         semanticLabel: w.semanticLabel,
         colors: cols,
         hints: w.hints,
@@ -104,5 +110,12 @@ class _StaffCardState extends State<StaffCard> {
         footerLeading: w.onPaper == null ? null : PaperToggle(value: w.paper, onChanged: w.onPaper!),
       ),
     );
+    if (!w.expand) return card(w.maxHeight);
+    return LayoutBuilder(builder: (context, c) {
+      if (!c.maxHeight.isFinite) return card(w.maxHeight);
+      // o cartão ocupa toda a altura disponível; sobra para as linhas o que não é margem nem a linha de baixo (botão sol/lua e página)
+      final inner = (c.maxHeight - 10 - 8 - 54).clamp(120.0, 2000.0);
+      return card(inner, height: c.maxHeight);
+    });
   }
 }

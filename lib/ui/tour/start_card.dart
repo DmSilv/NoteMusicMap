@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../app_state.dart';
 import '../agenda_page.dart';
 import '../design_system.dart';
+import '../undo_snack.dart';
 import '../teacher_page.dart';
 import '../theme.dart';
 import 'tour.dart';
@@ -16,6 +17,9 @@ class StartCard extends StatelessWidget {
 
   /// Mostrar o cartão? (professor, não escondido, e ainda falta algum passo)
   static bool visibleFor(AppState app) => !app.startCardHidden && !allStartDone(items(app));
+
+  /// O cartão está escondido (e ainda faltam passos)? Aí o Meu espaço mostra uma linha para trazê-lo de volta.
+  static bool hiddenFor(AppState app) => app.startCardHidden && !allStartDone(items(app));
 
   static List<StartItem> items(AppState app) => teacherStartItems(
         hasLinkedStudent: app.students.any((s) => s.linkState == 'active'),
@@ -94,9 +98,39 @@ class StartCard extends StatelessWidget {
         Row(children: [
           TextButton.icon(onPressed: () => _tour(context), icon: const Icon(Icons.play_circle_outline, size: 18), label: Text(tr('Ver como funciona'))),
           const Spacer(),
-          TextButton(onPressed: app.hideStartCard, child: Text(tr('Esconder'))),
+          TextButton(
+            onPressed: () {
+              final messenger = ScaffoldMessenger.of(context); // antes de esconder: o cartão some e leva o contexto junto
+              app.hideStartCard();
+              showUndoSnack(messenger,
+                  message: tr('"Comece por aqui" escondido. Para ver de novo: toque em "Mostrar o tutorial" aqui no Meu espaço ou em Ajustes › Rever tutoriais.'),
+                  undoLabel: tr('Desfazer'),
+                  onUndo: app.showStartCard);
+            },
+            child: Text(tr('Esconder')),
+          ),
         ]),
       ]),
     );
   }
+}
+
+/// Linha que fica no lugar do cartão escondido: um toque traz o "Comece por aqui" de volta (e o "Ver como funciona" está nele).
+class StartCardReturn extends StatelessWidget {
+  final AppState app;
+  const StartCardReturn({super.key, required this.app});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(top: Ds.s8),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            style: TextButton.styleFrom(minimumSize: const Size(Ds.tap, Ds.tap)),
+            onPressed: app.showStartCard,
+            icon: const Icon(Icons.school_outlined, size: 20),
+            label: Text(tr('Mostrar o tutorial')),
+          ),
+        ),
+      );
 }

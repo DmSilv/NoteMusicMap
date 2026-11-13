@@ -60,7 +60,7 @@ class ScaleExercisePage extends StatelessWidget {
                 const SizedBox(height: 10),
                 _header(e),
                 const SizedBox(height: 8),
-                _notation(e),
+                _notation(e, (MediaQuery.sizeOf(context).height - 560).clamp(220.0, 400.0)),
                 const SizedBox(height: 10),
                 if (!e.finished) _controls(context, e),
               ],
@@ -73,7 +73,7 @@ class ScaleExercisePage extends StatelessWidget {
 
   /// A partitura do exercício, com a nota de agora em destaque e as já tocadas pintadas pelo resultado.
   /// Sem partitura (ou com instrumento transpositor), cai no mapa de oitavas.
-  Widget _notation(ScaleExercise e) {
+  Widget _notation(ScaleExercise e, double maxHeight) {
     if (!app.scaleStaff || app.cfg.transpose != 0) return _scaleMap(e);
     final marks = <int, StaffMark>{};
     int? cur;
@@ -105,7 +105,7 @@ class ScaleExercisePage extends StatelessWidget {
       names: app.scaleNames,
       current: cur,
       marks: marks,
-      maxHeight: 250,
+      maxHeight: maxHeight,
       semanticLabel: tr('Partitura do exercício'),
       hints: !e.flow && app.scaleHints,
       ottava: app.staffOttavaAuto,

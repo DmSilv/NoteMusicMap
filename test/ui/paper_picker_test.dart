@@ -31,29 +31,34 @@ void main() {
     }
   });
 
-  testWidgets('botão sol/lua: duas amostras (branca e preta), alvo de 48 px, mostra a cor que vale e troca num toque', (tester) async {
+  testWidgets('botão sol/lua: trilho dividido (branco e preto), cada metade com alvo de 48 px, o anel mostra a cor que vale e um toque troca', (tester) async {
     StaffPaper? got;
     await tester.pumpWidget(_host(PaperToggle(value: StaffPaper.auto, onChanged: (p) => got = p), dark: true));
-    // "igual ao app" com o app escuro: a lua é a que vale
     final sun = find.byIcon(Icons.light_mode_rounded);
     final moon = find.byIcon(Icons.dark_mode_rounded);
     expect(sun, findsOneWidget);
     expect(moon, findsOneWidget);
     for (final f in [sun, moon]) {
       expect(tester.getSize(find.ancestor(of: f, matching: find.byType(InkWell)).first).height, greaterThanOrEqualTo(48));
+      expect(tester.getSize(find.ancestor(of: f, matching: find.byType(InkWell)).first).width, greaterThanOrEqualTo(48));
     }
-    BoxDecoration deco(Finder icon) => tester.widget<Container>(find.ancestor(of: icon, matching: find.byType(Container)).first).decoration as BoxDecoration;
-    expect(deco(sun).color, const Color(0xFFFFFFFF));
-    expect(deco(moon).color, const Color(0xFF000000));
-    expect((deco(moon).border as Border).top.width, 3); // a que vale tem borda grossa
-    expect((deco(sun).border as Border).top.width, 1);
+    // "igual ao app" com o app escuro: o anel fica do lado da lua
+    double ringX() => tester.getCenter(find.byType(AnimatedAlign)).dx;
+    final toggleCenter = tester.getCenter(find.byType(PaperToggle)).dx;
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.getCenter(find.descendant(of: find.byType(AnimatedAlign), matching: find.byType(Container))).dx, greaterThan(toggleCenter));
+    expect(ringX(), isNotNull);
     await tester.tap(sun);
     expect(got, StaffPaper.light);
     await tester.tap(moon);
     expect(got, StaffPaper.dark);
-    // com o app claro e "igual ao app", o sol é que vale
+    // com o app claro e "igual ao app", o anel vai para o sol
     await tester.pumpWidget(_host(PaperToggle(value: StaffPaper.auto, onChanged: (_) {}), dark: false));
-    expect((deco(sun).border as Border).top.width, 3);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(tester.getCenter(find.descendant(of: find.byType(AnimatedAlign), matching: find.byType(Container))).dx, lessThan(tester.getCenter(find.byType(PaperToggle)).dx));
+    // leitor de tela: cada metade é um botão com o estado
+    expect(find.bySemanticsLabel('Partitura clara'), findsOneWidget);
+    expect(find.bySemanticsLabel('Partitura escura'), findsOneWidget);
   });
 
   test('paperIsDark: igual ao app segue o tema; clara e escura não', () {

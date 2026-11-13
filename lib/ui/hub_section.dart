@@ -60,7 +60,7 @@ class HubSection extends StatelessWidget {
       _statusChip(context),
       ..._news(context, view),
       _heroCard(context, hero, nc, view, extra: _agendaExtra(context, view, nc, layout.tools, now)),
-      if (isT && StartCard.visibleFor(app)) StartCard(app: app),
+      if (isT && StartCard.visibleFor(app)) StartCard(app: app) else if (isT && StartCard.hiddenFor(app)) StartCardReturn(app: app),
       const SizedBox(height: 12),
       if (tiles.length == 2) _pair(tiles[0], tiles[1]) else if (tiles.length == 1) tiles.first,
       if (tiles.isNotEmpty) const SizedBox(height: 12),

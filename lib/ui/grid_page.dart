@@ -60,6 +60,8 @@ class _GridPageState extends State<GridPage> {
     return ListenableBuilder(
       listenable: widget.active ? app.live : kNeverNotifies,
       builder: (context, _) {
+        // Escalas: a partitura é o bloco principal e enche o espaço; o botão de iniciar fica fixo embaixo (não pula quando a página muda).
+        if (widget.scalesOnly) return Padding(padding: Ds.screen, child: _scaleSection());
         return ListView(
           padding: Ds.screen,
           children: [
@@ -360,12 +362,11 @@ class _GridPageState extends State<GridPage> {
         alt: app.scaleAltActive,
         paper: app.scalePaper,
         onPaper: (p) => app.setStaff(paper: p),
-        maxHeight: 400,
+        expand: true,
         semanticLabel: tr('Partitura do exercício'),
       );
     }
-    return SizedBox(
-      width: double.infinity,
+    return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: Ds.s4),
         child: Column(
@@ -402,8 +403,8 @@ class _GridPageState extends State<GridPage> {
         const DsGap(Ds.gap),
         _scaleHero(tonicPc, names),
         const DsGap(Ds.gap),
-        _scaleNotes(),
-        const DsGap(Ds.sectionGap),
+        Expanded(child: _scaleNotes()),
+        const DsGap(Ds.gap),
         DsPrimaryButton(
           onPressed: () {
             app.startExercise();

@@ -33,6 +33,48 @@ void main() {
     expect(_seq(66, ScaleType.major, up: true), 'Fá♯ Sol♯ Lá♯ Si Dó♯ Ré♯ Mi♯ Fá♯');
   });
 
+  group('tônica por letra + acidente (o seletor de tônica do app)', () {
+    test('as tonalidades que existem, nas duas grafias', () {
+      // maiores: Fá♯ (padrão) e Sol♭ (outra grafia) são a mesma tecla
+      expect(tonicForSpelling(3, 1, ScaleType.major), (pc: 6, alt: false));
+      expect(tonicForSpelling(4, -1, ScaleType.major), (pc: 6, alt: true));
+      expect(tonicForSpelling(0, 1, ScaleType.major), (pc: 1, alt: true)); // Dó♯ maior (7 sustenidos)
+      expect(tonicForSpelling(1, -1, ScaleType.major), (pc: 1, alt: false)); // Ré♭
+      expect(tonicForSpelling(0, -1, ScaleType.major), (pc: 11, alt: true)); // Dó♭
+      expect(tonicForSpelling(6, 0, ScaleType.major), (pc: 11, alt: false));
+      // menores
+      expect(tonicForSpelling(1, 1, ScaleType.naturalMinor), (pc: 3, alt: true)); // Ré♯ menor
+      expect(tonicForSpelling(2, -1, ScaleType.naturalMinor), (pc: 3, alt: false)); // Mi♭ menor
+      expect(tonicForSpelling(5, -1, ScaleType.melodicMinor), (pc: 8, alt: true)); // Lá♭ menor
+      expect(tonicForSpelling(4, 1, ScaleType.melodicMinor), (pc: 8, alt: false)); // Sol♯ menor
+    });
+
+    test('o que não existe devolve null (Mi♯ maior, Fá♭, Si♯, Dó♭ menor...)', () {
+      expect(tonicForSpelling(2, 1, ScaleType.major), isNull);
+      expect(tonicForSpelling(3, -1, ScaleType.major), isNull);
+      expect(tonicForSpelling(6, 1, ScaleType.major), isNull);
+      expect(tonicForSpelling(0, -1, ScaleType.naturalMinor), isNull);
+      expect(tonicForSpelling(1, 1, ScaleType.major), isNull); // Ré♯ maior (9 sustenidos)
+    });
+
+    test('ida e volta: a grafia de cada tônica devolve a mesma tônica, em todos os tipos', () {
+      for (final t in ScaleType.values) {
+        for (var midi = 55; midi < 67; midi++) {
+          for (final alt in [false, true]) {
+            final sp = ScaleSpeller(midi, t, alt: alt);
+            final (l, a) = sp.tonicSpelling;
+            final back = tonicForSpelling(l, a, t);
+            expect(back, isNotNull, reason: '${t.name} $midi alt=$alt');
+            expect(back!.pc, midi % 12);
+            // o seletor reproduz exatamente a escolha (a "outra grafia" só vale onde existe)
+            final really = alt && ScaleSpeller.hasAlt(midi, minor: t.isMinor) && !t.arpeggio && t != ScaleType.chromatic;
+            expect(back.alt, really, reason: '${t.name} $midi alt=$alt');
+          }
+        }
+      }
+    });
+  });
+
   test('cromática: sobe com sustenidos e desce com bemóis', () {
     final s = ScaleSpeller(60, ScaleType.chromatic);
     expect([for (final m in [61, 63, 66, 68, 70]) s.name(m, ascending: true)], ['Dó♯', 'Ré♯', 'Fá♯', 'Sol♯', 'Lá♯']);

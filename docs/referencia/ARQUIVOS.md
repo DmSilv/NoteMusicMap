@@ -106,6 +106,7 @@
 | `lib/ui/tuner_page.dart` | Aba Afinador: cordas soltas, cromático e Pedal; ponteiro, desvio, frequência, Lá de referência e tônica. |
 | `lib/ui/tuning_guide.dart` | Explicação didática do sistema de afinação escolhido, com a tabela de alvos da tônica (em Hz, contra a afinação igual) e botões para OUVIR cada nota. Aparece no Afinador (modo Cromático) e nas Configurações. |
 | `lib/ui/tuning_pick.dart` | Nome curto do sistema de afinação em uso ("Pitagórico"). |
+| `lib/ui/undo_snack.dart` | Aviso de baixo com o botão "Desfazer": serve para toda ação que some com algo da tela (esconder um cartão, tirar um item). Fica 8 segundos (tempo de ler e decidir), é flutuante e o botão tem alvo de toque grande.… |
 | `lib/ui/validation_ui.dart` | Na ficha do aluno: as tarefas que ELE marcou como feitas e que esperam a validação do professor. Só viram "feitas" (finalizadas) quando o professor confirma; se não, voltam a pendente. |
 | `lib/ui/widgets.dart` | Peças comuns de interface: cartões, seleção de opções, folha de ajuda ("?") e textos de ajuda em um lugar só. |
 | `lib/voice/dictation.dart` | Escrita por voz: toca no microfone de um campo, fala, e o texto aparece. Usa o reconhecimento de fala do próprio aparelho (Android/iOS) ou do navegador (Chrome, Edge, Safari). O app não grava nem envia áudio: quem… |
@@ -216,7 +217,7 @@
 | `packages/afina_core/test/rhythm_challenge_test.dart` | Sorteia [n] compassos e devolve a decisão de cada um. |
 | `packages/afina_core/test/scale_coach_test.dart` | Passos de uma escala em que cada nota (pitch class) tem um viés fixo. |
 | `packages/afina_core/test/scale_flow_test.dart` | Sol maior, 1 oitava. |
-| `packages/afina_core/test/scale_spelling_test.dart` | Testes do módulo `scale_spelling`. |
+| `packages/afina_core/test/scale_spelling_test.dart` | maiores: Fá♯ (padrão) e Sol♭ (outra grafia) são a mesma tecla |
 | `packages/afina_core/test/scale_waiting_test.dart` | Testes do módulo `scale_waiting`. |
 | `packages/afina_core/test/speed_trainer_test.dart` | Renderiza [seconds] segundos e devolve os eventos de "primeiro tempo" de cada compasso. |
 | `packages/afina_core/test/staff_layout_test.dart` | as notas com 8va usam a posição escrita (uma oitava abaixo) |
@@ -327,4 +328,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **284** arquivos mapeados.
+Total: **285** arquivos mapeados.
