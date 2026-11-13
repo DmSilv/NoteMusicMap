@@ -126,6 +126,41 @@ function noteRows(pc, alt, type, oct) {
   });
 }
 
+/**
+ * Sugestão a partir do "molde" que as três páginas lidas (Si♭, Mi♭ e Sol♭ maiores, 3 oitavas) têm em comum: os pontos de mudança
+ * (notas 9, 15, 17, 21, 22, 26 e 29) e, nas cordas soltas Ré, Lá e Mi, o 4º dedo subindo e a corda solta descendo (o que o Si♭ maior
+ * faz). NÃO é o livro: é um ponto de partida para o administrador conferir com a página antes de salvar.
+ */
+const MOLD = { 9: '1', 15: '1', 17: '1', 21: '4', 22: '4', 26: '3', 29: '3' };
+function suggest(pc, alt, type, oct) {
+  if (type !== 'major' || oct !== 3) return { error: 'Só há molde para escala maior de 3 oitavas (as páginas lidas até agora).' };
+  const marks = { ...MOLD };
+  const notes = ['Pontos de mudança (1 1 1, 4 4, 3 3) iguais aos de Si♭, Mi♭ e Sol♭ maiores.'];
+  let open = 0;
+  for (const r of noteRows(pc, alt, type, oct)) {
+    if ([62, 69, 76].includes(r.midi) && marks[r.i] === undefined) {
+      marks[r.i] = r.asc ? '4' : '0';
+      open++;
+    }
+  }
+  if (open) notes.push('Cordas soltas (Ré, Lá, Mi): 4º dedo subindo e corda solta descendo, como no Si♭ maior.');
+  notes.push('Não inclui o dedo da primeira nota nem o 8va: veja na página.');
+  return { marks, ottava: null, notes };
+}
+
+/** Nome da tônica (com a grafia) de cada tonalidade possível, para a lista do que falta preencher. */
+function tonicChoices(minor) {
+  const probe = minor ? 'naturalMinor' : 'major';
+  const out = [];
+  for (let pc = 0; pc < 12; pc++) {
+    for (const alt of hasAlt(pc, probe) ? [false, true] : [false]) {
+      const [l, a] = tonicSpelling(pc, probe, alt);
+      out.push({ pc, alt, name: LETTERS[l] + (a === 1 ? '♯' : a === -1 ? '♭' : '') });
+    }
+  }
+  return out;
+}
+
 const keyOf = (pc, alt, type, oct) => `${pc}|${alt ? 1 : 0}|${type}|${oct}`;
 
 /**
@@ -182,4 +217,4 @@ async function listOverrides(store) {
   return Object.entries(h || {}).map(([f, v]) => unpack(f, v)).filter(Boolean);
 }
 
-module.exports = { HASH, TYPES, OPEN_STRINGS, keyOf, tonicMidi, hasAlt, tonicSpelling, sequence, seqLength, noteRows, validate, pack, unpack, listOverrides };
+module.exports = { suggest, tonicChoices, MOLD, HASH, TYPES, OPEN_STRINGS, keyOf, tonicMidi, hasAlt, tonicSpelling, sequence, seqLength, noteRows, validate, pack, unpack, listOverrides };

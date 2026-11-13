@@ -136,6 +136,10 @@
     .fg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--s12); margin-bottom: var(--s12); }
     .fg-grid label { display: flex; flex-direction: column; gap: var(--s4); font-size: 13px; color: var(--dim); }
     #fgList td:first-child, #fgList .tag { white-space: nowrap; }
+    .fg-cover { display: flex; flex-wrap: wrap; gap: var(--s8); }
+    .fg-cover button { min-width: 64px; }
+    .fg-cover button.has { color: var(--accent); border-color: rgba(31,230,143,.5); }
+    .fg-cover button.no { color: var(--sharp); }
     .fg-head { font-size: 17px; font-weight: 800; margin: var(--s16) 0 var(--s4); }
     .fg-sub { color: var(--dim); font-size: 13.5px; margin: 0 0 var(--s12); }
     .fg-rows { max-height: 520px; overflow: auto; border: 1px solid var(--outline); border-radius: var(--r-ctl); margin-bottom: var(--s12); }
@@ -610,6 +614,9 @@
       <h2>Dedilhado do violino (Flesch)</h2>
       <p class="lead">As escalas que já têm números de dedo no app, as que você corrigiu aqui e as que você incluiu. O que você salva vale no lugar do que vem no app e chega aos aparelhos na próxima abertura do app (em até 5 minutos).</p>
       <div id="fgList"><div class="empty">Carregando…</div></div>
+      <h2>O que falta preencher</h2>
+      <p class="lead">Cada tonalidade do tipo e das oitavas escolhidos no formulário abaixo: <b>✓</b> já tem dedilhado, <b>○</b> falta. Toque numa que falta para abrir o formulário já nela.</p>
+      <div class="card"><div class="toolbar"><label style="display:flex;gap:8px;align-items:center;color:var(--dim);font-size:13px">Ver faltas de <select id="fgCovType"></select> em <select id="fgCovOct"></select></label></div><div id="fgCover" class="fg-cover"></div></div>
       <h2>Editar ou incluir uma escala</h2>
       <p class="lead">Escolha a escala e toque em <b>Carregar notas</b>. Preencha o dedo (0 a 4) só nas notas em que o livro escreve um número e deixe as outras em branco. O 8va, se o livro usar, vai de uma nota a outra.</p>
       <div class="card" id="fgForm">
@@ -1918,7 +1925,7 @@
   $('sysPill').onclick = function () { showTab('system'); loaded.system = true; loadSystem(); };
 
   // ---------------- Partituras: dedilhado do violino ----------------
-  var FG = { types: [], seed: [], over: [], cur: null, source: null };
+  var FG = { types: [], seed: [], over: [], tonics: { major: [], minor: [] }, cur: null, source: null };
   var FG_PC = ['Dó', 'Dó♯ / Ré♭', 'Ré', 'Ré♯ / Mi♭', 'Mi', 'Fá', 'Fá♯ / Sol♭', 'Sol', 'Sol♯ / Lá♭', 'Lá', 'Lá♯ / Si♭', 'Si'];
   function fgKey(e) { return e.pc + '|' + (e.alt ? 1 : 0) + '|' + e.type + '|' + e.oct; }
   function fgTag(txt, cls) { var s = document.createElement('span'); s.className = 'tag ' + (cls || ''); s.textContent = txt; return s; }
@@ -1926,9 +1933,24 @@
     var box = $('fgList');
     post({ action: 'fing_list' }).then(function (r) {
       if (r.status !== 200) { box.textContent = 'Não foi possível carregar: ' + why(r); return; }
-      FG.types = r.j.types; FG.seed = r.j.seed; FG.over = r.j.overrides;
-      fgFillForm(); fgRenderList();
+      FG.types = r.j.types; FG.seed = r.j.seed; FG.over = r.j.overrides; FG.tonics = r.j.tonics || { major: [], minor: [] };
+      fgFillForm(); fgRenderList(); fgCover();
     }).catch(function () { box.textContent = 'Sem conexão com o servidor.'; });
+  }
+  /* Cobertura: uma ficha por tonalidade do tipo e das oitavas escolhidos (✓ já tem, ○ falta). */
+  function fgCover() {
+    var box = $('fgCover'), ty = $('fgCovType'), oc = $('fgCovOct');
+    if (!ty.options.length) { FG.types.forEach(function (x) { var o = document.createElement('option'); o.value = x.id; o.textContent = x.label; ty.appendChild(o); }); ty.onchange = fgCover; }
+    if (!oc.options.length) { [1, 2, 3, 4].forEach(function (n) { var o = document.createElement('option'); o.value = String(n); o.textContent = n + (n === 1 ? ' oitava' : ' oitavas'); oc.appendChild(o); }); oc.value = '3'; oc.onchange = fgCover; }
+    var t = ty.value, oct = Number(oc.value), minor = false; FG.types.forEach(function (x) { if (x.id === t) minor = x.minor; });
+    var have = {}; FG.seed.concat(FG.over).forEach(function (e) { have[fgKey(e)] = 1; });
+    box.innerHTML = '';
+    (FG.tonics[minor ? 'minor' : 'major'] || []).forEach(function (c) {
+      var k = fgKey({ pc: c.pc, alt: c.alt, type: t, oct: oct }), b = document.createElement('button');
+      b.className = have[k] ? 'has' : 'no'; b.textContent = (have[k] ? '✓ ' : '○ ') + c.name;
+      b.onclick = function () { $('fgPc').value = String(c.pc); $('fgType').value = t; $('fgOct').value = String(oct); fgLoadRows(c.alt); $('fgForm').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+      box.appendChild(b);
+    });
   }
   function fgFillForm() {
     var pc = $('fgPc'), ty = $('fgType'), oc = $('fgOct');
@@ -2013,12 +2035,24 @@
     box.appendChild(oc);
     var warn = document.createElement('div'); warn.className = 'fg-warn'; warn.id = 'fgWarn'; box.appendChild(warn);
     var bar = document.createElement('div'); bar.className = 'toolbar';
+    if (j.source === null && FG.cur.type === 'major' && FG.cur.oct === 3) {
+      var sug = document.createElement('button'); sug.textContent = 'Sugerir pelo molde'; sug.title = 'Preenche com o que as páginas já lidas têm em comum. Confira com o livro antes de salvar.'; sug.onclick = fgSuggest; bar.appendChild(sug);
+    }
     var save = document.createElement('button'); save.className = 'primary'; save.textContent = 'Salvar'; save.onclick = fgSave; bar.appendChild(save);
     if (j.source === 'servidor') {
       var inSeed = FG.seed.some(function (e) { return fgKey(e) === fgKey(FG.cur); });
       var del = document.createElement('button'); del.textContent = inSeed ? 'Voltar ao que vem no app' : 'Apagar esta escala'; del.onclick = fgDelete; bar.appendChild(del);
     }
     box.appendChild(bar);
+  }
+  function fgSuggest() {
+    var c = FG.cur;
+    post({ action: 'fing_suggest', pc: c.pc, alt: c.alt, type: c.type, oct: c.oct }).then(function (r) {
+      if (r.status !== 200) { toast('Sem sugestão: ' + why(r), 'bad'); return; }
+      var sels = $('fgRows').querySelectorAll('select[data-i]');
+      for (var i = 0; i < sels.length; i++) { var v = r.j.marks[sels[i].getAttribute('data-i')]; sels[i].value = v === undefined ? '' : String(v); sels[i].onchange(); }
+      $('fgWarn').textContent = 'Sugestão (não é o livro): ' + r.j.notes.join(' ') + ' Confira com a página e ajuste antes de salvar.';
+    }).catch(function () { toast('Sem conexão com o servidor.', 'bad'); });
   }
   function fgSave() {
     var marks = {}, sels = $('fgRows').querySelectorAll('select[data-i]');

@@ -42,6 +42,7 @@ Funções hoje: **9 de 12**.
  Dedilhado do violino (Flesch), editado à mão (docs/07_PAINEL_ADMIN.md):
   fing_list                  o que vem no app (seed) e o que foi corrigido/incluído aqui (1 comando no Redis)
   fing_rows {pc,alt,type,oct} as notas da escala (nome, 8va, corda solta) e o que está salvo para ela (0 ou 1 comando)
+  fing_suggest {pc,alt,type,oct} sugestão pelo molde das páginas já lidas (para conferir com o livro; não salva nada)
   fing_save {pc,alt,type,oct,marks,ottava}  salva (vale no lugar da tabela do app); devolve avisos, sem impedir
   fing_delete {pc,alt,type,oct}  apaga a correção daqui (volta ao que vem no app, se houver)
 
@@ -69,6 +70,7 @@ Custo: só quando o admin abre o painel (kpis ~35 comandos; lista de 25 = ~27; d
 | `feature_grant` | — |
 | `fing_list` | — |
 | `fing_rows` | — |
+| `fing_suggest` | — |
 | `fing_save` | — |
 | `fing_delete` | — |
 | `sweep` | — |

@@ -32,6 +32,7 @@
 //  Dedilhado do violino (Flesch), editado à mão (docs/07_PAINEL_ADMIN.md):
 //   fing_list                  o que vem no app (seed) e o que foi corrigido/incluído aqui (1 comando no Redis)
 //   fing_rows {pc,alt,type,oct} as notas da escala (nome, 8va, corda solta) e o que está salvo para ela (0 ou 1 comando)
+//   fing_suggest {pc,alt,type,oct} sugestão pelo molde das páginas já lidas (para conferir com o livro; não salva nada)
 //   fing_save {pc,alt,type,oct,marks,ottava}  salva (vale no lugar da tabela do app); devolve avisos, sem impedir
 //   fing_delete {pc,alt,type,oct}  apaga a correção daqui (volta ao que vem no app, se houver)
 //
@@ -593,7 +594,7 @@ function makeHandler(deps = {}) {
           return tonic + ' ' + fing.TYPES[e.type].label.toLowerCase() + ' · ' + e.oct + (e.oct === 1 ? ' oitava' : ' oitavas');
         };
         const named = (list) => list.map((e) => ({ ...e, name: nameOf(e) }));
-        return send(200, { ok: true, seed: named(fingSeed.items), overrides: named(over), types });
+        return send(200, { ok: true, seed: named(fingSeed.items), overrides: named(over), types, tonics: { major: fing.tonicChoices(false), minor: fing.tonicChoices(true) } });
       }
       if (action === 'fing_rows') {
         const v = fing.validate({ pc: b.pc, alt: b.alt, type: b.type, oct: b.oct, marks: {}, ottava: null });
@@ -611,6 +612,14 @@ function makeHandler(deps = {}) {
         }
         const names = (alt) => { const [l, a] = fing.tonicSpelling(e.pc, e.type, alt); return ['Dó', 'Ré', 'Mi', 'Fá', 'Sol', 'Lá', 'Si'][l] + (a === 1 ? '♯' : a === -1 ? '♭' : ''); };
         return send(200, { ok: true, rows: fing.noteRows(e.pc, e.alt, e.type, e.oct), hasAlt: fing.hasAlt(e.pc, e.type), tonic: names(false), tonicAlt: fing.hasAlt(e.pc, e.type) ? names(true) : null, source, marks: cur ? cur.marks : {}, ottava: cur ? cur.ottava : null });
+      }
+      if (action === 'fing_suggest') {
+        const v = fing.validate({ pc: b.pc, alt: b.alt, type: b.type, oct: b.oct, marks: {}, ottava: null });
+        if (v.error) return send(400, { error: v.error });
+        const e = v.entry;
+        const s = fing.suggest(e.pc, e.alt, e.type, e.oct);
+        if (s.error) return send(400, { error: s.error });
+        return send(200, { ok: true, marks: s.marks, ottava: s.ottava, notes: s.notes });
       }
       if (action === 'fing_save') {
         const v = fing.validate(b);

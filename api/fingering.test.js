@@ -146,3 +146,35 @@ test('uma escala salva ocupa um campo só no Redis', async () => {
   await adm(H, { action: 'fing_save', pc: 6, alt: true, type: 'major', oct: 3, marks: { 0: '2' }, ottava: [18, 26] });
   assert.equal(hashes.get(fing.HASH).size, 1);
 });
+
+test('a sugestão pelo molde reproduz as três escalas lidas (só o 1º dedo e o 8va ficam para a página)', () => {
+  const sb = fing.suggest(10, false, 'major', 3);
+  assert.equal(sb.error, undefined);
+  const seed = JSON.parse(fs.readFileSync(seedGen.OUT, 'utf8')).items;
+  const get = (pc, alt) => seed.find((s) => s.pc === pc && s.alt === alt && s.type === 'major' && s.oct === 3);
+  assert.deepEqual(sb.marks, get(10, false).marks); // Si♭ maior: idêntico, inclusive as cordas soltas
+  for (const [pc, alt] of [[3, false], [6, true]]) {
+    const want = { ...get(pc, alt).marks };
+    delete want['0'];
+    assert.deepEqual(fing.suggest(pc, alt, 'major', 3).marks, want, 'pc ' + pc);
+  }
+  assert.ok(fing.suggest(0, false, 'major', 3).marks['21']);
+});
+
+test('sem molde (menor, 1 oitava...) a sugestão recusa, e o painel avisa', async () => {
+  assert.ok(fing.suggest(9, false, 'naturalMinor', 3).error);
+  assert.ok(fing.suggest(0, false, 'major', 2).error);
+  const H = mk();
+  assert.equal((await adm(H, { action: 'fing_suggest', pc: 0, alt: false, type: 'major', oct: 3 })).json().ok, true);
+  assert.equal((await adm(H, { action: 'fing_suggest', pc: 0, alt: false, type: 'major', oct: 2 })).statusCode, 400);
+  assert.equal((await adm(H, { action: 'fing_suggest', pc: 0, alt: false, type: 'major', oct: 3 }, 'errada')).statusCode, 401);
+});
+
+test('lista de tonalidades do painel: maiores com Sol♭ e Fá♯, menores com Ré♯ e Mi♭', async () => {
+  const H = mk();
+  const l = (await adm(H, { action: 'fing_list' })).json();
+  const names = (a) => a.map((x) => x.name + (x.alt ? '*' : ''));
+  assert.ok(names(l.tonics.major).includes('Fá♯') && names(l.tonics.major).includes('Sol♭*'));
+  assert.ok(names(l.tonics.minor).includes('Mi♭') && names(l.tonics.minor).includes('Ré♯*'));
+  assert.equal(l.tonics.major.filter((x) => !x.alt).length, 12);
+});
