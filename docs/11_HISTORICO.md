@@ -232,3 +232,6 @@ O painel foi redesenhado com o design system do app: cores iguais (testadas cont
 ## Ficha da pessoa no painel: tempo de uso e aparelho (novembro/2026)
 - Modal do perfil redesenhado (cabeçalho, números, gráfico de 14 dias, cartão Aparelho, atividade, dados no servidor, botões fixos) e lista com online, visto, hoje e total. Detalhes em `07_PAINEL_ADMIN.md`.
 - Servidor: `profiles.seen` passou a gravar tempo de uso e ficha do aparelho no mesmo HSET da presença (custo de comandos inalterado); `api/user_usage.test.js` (9 testes, inclusive o de custo). App: manda a ficha com o vínculo (`dv`) respeitando as estatísticas anônimas. Texto de privacidade do app (PT e EN) e `05_SEGURANCA_E_PRIVACIDADE.md` atualizados.
+
+## Cartão de resumo que é o botão de configurar (novembro/2026)
+- Nova peça `DsConfigCard` (`design_system.dart`): resumo do que está valendo + **ícone de ajustes na ponta direita**; tocar em qualquer parte abre o modal. Usada em **Escalas e Arpejos** (o cartão com o nome da escala), **Grade** ("Ajustes da grade · Igual · Lá 440 Hz") e **Metrônomo** ("4/4 · colcheias · Clique"). Saiu o botão "Configurar escala" solto embaixo. No Afinador o botão fica, porque o cartão do instrumento já abre outra coisa (a lista de instrumentos).

@@ -105,6 +105,51 @@ class DsSettingsButton extends StatelessWidget {
       );
 }
 
+/// Cartão de resumo que é também o botão de configurar: mostra o que está valendo agora e, na ponta direita,
+/// o ícone de ajustes (que avisa que dá para alterar). Tocar em qualquer parte abre os ajustes (modal).
+/// Use no lugar de "um texto de resumo + um botão Ajustes separado".
+class DsConfigCard extends StatelessWidget {
+  final Widget child;
+  final VoidCallback onTap;
+  final String semanticLabel;
+
+  /// Algo antes do ícone (por exemplo o "?" de ajuda). Fica fora da área que abre os ajustes? Não: o próprio botão cuida do toque.
+  final Widget? extra;
+  const DsConfigCard({super.key, required this.child, required this.onTap, required this.semanticLabel, this.extra});
+
+  @override
+  Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(Ds.radiusControl + 4);
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: Material(
+        color: AppColors.accent.withValues(alpha: 0.10),
+        shape: RoundedRectangleBorder(borderRadius: radius, side: BorderSide(color: AppColors.accent.withValues(alpha: 0.4))),
+        child: InkWell(
+          borderRadius: radius,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(Ds.s16, Ds.s12, Ds.s12, Ds.s12),
+            child: Row(children: [
+              Expanded(child: child),
+              ?extra,
+              const SizedBox(width: Ds.s8),
+              // O ícone de alterar, sempre na ponta direita.
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(Ds.radiusControl)),
+                child: Icon(Icons.tune_rounded, size: 22, color: AppColors.accent),
+              ),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Botão de ação principal da tela: largo e alto, sempre à vista.
 class DsPrimaryButton extends StatelessWidget {
   final VoidCallback? onPressed;

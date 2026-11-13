@@ -186,11 +186,17 @@ class _GridPageState extends State<GridPage> {
         const DsGap(Ds.s16),
         OctaveNav(app: app),
         const DsGap(Ds.s16),
-        Row(children: [
-          Expanded(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: SessionChips(app: app))),
-          const SizedBox(width: Ds.s12),
-          DsSettingsButton(onPressed: _openGridSettings),
-        ]),
+        Align(alignment: Alignment.centerLeft, child: FittedBox(fit: BoxFit.scaleDown, child: SessionChips(app: app))),
+        const DsGap(Ds.gap),
+        DsConfigCard(
+          semanticLabel: tr('Ajustes da grade'),
+          onTap: _openGridSettings,
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(tr('Ajustes da grade'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            const SizedBox(height: 2),
+            Text(tuningSummary(app), style: Ds.support()),
+          ]),
+        ),
       ],
     );
   }
@@ -290,37 +296,26 @@ class _GridPageState extends State<GridPage> {
     return type == ScaleType.chromatic ? tr('Escala Cromática a partir de {0}', [nota]) : tr('Escala de {0} {1}', [nota, tipo]);
   }
 
+  /// O cartão da escala (ou do arpejo) é o botão de configurar: tocar nele abre o modal (tônica, tipo, oitavas...).
   Widget _scaleHero(int tonicPc, TuningConfig names) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 10, 6, 10),
-      decoration: BoxDecoration(
-        color: AppColors.accent.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
-        border: Border.all(color: AppColors.accent.withValues(alpha: 0.4)),
-      ),
-      child: Row(
+    return DsConfigCard(
+      semanticLabel: tr('Configurar escala'),
+      onTap: _openScaleSettings,
+      extra: app.scaleType.hint.isEmpty ? null : HelpButton(title: tr('Sobre este exercício'), sections: [(tr('O que é'), app.scaleType.hint)]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: Text(_scaleTitle(tonicPc),
-                      key: ValueKey(_scaleTitle(tonicPc) + app.scaleOctaves.toString()),
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, height: 1.15)),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  tr('{0} {1} · começa em {2}', [app.scaleOctaves, app.scaleOctaves == 1 ? tr('oitava') : tr('oitavas'), noteName(app.scaleTonicMidi + app.scaleType.start, app.cfg, withOctave: true)]),
-                  style: Ds.support(),
-                ),
-              ],
-            ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: Text(_scaleTitle(tonicPc),
+                key: ValueKey(_scaleTitle(tonicPc) + app.scaleOctaves.toString()),
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, height: 1.15)),
           ),
-          if (app.scaleType.hint.isNotEmpty)
-            HelpButton(title: tr('Sobre este exercício'), sections: [(tr('O que é'), app.scaleType.hint)]),
+          const SizedBox(height: 2),
+          Text(
+            tr('{0} {1} · começa em {2}', [app.scaleOctaves, app.scaleOctaves == 1 ? tr('oitava') : tr('oitavas'), noteName(app.scaleTonicMidi + app.scaleType.start, app.cfg, withOctave: true)]),
+            style: Ds.support(),
+          ),
         ],
       ),
     );
@@ -386,8 +381,6 @@ class _GridPageState extends State<GridPage> {
             icon: const Icon(Icons.play_circle_outline),
             label: Text(tr('[dev] Simular exercício (silencioso)')),
           ),
-        const DsGap(Ds.gap),
-        SizedBox(width: double.infinity, child: DsSettingsButton(onPressed: _openScaleSettings, label: tr('Configurar escala'))),
       ],
     );
   }

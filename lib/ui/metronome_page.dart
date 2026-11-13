@@ -266,7 +266,15 @@ class _MetronomePageState extends State<MetronomePage>
             const DsGap(Ds.gap),
             _challengeQuick(m),
             const DsGap(Ds.gap),
-            SizedBox(width: double.infinity, child: DsSettingsButton(onPressed: _openSettings, label: tr('Ajustes do metrônomo'))),
+            DsConfigCard(
+              semanticLabel: tr('Ajustes do metrônomo'),
+              onTap: _openSettings,
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(tr('Ajustes do metrônomo'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 2),
+                Text(_settingsSummary(m), style: Ds.support()),
+              ]),
+            ),
             ],
           ],
         ));
@@ -275,6 +283,13 @@ class _MetronomePageState extends State<MetronomePage>
   }
 
   /// Modal com tudo o que é configuração do metrônomo.
+  /// "4/4 · Colcheias · Clique": o que está valendo agora.
+  String _settingsSummary(MetronomeConfig m) {
+    final sub = {1: tr('sem subdivisão'), 2: tr('Colcheias'), 3: tr('Tercinas'), 4: tr('Semicolcheias')}[m.subdivision] ?? tr('sem subdivisão');
+    final sound = {ClickSound.click: tr('Clique'), ClickSound.wood: tr('Madeira'), ClickSound.beep: tr('Bipe'), ClickSound.clave: tr('Clave'), ClickSound.drum: tr('Tambor')}[m.sound] ?? tr('Clique');
+    return '$_currentSigLabel · $sub · $sound';
+  }
+
   void _openSettings() {
     app.checkVibration(); // mostra se este aparelho vibra de verdade
     showDsSheet(
