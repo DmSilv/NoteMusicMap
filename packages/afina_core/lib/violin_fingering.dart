@@ -39,6 +39,9 @@ class FingeringPlan {
   const FingeringPlan(this.fingers, this.ottava);
 }
 
+/// O número em cima da 1ª nota é o dedo na corda Sol (IV) e define a POSIÇÃO em que a escala começa: em Dó maior, 2º dedo no Dó4 = 2ª posição; em Fá maior,
+/// 2º dedo no Fá4 = 5ª posição (o livro escreve o IV em cima nessas, e o III embaixo é a sugestão do editor, na corda Ré). Escalas que começam em Sol3 a Si♭3
+/// não têm número: 1ª posição.
 const List<_Entry> _violin = [
   // Flesch nº 5, 3 oitavas, Si♭ maior (2 bemóis), a partir do Si♭3 (corda Sol, 2º dedo).
   // Subindo usa o 4º dedo no Ré4 e no Lá4 (em vez das cordas soltas) e muda de posição com o 1º dedo; descendo usa as
@@ -50,9 +53,9 @@ const List<_Entry> _violin = [
   // Flesch nº 5, 3 oitavas, Sol♭ maior (6 bemóis), a partir do Sol♭4. Mesmo molde do Mi♭ maior; o 8va vai do Si♭6 até o 1º grupo do
   // compasso seguinte (da nota 18 à 26).
   _Entry(6, true, ScaleType.major, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '4', 26: '3', 29: '3'}, ottava: (18, 26)),
-  // Flesch nº 5, 3 oitavas, Ré maior (2 sustenidos), a partir do Ré4 (corda Ré solta). Começa na corda solta, então não há "4º dedo no lugar da
-  // solta" na subida; os pontos de mudança são os do molde das maiores (9, 15, 17 = 1; 21, 22 = 4; 26, 29 = 3). Sem 8va na página.
-  _Entry(2, false, ScaleType.major, 3, {0: '0', 9: '1', 15: '1', 17: '1', 21: '4', 22: '4', 26: '3', 29: '3'}),
+  // Flesch nº 5, 3 oitavas, Ré maior (2 sustenidos), a partir do Ré4. O livro escreve 2 em cima da 1ª nota (Flesch: corda Sol, 3ª posição, 2º dedo; o 0 que
+  // aparece embaixo é do editor, na corda Ré solta). Sem "4º dedo no lugar da solta" na subida; pontos de mudança do molde das maiores. Sem 8va na página.
+  _Entry(2, false, ScaleType.major, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '4', 26: '3', 29: '3'}),
   // Flesch nº 5, 3 oitavas, Mi♭ menor melódica (6 bemóis), a partir do Mi♭4 (corda Ré, 1º dedo; o livro escreve 2 em cima). Sobe com Dó♮ e Ré♮ e
   // desce com Ré♭ e Dó♭. 8va nas 6 notas do topo (Si♭6 a Dó♭7). A subida segue o mesmo molde das maiores (notas 9, 15, 17 e 21); a descida
   // é diferente da maior: 3 nas notas 22, 24 e 27 e 2 na 34.
@@ -80,8 +83,8 @@ const List<_Entry> _violin = [
   // Menores (melódicas: sobem com a sexta e a sétima maiores e descem naturais)
   // Lá menor, a partir do Lá3 (corda Sol). Sem os 4 do topo; 3 e 4 na descida (24 e 27) e cordas soltas Mi5, Lá4 e Ré4 (31, 35 e 39).
   _Entry(9, false, ScaleType.melodicMinor, 3, {3: '4', 7: '4', 9: '1', 15: '1', 17: '1', 24: '3', 27: '4', 31: '0', 35: '0', 39: '0'}),
-  // Ré menor, a partir do Ré4 (corda Ré solta, como no Ré maior). Molde das menores.
-  _Entry(2, false, ScaleType.melodicMinor, 3, {0: '0', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
+  // Ré menor, a partir do Ré4 (corda Sol, 3ª posição, 2º dedo, como no Ré maior). Molde das menores.
+  _Entry(2, false, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
   // Sol menor, a partir do Sol3: 4º dedo no Ré4 e no Lá4 subindo; 2 na nota 23; cordas soltas Lá4 e Ré4 descendo (34 e 38).
   _Entry(7, false, ScaleType.melodicMinor, 3, {4: '4', 8: '4', 9: '1', 17: '1', 21: '4', 22: '3', 23: '2', 24: '3', 27: '3', 34: '0', 38: '0'}),
   // Dó menor, a partir do Dó4. Molde das menores.
@@ -92,7 +95,7 @@ const List<_Entry> _violin = [
   _Entry(10, false, ScaleType.melodicMinor, 3, {0: '2', 6: '4', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
   // Sol♯ menor, a partir do Sol♯3 (corda Sol). Só um 1 na 2ª oitava (nota 17) e um 2 perto do fim (nota 40). Primeiras notas: o livro escreve
   // números que não deu para ler com segurança (veja o relatório).
-  _Entry(8, false, ScaleType.melodicMinor, 3, {9: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 40: '2'}),
+  _Entry(8, false, ScaleType.melodicMinor, 3, {0: '1', 1: '2', 2: '2', 9: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 40: '2'}),
   // Dó♯ menor, a partir do Dó♯4. Molde das menores.
   _Entry(1, false, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
   // Fá♯ menor, a partir do Fá♯4. Molde das menores; 8va nas 6 notas do topo.
@@ -111,7 +114,7 @@ const List<_Entry> _violin = [
   // Ré♯ menor melódica (mesmas notas do Mi♭ menor).
   _Entry(3, true, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}, ottava: (18, 23)),
   // Lá♭ menor melódica (mesmas notas do Sol♯ menor).
-  _Entry(8, true, ScaleType.melodicMinor, 3, {9: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 40: '2'}),
+  _Entry(8, true, ScaleType.melodicMinor, 3, {0: '1', 1: '2', 2: '2', 9: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 40: '2'}),
   // Lá♯ menor melódica (mesmas notas do Si♭ menor).
   _Entry(10, true, ScaleType.melodicMinor, 3, {0: '2', 6: '4', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
 ];
@@ -201,6 +204,33 @@ FingeringPlan? violinFingeringPlan({required int tonicMidi, required ScaleType t
     if (b >= a && e.ottava!.$2 - offset >= 0 && e.ottava!.$1 - offset <= seq.length - 1) ott = (a, b);
   }
   return FingeringPlan(fingers, ott);
+}
+
+/// Onde a escala começa no violino, como o livro: sempre na corda Sol (IV) e na posição que o número da 1ª nota dá.
+class StartHint {
+  /// Corda: 4 = Sol (IV).
+  final int string;
+
+  /// Posição (1 a 7).
+  final int position;
+
+  /// Dedo da 1ª nota (null = o livro não escreve: 1ª posição).
+  final int? finger;
+  const StartHint(this.string, this.position, this.finger);
+}
+
+/// A corda e a posição em que a escala do livro começa, ou null se não há tabela (ou se a escala começa pelo alto, em "só descendo").
+StartHint? violinStartHint({required int tonicMidi, required ScaleType type, required int octaves, required ScaleDirection direction, bool alt = false}) {
+  if (direction == ScaleDirection.down) return null;
+  final e = _find(tonicMidi, type, octaves, alt);
+  if (e == null) return null;
+  final first = scaleSequence(tonicMidi, type, octaves: octaves).first;
+  // a posição vem da nota na corda Sol: passos de letra acima do Sol3 (Sol=0, Lá=1... Ré4=4) menos o dedo, mais 1
+  final n = ScaleSpeller(tonicMidi, type).spell(first, ascending: true);
+  final d = n.octave * 7 + n.letter - (3 * 7 + 4);
+  final f = int.tryParse(e.marks[0] ?? '');
+  if (f == null || f < 1) return const StartHint(4, 1, null);
+  return StartHint(4, (d - f + 1).clamp(1, 7), f);
 }
 
 /// Para os testes: as entradas da tabela.

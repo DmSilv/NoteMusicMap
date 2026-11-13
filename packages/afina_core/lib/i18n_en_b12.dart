@@ -31,6 +31,7 @@ const Map<String, String> kEnB12 = {
   '8va nas notas muito agudas': '8va on very high notes',
   'Escreve uma oitava abaixo, com o sinal 8va e o nome.': 'Writes them an octave lower, with the 8va sign and the name.',
   'Qual escala?': 'Which scale?',
+  'corda Sol (IV), {0}ª posição': 'G string (IV), position {0}',
   'Qual arpejo?': 'Which arpeggio?',
   'Configurar arpejo': 'Set up arpeggio',
   'Arpejo': 'Arpeggio',

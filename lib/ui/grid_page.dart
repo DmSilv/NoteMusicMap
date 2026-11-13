@@ -317,6 +317,12 @@ class _GridPageState extends State<GridPage> {
             tr('{0} {1} · começa em {2}', [app.scaleOctaves, app.scaleOctaves == 1 ? tr('oitava') : tr('oitavas'), app.scaleNoteName(app.scaleTonicMidi + app.scaleType.start, ascending: true, withOctave: true)]),
             style: Ds.support(),
           ),
+          // como o Flesch manda começar: na corda Sol (IV), na posição que o número da 1ª nota dá
+          if (app.scaleStartHint != null)
+            Text(
+              tr('corda Sol (IV), {0}ª posição', [app.scaleStartHint!.position]),
+              style: Ds.support().copyWith(color: AppColors.accent, fontWeight: FontWeight.w700),
+            ),
         ],
       ),
     );

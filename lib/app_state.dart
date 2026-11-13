@@ -3502,6 +3502,12 @@ class AppState extends ChangeNotifier {
     return violinFingeringPlan(tonicMidi: scaleTonicMidi, type: scaleType, octaves: scaleOctaves, direction: scaleDirection, alt: scaleAlt);
   }
 
+  /// Corda e posição em que a escala do livro começa (só violino, escala com tabela, subindo).
+  StartHint? get scaleStartHint {
+    if (instrument.id != 'violino' || scaleType.arpeggio) return null;
+    return violinStartHint(tonicMidi: scaleTonicMidi, type: scaleType, octaves: scaleOctaves, direction: scaleDirection, alt: scaleAlt);
+  }
+
   /// 8va do desenho: com tabela do livro, só onde o livro usa (e se o ajuste estiver ligado); sem tabela, a regra automática.
   bool get staffOttavaAuto => scaleOttava && scalePlan == null;
   (int, int)? get staffOttavaRange => scaleOttava ? scalePlan?.ottava : null;

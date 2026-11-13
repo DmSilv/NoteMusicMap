@@ -86,6 +86,23 @@ void main() {
     }
   });
 
+  test('onde a escala do livro começa (corda Sol e posição pelo número da 1ª nota): as 24', () {
+    // posição esperada por tônica (pc) para maiores e menores melódicas
+    const maj = {0: 2, 1: 3, 2: 3, 3: 4, 4: 4, 5: 5, 6: 5, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1};
+    const min = {0: 2, 1: 2, 2: 3, 3: 4, 4: 4, 5: 5, 6: 5, 7: 1, 8: 1, 9: 1, 10: 1, 11: 1};
+    for (final (type, exp) in [(ScaleType.major, maj), (ScaleType.melodicMinor, min)]) {
+      for (var pc = 0; pc < 12; pc++) {
+        final tonic = 55 + ((pc - 55) % 12 + 12) % 12;
+        final h = violinStartHint(tonicMidi: tonic, type: type, octaves: 3, direction: ScaleDirection.both)!;
+        expect(h.string, 4);
+        expect(h.position, exp[pc], reason: '${type.name} pc $pc');
+      }
+    }
+    // só descendo não tem começo pelo alto; sem tabela, nada
+    expect(violinStartHint(tonicMidi: 60, type: ScaleType.major, octaves: 3, direction: ScaleDirection.down), isNull);
+    expect(violinStartHint(tonicMidi: 60, type: ScaleType.major, octaves: 2, direction: ScaleDirection.both), isNull);
+  });
+
   test('conferências cruzadas entre as 24: pontos de mudança, 4º dedo só em corda solta e 8va dentro da escala', () {
     for (final e in violinFingeringEntries()) {
       final tonic = 55 + ((e.tonicPc - 55) % 12 + 12) % 12;
