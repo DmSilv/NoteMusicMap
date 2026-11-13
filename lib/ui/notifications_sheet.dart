@@ -54,7 +54,6 @@ Future<void> showNotificationsSheet(BuildContext context, AppState app) {
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    backgroundColor: AppColors.surface,
     builder: (c) => ListenableBuilder(
       listenable: app,
       builder: (c, _) {

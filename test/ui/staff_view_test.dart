@@ -133,8 +133,8 @@ void main() {
       AppColors.dark = appDark;
       final l = StaffColors.fromTheme(StaffPaper.light);
       final d = StaffColors.fromTheme(StaffPaper.dark);
-      expect(l.paper, const Color(0xFFFFFFFF));
-      expect(l.ink, const Color(0xFF111B25));
+      expect(l.paper, const Color(0xFFFAFAF6));
+      expect(l.ink, const Color(0xFF0E1822));
       expect(d.paper, const Color(0xFF000000));
       expect(d.ink, const Color(0xFFFFFFFF));
       // "igual ao app" segue o tema
@@ -155,7 +155,7 @@ void main() {
     AppColors.dark = true;
     await tester.pumpWidget(_host(StaffCard(tonicMidi: 55, type: ScaleType.major, sequence: scaleSequence(55, ScaleType.major), upCount: 8, paper: StaffPaper.light), dark: true));
     final box = tester.widget<Container>(find.descendant(of: find.byType(StaffCard), matching: find.byType(Container)).first);
-    expect((box.decoration as BoxDecoration).color, const Color(0xFFFFFFFF));
+    expect((box.decoration as BoxDecoration).color, const Color(0xFFFAFAF6));
     await tester.pumpWidget(_host(StaffCard(tonicMidi: 55, type: ScaleType.major, sequence: scaleSequence(55, ScaleType.major), upCount: 8, paper: StaffPaper.dark), dark: false));
     final box2 = tester.widget<Container>(find.descendant(of: find.byType(StaffCard), matching: find.byType(Container)).first);
     expect((box2.decoration as BoxDecoration).color, const Color(0xFF000000));
@@ -168,7 +168,7 @@ void main() {
     expect(d.ink, const Color(0xFFFFFFFF));
     AppColors.dark = false;
     final l = StaffColors.fromTheme();
-    expect(l.paper, AppColors.surface);
+    expect(l.paper, const Color(0xFFFAFAF6));
     expect(l.ink, AppColors.text);
   });
 

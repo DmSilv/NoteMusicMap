@@ -76,7 +76,6 @@ class _LibraryPageState extends State<LibraryPage> {
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
-      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(Ds.radiusCard))),
       builder: (c) => _ItemForm(app: app, item: item, kind: _kind, folder: _folder),
     );

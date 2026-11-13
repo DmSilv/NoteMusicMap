@@ -13,12 +13,13 @@ import 'package:flutter/material.dart';
 class AppColors {
   static bool dark = true;
 
-  static Color get bg => dark ? const Color(0xFF0F1419) : const Color(0xFFF3F6F9);
-  static Color get surface => dark ? const Color(0xFF171E26) : const Color(0xFFFFFFFF);
-  static Color get surface2 => dark ? const Color(0xFF202A35) : const Color(0xFFE6ECF2);
-  static Color get outline => dark ? const Color(0xFF2E3B49) : const Color(0xFFC9D4DE);
-  static Color get text => dark ? const Color(0xFFE8EEF4) : const Color(0xFF111B25);
-  static Color get textDim => dark ? const Color(0xFF8FA0B1) : const Color(0xFF4C5C6C);
+  // Tema claro SUAVE: fundo cinza-azulado e cartões em branco quebrado (nada de branco puro sobre branco: cansa a vista e apaga as bordas).
+  static Color get bg => dark ? const Color(0xFF0F1419) : const Color(0xFFD9E1E9);
+  static Color get surface => dark ? const Color(0xFF171E26) : const Color(0xFFEDF1F5);
+  static Color get surface2 => dark ? const Color(0xFF202A35) : const Color(0xFFCDD7E1);
+  static Color get outline => dark ? const Color(0xFF2E3B49) : const Color(0xFFA9B8C7);
+  static Color get text => dark ? const Color(0xFFE8EEF4) : const Color(0xFF0E1822);
+  static Color get textDim => dark ? const Color(0xFF8FA0B1) : const Color(0xFF3F5063);
 
   static Color get inTune => dark ? const Color(0xFF1FE68F) : const Color(0xFF0B7F57);
   static Color get inTuneBright => dark ? const Color(0xFF5CFFB8) : const Color(0xFF1AA676);
@@ -117,6 +118,8 @@ ThemeData buildTheme({required bool dark}) {
     dividerColor: AppColors.outline,
     dividerTheme: DividerThemeData(color: AppColors.outline, thickness: 1),
     dialogTheme: DialogThemeData(backgroundColor: AppColors.surface),
+    // A folha de baixo lê a cor do TEMA a cada quadro: trocar claro/escuro com uma folha aberta não deixa o fundo para trás.
+    bottomSheetTheme: BottomSheetThemeData(backgroundColor: AppColors.surface, modalBackgroundColor: AppColors.surface, surfaceTintColor: Colors.transparent),
     textTheme: ThemeData(brightness: dark ? Brightness.dark : Brightness.light)
         .textTheme
         .apply(bodyColor: AppColors.text, displayColor: AppColors.text),

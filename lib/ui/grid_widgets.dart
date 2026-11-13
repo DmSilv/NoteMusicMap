@@ -527,7 +527,6 @@ void showSessionSheet(BuildContext context, AppState app) {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.surface,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
     builder: (ctx) => DraggableScrollableSheet(
@@ -594,7 +593,6 @@ Widget _sessionRow(AppState app, int midi, CellView v, double zone) {
 void showOctaveSheet(BuildContext context, AppState app) {
   showModalBottomSheet<void>(
     context: context,
-    backgroundColor: AppColors.surface,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
     builder: (ctx) => SafeArea(

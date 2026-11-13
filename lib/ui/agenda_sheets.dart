@@ -19,7 +19,6 @@ Future<T?> _sheet<T>(BuildContext context, WidgetBuilder builder) => showModalBo
       isScrollControlled: true,
       useSafeArea: true,
       showDragHandle: true,
-      backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(Ds.radiusCard))),
       builder: builder,
     );

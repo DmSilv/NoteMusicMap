@@ -225,7 +225,6 @@ Future<void> showDsSheet(
     isScrollControlled: true,
     showDragHandle: true,
     useSafeArea: true,
-    backgroundColor: AppColors.surface,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(Ds.radiusCard))),
     builder: (c) => ConstrainedBox(
       constraints: BoxConstraints(maxHeight: MediaQuery.of(c).size.height * 0.85),

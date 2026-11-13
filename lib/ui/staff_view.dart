@@ -21,9 +21,9 @@ class StaffColors {
   /// Cores fixas de cada fundo: não dependem do tema do app, então a partitura pode ser clara dentro de um app escuro
   /// (e o contrário) sem perder leitura. As cores das notas tocadas são as mesmas da agulha em cada tema.
   static const StaffColors light = StaffColors(
-    paper: Color(0xFFFFFFFF),
-    ink: Color(0xFF111B25),
-    dim: Color(0xFF4C5C6C),
+    paper: Color(0xFFFAFAF6), // papel quebrado: menos brilho que o branco puro, a tinta continua com contraste altíssimo
+    ink: Color(0xFF0E1822),
+    dim: Color(0xFF3F5063),
     inTune: Color(0xFF0B7F57),
     flat: Color(0xFF1E62BD),
     sharp: Color(0xFFB05400),

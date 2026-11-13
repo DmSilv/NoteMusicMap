@@ -13,7 +13,6 @@ Future<bool> confirmExitApp(BuildContext context) async {
     isScrollControlled: true, // sem o teto de altura padrão: em tela baixa (celular deitado) a folha rola em vez de estourar
     showDragHandle: true,
     useSafeArea: true,
-    backgroundColor: AppColors.surface,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(Ds.radiusCard))),
     builder: (c) => SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(Ds.screenPad, Ds.s4, Ds.screenPad, Ds.s16),

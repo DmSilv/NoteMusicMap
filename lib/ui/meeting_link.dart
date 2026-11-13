@@ -5,7 +5,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../app_state.dart';
 import 'design_system.dart';
 import 'safe_input.dart';
-import 'theme.dart';
 
 /// Abre o link da aula online no navegador do aparelho. Sites conhecidos (Meet, Zoom, Teams…) abrem direto;
 /// qualquer outro mostra antes o endereço, para a pessoa saber para onde está indo.
@@ -151,7 +150,6 @@ Future<String?> showMeetLinkSheet(BuildContext context, AppState app, {String in
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    backgroundColor: AppColors.surface,
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(Ds.radiusCard))),
     builder: (ctx) => Padding(
       padding: EdgeInsets.fromLTRB(Ds.screenPad, 0, Ds.screenPad, MediaQuery.of(ctx).viewInsets.bottom + Ds.s24),
