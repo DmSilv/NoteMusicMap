@@ -14,7 +14,7 @@ import 'tuning_pick.dart';
 void showScaleSettings(BuildContext context, AppState app, {required bool exercise, VoidCallback? onReport}) {
   showDsSheet(
     context,
-    title: exercise ? tr('Ajustes do exercício') : tr('Configurar escala'),
+    title: exercise ? tr('Ajustes do exercício') : (app.scaleType.arpeggio ? tr('Configurar arpejo') : tr('Configurar escala')),
     listenable: exercise ? Listenable.merge([app, app.live]) : app,
     children: (c) => scaleSettingsRows(c, app, exercise: exercise, onReport: onReport),
   );
@@ -91,7 +91,30 @@ class _TonicPicker extends StatelessWidget {
 }
 
 /// A configuração só cabe na versão simples quando é Maior ou Menor melódica com a grafia comum; senão, "Mais opções" já abre aberto.
-bool _needsAdvanced(AppState app) => !(app.scaleType == ScaleType.major || app.scaleType == ScaleType.melodicMinor) || app.scaleAltActive;
+bool _needsAdvanced(AppState app) => app.scaleType.arpeggio ? false : (!(app.scaleType == ScaleType.major || app.scaleType == ScaleType.melodicMinor) || app.scaleAltActive);
+
+/// Arpejos em duas escolhas simples: o acorde (maior, menor, 7ª, 7ª diminuta) e a posição (fundamental ou inversões).
+enum _ArpFamily { major, minor, dominant, diminished }
+
+_ArpFamily _familyOf(ScaleType t) => switch (t) {
+      ScaleType.majorTriad || ScaleType.majorTriad1 || ScaleType.majorTriad2 => _ArpFamily.major,
+      ScaleType.minorTriad || ScaleType.minorTriad1 || ScaleType.minorTriad2 => _ArpFamily.minor,
+      ScaleType.dominantSeventh => _ArpFamily.dominant,
+      _ => _ArpFamily.diminished,
+    };
+
+int _inversionOf(ScaleType t) => switch (t) {
+      ScaleType.majorTriad1 || ScaleType.minorTriad1 => 1,
+      ScaleType.majorTriad2 || ScaleType.minorTriad2 => 2,
+      _ => 0,
+    };
+
+ScaleType _arpType(_ArpFamily f, int inv) => switch (f) {
+      _ArpFamily.major => const [ScaleType.majorTriad, ScaleType.majorTriad1, ScaleType.majorTriad2][inv],
+      _ArpFamily.minor => const [ScaleType.minorTriad, ScaleType.minorTriad1, ScaleType.minorTriad2][inv],
+      _ArpFamily.dominant => ScaleType.dominantSeventh,
+      _ArpFamily.diminished => ScaleType.diminishedSeventh,
+    };
 
 /// A versão completa (era a única): tônica por letra e acidente e todos os tipos.
 List<Widget> _advancedScaleRows(AppState app) => [
@@ -146,9 +169,10 @@ class _SimpleKeyPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final type = app.scaleType;
+    final arp = type.arpeggio;
     final isMajor = type == ScaleType.major;
     final isMinor = type.isMinor;
-    final nameType = isMinor ? type : ScaleType.major;
+    final nameType = arp ? type : (isMinor ? type : ScaleType.major);
     final cur = app.scaleTonicMidi % 12;
     void setQuality(int q) {
       if (q == 0) {
@@ -165,18 +189,52 @@ class _SimpleKeyPicker extends StatelessWidget {
 
     const pcs = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      SizedBox(
-        width: double.infinity,
-        child: SegmentedButton<int>(
-          showSelectedIcon: false,
-          emptySelectionAllowed: true,
-          segments: [ButtonSegment(value: 0, label: Text(tr('Maior'))), ButtonSegment(value: 1, label: Text(tr('Menor')))],
-          selected: {if (isMajor) 0 else if (isMinor) 1},
-          onSelectionChanged: (v) {
-            if (v.isNotEmpty) setQuality(v.first);
-          },
+      if (arp) ...[
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<_ArpFamily>(
+            showSelectedIcon: false,
+            style: const ButtonStyle(padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 2))),
+            segments: [
+              ButtonSegment(value: _ArpFamily.major, label: Text(tr('Maior'), maxLines: 1, softWrap: false)),
+              ButtonSegment(value: _ArpFamily.minor, label: Text(tr('Menor'), maxLines: 1, softWrap: false)),
+              ButtonSegment(value: _ArpFamily.dominant, label: Text(tr('7ª'), maxLines: 1, softWrap: false)),
+              ButtonSegment(value: _ArpFamily.diminished, label: Text(tr('7ª dim.'), maxLines: 1, softWrap: false)),
+            ],
+            selected: {_familyOf(type)},
+            onSelectionChanged: (v) => app.setScale(type: _arpType(v.first, _inversionOf(type))),
+          ),
         ),
-      ),
+        if (_familyOf(type) == _ArpFamily.major || _familyOf(type) == _ArpFamily.minor) ...[
+          const DsGap(Ds.s8),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<int>(
+              showSelectedIcon: false,
+              style: const ButtonStyle(padding: WidgetStatePropertyAll(EdgeInsets.symmetric(horizontal: 2))),
+              segments: [
+                ButtonSegment(value: 0, label: Text(tr('Fundamental'), maxLines: 1, softWrap: false)),
+                ButtonSegment(value: 1, label: Text(tr('1ª inversão'), maxLines: 1, softWrap: false)),
+                ButtonSegment(value: 2, label: Text(tr('2ª inversão'), maxLines: 1, softWrap: false)),
+              ],
+              selected: {_inversionOf(type)},
+              onSelectionChanged: (v) => app.setScale(type: _arpType(_familyOf(type), v.first)),
+            ),
+          ),
+        ],
+      ] else
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<int>(
+            showSelectedIcon: false,
+            emptySelectionAllowed: true,
+            segments: [ButtonSegment(value: 0, label: Text(tr('Maior'))), ButtonSegment(value: 1, label: Text(tr('Menor')))],
+            selected: {if (isMajor) 0 else if (isMinor) 1},
+            onSelectionChanged: (v) {
+              if (v.isNotEmpty) setQuality(v.first);
+            },
+          ),
+        ),
       const DsGap(Ds.s12),
       LayoutBuilder(builder: (c, box) {
         const gap = Ds.s8;
@@ -205,7 +263,7 @@ class _SimpleKeyPicker extends StatelessWidget {
         ]);
       }),
       const DsGap(Ds.s8),
-      Text(isMinor ? tr('O menor aqui é o melódico, o do método de Flesch.') : tr('Toque na nota em que a escala começa.'), style: Ds.support()),
+      Text(arp ? type.hint : (isMinor ? tr('O menor aqui é o melódico, o do método de Flesch.') : tr('Toque na nota em que a escala começa.')), style: Ds.support()),
     ]);
   }
 }
@@ -214,12 +272,10 @@ List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required boo
   final e = app.exercise;
   return [
     if (!exercise) ...[
-      _section(tr('Escala')),
-      if (app.scaleType.arpeggio)
-        ..._advancedScaleRows(app)
-      else ...[
+      _section(app.scaleType.arpeggio ? tr('Arpejo') : tr('Escala')),
+      ...[
         // versão simples: quem só quer "Dó menor" ou "Mi♭ maior" escolhe direto, sem letra + acidente + tipo
-        DsSettingRow(label: tr('Qual escala?'), child: _SimpleKeyPicker(app: app)),
+        DsSettingRow(label: app.scaleType.arpeggio ? tr('Qual arpejo?') : tr('Qual escala?'), child: _SimpleKeyPicker(app: app)),
         Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
@@ -230,7 +286,7 @@ List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required boo
             shape: const Border(),
             collapsedShape: const Border(),
             title: Text(tr('Mais opções'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: Ds.fontBody)),
-            subtitle: Text(tr('Outro nome da tônica (Lá♭ em vez de Sol♯) e outros tipos de escala.'), style: Ds.support()),
+            subtitle: Text(app.scaleType.arpeggio ? tr('Tônica por letra e acidente e todos os tipos de arpejo.') : tr('Outro nome da tônica (Lá♭ em vez de Sol♯) e outros tipos de escala.'), style: Ds.support()),
             children: [const DsGap(Ds.s12), ..._advancedScaleRows(app)],
           ),
         ),

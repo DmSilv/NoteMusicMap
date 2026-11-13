@@ -25,6 +25,12 @@ const Map<int, int> _minorTriad = {0: 0, 3: 2, 7: 4};
 const Map<int, int> _dominant7 = {0: 0, 4: 2, 7: 4, 10: 6};
 const Map<int, int> _diminished7 = {0: 0, 3: 2, 6: 4, 9: 5}; // a 7ª diminuta escreve-se como 6ª maior (Dó Mi♭ Sol♭ Lá)
 
+/// Na 7ª diminuta de Dó♯, Ré♯ e Sol♯ a grafia pela 7ª de verdade (Dó♯ Mi Sol Si♭) é a mais limpa; a de Ré♭, Mi♭ e Lá♭ cairia em dobrados
+/// bemóis (Lá♭♭, Si♭♭, Mi♭♭). Por isso essas três raízes se escrevem com sustenido e a letra da 7ª (Dó♯ Mi Sol Si♭, Ré♯ Fá♯ Lá Dó, Sol♯ Si Ré Fá).
+const Map<int, int> _diminished7Seventh = {0: 0, 3: 2, 6: 4, 9: 6};
+const Map<int, (int, int)> _dim7SharpRoot = {1: (0, 1), 3: (1, 1), 8: (4, 1)};
+bool _dim7Sharp(int tonicMidi) => _dim7SharpRoot.containsKey(tonicMidi % 12);
+
 /// A tônica que se escreve com esta letra (0 = Dó ... 6 = Si) e este acidente (-1 ♭, 0, 1 ♯) para o tipo [type], ou null se essa
 /// tonalidade não existe (Mi♯ maior, Fá♭ maior...). Devolve a classe de altura (0..11) e se é a "outra grafia" (Sol♭ em vez de Fá♯).
 ({int pc, bool alt})? tonicForSpelling(int letter, int acc, ScaleType type) {
@@ -89,7 +95,7 @@ class ScaleSpeller {
         ScaleType.majorTriad || ScaleType.majorTriad1 || ScaleType.majorTriad2 => _majorTriad,
         ScaleType.minorTriad || ScaleType.minorTriad1 || ScaleType.minorTriad2 => _minorTriad,
         ScaleType.dominantSeventh => _dominant7,
-        ScaleType.diminishedSeventh => _diminished7,
+        ScaleType.diminishedSeventh => _dim7Sharp(tonicMidi) ? _diminished7Seventh : _diminished7,
       };
 
   /// Letra (0 = Dó ... 6 = Si) e acidente da tônica, como se escreve o nome da tonalidade (base da armadura de clave).
@@ -100,6 +106,7 @@ class ScaleSpeller {
       final a = (type.isMinor ? _minorAlt : _majorAlt)[pc];
       if (a != null) return a;
     }
+    if (type == ScaleType.diminishedSeventh && _dim7Sharp(tonicMidi)) return _dim7SharpRoot[pc]!;
     return (type.isMinor ? _minorTonic : _majorTonic)[pc];
   }
 

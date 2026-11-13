@@ -9,6 +9,44 @@ String _seq(int tonic, ScaleType t, {required bool up}) {
 }
 
 void main() {
+  test('arpejos validados nas 12 tonalidades: tríades e 7ª da dominante em terças de letras, sem dobrados; 7ª diminuta sem dobrados', () {
+    for (var pc = 0; pc < 12; pc++) {
+      final tonic = 55 + ((pc - 55) % 12 + 12) % 12;
+      for (final t in ScaleType.arpeggios) {
+        final sp = ScaleSpeller(tonic, t);
+        // a raiz e as notas do acorde, na ordem de acorde (sem a nota de chegada)
+        final root = tonic + t.start;
+        final steps = t.steps;
+        final notes = [for (final s in steps) sp.spell(root + s, ascending: true)];
+        for (final n in notes) {
+          expect(n.accidental.abs(), lessThanOrEqualTo(1), reason: '${t.name} pc $pc: ${n.name()} tem acidente dobrado');
+        }
+        // as letras de um acorde são todas diferentes
+        expect(notes.map((n) => n.letter).toSet().length, notes.length, reason: '${t.name} pc $pc letras repetidas');
+        if (t.start == 0 && t != ScaleType.diminishedSeventh) {
+          for (var i = 1; i < notes.length; i++) {
+            expect((notes[i].letter - notes[i - 1].letter + 7) % 7, 2, reason: '${t.name} pc $pc: terças de letras');
+          }
+        }
+        // o nome da tônica bate com a letra escolhida
+        if (t.start == 0) expect(notes.first.letter, sp.tonicSpelling.$1);
+      }
+    }
+  });
+
+  test('7ª diminuta: Dó♯, Ré♯ e Sol♯ usam a letra da 7ª de verdade (Dó♯ Mi Sol Si♭), as outras a 6ª (Dó Mi♭ Sol♭ Lá)', () {
+    String arp(int pc) {
+      final tonic = 55 + ((pc - 55) % 12 + 12) % 12;
+      final sp = ScaleSpeller(tonic, ScaleType.diminishedSeventh);
+      return [for (final s in ScaleType.diminishedSeventh.steps) sp.spell(tonic + s, ascending: true).name()].join(' ');
+    }
+    expect(arp(0), 'Dó Mi♭ Sol♭ Lá');
+    expect(arp(1), 'Dó♯ Mi Sol Si♭');
+    expect(arp(3), 'Ré♯ Fá♯ Lá Dó');
+    expect(arp(8), 'Sol♯ Si Ré Fá');
+    expect(arp(10), 'Si♭ Ré♭ Fá♭ Sol');
+  });
+
   test('trocar só o tipo mantém o nome da tônica (Lá♭ maior -> Lá♭ menor, Sol♯ menor -> Sol♯ maior não existe)', () {
     // Lá♭ (pc 8): maior só tem esta grafia; menor tem Sol♯ (comum) e Lá♭ (outra)
     expect(altKeepingSpelling(56, ScaleType.major, false, ScaleType.melodicMinor), isTrue);
