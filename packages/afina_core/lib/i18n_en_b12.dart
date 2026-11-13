@@ -14,4 +14,6 @@ const Map<String, String> kEnB12 = {
   'Como escrever as notas': 'How to write the notes',
   'Nome das notas': 'Note names',
   'Próxima página da partitura': 'Next sheet music page',
+  'Dica nas notas agudas': 'Hint on high notes',
+  'Se você demorar numa nota bem aguda (acima da pauta), o nome dela aparece embaixo.': 'If you take a while on a very high note (above the staff), its name appears below.',
 };

@@ -24,6 +24,9 @@ const double kClefW = 2.7;
 /// Espaço depois de uma nota, de acordo com a duração (quanto mais longa, mais ar).
 double _gapAfter(int ticks) => switch (ticks) { 48 => 5.2, 36 => 4.6, 24 => 3.4, 12 => 2.3, 6 => 1.5, _ => 1.15 };
 
+/// Ar depois da nota; com número de dedo em cima, a nota não pode ficar mais apertada que isso (o número precisa de espaço).
+double _gapOf(StaffEvent e) => e.finger == null ? _gapAfter(e.ticks) : math.max(_gapAfter(e.ticks), 2.2 - (e.ticks == 48 ? kWholeW : kHeadW) + 0.3);
+
 /// Tamanho (px) do texto do nome das notas para um espaço de pauta de [sp] px.
 double staffNameFontSize(double sp) => (sp * 1.45).clamp(11.0, 16.0);
 
@@ -53,6 +56,9 @@ class LaidEvent {
 
   /// Posição x da haste.
   final double stemX;
+
+  /// Linha de base do número do dedo (y), se a nota tem dedilhado.
+  double? fingerY;
   LaidEvent(this.e, this.x, this.y, this.slotX0, this.slotX1, this.accX, this.stemUp, this.headW, this.stemX, this.stemTipY);
 
   List<int> get ledgers => ledgerLines(e.pos);
@@ -139,14 +145,14 @@ double _fixedW(StaffEvent e) {
 }
 
 /// [g] encolhe só o ar entre as notas (1 = normal).
-double _barW(List<StaffEvent> bar, [double g = 1]) => 1.0 + bar.fold(0.0, (a, e) => a + _fixedW(e) + _gapAfter(e.ticks) * g) + 0.5;
+double _barW(List<StaffEvent> bar, [double g = 1]) => 1.0 + bar.fold(0.0, (a, e) => a + _fixedW(e) + _gapOf(e) * g) + 0.5;
 
 /// Quanto o ar entre as notas precisa encolher para o compasso mais largo caber em [cap] espaços (>= 1 = cabe folgado).
 double _fitScale(StaffScore s, double cap) {
   var m = 99.0;
   for (var i = 0; i < s.bars.length; i++) {
     final fixed = _headerWidth(s.key, i == 0) + 1.5 + s.bars[i].fold(0.0, (a, e) => a + _fixedW(e));
-    final gaps = s.bars[i].fold(0.0, (a, e) => a + _gapAfter(e.ticks));
+    final gaps = s.bars[i].fold(0.0, (a, e) => a + _gapOf(e));
     m = math.min(m, (cap - fixed) / gaps);
   }
   return m;
@@ -251,7 +257,7 @@ LaidSystem _layoutSystem(StaffScore score, List<int> barIdx, double header, doub
         hx = x + kAccPre + (e.courtesy ? kAccW + 0.9 : kAccW) + kAccGap;
       }
       final head = e.ticks == 48 ? kWholeW : kHeadW;
-      final slot1 = hx + head + (e.dotted ? 0.9 : 0.0) + _gapAfter(e.ticks) * gs + add;
+      final slot1 = hx + head + (e.dotted ? 0.9 : 0.0) + _gapOf(e) * gs + add;
       pre.add((e, hx, slot0, slot1, accX));
       x = slot1;
     }
@@ -293,6 +299,7 @@ LaidSystem _layoutSystem(StaffScore score, List<int> barIdx, double header, doub
     laid.add(LaidEvent(e, hx, y, s0, s1, accX, up, head, stemX, tip));
   }
   // barras e tercinas
+  final tupBase = <int, double>{};
   final groups = <int, List<LaidEvent>>{};
   for (final l in laid) {
     final bg = l.e.beamGroup;
@@ -322,8 +329,32 @@ LaidSystem _layoutSystem(StaffScore score, List<int> barIdx, double header, doub
     // "3" das tercinas deste grupo de barra
     if (g.every((l) => l.e.tripletGroup != null) && g.length == 3) {
       final ym = yAt(xm, shift);
-      tuplets.add(LaidTuplet(xm, up ? ym + 0.45 : ym - 0.45 - 1.45));
+      final tb = up ? ym + 0.45 : ym - 0.45 - 1.45;
+      tuplets.add(LaidTuplet(xm, tb));
+      if (up) {
+        for (final l in g) {
+          tupBase[l.e.tripletGroup! * 1000 + l.e.bar] = tb;
+        }
+      }
     }
+  }
+  // número do dedo: em cima da nota (e da haste, da barra e do "3"), nunca dentro da pauta
+  for (final l in laid) {
+    if (l.e.finger == null) continue;
+    var noteTop = l.y + 0.6;
+    if (l.e.hasStem && l.stemUp) noteTop = math.max(noteTop, l.stemTipY + 0.15);
+    var fy = math.max(4.9, noteTop + 0.55);
+    final tb = l.e.tripletGroup == null ? null : tupBase[l.e.tripletGroup! * 1000 + l.e.bar];
+    if (tb != null) fy = math.max(fy, tb + 1.9);
+    l.fingerY = fy;
+  }
+  // os números de um compasso ficam todos na mesma altura (fileira limpa, em vez de uma escada)
+  final rowY = <int, double>{};
+  for (final l in laid) {
+    if (l.fingerY != null) rowY[l.e.bar] = math.max(rowY[l.e.bar] ?? 0, l.fingerY!);
+  }
+  for (final l in laid) {
+    if (l.fingerY != null) l.fingerY = rowY[l.e.bar];
   }
   // extensão vertical
   var top = 5.6; // a clave de Sol sobe até ~5,5
@@ -335,6 +366,9 @@ LaidSystem _layoutSystem(StaffScore score, List<int> barIdx, double header, doub
       top = math.max(top, l.y + 1.9);
       bottom = math.min(bottom, l.y - 1.4);
     }
+  }
+  for (final l in laid) {
+    if (l.fingerY != null) top = math.max(top, l.fingerY! + 1.3);
   }
   for (final t in tuplets) {
     top = math.max(top, t.baselineY + 1.6);

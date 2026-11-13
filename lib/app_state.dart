@@ -3466,7 +3466,10 @@ class AppState extends ChangeNotifier {
   /// Partitura (clave de Sol, 4/4) nas escalas e arpejos: ligada, como se escreve o ritmo e quando mostrar o nome das notas.
   bool scaleStaff = true;
   StaffRhythm scaleRhythm = StaffRhythm.quarter;
-  StaffNames scaleNames = StaffNames.ledger;
+  StaffNames scaleNames = StaffNames.none;
+
+  /// Dica automática do nome de uma nota muito aguda quando a pessoa demora nela (modo guiado).
+  bool scaleHints = true;
 
   /// A nota como está escrita na escala (Lá natural ao subir e Lá♭ ao descer em Dó menor melódica), com a oitava.
   /// Com instrumento transpositor a grafia segue a regra comum (o nome já muda pela transposição).
@@ -3713,7 +3716,8 @@ class AppState extends ChangeNotifier {
     scaleDirection = ScaleDirection.values[(p.getInt('scale_dir') ?? ScaleDirection.both.index).clamp(0, ScaleDirection.values.length - 1)];
     scaleStaff = p.getBool('scale_staff') ?? true;
     scaleRhythm = StaffRhythm.values[(p.getInt('scale_rhythm') ?? StaffRhythm.quarter.index).clamp(0, StaffRhythm.values.length - 1)];
-    scaleNames = StaffNames.values[(p.getInt('scale_names') ?? StaffNames.ledger.index).clamp(0, StaffNames.values.length - 1)];
+    scaleHints = p.getBool('scale_hints') ?? true;
+    scaleNames = StaffNames.values[(p.getInt('scale_names') ?? StaffNames.none.index).clamp(0, StaffNames.values.length - 1)];
     dailyGoalMinutes = p.getDouble('goal') ?? 20;
     themeMode = ThemeMode.values[p.getInt('theme') ?? 0];
     langPref = p.getString('lang') ?? 'auto';
@@ -4089,7 +4093,11 @@ class AppState extends ChangeNotifier {
   }
 
   /// Ajustes da partitura (só mudam como ela é escrita e mostrada; o exercício toca igual).
-  void setStaff({bool? on, StaffRhythm? rhythm, StaffNames? names}) {
+  void setStaff({bool? on, StaffRhythm? rhythm, StaffNames? names, bool? hints}) {
+    if (hints != null) {
+      scaleHints = hints;
+      _prefs?.setBool('scale_hints', hints);
+    }
     if (on != null) {
       scaleStaff = on;
       _prefs?.setBool('scale_staff', on);

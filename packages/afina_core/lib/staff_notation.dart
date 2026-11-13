@@ -9,6 +9,12 @@ library;
 import 'pitch_grid.dart';
 import 'scale_spelling.dart';
 
+/// A partir desta posição (Dó6: 2ª linha suplementar acima) a nota é difícil de achar na pauta; só essas ganham dica.
+const int kHighNotePos = 12;
+
+/// Quanto tempo (s) a nota difícil precisa esperar, sem ser tocada, para a dica aparecer.
+const double kHintAfterSeconds = 4;
+
 /// Um compasso 4/4 tem 48 "ticks": semínima = 12, colcheia = 6, colcheia de tercina = 4.
 const int kBarTicks = 48;
 
@@ -154,6 +160,9 @@ class StaffEvent {
   /// Início da nota dentro do exercício, em ticks.
   final int startTick;
 
+  /// Dedilhado escrito em cima da nota ("0".."4"), ou null.
+  final String? finger;
+
   const StaffEvent({
     required this.index,
     required this.note,
@@ -166,8 +175,10 @@ class StaffEvent {
     required this.beamGroup,
     required this.tripletGroup,
     required this.startTick,
+    this.finger,
   });
 
+  bool get isHigh => pos >= kHighNotePos;
   bool get hasStem => ticks < 48;
   bool get hollow => ticks >= 24;
   bool get dotted => ticks == 36;
@@ -210,6 +221,9 @@ StaffScore buildStaffScore({
   required int upCount,
   StaffRhythm rhythm = StaffRhythm.quarter,
   bool courtesy = true,
+
+  /// Dedilhado de cada nota da sequência (mesma ordem de [sequence]); null ou item null = sem número.
+  List<String?>? fingers,
 }) {
   final speller = ScaleSpeller(tonicMidi, type);
   final key = keySignatureFor(tonicMidi, type);
@@ -255,6 +269,7 @@ StaffScore buildStaffScore({
       beamGroup: beamed ? t ~/ window : null,
       tripletGroup: tk == 4 ? t ~/ 12 : null,
       startTick: t,
+      finger: fingers != null && i < fingers.length ? fingers[i] : null,
     ));
     t += tk;
   }

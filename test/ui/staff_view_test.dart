@@ -92,6 +92,42 @@ void main() {
     expect(find.textContaining('2 / '), findsOneWidget);
   });
 
+  testWidgets('a dica de nota aguda não muda a altura (a faixa já estava reservada) e só vale para nota aguda', (tester) async {
+    final sc = _score(74, ScaleType.major, r: StaffRhythm.quarter); // Ré5 .. Ré6: Dó6 e Ré6 são agudas
+    Future<double> h(int cur, bool now) async {
+      await tester.pumpWidget(_host(StaffView(score: sc, current: cur, hints: true, hintNow: now), dark: true));
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      return tester.getSize(find.byType(StaffView)).height;
+    }
+    final a = await h(6, false);
+    final b = await h(6, true);
+    final c = await h(1, true); // nota comum: sem dica, mesma altura
+    expect(b, a);
+    expect(c, a);
+    expect(sc.events[6].isHigh, isTrue);
+    expect(sc.events[1].isHigh, isFalse);
+  });
+
+  testWidgets('sem notas agudas a dica não reserva faixa nenhuma', (tester) async {
+    final sc = _score(55, ScaleType.major);
+    await tester.pumpWidget(_host(StaffView(score: sc, hints: true), dark: false));
+    final h1 = tester.getSize(find.byType(StaffView)).height;
+    await tester.pumpWidget(_host(StaffView(score: sc), dark: false));
+    expect(tester.getSize(find.byType(StaffView)).height, h1);
+  });
+
+  test('o fundo da partitura é preto puro no escuro e a tinta é branca', () {
+    AppColors.dark = true;
+    final d = StaffColors.fromTheme();
+    expect(d.paper, const Color(0xFF000000));
+    expect(d.ink, const Color(0xFFFFFFFF));
+    AppColors.dark = false;
+    final l = StaffColors.fromTheme();
+    expect(l.paper, AppColors.surface);
+    expect(l.ink, AppColors.text);
+  });
+
   testWidgets('cabe na largura do celular (sem estourar)', (tester) async {
     for (final w in [300.0, 358.0, 420.0]) {
       await tester.pumpWidget(_host(StaffView(score: _score(66, ScaleType.major, octaves: 2, r: StaffRhythm.eighth)), dark: true, width: w));
@@ -123,6 +159,15 @@ void main() {
     await shot('j_3oct_triplet_p1_light', StaffView(score: big, current: 4, marks: marks, maxHeight: 250, names: StaffNames.ledger));
     await shot('k_3oct_triplet_last_dark', StaffView(score: big, current: big.noteCount - 2, maxHeight: 250, names: StaffNames.ledger), dark: true);
     await shot('l_4oct_high_quarter_light', StaffView(score: _score(67, ScaleType.major, octaves: 3, r: StaffRhythm.eighth), current: 20, maxHeight: 250, names: StaffNames.ledger));
+    await shot('m_dark_black', StaffView(score: cm, current: 5, marks: marks), dark: true);
+    await shot('n_hint_high_dark', StaffView(score: _score(74, ScaleType.major), current: 6, hints: true, hintNow: true), dark: true);
+    await shot('n2_hint_high_light', StaffView(score: _score(74, ScaleType.major), current: 7, hints: true, hintNow: true));
+    final dm = _score(62, ScaleType.melodicMinor, octaves: 1);
+    final fingered = buildStaffScore(tonicMidi: 62, type: ScaleType.melodicMinor, sequence: scaleSequence(62, ScaleType.melodicMinor), upCount: 8, rhythm: StaffRhythm.quarter, fingers: ['0', '1', '2', '3', '4', '1', '2', '3', '4', '3', '2', '1', '0', '4', '2']);
+    await shot('o_fingers_quarter_light', StaffView(score: fingered, current: 3));
+    final fingeredT = buildStaffScore(tonicMidi: 62, type: ScaleType.melodicMinor, sequence: scaleSequence(62, ScaleType.melodicMinor, octaves: 2), upCount: 15, rhythm: StaffRhythm.triplet, fingers: [for (var i = 0; i < 30; i++) '${i % 5}']);
+    await shot('p_fingers_triplet_dark', StaffView(score: fingeredT, current: 3, maxHeight: 330), dark: true);
+    expect(dm.noteCount, 15);
     await shot('i_narrow_300_dark', StaffView(score: _score(60, ScaleType.melodicMinor, r: StaffRhythm.triplet), current: 0), dark: true, width: 300);
   });
 }

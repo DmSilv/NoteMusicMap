@@ -65,5 +65,24 @@ List<Widget> staffSettingRows(AppState app) => [
               ),
           ]),
         ),
+        DsSettingRow(
+          label: tr('Dica nas notas agudas'),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<bool>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: true, label: Text(tr('Ligada'))),
+                  ButtonSegment(value: false, label: Text(tr('Desligada'))),
+                ],
+                selected: {app.scaleHints},
+                onSelectionChanged: (v) => app.setStaff(hints: v.first),
+              ),
+            ),
+            const DsGap(Ds.s8),
+            Text(tr('Se você demorar numa nota bem aguda (acima da pauta), o nome dela aparece embaixo.'), style: Ds.support()),
+          ]),
+        ),
       ],
     ];

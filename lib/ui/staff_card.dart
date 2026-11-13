@@ -25,6 +25,8 @@ class StaffCard extends StatefulWidget {
   final Map<int, StaffMark> marks;
   final double? maxHeight;
   final String semanticLabel;
+  final bool hints;
+  final bool hintNow;
 
   const StaffCard({
     super.key,
@@ -38,6 +40,8 @@ class StaffCard extends StatefulWidget {
     this.marks = const {},
     this.maxHeight,
     this.semanticLabel = '',
+    this.hints = false,
+    this.hintNow = false,
   });
 
   @override
@@ -61,11 +65,12 @@ class _StaffCardState extends State<StaffCard> {
   @override
   Widget build(BuildContext context) {
     final w = widget;
+    final cols = StaffColors.fromTheme();
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(8, 10, 8, 8),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: cols.paper,
         borderRadius: BorderRadius.circular(Ds.radiusCard),
         border: Border.all(color: AppColors.outline),
       ),
@@ -76,6 +81,9 @@ class _StaffCardState extends State<StaffCard> {
         names: w.names,
         maxHeight: w.maxHeight,
         semanticLabel: w.semanticLabel,
+        colors: cols,
+        hints: w.hints,
+        hintNow: w.hintNow,
       ),
     );
   }

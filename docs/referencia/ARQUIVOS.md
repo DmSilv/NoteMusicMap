@@ -214,6 +214,7 @@
 | `packages/afina_core/test/scale_coach_test.dart` | Passos de uma escala em que cada nota (pitch class) tem um viés fixo. |
 | `packages/afina_core/test/scale_flow_test.dart` | Sol maior, 1 oitava. |
 | `packages/afina_core/test/scale_spelling_test.dart` | Testes do módulo `scale_spelling`. |
+| `packages/afina_core/test/scale_waiting_test.dart` | Testes do módulo `scale_waiting`. |
 | `packages/afina_core/test/speed_trainer_test.dart` | Renderiza [seconds] segundos e devolve os eventos de "primeiro tempo" de cada compasso. |
 | `packages/afina_core/test/staff_layout_test.dart` | Testes do módulo `staff_layout`. |
 | `packages/afina_core/test/staff_notation_test.dart` | Leitor independente: lê a partitura como um músico (armadura + acidentes valem até a barra de compasso) e devolve a nota MIDI que cada evento representa. Se bater com a sequência do exercício, a escrita está certa. |
@@ -319,4 +320,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **276** arquivos mapeados.
+Total: **277** arquivos mapeados.

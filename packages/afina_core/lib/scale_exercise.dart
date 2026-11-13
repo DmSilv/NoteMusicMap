@@ -156,6 +156,7 @@ class ScaleExercise {
 
   // ---- modo guiado ----
   double _time = 0; // s ouvindo a nota esperada
+  double _waiting = 0; // s desde que a nota atual passou a ser a esperada (tocando ou não)
   double _run = 0; // s seguidos afinada
   bool _tunedNow = false;
   final List<_Sample> _landing = [];
@@ -222,6 +223,9 @@ class ScaleExercise {
   /// Modo livre: nota que está soando agora (da escala), ou null.
   int? get currentFreeMidi => _curMidi;
 
+  /// Modo guiado: há quanto tempo (s) a nota atual espera ser tocada. Serve para a dica de uma nota difícil de achar.
+  double get waitingSeconds => _flow ? 0 : _waiting;
+
   /// 0..1 de quanto já foi segurado AFINADO (modo guiado).
   double get holdProgress => _flow ? 0 : (_run / holdSeconds).clamp(0.0, 1.0);
 
@@ -284,6 +288,7 @@ class ScaleExercise {
   // ---------------- modo guiado: só avança afinada ----------------
   StepResult? _feedHold(int? midi, double cents, double clarity, double dt) {
     _tunedNow = false;
+    _waiting += dt;
     if (midi != expected) {
       // Saiu da nota: perde um pouco do que tinha segurado.
       _run = (_run - dt).clamp(0.0, double.infinity);
@@ -371,6 +376,7 @@ class ScaleExercise {
 
   void _resetCurrent() {
     _time = _run = 0;
+    _waiting = 0;
     _tunedNow = false;
     _landing.clear();
     _endRun();

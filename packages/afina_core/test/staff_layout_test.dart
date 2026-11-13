@@ -8,6 +8,7 @@ StaffScore _score(int tonic, ScaleType t, {int octaves = 1, StaffRhythm r = Staf
 }
 
 void main() {
+  _fingerTests();
   group('layout na largura do celular', () {
     test('toda linha cabe na largura e o espaço de pauta fica legível (>= 6 px)', () {
       for (final w in [300.0, 340.0, 360.0, 390.0]) {
@@ -119,6 +120,59 @@ void main() {
       final a = layoutStaff(sc, widthPx: 360);
       final b = layoutStaff(sc, widthPx: 360, names: true);
       expect(b.systems.first.height, greaterThan(a.systems.first.height));
+    });
+  });
+}
+
+void _fingerTests() {
+  group('dedilhado em cima das notas', () {
+    StaffScore withFingers(StaffRhythm r, {int octaves = 1}) {
+      final seq = scaleSequence(62, ScaleType.melodicMinor, octaves: octaves);
+      return buildStaffScore(
+          tonicMidi: 62,
+          type: ScaleType.melodicMinor,
+          sequence: seq,
+          upCount: scaleMidis(62, ScaleType.melodicMinor, octaves: octaves).length,
+          rhythm: r,
+          fingers: [for (var i = 0; i < seq.length; i++) '${i % 5}']);
+    }
+
+    test('o número fica acima da pauta e acima da nota, da haste e do "3"', () {
+      for (final r in StaffRhythm.values) {
+        final lay = layoutStaff(withFingers(r, octaves: 2), widthPx: 358);
+        for (final s in lay.systems) {
+          for (final e in s.events) {
+            expect(e.fingerY, isNotNull);
+            expect(e.fingerY!, greaterThanOrEqualTo(4.9));
+            expect(e.fingerY!, greaterThan(e.y + 0.5));
+            if (e.e.hasStem && e.stemUp) expect(e.fingerY!, greaterThan(e.stemTipY));
+            expect(s.top, greaterThan(e.fingerY! + 1.0));
+          }
+          for (final t in s.tuplets) {
+            for (final e in s.events.where((e) => e.e.tripletGroup != null && e.stemUp)) {
+              expect(e.fingerY!, greaterThan(t.baselineY));
+            }
+          }
+        }
+      }
+    });
+
+    test('sem dedilhado nada muda; com dedilhado a linha fica mais alta', () {
+      final seq = scaleSequence(62, ScaleType.melodicMinor);
+      final plain = buildStaffScore(tonicMidi: 62, type: ScaleType.melodicMinor, sequence: seq, upCount: 8);
+      final lay0 = layoutStaff(plain, widthPx: 358);
+      expect(lay0.systems.every((s) => s.events.every((e) => e.fingerY == null)), isTrue);
+      final lay1 = layoutStaff(withFingers(StaffRhythm.quarter), widthPx: 358);
+      expect(lay1.systems.first.top, greaterThan(lay0.systems.first.top));
+    });
+
+    test('a nota com número nunca fica mais apertada que o necessário e tudo cabe na largura', () {
+      for (final w in [300.0, 358.0, 420.0]) {
+        final lay = layoutStaff(withFingers(StaffRhythm.triplet, octaves: 3), widthPx: w);
+        for (final s in lay.systems) {
+          expect(s.width, lessThanOrEqualTo(lay.widthSp + 1e-6));
+        }
+      }
     });
   });
 }

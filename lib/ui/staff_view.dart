@@ -9,15 +9,18 @@ enum StaffMark { inTune, flat, sharp }
 /// Cores da partitura. Ela é escrita em "tinta" (preto no tema claro, branco no escuro): a cor das notas
 /// tocadas só aparece na cabeça da nota, então a leitura não depende de cor e funciona nos dois temas.
 class StaffColors {
+  /// Fundo da partitura (cartão): branco no claro e PRETO no escuro, para a tinta branca aparecer bem.
+  final Color paper;
   final Color ink;
   final Color dim;
   final Color inTune;
   final Color flat;
   final Color sharp;
-  const StaffColors({required this.ink, required this.dim, required this.inTune, required this.flat, required this.sharp});
+  const StaffColors({required this.paper, required this.ink, required this.dim, required this.inTune, required this.flat, required this.sharp});
 
   factory StaffColors.fromTheme() => StaffColors(
-        ink: AppColors.text,
+        paper: AppColors.dark ? const Color(0xFF000000) : AppColors.surface,
+        ink: AppColors.dark ? const Color(0xFFFFFFFF) : AppColors.text,
         dim: AppColors.textDim,
         inTune: AppColors.inTune,
         flat: AppColors.flat,
@@ -64,6 +67,11 @@ class StaffView extends StatefulWidget {
   final String semanticLabel;
   final StaffColors? colors;
 
+  /// Dicas automáticas: reserva a faixa de baixo para o nome de uma nota aguda e, com [hintNow], mostra o nome da nota
+  /// atual se ela for aguda (acima da 2ª linha suplementar). Só ela, só quando a pessoa está demorando.
+  final bool hints;
+  final bool hintNow;
+
   const StaffView({
     super.key,
     required this.score,
@@ -73,6 +81,8 @@ class StaffView extends StatefulWidget {
     this.maxHeight,
     this.semanticLabel = '',
     this.colors,
+    this.hints = false,
+    this.hintNow = false,
   });
 
   @override
@@ -88,7 +98,8 @@ class _StaffViewState extends State<StaffView> {
     final cols = w.colors ?? StaffColors.fromTheme();
     return LayoutBuilder(builder: (context, c) {
       final width = c.maxWidth.isFinite ? c.maxWidth : 340.0;
-      final layout = layoutStaff(w.score, widthPx: width, names: w.names != StaffNames.none);
+      final reserve = w.names != StaffNames.none || (w.hints && w.score.events.any((e) => e.isHigh));
+      final layout = layoutStaff(w.score, widthPx: width, names: reserve);
       final sp = layout.sp;
       const gapSp = 1.2;
       // quantas linhas cabem por "página"
@@ -117,7 +128,7 @@ class _StaffViewState extends State<StaffView> {
       for (var i = first; i < last; i++) {
         total += layout.systems[i].height * sp + (i > first ? gapSp * sp : 0);
       }
-      final painter = _StaffPainter(layout, first, last, w.current, w.marks, w.names, cols, gapSp);
+      final painter = _StaffPainter(layout, first, last, w.current, w.marks, w.names, cols, gapSp, w.hintNow);
       final label = Text('${page + 1} / $pages', style: TextStyle(fontSize: 13, color: cols.dim, fontWeight: FontWeight.w700));
       return Semantics(
         label: w.semanticLabel,
@@ -162,7 +173,8 @@ class _StaffPainter extends CustomPainter {
   final StaffNames names;
   final StaffColors colors;
   final double gapSp;
-  _StaffPainter(this.layout, this.from, this.to, this.current, this.marks, this.names, this.colors, this.gapSp);
+  final bool hintNow;
+  _StaffPainter(this.layout, this.from, this.to, this.current, this.marks, this.names, this.colors, this.gapSp, this.hintNow);
 
   double get sp => layout.sp;
 
@@ -190,28 +202,34 @@ class _StaffPainter extends CustomPainter {
   /// Nome da nota para escrever embaixo: as letras no texto normal e o ♯ ♭ ♮ com os glifos da Leland (sempre disponíveis;
   /// o texto comum pode cair numa fonte de reserva que ainda não carregou e mostrar um quadradinho).
   double _nameWidth(String name, double fs, FontWeight weight) {
-    final (base, accs) = _splitName(name);
+    final (base, accs, oct) = _splitName(name);
     var w = _tp(base, colors.ink, fs, family: null, weight: weight).width;
+    if (oct.isNotEmpty) w += _tp(oct, colors.ink, fs, family: null, weight: weight).width;
     for (final a in accs) {
       w += _accAdv(a) * fs * 1.5 / 4 + 1;
     }
     return w;
   }
 
-  (String, List<String>) _splitName(String name) {
+  (String, List<String>, String) _splitName(String name) {
     var base = name;
+    var oct = '';
+    while (base.isNotEmpty && RegExp(r'[0-9]').hasMatch(base[base.length - 1])) {
+      oct = base[base.length - 1] + oct;
+      base = base.substring(0, base.length - 1);
+    }
     final accs = <String>[];
     while (base.isNotEmpty && '♯♭♮'.contains(base[base.length - 1])) {
       accs.insert(0, base[base.length - 1]);
       base = base.substring(0, base.length - 1);
     }
-    return (base, accs);
+    return (base, accs, oct);
   }
 
   double _accAdv(String a) => a == '♭' ? 0.81 : (a == '♮' ? 0.68 : 0.98);
 
   void _drawName(Canvas c, String name, double left, double top, double fs, Color color, FontWeight weight) {
-    final (base, accs) = _splitName(name);
+    final (base, accs, oct) = _splitName(name);
     final bp = _tp(base, color, fs, family: null, weight: weight);
     bp.paint(c, Offset(left, top));
     final baseline = top + bp.computeDistanceToActualBaseline(TextBaseline.alphabetic);
@@ -223,6 +241,7 @@ class _StaffPainter extends CustomPainter {
       _glyph(c, a == '♭' ? _flat : (a == '♮' ? _natural : _sharp), x, baseline - 0.36 * fs + lift, color, size: em);
       x += _accAdv(a) * em / 4 + 1;
     }
+    if (oct.isNotEmpty) _tp(oct, color, fs, family: null, weight: weight).paint(c, Offset(x, top));
   }
 
   @override
@@ -340,6 +359,24 @@ class _StaffPainter extends CustomPainter {
     for (final t in s.tuplets) {
       _glyph(canvas, _tuplet3, px(t.x - 0.55), py(t.baselineY), ink);
     }
+    // número do dedo em cima da nota
+    for (final e in s.events) {
+      final f = e.e.finger;
+      if (f == null || e.fingerY == null) continue;
+      final mark = marks[e.e.index];
+      final col = mark == null ? ink : colors.of(mark);
+      final isDigits = RegExp(r'^[0-5]$').hasMatch(f);
+      final cx = px(e.x + e.headW / 2);
+      if (isDigits) {
+        final g = String.fromCharCode(0xED10 + int.parse(f));
+        final p = _tp(g, col, sp * 4 * 0.95);
+        _glyph(canvas, g, cx - p.width / 2, py(e.fingerY!), col, size: sp * 4 * 0.95);
+      } else {
+        final p = _tp(f, col, (sp * 1.5).clamp(10.0, 15.0), family: null, weight: FontWeight.w700);
+        p.paint(canvas, Offset(cx - p.width / 2, py(e.fingerY!) - p.height));
+      }
+    }
+    _hint(canvas, s);
     // nomes das notas (em duas linhas alternadas quando as notas estão apertadas; o que ainda assim não cabe, não é escrito)
     if (names != StaffNames.none) {
       final fs = staffNameFontSize(sp);
@@ -368,6 +405,38 @@ class _StaffPainter extends CustomPainter {
         _drawName(canvas, nm, left, py(s.labelTop) + 2 + row * rowH, fs, isCur ? colors.ink : colors.dim, weight);
       }
     }
+  }
+
+  /// A dica: o nome da nota atual, numa plaquinha embaixo da pauta, só para notas agudas e só quando a pessoa demora.
+  void _hint(Canvas canvas, LaidSystem s) {
+    if (!hintNow || current == null) return;
+    for (final e in s.events) {
+      if (e.e.index != current || !e.e.isHigh) continue;
+      final fs = staffNameFontSize(sp);
+      final nm = e.e.note.name(withOctave: true);
+      final tw = _nameWidth(nm, fs, FontWeight.w800);
+      final cx = sp * (e.x + e.headW / 2);
+      final top = _yOfSystem(s) + (s.top - s.labelTop) * sp + 2;
+      final r = RRect.fromLTRBR(cx - tw / 2 - 6, top - 1, cx + tw / 2 + 6, top + fs * 1.15 + 3, const Radius.circular(8));
+      canvas.drawRRect(r, Paint()..color = colors.paper);
+      canvas.drawRRect(r, Paint()..color = colors.ink.withValues(alpha: 0.18));
+      canvas.drawRRect(
+          r,
+          Paint()
+            ..color = colors.ink.withValues(alpha: 0.7)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.2);
+      _drawName(canvas, nm, cx - tw / 2, top + 1, fs, colors.ink, FontWeight.w800);
+    }
+  }
+
+  double _yOfSystem(LaidSystem s) {
+    var y = 0.0;
+    for (var i = from; i < to; i++) {
+      if (identical(layout.systems[i], s)) return y;
+      y += layout.systems[i].height * sp + gapSp * sp;
+    }
+    return y;
   }
 
   @override
