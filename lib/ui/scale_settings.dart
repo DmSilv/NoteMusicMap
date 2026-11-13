@@ -90,11 +90,11 @@ class _TonicPicker extends StatelessWidget {
   }
 }
 
-List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required bool exercise, VoidCallback? onReport}) {
-  final e = app.exercise;
-  return [
-    if (!exercise) ...[
-      _section(tr('Escala')),
+/// A configuração só cabe na versão simples quando é Maior ou Menor melódica com a grafia comum; senão, "Mais opções" já abre aberto.
+bool _needsAdvanced(AppState app) => !(app.scaleType == ScaleType.major || app.scaleType == ScaleType.melodicMinor) || app.scaleAltActive;
+
+/// A versão completa (era a única): tônica por letra e acidente e todos os tipos.
+List<Widget> _advancedScaleRows(AppState app) => [
       DsSettingRow(label: tr('Tônica (nota inicial)'), child: _TonicPicker(app: app)),
       DsSettingRow(
         label: app.scaleType.arpeggio ? tr('Tipo de arpejo') : tr('Tipo de escala'),
@@ -113,6 +113,129 @@ List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required boo
           ],
         ]),
       ),
+    ];
+
+/// A escolha simples: Maior | Menor e as 12 tonalidades com o nome de sempre (Dó, Mi♭, Fá♯...). Menor é a melódica, a do método de Flesch.
+class _SimpleKeyPicker extends StatelessWidget {
+  final AppState app;
+  const _SimpleKeyPicker({required this.app});
+
+  static const _letters = ['Dó', 'Ré', 'Mi', 'Fá', 'Sol', 'Lá', 'Si'];
+
+  /// Nome da tônica com o acidente na fonte de partitura (o texto comum pode cair numa fonte que não tem ♭ ♯).
+  static InlineSpan _name(int letter, int acc, TextStyle base) {
+    final fs = base.fontSize ?? 15;
+    return TextSpan(style: base, children: [
+      TextSpan(text: tr(_letters[letter])),
+      if (acc != 0)
+        WidgetSpan(
+          alignment: PlaceholderAlignment.baseline,
+          baseline: TextBaseline.alphabetic,
+          // o centro do glifo fica na linha de base dele: sobe um pouco para ficar junto da letra (o ♭ um pouco menos que o ♯)
+          child: Padding(
+            padding: const EdgeInsets.only(left: 2.5),
+            child: Transform.translate(
+              offset: Offset(0, -fs * (acc < 0 ? 0.15 : 0.36)),
+              child: Text(acc < 0 ? '\uE260' : '\uE262', style: TextStyle(color: base.color, fontFamily: 'Leland', fontSize: fs * 1.5, height: 1)),
+            ),
+          ),
+        ),
+    ]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final type = app.scaleType;
+    final isMajor = type == ScaleType.major;
+    final isMinor = type.isMinor;
+    final nameType = isMinor ? type : ScaleType.major;
+    final cur = app.scaleTonicMidi % 12;
+    void setQuality(int q) {
+      if (q == 0) {
+        app.setScale(type: ScaleType.major);
+      } else if (!isMinor) {
+        app.setScale(type: ScaleType.melodicMinor);
+      }
+    }
+
+    void pick(int pc) {
+      app.setScale(tonicPc: pc, alt: false);
+      if (app.system != TuningSystem.equal) app.setTuning(tonicPc: pc);
+    }
+
+    const pcs = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<int>(
+          showSelectedIcon: false,
+          emptySelectionAllowed: true,
+          segments: [ButtonSegment(value: 0, label: Text(tr('Maior'))), ButtonSegment(value: 1, label: Text(tr('Menor')))],
+          selected: {if (isMajor) 0 else if (isMinor) 1},
+          onSelectionChanged: (v) {
+            if (v.isNotEmpty) setQuality(v.first);
+          },
+        ),
+      ),
+      const DsGap(Ds.s12),
+      LayoutBuilder(builder: (c, box) {
+        const gap = Ds.s8;
+        final w = (box.maxWidth - gap * 3) / 4;
+        return Wrap(spacing: gap, runSpacing: gap, children: [
+          for (final pc in pcs)
+            SizedBox(
+              width: w,
+              height: 48,
+              child: Builder(builder: (c) {
+                final selected = pc == cur;
+                // o nome da escala escolhida segue a grafia dela (Sol♭ se for essa); as outras mostram a grafia comum
+                final (l, a) = ScaleSpeller(60 + pc, nameType, alt: selected && app.scaleAltActive).tonicSpelling;
+                final fg = selected ? Theme.of(c).colorScheme.onPrimaryContainer : AppColors.text;
+                return Material(
+                  color: selected ? Theme.of(c).colorScheme.primaryContainer : AppColors.surface2,
+                  borderRadius: BorderRadius.circular(Ds.radiusControl),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(Ds.radiusControl),
+                    onTap: () => pick(pc),
+                    child: Center(child: Text.rich(_name(l, a, TextStyle(color: fg, fontSize: 16, fontWeight: selected ? FontWeight.w800 : FontWeight.w600)))),
+                  ),
+                );
+              }),
+            ),
+        ]);
+      }),
+      const DsGap(Ds.s8),
+      Text(isMinor ? tr('O menor aqui é o melódico, o do método de Flesch.') : tr('Toque na nota em que a escala começa.'), style: Ds.support()),
+    ]);
+  }
+}
+
+List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required bool exercise, VoidCallback? onReport}) {
+  final e = app.exercise;
+  return [
+    if (!exercise) ...[
+      _section(tr('Escala')),
+      if (app.scaleType.arpeggio)
+        ..._advancedScaleRows(app)
+      else ...[
+        // versão simples: quem só quer "Dó menor" ou "Mi♭ maior" escolhe direto, sem letra + acidente + tipo
+        DsSettingRow(label: tr('Qual escala?'), child: _SimpleKeyPicker(app: app)),
+        Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            key: ValueKey(_needsAdvanced(app)),
+            initiallyExpanded: _needsAdvanced(app),
+            tilePadding: EdgeInsets.zero,
+            childrenPadding: EdgeInsets.zero,
+            shape: const Border(),
+            collapsedShape: const Border(),
+            title: Text(tr('Mais opções'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: Ds.fontBody)),
+            subtitle: Text(tr('Outro nome da tônica (Lá♭ em vez de Sol♯) e outros tipos de escala.'), style: Ds.support()),
+            children: [const DsGap(Ds.s12), ..._advancedScaleRows(app)],
+          ),
+        ),
+        const DsGap(Ds.s12),
+      ],
       DsSettingRow(
         label: tr('Oitavas'),
         child: SizedBox(

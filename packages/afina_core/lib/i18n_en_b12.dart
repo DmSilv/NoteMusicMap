@@ -30,6 +30,11 @@ const Map<String, String> kEnB12 = {
   'Mostra o nome da nota se você demorar.': 'Shows the note name if you take a while.',
   '8va nas notas muito agudas': '8va on very high notes',
   'Escreve uma oitava abaixo, com o sinal 8va e o nome.': 'Writes them an octave lower, with the 8va sign and the name.',
+  'Qual escala?': 'Which scale?',
+  'Menor': 'Minor',
+  'Outro nome da tônica (Lá♭ em vez de Sol♯) e outros tipos de escala.': 'Another name for the tonic (A♭ instead of G♯) and other scale types.',
+  'O menor aqui é o melódico, o do método de Flesch.': 'The minor here is the melodic minor, the one in the Flesch method.',
+  'Toque na nota em que a escala começa.': 'Tap the note the scale starts on.',
   'Números dos dedos, só nas escalas já conferidas.': 'Finger numbers, only for scales already checked.',
   'Só muda como as notas aparecem; o exercício é o mesmo.': 'This only changes how the notes appear; the exercise is the same.',
 };

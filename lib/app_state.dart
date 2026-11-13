@@ -3488,7 +3488,7 @@ class AppState extends ChangeNotifier {
   bool scaleAlt = false;
 
   /// Cor da partitura, independente do tema do app: igual ao app, sempre clara ou sempre escura.
-  StaffPaper scalePaper = StaffPaper.auto;
+  StaffPaper scalePaper = StaffPaper.light;
 
   /// "alt" que de fato vale: só quando a tônica atual tem outra grafia.
   bool get scaleAltActive => scaleAlt && scaleType != ScaleType.chromatic && !scaleType.arpeggio && ScaleSpeller.hasAlt(scaleTonicMidi, minor: scaleType.isMinor);
@@ -3758,7 +3758,7 @@ class AppState extends ChangeNotifier {
     scaleOttava = p.getBool('scale_8va') ?? true;
     scaleFingers = p.getBool('scale_fingers') ?? true;
     scaleAlt = p.getBool('scale_alt') ?? false;
-    scalePaper = StaffPaper.values[(p.getInt('scale_paper') ?? 0).clamp(0, StaffPaper.values.length - 1)];
+    scalePaper = StaffPaper.values[(p.getInt('scale_paper') ?? StaffPaper.light.index).clamp(0, StaffPaper.values.length - 1)];
     // Dedilhados que o administrador corrigiu: o último que o app recebeu vale já na abertura (e funciona sem internet).
     setViolinFingeringFromJson(p.getString('fing_json'));
     scaleNames = StaffNames.values[(p.getInt('scale_names') ?? StaffNames.none.index).clamp(0, StaffNames.values.length - 1)];
