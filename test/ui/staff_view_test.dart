@@ -226,6 +226,10 @@ void main() {
       await shot(c.$1, StaffView(score: sc, current: 3, maxHeight: 330, names: StaffNames.ledger));
       await shot('${c.$1}_dark', StaffView(score: sc, current: 3, maxHeight: 330, names: StaffNames.ledger), dark: true);
     }
+    // a outra grafia (Lá♭ menor, 7 bemóis) com o dedilhado do Sol♯ menor
+    final abPlan = violinFingeringPlan(tonicMidi: 56, type: ScaleType.melodicMinor, octaves: 3, direction: ScaleDirection.both, alt: true)!;
+    final abm = buildStaffScore(tonicMidi: 56, type: ScaleType.melodicMinor, sequence: scaleSequence(56, ScaleType.melodicMinor, octaves: 3), upCount: scaleMidis(56, ScaleType.melodicMinor, octaves: 3).length, rhythm: StaffRhythm.triplet, fingers: abPlan.fingers, alt: true);
+    await shot('u_flesch_lab_menor_alt', StaffView(score: abm, current: 3, maxHeight: 330, names: StaffNames.ledger));
     await shot('i_narrow_300_dark', StaffView(score: _score(60, ScaleType.melodicMinor, r: StaffRhythm.triplet), current: 0), dark: true, width: 300);
   });
 }

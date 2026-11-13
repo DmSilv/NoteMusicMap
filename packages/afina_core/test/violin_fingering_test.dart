@@ -55,18 +55,35 @@ void main() {
     expect(hasViolinFingering(58, ScaleType.major, 2), isFalse);
   });
 
-  test('as 24 escalas do Nº 5 (12 maiores e 12 menores melódicas, 3 oitavas) estão na tabela, cada uma uma vez', () {
+  test('as 24 escalas do Nº 5 (12 maiores e 12 menores melódicas, 3 oitavas) estão na tabela, e a outra grafia (bemol/sustenido) também', () {
     final seen = <String>{};
     for (final e in violinFingeringEntries()) {
       expect(e.octaves, 3);
       expect(seen.add('${e.tonicPc}|${e.alt}|${e.type.name}'), isTrue, reason: 'repetida: ${e.tonicPc} ${e.type.name}');
     }
+    // grafia do livro: Ré♭, Sol♭, Si; menores Mi♭, Sol♯, Si♭, Dó♯, Fá♯. A outra grafia: Dó♯, Fá♯, Dó♭ maiores; Ré♯, Lá♭, Lá♯ menores
+    const majorAlt = {1, 6, 11}, minorAlt = {3, 8, 10};
     for (var pc = 0; pc < 12; pc++) {
-      // a grafia do livro: Ré♭, Sol♭ (outra grafia do Fá♯), Si; menores Mi♭, Sol♯, Si♭, Dó♯, Fá♯
-      expect(seen.contains('$pc|${pc == 6}|major'), isTrue, reason: 'falta maior $pc');
-      expect(seen.contains('$pc|false|melodicMinor'), isTrue, reason: 'falta menor $pc');
+      for (final alt in [false, true]) {
+        if (alt && !majorAlt.contains(pc)) continue;
+        expect(seen.contains('$pc|$alt|major'), isTrue, reason: 'falta maior $pc alt=$alt');
+      }
+      for (final alt in [false, true]) {
+        if (alt && !minorAlt.contains(pc)) continue;
+        expect(seen.contains('$pc|$alt|melodicMinor'), isTrue, reason: 'falta menor $pc alt=$alt');
+      }
     }
-    expect(seen.length, 24);
+    expect(seen.length, 30);
+  });
+
+  test('a outra grafia (Lá♭ menor, Dó♭ maior, Fá♯ maior...) tem as mesmas notas e os mesmos dedos da grafia do livro', () {
+    for (final (pc, type) in [(6, ScaleType.major), (1, ScaleType.major), (11, ScaleType.major), (3, ScaleType.melodicMinor), (8, ScaleType.melodicMinor), (10, ScaleType.melodicMinor)]) {
+      final tonic = 55 + ((pc - 55) % 12 + 12) % 12;
+      final a = violinFingeringPlan(tonicMidi: tonic, type: type, octaves: 3, direction: ScaleDirection.both)!;
+      final b = violinFingeringPlan(tonicMidi: tonic, type: type, octaves: 3, direction: ScaleDirection.both, alt: true)!;
+      expect(b.fingers, a.fingers, reason: 'pc $pc ${type.name}');
+      expect(b.ottava, a.ottava);
+    }
   });
 
   test('conferências cruzadas entre as 24: pontos de mudança, 4º dedo só em corda solta e 8va dentro da escala', () {

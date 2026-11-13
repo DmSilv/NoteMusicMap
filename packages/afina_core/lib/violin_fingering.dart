@@ -101,6 +101,19 @@ const List<_Entry> _violin = [
   _Entry(11, false, ScaleType.melodicMinor, 3, {0: '2', 2: '4', 6: '4', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2', 36: '0', 40: '0'}),
   // Mi menor, a partir do Mi4. Molde das menores.
   _Entry(4, false, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
+  // ---- A outra grafia das mesmas escalas (as notas são as mesmas, então o dedilhado e o 8va também): o livro só traz uma grafia de cada. ----
+  // Fá♯ maior (mesmas notas do Sol♭ maior).
+  _Entry(6, false, ScaleType.major, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '4', 26: '3', 29: '3'}, ottava: (18, 26)),
+  // Dó♯ maior (mesmas notas do Ré♭ maior).
+  _Entry(1, true, ScaleType.major, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '4', 26: '3', 29: '3'}),
+  // Dó♭ maior (mesmas notas do Si maior).
+  _Entry(11, true, ScaleType.major, 3, {0: '2', 9: '1', 15: '1', 17: '1', 22: '4', 26: '3', 29: '3', 32: '0'}),
+  // Ré♯ menor melódica (mesmas notas do Mi♭ menor).
+  _Entry(3, true, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}, ottava: (18, 23)),
+  // Lá♭ menor melódica (mesmas notas do Sol♯ menor).
+  _Entry(8, true, ScaleType.melodicMinor, 3, {9: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 40: '2'}),
+  // Lá♯ menor melódica (mesmas notas do Si♭ menor).
+  _Entry(10, true, ScaleType.melodicMinor, 3, {0: '2', 6: '4', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
 ];
 
 /// Escalas que o administrador corrigiu ou incluiu no painel (vêm do servidor); valem no lugar das do app.
