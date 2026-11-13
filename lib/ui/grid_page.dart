@@ -8,6 +8,7 @@ import 'grid_widgets.dart';
 import 'note_widgets.dart';
 import 'perf.dart';
 import 'scale_exercise_page.dart';
+import 'paper_picker.dart';
 import 'scale_settings.dart';
 import 'staff_card.dart';
 import 'design_system.dart';
@@ -361,7 +362,6 @@ class _GridPageState extends State<GridPage> {
         fingers: app.scaleFingering,
         alt: app.scaleAltActive,
         paper: app.scalePaper,
-        onPaper: (p) => app.setStaff(paper: p),
         expand: true,
         semanticLabel: tr('Partitura do exercício'),
       );
@@ -402,7 +402,11 @@ class _GridPageState extends State<GridPage> {
         ),
         const DsGap(Ds.gap),
         _scaleHero(tonicPc, names),
-        const DsGap(Ds.gap),
+        const DsGap(Ds.s12),
+        if (app.scaleStaff && app.cfg.transpose == 0) ...[
+          PaperToggleRow(value: app.scalePaper, onChanged: (p) => app.setStaff(paper: p)),
+          const DsGap(Ds.s8),
+        ],
         Expanded(child: _scaleNotes()),
         const DsGap(Ds.gap),
         DsPrimaryButton(

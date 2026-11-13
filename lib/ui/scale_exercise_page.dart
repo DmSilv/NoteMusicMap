@@ -8,6 +8,7 @@ import 'guidance_banner.dart';
 import 'needle.dart';
 import 'note_widgets.dart';
 import 'octave_colors.dart';
+import 'paper_picker.dart';
 import 'scale_settings.dart';
 import 'staff_card.dart';
 import 'staff_view.dart';
@@ -60,7 +61,11 @@ class ScaleExercisePage extends StatelessWidget {
                 const SizedBox(height: 10),
                 _header(e),
                 const SizedBox(height: 8),
-                _notation(e, (MediaQuery.sizeOf(context).height - 560).clamp(220.0, 400.0)),
+                if (app.scaleStaff && app.cfg.transpose == 0) ...[
+                  PaperToggleRow(value: app.scalePaper, onChanged: (p) => app.setStaff(paper: p)),
+                  const SizedBox(height: 8),
+                ],
+                _notation(e, (MediaQuery.sizeOf(context).height - 620).clamp(200.0, 400.0)),
                 const SizedBox(height: 10),
                 if (!e.finished) _controls(context, e),
               ],
@@ -113,7 +118,6 @@ class ScaleExercisePage extends StatelessWidget {
       fingers: app.scaleFingering,
       alt: app.scaleAltActive,
       paper: app.scalePaper,
-      onPaper: (p) => app.setStaff(paper: p),
       hintNow: !e.flow && !e.finished && e.waitingSeconds >= kHintAfterSeconds,
     );
   }

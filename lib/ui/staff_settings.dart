@@ -3,10 +3,6 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'design_system.dart';
-import 'paper_picker.dart';
-
-/// Texto curto do que está valendo na partitura (para o resumo do ajuste).
-String staffSummary(AppState app) => app.scaleStaff ? '${staffRhythmLabel(app.scaleRhythm)} · ${staffNamesLabel(app.scaleNames).toLowerCase()}' : tr('Desligada');
 
 String staffRhythmLabel(StaffRhythm r) => switch (r) {
       StaffRhythm.quarter => tr('Semínimas'),
@@ -21,118 +17,49 @@ String staffNamesLabel(StaffNames n) => switch (n) {
       StaffNames.all => tr('Todas'),
     };
 
-/// Linhas de ajuste da partitura: ligar/desligar, como se escreve o ritmo e quando mostrar o nome das notas.
-/// Usadas no modal de configurar a escala e no do exercício.
+/// Uma ajuda de leitura: título curto, uma frase e uma chave. Toda opção de ligar/desligar da partitura é assim (um jeito só de mexer).
+Widget _helpSwitch(String title, String sub, bool value, ValueChanged<bool> onChanged) => SwitchListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody)),
+      subtitle: Text(sub, style: Ds.support()),
+      value: value,
+      onChanged: onChanged,
+    );
+
+/// Ajustes da partitura, na ordem em que se pensa neles: mostrar ou não; como escrever (ritmo e nomes); e as ajudas de leitura, cada uma
+/// com sua chave. A COR fica na própria tela (a linha "Cor da partitura" logo acima da partitura), não aqui, para não ter dois lugares.
+/// Usado na folha de configurar a escala e na do exercício.
 List<Widget> staffSettingRows(AppState app) => [
-      DsSettingRow(
-        label: tr('Mostrar a partitura'),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<bool>(
-              showSelectedIcon: false,
-              segments: [
-                ButtonSegment(value: true, icon: const Icon(Icons.queue_music_rounded, size: 18), label: Text(tr('Ligada'))),
-                ButtonSegment(value: false, icon: const Icon(Icons.format_list_bulleted_rounded, size: 18), label: Text(tr('Desligada'))),
-              ],
-              selected: {app.scaleStaff},
-              onSelectionChanged: (v) => app.setStaff(on: v.first),
-            ),
-          ),
-          const DsGap(Ds.s8),
-          Text(tr('Só muda como as notas são mostradas; o exercício é o mesmo.'), style: Ds.support()),
-        ]),
+      SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        title: Text(tr('Mostrar a partitura'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: Ds.fontBody)),
+        subtitle: Text(tr('Só muda como as notas aparecem; o exercício é o mesmo.'), style: Ds.support()),
+        value: app.scaleStaff,
+        onChanged: (v) => app.setStaff(on: v),
       ),
       if (app.scaleStaff) ...[
+        const DsGap(Ds.s12),
         DsSettingRow(
-          label: tr('Cor da partitura'),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            SizedBox(
-              width: double.infinity,
-              child: PaperPicker(value: app.scalePaper, onChanged: (p) => app.setStaff(paper: p)),
-            ),
-            const DsGap(Ds.s8),
-            Text(tr('Só a partitura: clara é papel branco com tinta preta, escura é fundo preto com tinta branca, em qualquer tema do app.'), style: Ds.support()),
-          ]),
-        ),
-        DsSettingRow(
-          label: tr('Como escrever as notas'),
+          label: tr('Ritmo da escrita'),
           child: Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
             for (final r in StaffRhythm.values)
-              ChoiceChip(
-                label: Text(staffRhythmLabel(r)),
-                selected: app.scaleRhythm == r,
-                onSelected: (_) => app.setStaff(rhythm: r),
-              ),
+              ChoiceChip(label: Text(staffRhythmLabel(r)), selected: app.scaleRhythm == r, onSelected: (_) => app.setStaff(rhythm: r)),
           ]),
         ),
         DsSettingRow(
           label: tr('Nome das notas'),
           child: Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
             for (final n in StaffNames.values)
-              ChoiceChip(
-                label: Text(staffNamesLabel(n)),
-                selected: app.scaleNames == n,
-                onSelected: (_) => app.setStaff(names: n),
-              ),
-          ]),
-        ),
-        if (app.hasFingeringHere)
-          DsSettingRow(
-            label: tr('Dedilhado do Flesch'),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              SizedBox(
-                width: double.infinity,
-                child: SegmentedButton<bool>(
-                  showSelectedIcon: false,
-                  segments: [
-                    ButtonSegment(value: true, label: Text(tr('Ligado'))),
-                    ButtonSegment(value: false, label: Text(tr('Desligado'))),
-                  ],
-                  selected: {app.scaleFingers},
-                  onSelectionChanged: (v) => app.setStaff(fingers: v.first),
-                ),
-              ),
-              const DsGap(Ds.s8),
-              Text(tr('Números dos dedos em cima das notas, como no método. Só nas escalas já conferidas com o livro.'), style: Ds.support()),
-            ]),
-          ),
-        DsSettingRow(
-          label: tr('Notas muito agudas (8va)'),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            SizedBox(
-              width: double.infinity,
-              child: SegmentedButton<bool>(
-                showSelectedIcon: false,
-                segments: [
-                  ButtonSegment(value: true, label: Text(tr('Ligada'))),
-                  ButtonSegment(value: false, label: Text(tr('Desligada'))),
-                ],
-                selected: {app.scaleOttava},
-                onSelectionChanged: (v) => app.setStaff(ottava: v.first),
-              ),
-            ),
-            const DsGap(Ds.s8),
-            Text(tr('De Sol6 para cima as notas são escritas uma oitava abaixo, sob o sinal 8va, e ganham o nome.'), style: Ds.support()),
+              ChoiceChip(label: Text(staffNamesLabel(n)), selected: app.scaleNames == n, onSelected: (_) => app.setStaff(names: n)),
           ]),
         ),
         DsSettingRow(
-          label: tr('Dica nas notas agudas'),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            SizedBox(
-              width: double.infinity,
-              child: SegmentedButton<bool>(
-                showSelectedIcon: false,
-                segments: [
-                  ButtonSegment(value: true, label: Text(tr('Ligada'))),
-                  ButtonSegment(value: false, label: Text(tr('Desligada'))),
-                ],
-                selected: {app.scaleHints},
-                onSelectionChanged: (v) => app.setStaff(hints: v.first),
-              ),
-            ),
-            const DsGap(Ds.s8),
-            Text(tr('Se você demorar numa nota bem aguda (acima da pauta), o nome dela aparece embaixo.'), style: Ds.support()),
+          label: tr('Ajudas de leitura'),
+          child: Column(children: [
+            _helpSwitch(tr('Dica ao demorar numa nota aguda'), tr('Mostra o nome da nota se você demorar.'), app.scaleHints, (v) => app.setStaff(hints: v)),
+            _helpSwitch(tr('8va nas notas muito agudas'), tr('Escreve uma oitava abaixo, com o sinal 8va e o nome.'), app.scaleOttava, (v) => app.setStaff(ottava: v)),
+            if (app.hasFingeringHere)
+              _helpSwitch(tr('Dedilhado do Flesch'), tr('Números dos dedos, só nas escalas já conferidas.'), app.scaleFingers, (v) => app.setStaff(fingers: v)),
           ]),
         ),
       ],

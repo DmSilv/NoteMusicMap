@@ -2,7 +2,6 @@ import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
 import 'design_system.dart';
-import 'paper_picker.dart';
 import 'staff_view.dart';
 import 'theme.dart';
 
@@ -36,9 +35,6 @@ class StaffCard extends StatefulWidget {
   /// Cor da partitura (igual ao app, sempre clara ou sempre escura).
   final StaffPaper paper;
 
-  /// Com isto, o cartão mostra o botão sol/lua (troca a cor da partitura com um toque).
-  final ValueChanged<StaffPaper>? onPaper;
-
   /// Enche a altura que o pai der (e pagina por ela), em vez de ter a altura do que está escrito.
   final bool expand;
 
@@ -61,7 +57,6 @@ class StaffCard extends StatefulWidget {
     this.fingers,
     this.alt = false,
     this.paper = StaffPaper.auto,
-    this.onPaper,
     this.expand = false,
   });
 
@@ -107,7 +102,6 @@ class _StaffCardState extends State<StaffCard> {
         colors: cols,
         hints: w.hints,
         hintNow: w.hintNow,
-        footerLeading: w.onPaper == null ? null : PaperToggle(value: w.paper, onChanged: w.onPaper!),
       ),
     );
     if (!w.expand) return card(w.maxHeight);

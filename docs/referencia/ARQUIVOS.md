@@ -85,7 +85,7 @@
 | `lib/ui/smooth_color.dart` | Transição suave de cor para os quadrados da grade e do ponteiro. |
 | `lib/ui/speed_trainer_card.dart` | "Acelerar aos poucos" na tela do metrônomo: liga e desliga num toque, mostra o resumo em frase e, tocando, mostra o BPM que subiu, quanto falta para o próximo aumento e o caminho até o teto. Os ajustes ficam numa… |
 | `lib/ui/staff_card.dart` | Resultado de uma nota tocada (cents de desvio) -> cor da cabeça da nota; null = ainda não tocada ou pulada. |
-| `lib/ui/staff_settings.dart` | Texto curto do que está valendo na partitura (para o resumo do ajuste). |
+| `lib/ui/staff_settings.dart` | Uma ajuda de leitura: título curto, uma frase e uma chave. Toda opção de ligar/desligar da partitura é assim (um jeito só de mexer). |
 | `lib/ui/staff_view.dart` | Resultado de uma nota já tocada (pinta a cabeça da nota). |
 | `lib/ui/status_strip.dart` | Faixa fina logo abaixo da barra superior com os avisos que ficam ativos: microfone ouvindo e timer do Pomodoro. Só aparece quando há algo ativo, e os dois avisos ficam lado a lado, sem disputar espaço com o título e… |
 | `lib/ui/student_identity.dart` | Selo do vínculo online e campo do código do aluno, na ficha e na lista. |

@@ -156,21 +156,21 @@ List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required boo
         Text((e?.flow ?? app.exerciseFlow) ? tr('Toque as notas na ordem que quiser.') : tr('Uma nota de cada vez, na ordem.'), style: Ds.support()),
       ]),
     ),
-    if (!exercise)
-      DsSettingRow(
-        label: tr('Marcar a escala na grade'),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(app.scaleMode ? tr('Ligado') : tr('Desligado'), style: const TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: Text(tr('Destaca as notas na aba Grade.'), style: Ds.support()),
-            value: app.scaleMode,
-            onChanged: (v) => app.setScale(enabled: v),
-          ),
-          if (app.scaleMode && onReport != null)
-            OutlinedButton.icon(onPressed: onReport, icon: const Icon(Icons.assessment_outlined), label: Text(tr('Ver relatório do que toquei'))),
-        ]),
+    if (!exercise) ...[
+      // o mesmo desenho de todo liga/desliga da folha: título, uma frase e a chave
+      SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        title: Text(tr('Marcar a escala na grade'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: Ds.fontBody)),
+        subtitle: Text(tr('Destaca as notas na aba Grade.'), style: Ds.support()),
+        value: app.scaleMode,
+        onChanged: (v) => app.setScale(enabled: v),
       ),
+      if (app.scaleMode && onReport != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: Ds.s12),
+          child: Align(alignment: Alignment.centerLeft, child: OutlinedButton.icon(onPressed: onReport, icon: const Icon(Icons.assessment_outlined), label: Text(tr('Ver relatório do que toquei')))),
+        ),
+    ],
     _section(tr('Partitura')),
     ...staffSettingRows(app),
     _section(tr('Afinação')),
