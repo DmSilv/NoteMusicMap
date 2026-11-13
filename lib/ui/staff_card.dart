@@ -27,6 +27,7 @@ class StaffCard extends StatefulWidget {
   final String semanticLabel;
   final bool hints;
   final bool hintNow;
+  final bool ottava;
 
   const StaffCard({
     super.key,
@@ -42,6 +43,7 @@ class StaffCard extends StatefulWidget {
     this.semanticLabel = '',
     this.hints = false,
     this.hintNow = false,
+    this.ottava = false,
   });
 
   @override
@@ -54,9 +56,9 @@ class _StaffCardState extends State<StaffCard> {
 
   StaffScore _build() {
     final w = widget;
-    final k = '${w.tonicMidi}|${w.type.name}|${w.sequence.length}|${w.sequence.isEmpty ? 0 : w.sequence.first}|${w.upCount}|${w.rhythm.index}';
+    final k = '${w.tonicMidi}|${w.type.name}|${w.sequence.length}|${w.sequence.isEmpty ? 0 : w.sequence.first}|${w.upCount}|${w.rhythm.index}|${w.ottava}';
     if (_score == null || k != _scoreKey) {
-      _score = buildStaffScore(tonicMidi: w.tonicMidi, type: w.type, sequence: w.sequence, upCount: w.upCount, rhythm: w.rhythm);
+      _score = buildStaffScore(tonicMidi: w.tonicMidi, type: w.type, sequence: w.sequence, upCount: w.upCount, rhythm: w.rhythm, ottava: w.ottava);
       _scoreKey = k;
     }
     return _score!;

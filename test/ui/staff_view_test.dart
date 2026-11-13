@@ -168,6 +168,10 @@ void main() {
     final fingeredT = buildStaffScore(tonicMidi: 62, type: ScaleType.melodicMinor, sequence: scaleSequence(62, ScaleType.melodicMinor, octaves: 2), upCount: 15, rhythm: StaffRhythm.triplet, fingers: [for (var i = 0; i < 30; i++) '${i % 5}']);
     await shot('p_fingers_triplet_dark', StaffView(score: fingeredT, current: 3, maxHeight: 330), dark: true);
     expect(dm.noteCount, 15);
+    final seq8 = scaleSequence(72, ScaleType.melodicMinor, octaves: 2);
+    final s8 = buildStaffScore(tonicMidi: 72, type: ScaleType.melodicMinor, sequence: seq8, upCount: scaleMidis(72, ScaleType.melodicMinor, octaves: 2).length, rhythm: StaffRhythm.triplet, ottava: true, fingers: [for (var i = 0; i < seq8.length; i++) (i % 4 == 0) ? '${1 + (i ~/ 4) % 4}' : null]);
+    await shot('q_8va_triplet_light', StaffView(score: s8, current: 17, maxHeight: 420, hints: true));
+    await shot('r_8va_triplet_dark', StaffView(score: s8, current: 20, maxHeight: 420, hints: true), dark: true);
     await shot('i_narrow_300_dark', StaffView(score: _score(60, ScaleType.melodicMinor, r: StaffRhythm.triplet), current: 0), dark: true, width: 300);
   });
 }

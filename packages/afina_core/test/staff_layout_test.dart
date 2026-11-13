@@ -8,6 +8,7 @@ StaffScore _score(int tonic, ScaleType t, {int octaves = 1, StaffRhythm r = Staf
 }
 
 void main() {
+  _ottavaLayoutTests();
   _fingerTests();
   group('layout na largura do celular', () {
     test('toda linha cabe na largura e o espaço de pauta fica legível (>= 6 px)', () {
@@ -174,5 +175,40 @@ void _fingerTests() {
         }
       }
     });
+  });
+}
+
+void _ottavaLayoutTests() {
+  test('8va: o sinal aparece acima das notas, dos números e dos "3", dentro da altura da linha', () {
+    final seq = scaleSequence(79, ScaleType.major, octaves: 2);
+    final sc = buildStaffScore(
+        tonicMidi: 79,
+        type: ScaleType.major,
+        sequence: seq,
+        upCount: scaleMidis(79, ScaleType.major, octaves: 2).length,
+        rhythm: StaffRhythm.triplet,
+        ottava: true,
+        fingers: [for (var i = 0; i < seq.length; i++) '${1 + i % 4}']);
+    final lay = layoutStaff(sc, widthPx: 358);
+    var found = 0;
+    for (final s in lay.systems) {
+      for (final o in s.ottavas) {
+        found++;
+        expect(o.x2, greaterThan(o.x1));
+        expect(s.top, greaterThan(o.y + 1.0));
+        for (final e in s.events.where((e) => e.e.ottava)) {
+          expect(o.y, greaterThan(e.y + 0.5));
+          if (e.fingerY != null) expect(o.y, greaterThan(e.fingerY!));
+        }
+        for (final t in s.tuplets) {
+          if (t.x >= o.x1 && t.x <= o.x2) expect(o.y, greaterThan(t.baselineY));
+        }
+      }
+      // as notas com 8va usam a posição escrita (uma oitava abaixo)
+      for (final e in s.events.where((e) => e.e.ottava)) {
+        expect(e.y, e.e.writtenPos / 2);
+      }
+    }
+    expect(found, greaterThan(0));
   });
 }

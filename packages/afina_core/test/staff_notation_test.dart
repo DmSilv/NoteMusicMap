@@ -34,6 +34,7 @@ StaffScore _score(int tonic, ScaleType t, {int octaves = 1, ScaleDirection d = S
 }
 
 void main() {
+  _ottavaTests();
   group('posição na pauta (clave de Sol)', () {
     test('notas de referência', () {
       expect(staffPos(_n(2, 0, 4)), 0); // Mi4 = 1ª linha
@@ -277,5 +278,66 @@ void main() {
     final s = buildStaffScore(tonicMidi: 60, type: ScaleType.major, sequence: [60], upCount: 1);
     expect(s.events.single.ticks, 48);
     expect(s.bars, hasLength(1));
+  });
+}
+
+void _ottavaTests() {
+  StaffScore hi(int tonic, ScaleType t, StaffRhythm r, {int octaves = 2, bool ottava = true}) {
+    final seq = scaleSequence(tonic, t, octaves: octaves);
+    return buildStaffScore(
+        tonicMidi: tonic, type: t, sequence: seq, upCount: scaleMidis(tonic, t, octaves: octaves).length, rhythm: r, ottava: ottava);
+  }
+
+  group('8va nas notas muito agudas', () {
+    test('desligado, nada muda; ligado, só trechos agudos de pelo menos 3 notas são escritos uma oitava abaixo', () {
+      for (final r in StaffRhythm.values) {
+        final off = hi(79, ScaleType.major, r, ottava: false);
+        expect(off.events.any((e) => e.ottava), isFalse);
+        final on = hi(79, ScaleType.major, r);
+        expect(on.events.any((e) => e.ottava), isTrue, reason: r.name);
+        for (final e in on.events) {
+          expect(e.writtenPos, e.ottava ? e.pos - 7 : e.pos);
+          if (e.pos >= 16 && e.ottava == false) {
+            // só fica fora se o trecho tem menos de 3 notas
+            expect(e.pos, greaterThanOrEqualTo(16));
+          }
+        }
+      }
+    });
+
+    test('um trecho curto ou grave não ganha 8va', () {
+      final low = hi(55, ScaleType.major, StaffRhythm.quarter, octaves: 2);
+      expect(low.events.any((e) => e.ottava), isFalse);
+      // uma única nota aguda no topo (Sol6) não vale um 8va
+      final one = buildStaffScore(tonicMidi: 67, type: ScaleType.major, sequence: [64, 67, 71, 74, 79], upCount: 5, ottava: true);
+      expect(one.events.any((e) => e.ottava), isFalse);
+    });
+
+    test('o grupo de barra inteiro fica no mesmo lado (nunca oitavas misturadas na mesma barra)', () {
+      for (final r in [StaffRhythm.eighth, StaffRhythm.triplet]) {
+        for (final tonic in [67, 69, 72, 76]) {
+          final s = hi(tonic, ScaleType.major, r, octaves: 3);
+          final g = <int, Set<bool>>{};
+          for (final e in s.events) {
+            if (e.beamGroup != null) g.putIfAbsent(e.beamGroup! * 1000 + e.bar, () => {}).add(e.ottava);
+          }
+          expect(g.values.every((v) => v.length == 1), isTrue, reason: '${r.name} $tonic');
+        }
+      }
+    });
+
+    test('a nota que SOA continua a mesma: ler a partitura (posição real) devolve o exercício', () {
+      for (final tonic in [67, 72, 76, 79]) {
+        final s = hi(tonic, ScaleType.melodicMinor, StaffRhythm.triplet, octaves: 3);
+        expect(_readBack(s), scaleSequence(tonic, ScaleType.melodicMinor, octaves: 3));
+      }
+    });
+
+    test('a nota escrita com 8va nunca passa da 3ª linha suplementar acima', () {
+      final s = hi(79, ScaleType.major, StaffRhythm.quarter, octaves: 2); // até Sol7, o limite do violino
+      for (final e in s.events.where((e) => e.ottava)) {
+        expect(e.writtenPos, lessThanOrEqualTo(16));
+      }
+    });
   });
 }

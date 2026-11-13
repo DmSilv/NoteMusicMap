@@ -3471,6 +3471,9 @@ class AppState extends ChangeNotifier {
   /// Dica automática do nome de uma nota muito aguda quando a pessoa demora nela (modo guiado).
   bool scaleHints = true;
 
+  /// Notas muito agudas (de Sol6 para cima) escritas uma oitava abaixo, com o sinal 8va e o nome da nota.
+  bool scaleOttava = true;
+
   /// A nota como está escrita na escala (Lá natural ao subir e Lá♭ ao descer em Dó menor melódica), com a oitava.
   /// Com instrumento transpositor a grafia segue a regra comum (o nome já muda pela transposição).
   ({String name, int octave}) scaleNoteParts(int midi, {required bool ascending}) {
@@ -3717,6 +3720,7 @@ class AppState extends ChangeNotifier {
     scaleStaff = p.getBool('scale_staff') ?? true;
     scaleRhythm = StaffRhythm.values[(p.getInt('scale_rhythm') ?? StaffRhythm.quarter.index).clamp(0, StaffRhythm.values.length - 1)];
     scaleHints = p.getBool('scale_hints') ?? true;
+    scaleOttava = p.getBool('scale_8va') ?? true;
     scaleNames = StaffNames.values[(p.getInt('scale_names') ?? StaffNames.none.index).clamp(0, StaffNames.values.length - 1)];
     dailyGoalMinutes = p.getDouble('goal') ?? 20;
     themeMode = ThemeMode.values[p.getInt('theme') ?? 0];
@@ -4093,7 +4097,11 @@ class AppState extends ChangeNotifier {
   }
 
   /// Ajustes da partitura (só mudam como ela é escrita e mostrada; o exercício toca igual).
-  void setStaff({bool? on, StaffRhythm? rhythm, StaffNames? names, bool? hints}) {
+  void setStaff({bool? on, StaffRhythm? rhythm, StaffNames? names, bool? hints, bool? ottava}) {
+    if (ottava != null) {
+      scaleOttava = ottava;
+      _prefs?.setBool('scale_8va', ottava);
+    }
     if (hints != null) {
       scaleHints = hints;
       _prefs?.setBool('scale_hints', hints);

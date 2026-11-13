@@ -12,6 +12,12 @@ import 'scale_spelling.dart';
 /// A partir desta posição (Dó6: 2ª linha suplementar acima) a nota é difícil de achar na pauta; só essas ganham dica.
 const int kHighNotePos = 12;
 
+/// Notas a partir daqui (Sol6: 4ª linha suplementar acima) podem ser escritas uma oitava abaixo, sob o sinal 8va.
+const int kOttavaPos = 16;
+
+/// A oitava são 7 posições na pauta.
+const int kOttavaShift = 7;
+
 /// Quanto tempo (s) a nota difícil precisa esperar, sem ser tocada, para a dica aparecer.
 const double kHintAfterSeconds = 4;
 
@@ -163,6 +169,9 @@ class StaffEvent {
   /// Dedilhado escrito em cima da nota ("0".."4"), ou null.
   final String? finger;
 
+  /// A nota está sob o sinal 8va: SOA uma oitava acima do que está escrito na pauta.
+  final bool ottava;
+
   const StaffEvent({
     required this.index,
     required this.note,
@@ -176,7 +185,27 @@ class StaffEvent {
     required this.tripletGroup,
     required this.startTick,
     this.finger,
+    this.ottava = false,
   });
+
+  StaffEvent withOttava(bool o) => StaffEvent(
+        index: index,
+        note: note,
+        midi: midi,
+        ascending: ascending,
+        ticks: ticks,
+        pos: pos,
+        accidental: accidental,
+        courtesy: courtesy,
+        beamGroup: beamGroup,
+        tripletGroup: tripletGroup,
+        startTick: startTick,
+        finger: finger,
+        ottava: o,
+      );
+
+  /// Onde a nota é DESENHADA: com 8va, uma oitava abaixo da posição real ([pos]).
+  int get writtenPos => ottava ? pos - kOttavaShift : pos;
 
   bool get isHigh => pos >= kHighNotePos;
   bool get hasStem => ticks < 48;
@@ -224,6 +253,9 @@ StaffScore buildStaffScore({
 
   /// Dedilhado de cada nota da sequência (mesma ordem de [sequence]); null ou item null = sem número.
   List<String?>? fingers,
+
+  /// Escreve as notas muito agudas uma oitava abaixo, com o sinal 8va (e o nome das notas).
+  bool ottava = false,
 }) {
   final speller = ScaleSpeller(tonicMidi, type);
   final key = keySignatureFor(tonicMidi, type);
@@ -273,5 +305,56 @@ StaffScore buildStaffScore({
     ));
     t += tk;
   }
+  if (ottava) _applyOttava(bars);
   return StaffScore(key, rhythm, bars);
+}
+
+/// Marca as notas que vão sob o 8va: de Sol6 para cima, com as vizinhas de Mi6 para cima, só em trechos de pelo menos 3
+/// notas seguidas (um 8va para uma nota só não vale a pena) e sempre com o grupo de barra inteiro (não se mistura oitava na barra).
+void _applyOttava(List<List<StaffEvent>> bars) {
+  final all = [for (final b in bars) ...b];
+  final n = all.length;
+  var flags = [for (final e in all) e.pos >= kOttavaPos];
+  final grown = [...flags];
+  for (var i = 0; i < n; i++) {
+    if (!flags[i] && all[i].pos >= kOttavaPos - 2 && ((i > 0 && flags[i - 1]) || (i < n - 1 && flags[i + 1]))) grown[i] = true;
+  }
+  flags = grown;
+  // trechos curtos não ganham 8va
+  var i = 0;
+  while (i < n) {
+    if (!flags[i]) {
+      i++;
+      continue;
+    }
+    var j = i;
+    while (j < n && flags[j]) {
+      j++;
+    }
+    if (j - i < 3) {
+      for (var k = i; k < j; k++) {
+        flags[k] = false;
+      }
+    }
+    i = j;
+  }
+  // o grupo de barra inteiro
+  final groups = <int, List<int>>{};
+  for (var k = 0; k < n; k++) {
+    final g = all[k].beamGroup;
+    if (g != null) groups.putIfAbsent(g * 1000 + all[k].bar, () => []).add(k);
+  }
+  for (final g in groups.values) {
+    if (g.any((k) => flags[k])) {
+      for (final k in g) {
+        flags[k] = true;
+      }
+    }
+  }
+  var idx = 0;
+  for (final b in bars) {
+    for (var k = 0; k < b.length; k++) {
+      b[k] = b[k].withOttava(flags[idx++]);
+    }
+  }
 }

@@ -61,7 +61,7 @@ class LaidEvent {
   double? fingerY;
   LaidEvent(this.e, this.x, this.y, this.slotX0, this.slotX1, this.accX, this.stemUp, this.headW, this.stemX, this.stemTipY);
 
-  List<int> get ledgers => ledgerLines(e.pos);
+  List<int> get ledgers => ledgerLines(e.writtenPos);
 }
 
 /// Barra que liga um grupo de colcheias (um paralelogramo: a aresta de fora vai de (x1,y1) a (x2,y2)).
@@ -69,6 +69,12 @@ class LaidBeam {
   final double x1, y1, x2, y2;
   final bool stemUp;
   const LaidBeam(this.x1, this.y1, this.x2, this.y2, this.stemUp);
+}
+
+/// O sinal 8va: linha tracejada de [x1] a [x2] na altura [y] (base do texto "8va"), com a pontinha para baixo no fim.
+class LaidOttava {
+  final double x1, x2, y;
+  const LaidOttava(this.x1, this.x2, this.y);
 }
 
 /// O "3" de uma tercina.
@@ -83,6 +89,7 @@ class LaidSystem {
   final List<LaidEvent> events;
   final List<LaidBeam> beams;
   final List<LaidTuplet> tuplets;
+  final List<LaidOttava> ottavas;
 
   /// Posições x das barras de compasso (a última pode ser a barra final).
   final List<double> barlines;
@@ -101,7 +108,7 @@ class LaidSystem {
   /// Primeira e última nota (índice no exercício) desta linha.
   final int firstIndex;
   final int lastIndex;
-  const LaidSystem(this.events, this.beams, this.tuplets, this.barlines, this.finalBarline, this.showTime, this.headerEnd, this.width, this.top, this.bottom, this.labelTop,
+  const LaidSystem(this.events, this.beams, this.tuplets, this.ottavas, this.barlines, this.finalBarline, this.showTime, this.headerEnd, this.width, this.top, this.bottom, this.labelTop,
       this.firstIndex, this.lastIndex);
 
   double get height => top - bottom;
@@ -274,7 +281,7 @@ LaidSystem _layoutSystem(StaffScore score, List<int> barIdx, double header, doub
   for (final idxs in byBeam.values) {
     var maxA = -99.0, maxB = -99.0;
     for (final i in idxs) {
-      final y = pre[i].$1.pos / 2;
+      final y = pre[i].$1.writtenPos / 2;
       maxA = math.max(maxA, y - 2);
       maxB = math.max(maxB, 2 - y);
     }
@@ -284,11 +291,11 @@ LaidSystem _layoutSystem(StaffScore score, List<int> barIdx, double header, doub
     }
   }
   for (var i = 0; i < pre.length; i++) {
-    upOf.putIfAbsent(i, () => pre[i].$1.pos < 4);
+    upOf.putIfAbsent(i, () => pre[i].$1.writtenPos < 4);
   }
   for (var i = 0; i < pre.length; i++) {
     final (e, hx, s0, s1, accX) = pre[i];
-    final y = e.pos / 2;
+    final y = e.writtenPos / 2;
     final up = upOf[i]!;
     final head = e.ticks == 48 ? kWholeW : kHeadW;
     final stemX = up ? hx + head - 0.05 : hx + 0.05;
@@ -356,6 +363,34 @@ LaidSystem _layoutSystem(StaffScore score, List<int> barIdx, double header, doub
   for (final l in laid) {
     if (l.fingerY != null) l.fingerY = rowY[l.e.bar];
   }
+  // 8va: um trecho seguido de notas com o sinal vira uma linha tracejada acima de tudo (notas, números, "3")
+  final ottavas = <LaidOttava>[];
+  var oi = 0;
+  while (oi < laid.length) {
+    if (!laid[oi].e.ottava) {
+      oi++;
+      continue;
+    }
+    var oj = oi;
+    while (oj < laid.length && laid[oj].e.ottava) {
+      oj++;
+    }
+    final x1 = laid[oi].x - 0.3;
+    final x2 = laid[oj - 1].x + laid[oj - 1].headW + 0.3;
+    var yb = 5.0;
+    for (var k = oi; k < oj; k++) {
+      final l = laid[k];
+      var t = l.y + 0.6;
+      if (l.e.hasStem && l.stemUp) t = math.max(t, l.stemTipY + 0.15);
+      if (l.fingerY != null) t = math.max(t, l.fingerY! + 1.0);
+      yb = math.max(yb, t + 0.9);
+    }
+    for (final tp in tuplets) {
+      if (tp.x >= x1 && tp.x <= x2) yb = math.max(yb, tp.baselineY + 1.9);
+    }
+    ottavas.add(LaidOttava(x1, x2, yb));
+    oi = oj;
+  }
   // extensão vertical
   var top = 5.6; // a clave de Sol sobe até ~5,5
   var bottom = -1.8; // e desce até ~-1,7
@@ -370,6 +405,9 @@ LaidSystem _layoutSystem(StaffScore score, List<int> barIdx, double header, doub
   for (final l in laid) {
     if (l.fingerY != null) top = math.max(top, l.fingerY! + 1.3);
   }
+  for (final o in ottavas) {
+    top = math.max(top, o.y + 1.4);
+  }
   for (final t in tuplets) {
     top = math.max(top, t.baselineY + 1.6);
     bottom = math.min(bottom, t.baselineY - 0.2);
@@ -379,5 +417,5 @@ LaidSystem _layoutSystem(StaffScore score, List<int> barIdx, double header, doub
   final labelTop = bottom;
   bottom -= labelH;
   final width = isLast && barIdx.length == 1 && (header + _barW(score.bars[barIdx.first], gs)) < cap * 0.6 ? x : (add > 0 ? cap : x);
-  return LaidSystem(laid, beams, tuplets, barlines, isLast, showTime, header, width, top, bottom, labelTop, laid.first.e.index, laid.last.e.index);
+  return LaidSystem(laid, beams, tuplets, ottavas, barlines, isLast, showTime, header, width, top, bottom, labelTop, laid.first.e.index, laid.last.e.index);
 }

@@ -66,6 +66,25 @@ List<Widget> staffSettingRows(AppState app) => [
           ]),
         ),
         DsSettingRow(
+          label: tr('Notas muito agudas (8va)'),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<bool>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: true, label: Text(tr('Ligada'))),
+                  ButtonSegment(value: false, label: Text(tr('Desligada'))),
+                ],
+                selected: {app.scaleOttava},
+                onSelectionChanged: (v) => app.setStaff(ottava: v.first),
+              ),
+            ),
+            const DsGap(Ds.s8),
+            Text(tr('De Sol6 para cima as notas são escritas uma oitava abaixo, sob o sinal 8va, e ganham o nome.'), style: Ds.support()),
+          ]),
+        ),
+        DsSettingRow(
           label: tr('Dica nas notas agudas'),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             SizedBox(

@@ -98,7 +98,7 @@ class _StaffViewState extends State<StaffView> {
     final cols = w.colors ?? StaffColors.fromTheme();
     return LayoutBuilder(builder: (context, c) {
       final width = c.maxWidth.isFinite ? c.maxWidth : 340.0;
-      final reserve = w.names != StaffNames.none || (w.hints && w.score.events.any((e) => e.isHigh));
+      final reserve = w.names != StaffNames.none || (w.hints && w.score.events.any((e) => e.isHigh)) || w.score.events.any((e) => e.ottava);
       final layout = layoutStaff(w.score, widthPx: width, names: reserve);
       final sp = layout.sp;
       const gapSp = 1.2;
@@ -341,7 +341,8 @@ class _StaffPainter extends CustomPainter {
       }
       _glyph(canvas, e.e.ticks == 48 ? _headWhole : (e.e.hollow ? _headHalf : _headBlack), x0, y, col);
       if (e.e.dotted) {
-        final dy = e.e.pos.isEven ? (e.e.pos + 1) / 2 : e.e.pos / 2;
+        final wp = e.e.writtenPos;
+        final dy = wp.isEven ? (wp + 1) / 2 : wp / 2;
         _glyph(canvas, _dot, px(e.x + e.headW + 0.35), py(dy), col);
       }
     }
@@ -358,6 +359,24 @@ class _StaffPainter extends CustomPainter {
     }
     for (final t in s.tuplets) {
       _glyph(canvas, _tuplet3, px(t.x - 0.55), py(t.baselineY), ink);
+    }
+    // sinal 8va
+    for (final o in s.ottavas) {
+      final fs = (sp * 1.7).clamp(11.0, 16.0);
+      final tp = _tp('8va', ink, fs, family: null, weight: FontWeight.w700);
+      final ty = py(o.y);
+      tp.paint(canvas, Offset(px(o.x1), ty - tp.height * 0.85));
+      final lineY = ty - tp.height * 0.35;
+      final paint = Paint()
+        ..color = ink
+        ..strokeWidth = 1.2;
+      var dx = px(o.x1) + tp.width + 3;
+      final end = px(o.x2);
+      while (dx < end) {
+        canvas.drawLine(Offset(dx, lineY), Offset((dx + sp * 0.55).clamp(0, end), lineY), paint);
+        dx += sp * 0.95;
+      }
+      canvas.drawLine(Offset(end, lineY), Offset(end, lineY + sp * 0.9), paint);
     }
     // número do dedo em cima da nota
     for (final e in s.events) {
@@ -378,14 +397,17 @@ class _StaffPainter extends CustomPainter {
     }
     _hint(canvas, s);
     // nomes das notas (em duas linhas alternadas quando as notas estão apertadas; o que ainda assim não cabe, não é escrito)
-    if (names != StaffNames.none) {
+    if (names != StaffNames.none || s.ottavas.isNotEmpty) {
       final fs = staffNameFontSize(sp);
       final rowH = fs * 1.15;
       var edge0 = -1e9, edge1 = -1e9;
       final twoRows = layout.score.rhythm == StaffRhythm.eighth || layout.score.rhythm == StaffRhythm.triplet;
       for (final e in s.events) {
-        final ledger = e.e.pos <= -2 || e.e.pos >= 10;
-        if (names == StaffNames.ledger && !ledger) continue;
+        final wp = e.e.writtenPos;
+        final ledger = wp <= -2 || wp >= 10;
+        // sob o 8va o nome aparece sempre (é a ajuda da região aguda); fora dela, como o ajuste pedir
+        final show = e.e.ottava || names == StaffNames.all || (names == StaffNames.ledger && ledger);
+        if (!show) continue;
         final isCur = e.e.index == current;
         final nm = e.e.note.name();
         final weight = isCur ? FontWeight.w800 : FontWeight.w600;
