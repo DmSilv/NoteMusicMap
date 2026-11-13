@@ -153,7 +153,8 @@ test('a sugestão pelo molde reproduz as três escalas lidas (só o 1º dedo e o
   const seed = JSON.parse(fs.readFileSync(seedGen.OUT, 'utf8')).items;
   const get = (pc, alt) => seed.find((s) => s.pc === pc && s.alt === alt && s.type === 'major' && s.oct === 3);
   assert.deepEqual(sb.marks, get(10, false).marks); // Si♭ maior: idêntico, inclusive as cordas soltas
-  for (const [pc, alt] of [[3, false], [6, true]]) {
+  // Ré, Mi♭ e Sol♭ começam a partir da corda Ré: só o molde (sem o dedo da 1ª nota)
+  for (const [pc, alt] of [[2, false], [3, false], [6, true]]) {
     const want = { ...get(pc, alt).marks };
     delete want['0'];
     assert.deepEqual(fing.suggest(pc, alt, 'major', 3).marks, want, 'pc ' + pc);

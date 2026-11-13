@@ -135,15 +135,18 @@ const MOLD = { 9: '1', 15: '1', 17: '1', 21: '4', 22: '4', 26: '3', 29: '3' };
 function suggest(pc, alt, type, oct) {
   if (type !== 'major' || oct !== 3) return { error: 'Só há molde para escala maior de 3 oitavas (as páginas lidas até agora).' };
   const marks = { ...MOLD };
-  const notes = ['Pontos de mudança (1 1 1, 4 4, 3 3) iguais aos de Si♭, Mi♭ e Sol♭ maiores.'];
+  const notes = ['Pontos de mudança (1 1 1, 4 4, 3 3) iguais aos de Si♭, Mi♭, Sol♭ e Ré maiores.'];
   let open = 0;
-  for (const r of noteRows(pc, alt, type, oct)) {
+  // O 4º dedo no lugar da corda solta só aparece quando a escala COMEÇA na corda Sol (Si♭ maior). Ré, Mi♭ e Sol♭ maiores começam a partir da
+  // corda Ré e não têm esse número na subida.
+  const startsOnG = tonicMidi(pc) < 62;
+  for (const r of startsOnG ? noteRows(pc, alt, type, oct) : []) {
     if ([62, 69, 76].includes(r.midi) && marks[r.i] === undefined) {
       marks[r.i] = r.asc ? '4' : '0';
       open++;
     }
   }
-  if (open) notes.push('Cordas soltas (Ré, Lá, Mi): 4º dedo subindo e corda solta descendo, como no Si♭ maior.');
+  if (open) notes.push('Começa na corda Sol: 4º dedo no lugar das cordas soltas Ré, Lá e Mi subindo e corda solta descendo, como no Si♭ maior.');
   notes.push('Não inclui o dedo da primeira nota nem o 8va: veja na página.');
   return { marks, ottava: null, notes };
 }

@@ -50,6 +50,9 @@ const List<_Entry> _violin = [
   // Flesch nº 5, 3 oitavas, Sol♭ maior (6 bemóis), a partir do Sol♭4. Mesmo molde do Mi♭ maior; o 8va vai do Si♭6 até o 1º grupo do
   // compasso seguinte (da nota 18 à 26).
   _Entry(6, true, ScaleType.major, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '4', 26: '3', 29: '3'}, ottava: (18, 26)),
+  // Flesch nº 5, 3 oitavas, Ré maior (2 sustenidos), a partir do Ré4 (corda Ré solta). Começa na corda solta, então não há "4º dedo no lugar da
+  // solta" na subida; os pontos de mudança são os do molde das maiores (9, 15, 17 = 1; 21, 22 = 4; 26, 29 = 3). Sem 8va na página.
+  _Entry(2, false, ScaleType.major, 3, {0: '0', 9: '1', 15: '1', 17: '1', 21: '4', 22: '4', 26: '3', 29: '3'}),
   // Flesch nº 5, 3 oitavas, Mi♭ menor melódica (6 bemóis), a partir do Mi♭4 (corda Ré, 1º dedo; o livro escreve 2 em cima). Sobe com Dó♮ e Ré♮ e
   // desce com Ré♭ e Dó♭. 8va nas 6 notas do topo (Si♭6 a Dó♭7). A subida segue o mesmo molde das maiores (notas 9, 15, 17 e 21); a descida
   // é diferente da maior: 3 nas notas 22, 24 e 27 e 2 na 34.
