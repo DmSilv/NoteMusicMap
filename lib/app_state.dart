@@ -590,6 +590,17 @@ class AppState extends ChangeNotifier {
   // ---------------- Vínculos online (professor ⇄ aluno) ----------------
   final LinkService links = LinkService();
 
+  /// Ficha do aparelho que acompanha o vínculo online (só com as estatísticas anônimas ligadas).
+  Map<String, String>? _deviceCard() {
+    if (!stats.enabled) return null;
+    return {
+      'pl': StatsService.platformTag(),
+      'in': StatsService.installTag(),
+      'v': StatsService.versionTag(),
+      ...stats.deviceExtras(),
+    };
+  }
+
   /// Professores deste usuário (como aluno). Com `since == 0` ainda não foi confirmado
   /// pelo servidor (sem conexão); os demais vêm do servidor.
   List<LinkedPerson> myTeachers = [];
@@ -881,6 +892,7 @@ class AppState extends ChangeNotifier {
   /// A cada ~5 min, com o app à frente, "estou online". Não faz nada em segundo plano.
   void _startStats() {
     stats.micProbe = () => yesNoTag(micGranted);
+    links.deviceProbe = _deviceCard;
     unawaited(stats.open(_prefs));
     _statsTimer?.cancel();
     _statsTimer = Timer.periodic(const Duration(minutes: 5), (_) {

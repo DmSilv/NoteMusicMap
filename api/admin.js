@@ -3,7 +3,7 @@
 //  POST { action, ... } com "Authorization: Bearer <chave de admin>". Ações:
 //   kpis                       indicadores (total, ativos x inativos, professores, crescimento, retenção)
 //   list {offset?, q?, by?}    perfis, do mais recente ao mais antigo (busca por trecho do código; by:'name' busca pelo apelido nos 100 mais recentes)
-//   detail {code}              um perfil: papel, vínculos, volume de dados (NUNCA o segredo)
+//   detail {code}              um perfil: papel, vínculos, volume de dados, tempo de uso (14 dias) e ficha do aparelho (NUNCA o segredo)
 //   block / unblock {code}     impede / libera o vínculo online do perfil
 //   delete {code, confirm}     apaga os dados e vínculos do perfil (confirm tem que ser o código)
 //   bugs {days,sev,status,ver,plat,code,q,offset}  bugs agrupados (relatórios de erro do app), com filtros
@@ -51,6 +51,36 @@ const features = require('./_lib/features');
 const costModel = require('./_lib/cost_model');
 
 const { Z } = profiles;
+
+/** Tempo de uso estimado (minutos com o app à frente e vínculo ligado): últimos 14 dias, soma de 7 dias, total e sessões. */
+function usageOf(prof, now) {
+  const h = profiles.parseHist(prof.uh);
+  const days = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = dayKey(now - i * DAY);
+    const [min, sessions] = h.get(d) || [0, 0];
+    days.push({ day: d, min, sessions });
+  }
+  const last7 = days.slice(-7);
+  return {
+    days,
+    today: days[13].min,
+    min7: last7.reduce((a, x) => a + x.min, 0),
+    min14: days.reduce((a, x) => a + x.min, 0),
+    sessions7: last7.reduce((a, x) => a + x.sessions, 0),
+    activeDays14: days.filter((x) => x.min > 0).length,
+    totalMin: Number(prof.tm) || 0,
+    sessions: Number(prof.ns) || 0,
+    lastSignal: Number(prof.pa) || 0,
+    online: Number(prof.pa) > now - profiles.ONLINE_WINDOW,
+  };
+}
+
+/** Ficha do aparelho (atual e anterior) como o app e o servidor a gravaram. */
+function deviceOf(prof) {
+  const parse = (s) => { try { const o = JSON.parse(s || ''); return o && typeof o === 'object' ? o : null; } catch (_) { return null; } };
+  return { now: parse(prof.dv), previous: parse(prof.dp), first: Number(prof.df) || 0, updated: Number(prof.dt) || 0, changes: Number(prof.dn) || 0 };
+}
 const sha = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
 const DAY = 86400000;
 const PAGE = 25;
@@ -231,10 +261,11 @@ function makeHandler(deps = {}) {
           rows = pairs(rng);
           total = Number(card) || 0;
         }
-        const infos = rows.length ? await cmd.pipeline(rows.map(([c]) => ['HMGET', U(String(c)), 'n', 'ca', 'rt', 'rs', 'bl'])) : [];
+        const infos = rows.length ? await cmd.pipeline(rows.map(([c]) => ['HMGET', U(String(c)), 'n', 'ca', 'rt', 'rs', 'bl', 'pa', 'uh', 'tm'])) : [];
         const items = rows.map(([c, la], i) => {
-          const [n, ca, rt, rs, bl] = infos[i] || [];
-          return { code: String(c), name: n || '', la, ca: Number(ca) || 0, teacher: rt === '1', student: rs === '1', blocked: bl === '1', inactive: la < now - 30 * DAY };
+          const [n, ca, rt, rs, bl, pa, uh, tm] = infos[i] || [];
+          const today = (profiles.parseHist(uh).get(dayKey(now)) || [0])[0];
+          return { code: String(c), name: n || '', la, ca: Number(ca) || 0, teacher: rt === '1', student: rs === '1', blocked: bl === '1', inactive: la < now - 30 * DAY, online: Number(pa) > now - profiles.ONLINE_WINDOW, pa: Number(pa) || 0, todayMin: today, totalMin: Number(tm) || 0 };
         });
         return send(200, { ok: true, items, total, offset, page: PAGE, scanned: byName && nameQ ? NAME_SCAN : (q ? SEARCH_SCAN : null) });
       }
@@ -254,11 +285,14 @@ function makeHandler(deps = {}) {
         const [classesMade, classesIn, lessonsIn, doneMarks, verdicts, openSlots, taken, devices] = counts.map((x) => Number(x) || 0);
         return send(200, {
           ok: true,
-          profile: { code, name: prof.n || '', created: Number(prof.ca) || 0, last: Number(prof.la) || 0, blocked: prof.bl === '1' },
+          profile: { code, name: prof.n || '', created: Number(prof.ca) || 0, last: Number(prof.la) || 0, blocked: prof.bl === '1', rolesTeacher: prof.rt === '1', rolesStudent: prof.rs === '1' },
           students: stuList,
           teachers: teaList,
           alsoStudent: stuList.length > 0 && teaList.length > 0,
           support: { pendingUntil: Number(prof.sx) > now ? Number(prof.sx) : 0 },
+          // Já veio na leitura do perfil (0 comandos a mais): tempo de uso estimado e ficha do aparelho.
+          usage: usageOf(prof, now),
+          device: deviceOf(prof),
           data: { classesMade, classesIn, lessonsIn, doneMarks, verdicts, openSlots, taken, pushDevices: devices },
         });
       }

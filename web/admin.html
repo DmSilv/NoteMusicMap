@@ -143,6 +143,43 @@
     .filters { display: flex; gap: var(--s8); flex-wrap: wrap; align-items: center; margin-bottom: var(--s12); }
     .kv { display: flex; justify-content: space-between; gap: var(--s12); padding: var(--s8) 0; border-bottom: 1px solid var(--outline); font-size: 14px; }
     .kv span:first-child { color: var(--dim); }
+    /* Ficha da pessoa */
+    #detailBox { max-width: 720px; }
+    .ph { display: flex; align-items: center; gap: var(--s16); margin-bottom: var(--s16); }
+    .ph .av { width: 56px; height: 56px; border-radius: 50%; flex: none; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: var(--accent); background: rgba(31,230,143,.14); border: 1px solid rgba(31,230,143,.4); }
+    .ph .phm { min-width: 0; flex: 1; }
+    .ph h3 { margin: 0; font-size: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .codechip { font: 600 13px ui-monospace, Menlo, Consolas, monospace; letter-spacing: .5px; min-height: 0; padding: 2px var(--s8); margin: var(--s4) 0; border-radius: var(--r-pill); color: var(--dim); }
+    .codechip:hover { color: var(--accent); border-color: var(--accent); }
+    .phtags { display: flex; gap: var(--s4); flex-wrap: wrap; margin-top: var(--s4); }
+    .phst { display: flex; align-items: center; gap: var(--s8); color: var(--dim); font-size: 13px; margin-top: var(--s8); }
+    .tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s8); margin-bottom: var(--s16); }
+    @media (min-width: 560px) { .tiles { grid-template-columns: repeat(4, 1fr); } }
+    .tile { background: var(--surface2); border: 1px solid var(--outline); border-radius: var(--r-ctl); padding: var(--s12) var(--s16); }
+    .tile .tk { color: var(--dim); font-size: 12px; font-weight: 600; }
+    .tile .tv { font-size: 20px; font-weight: 800; letter-spacing: -.3px; margin-top: 2px; }
+    .tile .ts { color: var(--dim); font-size: 12px; margin-top: 2px; }
+    .sec { margin: var(--s16) 0; padding-top: var(--s16); border-top: 1px solid var(--outline); }
+    .sec h4, .sup h4 { margin: 0 0 var(--s8); font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--dim); }
+    .empty.small { font-size: 12.5px; margin-top: var(--s8); }
+    .u14 { display: flex; align-items: flex-end; gap: 4px; height: 96px; }
+    .u14c { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; min-width: 0; }
+    .u14c i { display: block; width: 100%; background: var(--accent); opacity: .75; border-radius: 4px 4px 0 0; transition: height .5s var(--ease); }
+    .u14c i.z { background: var(--outline); opacity: 1; }
+    .u14c i.today { opacity: 1; box-shadow: 0 0 0 2px rgba(31,230,143,.3); }
+    .u14c span { color: var(--dim); font-size: 10.5px; }
+    .dvgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--s8); }
+    .dvi { background: var(--surface2); border-radius: var(--r-ctl); padding: var(--s8) var(--s12); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .dvi .dk { color: var(--dim); font-size: 11.5px; font-weight: 600; }
+    .dvi .dvv { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+    .chips { display: flex; flex-wrap: wrap; gap: var(--s8); }
+    .chip { display: inline-flex; align-items: baseline; gap: var(--s8); background: var(--surface2); border: 1px solid var(--outline); border-radius: var(--r-pill); padding: var(--s4) var(--s12); font-size: 13px; }
+    .chip b { font-size: 15px; } .chip span { color: var(--dim); }
+    #detailBox .toolbar:last-child { position: sticky; bottom: calc(-1 * var(--s24)); background: var(--surface); padding: var(--s12) 0 var(--s4); margin: var(--s16) 0 0; border-top: 1px solid var(--outline); }
+    td .dot { display: inline-block; width: 8px; height: 8px; margin-right: var(--s8); vertical-align: middle; box-shadow: none; }
+    td .dot.on { box-shadow: 0 0 0 3px rgba(31,230,143,.18); }
+    td.num { text-align: right; font-variant-numeric: tabular-nums; }
+    #pRows td { white-space: nowrap; }
 
     /* entrada: login */
     #login { max-width: 420px; margin: 10vh auto 0; padding: 0 var(--s16); }
@@ -439,7 +476,7 @@
       <p class="lead">Toque em um perfil para ver a ficha, dar suporte ou resolver um problema.</p>
       <div class="card">
         <div class="toolbar"><input id="q" placeholder="Buscar por trecho do código" maxlength="40"><label class="empty"><input type="checkbox" id="qName"> pelo apelido</label><button id="qGo">Buscar</button><button id="pExport">Exportar CSV</button><span class="empty" id="pCount"></span></div>
-        <div style="overflow:auto"><table><thead><tr><th>Código</th><th>Apelido</th><th>Papel</th><th>Entrou</th><th>Última atividade</th></tr></thead><tbody id="pRows"></tbody></table></div>
+        <div style="overflow:auto"><table><thead><tr><th>Código</th><th>Apelido</th><th>Papel</th><th>Visto</th><th class="num">Hoje</th><th class="num">Total</th><th>Entrou</th></tr></thead><tbody id="pRows"></tbody></table></div>
         <div class="toolbar" style="margin-top:10px"><button id="pPrev">‹ Anterior</button><button id="pNext">Próxima ›</button><span class="empty" id="pNote"></span></div>
       </div>
       <h2>Acervo dos professores de teste <button class="help" data-def="library">?</button></h2>
@@ -1046,17 +1083,19 @@
   function renderRows(j) {
     lastRows = j.items;
     var body = $('pRows'); body.innerHTML = '';
-    if (!j.items.length) { var tr0 = document.createElement('tr'), td0 = document.createElement('td'); td0.colSpan = 5; td0.className = 'empty'; td0.textContent = 'Nenhum perfil.'; tr0.appendChild(td0); body.appendChild(tr0); }
+    if (!j.items.length) { var tr0 = document.createElement('tr'), td0 = document.createElement('td'); td0.colSpan = 7; td0.className = 'empty'; td0.textContent = 'Nenhum perfil.'; tr0.appendChild(td0); body.appendChild(tr0); }
     j.items.forEach(function (p) {
       var tr = document.createElement('tr'); tr.className = 'pick';
-      var c1 = document.createElement('td'); c1.textContent = p.code;
+      var c1 = document.createElement('td'); var od = document.createElement('span'); od.className = 'dot' + (p.online ? ' on' : ''); od.title = p.online ? 'Online agora' : 'Offline'; c1.appendChild(od); c1.appendChild(document.createTextNode(p.code));
       var c2 = document.createElement('td'); c2.textContent = p.name || '—';
       var c3 = document.createElement('td');
       if (p.teacher) c3.appendChild(tag('professor', 't')); if (p.student) c3.appendChild(tag('aluno', 's'));
       if (!p.teacher && !p.student) c3.appendChild(tag('sem vínculo')); if (p.blocked) c3.appendChild(tag('bloqueado', 'x')); if (p.inactive) c3.appendChild(tag('inativo', 'i'));
       var c4 = document.createElement('td'); c4.textContent = dt(p.ca);
-      var c5 = document.createElement('td'); c5.textContent = ago(p.la);
-      [c1, c2, c3, c4, c5].forEach(function (c) { tr.appendChild(c); });
+      var c5 = document.createElement('td'); c5.textContent = p.online ? 'agora' : ago(p.pa || p.la);
+      var c6 = document.createElement('td'); c6.className = 'num'; c6.textContent = p.todayMin ? minText(p.todayMin) : '–';
+      var c7 = document.createElement('td'); c7.className = 'num'; c7.textContent = p.totalMin ? minText(p.totalMin) : '–';
+      [c1, c2, c3, c5, c6, c7, c4].forEach(function (c) { tr.appendChild(c); });
       tr.onclick = function () { openDetail(p.code); }; body.appendChild(tr);
     });
     var from = j.items.length ? j.offset + 1 : 0;
@@ -1109,8 +1148,8 @@
   };
   $('pExport').onclick = function () {
     if (!lastRows.length) { toast('Não há perfis na lista para exportar.', 'bad'); return; }
-    downloadCsv('perfis', ['codigo', 'apelido', 'professor', 'aluno', 'bloqueado', 'entrou_em', 'ultima_atividade'], lastRows.map(function (p) {
-      return [p.code, p.name, p.teacher ? 'sim' : 'nao', p.student ? 'sim' : 'nao', p.blocked ? 'sim' : 'nao', iso(p.ca), iso(p.la)];
+    downloadCsv('perfis', ['codigo', 'apelido', 'professor', 'aluno', 'bloqueado', 'entrou_em', 'ultima_atividade', 'online_agora', 'minutos_hoje', 'minutos_total'], lastRows.map(function (p) {
+      return [p.code, p.name, p.teacher ? 'sim' : 'nao', p.student ? 'sim' : 'nao', p.blocked ? 'sim' : 'nao', iso(p.ca), iso(p.la), p.online ? 'sim' : 'nao', p.todayMin || 0, p.totalMin || 0];
     }));
   };
 
@@ -1218,21 +1257,99 @@
       });
     }).catch(function () {});
   }
+  // ---------------- Ficha de uma pessoa (modal) ----------------
+  function el(tagName, cls, text) { var e = document.createElement(tagName); if (cls) e.className = cls; if (text !== undefined && text !== null) e.textContent = text; return e; }
+  function minText(m) { m = Math.round(Number(m) || 0); if (m < 60) return m + ' min'; var h = Math.floor(m / 60), r = m % 60; return h + ' h' + (r ? ' ' + String(r).padStart(2, '0') + ' min' : ''); }
+  function brName(s) { var m = /^([a-z]+)(\d+)?$/.exec(s || ''); if (!m) return s || '—'; var N = { chrome: 'Chrome', edge: 'Edge', firefox: 'Firefox', safari: 'Safari', samsung: 'Samsung Internet' }; return (N[m[1]] || m[1]) + (m[2] ? ' ' + m[2] : ''); }
+  function plName(s) { if (!s) return '—'; var p = s.split('-'); var OS = { android: 'Android', ios: 'iPhone/iPad', windows: 'Windows', mac: 'Mac', linux: 'Linux', outro: 'Outro' }; var BR = { chrome: 'Chrome', edge: 'Edge', firefox: 'Firefox', safari: 'Safari', samsung: 'Samsung Internet', app: 'app nativo', outro: 'outro navegador' }; return (OS[p[0]] || p[0]) + ' · ' + (BR[p[1]] || p[1] || ''); }
+  function copyText(t) { try { navigator.clipboard.writeText(t); toast('Copiado.', 'ok'); } catch (e) { toast('Selecione e copie à mão.', 'bad'); } }
+  function profileHeader(box, d) {
+    var p = d.profile, u = d.usage || {};
+    var ph = el('div', 'ph');
+    var ini = (p.name || '?').trim().charAt(0).toUpperCase() || '?';
+    ph.appendChild(el('div', 'av', ini));
+    var main = el('div', 'phm');
+    main.appendChild(el('h3', '', p.name || 'Sem apelido'));
+    var cd = el('button', 'codechip', p.code); cd.title = 'Copiar o código'; cd.onclick = function () { copyText(p.code); }; main.appendChild(cd);
+    var tags = el('div', 'phtags');
+    if (d.students.length) tags.appendChild(tag('Professor', 't'));
+    if (d.teachers.length) tags.appendChild(tag(d.students.length ? 'Também é aluno' : 'Aluno', 's'));
+    if (!d.students.length && !d.teachers.length) tags.appendChild(tag('Sem vínculo'));
+    if (p.blocked) tags.appendChild(tag('Bloqueado', 'x'));
+    main.appendChild(tags);
+    var st = el('div', 'phst'); var dot = el('span', 'dot' + (u.online ? ' on' : '')); st.appendChild(dot);
+    st.appendChild(el('span', '', u.online ? 'Online agora' : 'Visto ' + ago(u.lastSignal || p.last)));
+    main.appendChild(st);
+    ph.appendChild(main); box.appendChild(ph);
+  }
+  function tile(label, value, sub) { var t = el('div', 'tile'); t.appendChild(el('div', 'tk', label)); t.appendChild(el('div', 'tv', value)); if (sub) t.appendChild(el('div', 'ts', sub)); return t; }
+  function profileOverview(box, d) {
+    var u = d.usage || { days: [] }, dv = d.device || {}, now = dv.now;
+    // Uso
+    var tiles = el('div', 'tiles');
+    tiles.appendChild(tile('Hoje', minText(u.today), u.online ? 'online agora' : ''));
+    tiles.appendChild(tile('7 dias', minText(u.min7), fmt(u.sessions7) + ' sessões'));
+    tiles.appendChild(tile('Dias ativos', (u.activeDays14 || 0) + ' de 14', 'nos últimos 14 dias'));
+    tiles.appendChild(tile('Total', minText(u.totalMin), fmt(u.sessions) + ' sessões'));
+    box.appendChild(tiles);
+    var sec = el('div', 'sec'); sec.appendChild(el('h4', '', 'Uso nos últimos 14 dias'));
+    var mx = 1; u.days.forEach(function (x) { if (x.min > mx) mx = x.min; });
+    var chart = el('div', 'u14');
+    u.days.forEach(function (x, i) {
+      var col = el('div', 'u14c'); var b = el('i'); b.style.height = Math.max(x.min ? 6 : 2, Math.round(x.min / mx * 100)) + '%'; if (!x.min) b.className = 'z'; if (i === u.days.length - 1) b.className += ' today';
+      col.title = x.day.slice(8) + '/' + x.day.slice(5, 7) + ' · ' + minText(x.min) + ' · ' + x.sessions + ' sess' + (x.sessions === 1 ? 'ão' : 'ões');
+      col.appendChild(b); col.appendChild(el('span', '', x.day.slice(8))); chart.appendChild(col);
+    });
+    sec.appendChild(chart);
+    sec.appendChild(el('div', 'empty small', 'Tempo ESTIMADO com o app à frente e o vínculo online ligado (conta a cada ~10 min). Não é o tempo de estudo.'));
+    box.appendChild(sec);
+    // Aparelho
+    var ds = el('div', 'sec'); ds.appendChild(el('h4', '', 'Aparelho'));
+    if (!now) ds.appendChild(el('div', 'empty', 'Ainda sem ficha. Ela chega quando a pessoa abre a versão nova do app com o vínculo ligado (e não desligou as estatísticas anônimas).'));
+    else {
+      var g = el('div', 'dvgrid');
+      var di = function (k, v) { var c = el('div', 'dvi'); c.appendChild(el('span', 'dk', k)); c.appendChild(el('span', 'dvv', v)); g.appendChild(c); };
+      var dn = function (f) { return now[f] ? devName(f, now[f]) : '—'; };
+      di('Aparelho', plName(now.pl)); di('Sistema', dn('os')); di('Navegador', brName(now.br)); di('Instalação', dn('in')); di('Versão do app', now.v || '—');
+      di('Tela', dn('sc')); di('Toque', dn('tc')); di('Densidade', dn('dpr')); di('Memória', dn('mem')); di('Processador', dn('cpu'));
+      di('Idioma', dn('lg')); di('Tema', dn('th')); di('Fuso horário', dn('tz')); di('Região', now.g ? devName('geo', now.g) : '—'); di('Rede', dn('net'));
+      di('Microfone', dn('mic')); di('Notificações', dn('nt'));
+      ds.appendChild(g);
+      var meta = 'Ficha vista pela 1ª vez em ' + dt(dv.first) + ' · atualizada em ' + dt(dv.updated) + '.';
+      if (dv.changes) meta += ' Já trocou de aparelho ou versão ' + dv.changes + (dv.changes === 1 ? ' vez.' : ' vezes.');
+      ds.appendChild(el('div', 'empty small', meta));
+      if (dv.previous) {
+        var pv = dv.previous;
+        ds.appendChild(el('div', 'empty small', 'Antes: ' + plName(pv.pl) + (pv.os ? ' · ' + devName('os', pv.os) : '') + (pv.br ? ' · ' + brName(pv.br) : '') + (pv.sc ? ' · ' + devName('sc', pv.sc) : '') + (pv.v ? ' · app ' + pv.v : '')));
+      }
+    }
+    box.appendChild(ds);
+    // Atividade
+    var ts = el('div', 'sec'); ts.appendChild(el('h4', '', 'Atividade'));
+    var tl = function (k, v) { var r = el('div', 'kv'); r.appendChild(el('span', '', k)); r.appendChild(el('span', '', v)); ts.appendChild(r); };
+    tl('Entrou em', dt(d.profile.created) + ' (' + ago(d.profile.created) + ')');
+    tl('Última atividade', dt(d.profile.last) + ' (' + ago(d.profile.last) + ')');
+    tl('Último sinal online', u.lastSignal ? dt(u.lastSignal) + ' (' + ago(u.lastSignal) + ')' : '—');
+    tl('Situação', d.profile.blocked ? 'Bloqueado' : 'Normal');
+    box.appendChild(ts);
+    // Dados no servidor
+    var da = el('div', 'sec'); da.appendChild(el('h4', '', 'Dados no servidor'));
+    var chips = el('div', 'chips');
+    [['Aulas que marcou', d.data.classesMade], ['Aulas marcadas para ele', d.data.classesIn], ['Aulas recebidas', d.data.lessonsIn], ['Tarefas feitas', d.data.doneMarks], ['Decisões do professor', d.data.verdicts], ['Horários livres', d.data.openSlots], ['Horários pegos', d.data.taken], ['Aparelhos com lembrete', d.data.pushDevices]].forEach(function (x) {
+      var c = el('div', 'chip'); c.appendChild(el('b', '', fmt(x[1]))); c.appendChild(el('span', '', x[0])); chips.appendChild(c);
+    });
+    da.appendChild(chips); box.appendChild(da);
+  }
   function closeDetail() { $('detail').hidden = true; }
   function openDetail(code) {
     post({ action: 'detail', code: code }).then(function (r) {
       if (r.status !== 200) { if (!fail(r.status)) alert(r.j.error || 'Não foi possível abrir.'); return; }
       var d = r.j, box = $('detailBox'); box.innerHTML = '';
-      var h = document.createElement('h3'); h.textContent = d.profile.name || 'Sem apelido';
-      if (d.students.length) { var p1 = document.createElement('span'); p1.className = 'pillx'; p1.textContent = 'Professor'; h.appendChild(p1); }
-      if (d.teachers.length) { var p2 = document.createElement('span'); p2.className = 'pillx'; p2.textContent = d.students.length ? 'Também é aluno' : 'Aluno'; h.appendChild(p2); }
-      box.appendChild(h);
+      profileHeader(box, d);
       function kv(k, v) { var row = document.createElement('div'); row.className = 'kv'; var a = document.createElement('span'); a.textContent = k; var b = document.createElement('span'); b.textContent = v; row.appendChild(a); row.appendChild(b); box.appendChild(row); }
       function failToast(what, r2) { toast('Não foi possível ' + what + ': ' + why(r2), 'bad'); }
       function offline() { toast('Sem conexão com o servidor. Nada foi alterado.', 'bad'); }
-      kv('Código', d.profile.code); kv('Entrou em', dt(d.profile.created)); kv('Última atividade', dt(d.profile.last) + ' (' + ago(d.profile.last) + ')'); kv('Situação', d.profile.blocked ? 'Bloqueado' : 'Normal');
-      kv('Aulas que marcou', fmt(d.data.classesMade)); kv('Aulas marcadas para ele', fmt(d.data.classesIn)); kv('Aulas recebidas', fmt(d.data.lessonsIn));
-      kv('Tarefas marcadas como feitas', fmt(d.data.doneMarks)); kv('Horários livres publicados', fmt(d.data.openSlots)); kv('Aparelhos com lembrete', fmt(d.data.pushDevices));
+      profileOverview(box, d);
 
       // Vínculos, cada um com "Encerrar" (o suporte avisa os dois lados no app).
       function links(title, list, as) {

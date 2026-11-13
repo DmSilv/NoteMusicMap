@@ -6,6 +6,8 @@
 // Falhar aqui nunca pode derrubar o que o usuário estava fazendo.
 'use strict';
 
+const { dayKey } = require('./metrics');
+
 const Z = {
   last: 'pf:last', // código -> última atividade (ms)
   born: 'pf:new', // código -> quando entrou (ms)
@@ -51,14 +53,107 @@ async function touch(cmd, prof, code, now) {
 /**
  * Sinal de vida: o app à frente com o vínculo ligado consulta o servidor a cada ~30 s; aqui isso vira
  * "visto agora" com no máximo 1 gravação (2 comandos) a cada 10 min por perfil. A leitura do perfil já
- * acontece em toda chamada, então checar é de graça. Só código e horário: nada mais é guardado.
+ * acontece em toda chamada, então checar é de graça.
+ *
+ * Na MESMA gravação (um HSET com vários campos, sem comando a mais) entram:
+ *  - tempo de uso estimado: minutos e sessões dos últimos 14 dias (campos uh, tm, ns);
+ *  - ficha do aparelho (campo dv, em JSON curto) quando mudou ou passou 1 dia (no máximo 1 gravação por dia).
+ * Só categorias curtas e o que o navegador já envia; nunca IP, áudio, nome do aparelho ou o que a pessoa toca.
  */
-async function seen(cmd, prof, code, now) {
+const SESSION_GAP = 12 * 60 * 1000; // sinal em até 12 min do anterior = mesma sessão
+const HIST_DAYS = 14;
+const DV_KEYS = ['pl', 'in', 'v', 'os', 'sc', 'lg', 'th', 'tc', 'mic', 'nt', 'tz', 'mem', 'cpu', 'net', 'dpr'];
+const DV_SERVER = ['br', 'ou', 'mob', 'g']; // o que o servidor deduz sozinho (navegador, sistema, celular, região)
+const DV_STABLE = ['pl', 'in', 'v', 'os', 'sc', 'lg', 'th', 'tc', 'tz', 'mem', 'cpu', 'dpr', 'br', 'ou', 'g']; // mudou isto = aparelho/versão mudou
+const DV_RE = /^[A-Za-z0-9._-]{1,16}$/;
+
+/** Histórico "AAAA-MM-DD:min:sessões;..." em mapa. */
+function parseHist(s) {
+  const m = new Map();
+  for (const p of String(s || '').split(';')) {
+    const [d, mi, se] = p.split(':');
+    if (/^\d{4}-\d\d-\d\d$/.test(d || '')) m.set(d, [Number(mi) || 0, Number(se) || 0]);
+  }
+  return m;
+}
+
+/** Soma o tempo desta batida ao histórico. Devolve os campos novos do perfil (uh, tm, ns). */
+function usageUpdate(prof, now) {
   const pa = Number(prof.pa) || 0;
-  if (pa && now - pa < PRESENCE_EVERY) return false;
+  const gap = pa ? now - pa : Infinity;
+  const same = gap <= SESSION_GAP;
+  const credit = same ? Math.max(1, Math.min(12, Math.round(gap / 60000))) : 1; // sessão nova vale ao menos 1 min
+  const day = dayKey(now);
+  const h = parseHist(prof.uh);
+  const cur = h.get(day) || [0, 0];
+  cur[0] += credit;
+  if (!same) cur[1] += 1;
+  h.set(day, cur);
+  const keys = [...h.keys()].sort().slice(-HIST_DAYS);
+  return {
+    uh: keys.map((k) => k + ':' + h.get(k)[0] + ':' + h.get(k)[1]).join(';'),
+    tm: String((Number(prof.tm) || 0) + credit),
+    ns: String((Number(prof.ns) || 0) + (same ? 0 : 1)),
+  };
+}
+
+/** Navegador, sistema e se é celular, lidos do User-Agent (só famílias e versão principal). */
+function uaInfo(ua) {
+  const s = String(ua || '').slice(0, 300);
+  let br = '', m;
+  if ((m = /EdgA?\/(\d+)|EdgiOS\/(\d+)|Edg\/(\d+)/.exec(s))) br = 'edge' + (m[1] || m[2] || m[3]);
+  else if ((m = /SamsungBrowser\/(\d+)/.exec(s))) br = 'samsung' + m[1];
+  else if ((m = /(?:Firefox|FxiOS)\/(\d+)/.exec(s))) br = 'firefox' + m[1];
+  else if ((m = /(?:Chrome|CriOS)\/(\d+)/.exec(s))) br = 'chrome' + m[1];
+  else if ((m = /Version\/(\d+)[^]*Safari/.exec(s))) br = 'safari' + m[1];
+  let ou = '';
+  if (/iPhone|iPad|iPod/.test(s)) ou = 'ios';
+  else if (/Android/.test(s)) ou = 'android';
+  else if (/Windows/.test(s)) ou = 'windows';
+  else if (/Mac OS X|Macintosh/.test(s)) ou = 'mac';
+  else if (/Linux|X11/.test(s)) ou = 'linux';
+  return { br, ou, mob: /Mobi|iPhone|iPod/.test(s) ? '1' : '0' };
+}
+
+/** Ficha do aparelho: o que o app mandou (só categorias curtas) + o que o servidor deduz (navegador e região aproximada). */
+function deviceInfo(dv, headers) {
+  const out = {};
+  const src = dv && typeof dv === 'object' && !Array.isArray(dv) ? dv : {};
+  for (const k of DV_KEYS) if (typeof src[k] === 'string' && DV_RE.test(src[k])) out[k] = src[k];
+  const h = headers || {};
+  Object.assign(out, uaInfo(h['user-agent']));
+  const country = String(h['x-vercel-ip-country'] || '').toLowerCase();
+  const region = String(h['x-vercel-ip-country-region'] || '').toLowerCase();
+  if (/^[a-z]{2}$/.test(country)) out.g = country + (/^[a-z0-9]{1,3}$/.test(region) ? '-' + region : '');
+  for (const k of DV_SERVER) if (!out[k]) delete out[k];
+  return out;
+}
+
+async function seen(cmd, prof, code, now, info) {
+  const pa = Number(prof.pa) || 0;
+  const due = !pa || now - pa >= PRESENCE_EVERY;
+  const fields = {};
+  const dv = info && info.dv && Object.keys(info.dv).length ? info.dv : null;
+  if (dv) {
+    let old = {};
+    try { old = JSON.parse(prof.dv || '{}'); } catch (_) { old = {}; }
+    const stable = (o) => DV_STABLE.map((k) => o[k] || '').join('|');
+    const changed = !prof.dv || stable(old) !== stable(dv);
+    const stale = now - (Number(prof.dt) || 0) > 24 * 3600 * 1000;
+    if (changed || stale) {
+      fields.dv = JSON.stringify(dv);
+      fields.dt = String(now);
+      if (!prof.dv) fields.df = String(now); // primeira ficha
+      else if (changed) { fields.dp = prof.dv; fields.dn = String((Number(prof.dn) || 0) + 1); }
+    }
+  }
+  if (!due && !Object.keys(fields).length) return false;
   try {
-    await cmd.pipeline([['HSET', U(code), 'pa', String(now)], ['ZADD', Z.on, String(now), code]]);
-    return true;
+    if (due) Object.assign(fields, { pa: String(now) }, usageUpdate(prof, now));
+    const list = [['HSET', U(code), ...Object.entries(fields).flat()]];
+    if (due) list.push(['ZADD', Z.on, String(now), code]);
+    await cmd.pipeline(list);
+    return due;
   } catch (_) { return false; }
 }
 
@@ -86,4 +181,4 @@ async function forget(cmd, code) {
   await cmd.pipeline([['ZREM', Z.last, code], ['ZREM', Z.born, code], ['ZREM', Z.teach, code], ['ZREM', Z.stud, code], ['ZREM', Z.on, code]]);
 }
 
-module.exports = { Z, TOUCH_EVERY, PRESENCE_EVERY, ONLINE_WINDOW, PRESENCE_KEEP, created, touch, seen, setRole, forget, hot };
+module.exports = { Z, TOUCH_EVERY, PRESENCE_EVERY, ONLINE_WINDOW, PRESENCE_KEEP, SESSION_GAP, created, touch, seen, setRole, forget, hot, parseHist, usageUpdate, uaInfo, deviceInfo };

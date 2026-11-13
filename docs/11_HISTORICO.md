@@ -228,3 +228,7 @@ O painel foi redesenhado com o design system do app: cores iguais (testadas cont
 - **Faixa "afinada" da grade** passou de ±10 para **±14 cents** (`kGridInTuneCents`): a cor do quadrado é a média das leituras (ataque, vibrato), então acertar e ver o verde estava difícil demais. Escalas, exercícios guiados e afinador seguem em ±10 (`kInTuneCents`). Fora da faixa as cores continuam pedindo correção.
 - **Média mais estável**: cada leitura pesa pela clareza ao quadrado (leitura suja do ataque pesa menos).
 - **Botão "Ampliar a grade"** saiu do link solto embaixo e virou botão de ícone no topo, junto do microfone e do zerar; o "?" das cores foi para o lado da legenda.
+
+## Ficha da pessoa no painel: tempo de uso e aparelho (novembro/2026)
+- Modal do perfil redesenhado (cabeçalho, números, gráfico de 14 dias, cartão Aparelho, atividade, dados no servidor, botões fixos) e lista com online, visto, hoje e total. Detalhes em `07_PAINEL_ADMIN.md`.
+- Servidor: `profiles.seen` passou a gravar tempo de uso e ficha do aparelho no mesmo HSET da presença (custo de comandos inalterado); `api/user_usage.test.js` (9 testes, inclusive o de custo). App: manda a ficha com o vínculo (`dv`) respeitando as estatísticas anônimas. Texto de privacidade do app (PT e EN) e `05_SEGURANCA_E_PRIVACIDADE.md` atualizados.

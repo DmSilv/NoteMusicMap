@@ -295,7 +295,8 @@ function makeHandler(deps = {}) {
       if (prof.bl === '1') return send(403, { error: 'blocked', message: 'Este perfil foi bloqueado. Fale com o administrador.' });
       // Atividade para o painel (no máximo uma gravação a cada 6 h por perfil).
       if (await profiles.touch(cmd, prof, me, clock())) prof.la = String(clock());
-      await profiles.seen(cmd, prof, me, clock()); // presença para o painel (1 gravação a cada 10 min)
+      // presença para o painel (1 gravação a cada 10 min) + tempo de uso e ficha do aparelho na mesma gravação
+      await profiles.seen(cmd, prof, me, clock(), { dv: b.dv !== undefined ? profiles.deviceInfo(b.dv, req.headers) : null });
 
       // Apelido opcional (aparece para quem está vinculado a você).
       const name = b.name === undefined ? null : clean(b.name, 40);

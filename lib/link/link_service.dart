@@ -236,11 +236,25 @@ class LinkService {
     }
   }
 
-  Map<String, dynamic> _auth(String code, String secret, String? name) => {
-        'code': code,
-        'secret': secret,
-        if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
-      };
+  /// Ficha do aparelho em categorias curtas (o AppState preenche; null = a pessoa desligou as estatísticas anônimas).
+  Map<String, String>? Function()? deviceProbe;
+  DateTime? _dvSent;
+
+  Map<String, dynamic> _auth(String code, String secret, String? name) {
+    // A ficha vai na primeira chamada da sessão e a cada 6 horas (o servidor só grava se mudou ou passou 1 dia).
+    Map<String, String>? dv;
+    final now = DateTime.now();
+    if (_dvSent == null || now.difference(_dvSent!) > const Duration(hours: 6)) {
+      dv = deviceProbe?.call();
+      if (dv != null) _dvSent = now;
+    }
+    return {
+      'code': code,
+      'secret': secret,
+      if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
+      'dv': ?dv,
+    };
+  }
 
   /// Traz os vínculos de [code] (e publica o apelido, se houver).
   Future<LinkReply> sync(String code, String secret, {String? name}) =>

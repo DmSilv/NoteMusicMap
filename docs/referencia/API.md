@@ -13,7 +13,7 @@ Funções hoje: **8 de 12**.
  POST { action, ... } com "Authorization: Bearer <chave de admin>". Ações:
   kpis                       indicadores (total, ativos x inativos, professores, crescimento, retenção)
   list {offset?, q?, by?}    perfis, do mais recente ao mais antigo (busca por trecho do código; by:'name' busca pelo apelido nos 100 mais recentes)
-  detail {code}              um perfil: papel, vínculos, volume de dados (NUNCA o segredo)
+  detail {code}              um perfil: papel, vínculos, volume de dados, tempo de uso (14 dias) e ficha do aparelho (NUNCA o segredo)
   block / unblock {code}     impede / libera o vínculo online do perfil
   delete {code, confirm}     apaga os dados e vínculos do perfil (confirm tem que ser o código)
   bugs {days,sev,status,ver,plat,code,q,offset}  bugs agrupados (relatórios de erro do app), com filtros
