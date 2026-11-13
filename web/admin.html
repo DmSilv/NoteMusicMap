@@ -165,6 +165,7 @@
     .u14 { display: flex; align-items: flex-end; gap: 4px; height: 96px; }
     .u14c { flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; min-width: 0; }
     .u14c i { display: block; width: 100%; background: var(--accent); opacity: .75; border-radius: 4px 4px 0 0; transition: height .5s var(--ease); }
+    .u14c i.blue { background: var(--flat); }
     .u14c i.z { background: var(--outline); opacity: 1; }
     .u14c i.today { opacity: 1; box-shadow: 0 0 0 2px rgba(31,230,143,.3); }
     .u14c span { color: var(--dim); font-size: 10.5px; }
@@ -1303,6 +1304,21 @@
     sec.appendChild(chart);
     sec.appendChild(el('div', 'empty small', 'Tempo ESTIMADO com o app à frente e o vínculo online ligado (conta a cada ~10 min). Não é o tempo de estudo.'));
     box.appendChild(sec);
+    // Estudo (o que o app mede: minutos por dia, nunca o que foi tocado)
+    var sd = d.study;
+    if (sd) {
+      var ss = el('div', 'sec'); ss.appendChild(el('h4', '', 'Estudo nos últimos 7 dias'));
+      var smx = 1; sd.days.forEach(function (x) { if (x.min > smx) smx = x.min; });
+      var sch = el('div', 'u14');
+      sd.days.forEach(function (x) {
+        var col = el('div', 'u14c'); var b2 = el('i', x.min ? 'blue' : 'z'); b2.style.height = Math.max(x.min ? 6 : 2, Math.round(x.min / smx * 100)) + '%';
+        col.title = x.day.slice(8) + '/' + x.day.slice(5, 7) + ' · ' + minText(x.min) + ' estudados';
+        col.appendChild(b2); col.appendChild(el('span', '', x.day.slice(8))); sch.appendChild(col);
+      });
+      ss.appendChild(sch);
+      ss.appendChild(el('div', 'empty small', 'Total de ' + minText(sd.total7) + ' em 7 dias · informado pelo app em ' + dt(sd.updated) + '. É o tempo de estudo medido no aparelho (cronômetro e metrônomo/microfone), só os minutos.'));
+      box.appendChild(ss);
+    }
     // Aparelho
     var ds = el('div', 'sec'); ds.appendChild(el('h4', '', 'Aparelho'));
     if (!now) ds.appendChild(el('div', 'empty', 'Ainda sem ficha. Ela chega quando a pessoa abre a versão nova do app com o vínculo ligado (e não desligou as estatísticas anônimas).'));
@@ -1310,7 +1326,7 @@
       var g = el('div', 'dvgrid');
       var di = function (k, v) { var c = el('div', 'dvi'); c.appendChild(el('span', 'dk', k)); c.appendChild(el('span', 'dvv', v)); g.appendChild(c); };
       var dn = function (f) { return now[f] ? devName(f, now[f]) : '—'; };
-      di('Aparelho', plName(now.pl)); di('Sistema', dn('os')); di('Navegador', brName(now.br)); di('Instalação', dn('in')); di('Versão do app', now.v || '—');
+      di('Aparelho', plName(now.pl)); di('Modelo', now.md || '—'); di('Cidade', now.ct || '—'); di('Sistema', dn('os')); di('Navegador', brName(now.br)); di('Instalação', dn('in')); di('Versão do app', now.v || '—');
       di('Tela', dn('sc')); di('Toque', dn('tc')); di('Densidade', dn('dpr')); di('Memória', dn('mem')); di('Processador', dn('cpu'));
       di('Idioma', dn('lg')); di('Tema', dn('th')); di('Fuso horário', dn('tz')); di('Região', now.g ? devName('geo', now.g) : '—'); di('Rede', dn('net'));
       di('Microfone', dn('mic')); di('Notificações', dn('nt'));

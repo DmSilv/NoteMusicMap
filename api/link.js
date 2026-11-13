@@ -296,7 +296,7 @@ function makeHandler(deps = {}) {
       // Atividade para o painel (no máximo uma gravação a cada 6 h por perfil).
       if (await profiles.touch(cmd, prof, me, clock())) prof.la = String(clock());
       // presença para o painel (1 gravação a cada 10 min) + tempo de uso e ficha do aparelho na mesma gravação
-      await profiles.seen(cmd, prof, me, clock(), { dv: b.dv !== undefined ? profiles.deviceInfo(b.dv, req.headers) : null });
+      await profiles.seen(cmd, prof, me, clock(), { dv: b.dv !== undefined ? profiles.deviceInfo(b.dv, req.headers) : null, sm: profiles.studyMinutes(b.dv) });
 
       // Apelido opcional (aparece para quem está vinculado a você).
       const name = b.name === undefined ? null : clean(b.name, 40);

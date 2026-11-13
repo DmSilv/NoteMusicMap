@@ -280,6 +280,7 @@
 | `api/stats.test.js` | Testes das métricas anônimas e do painel de admin, sem rede: `node --test api/stats.test.js` |
 | `api/support.test.js` | Testes do suporte do painel (vínculo, agenda, código de liberação e aviso ao usuário), sem rede: `node --test api/support.test.js` |
 | `api/sweep.test.js` | Testes da limpeza de perfis abandonados e do aviso de origens com muitos perfis: `node --test api/sweep.test.js` |
+| `api/user_study.test.js` | Tempo de estudo, modelo e cidade por perfil no painel, sem rede: `node --test api/user_study.test.js` |
 | `api/user_usage.test.js` | Tempo de uso e ficha do aparelho por perfil no painel, sem rede: `node --test api/user_usage.test.js` |
 | `api/visitors.test.js` | Testes da aba "Visitantes" do painel (quem usa sem cadastro): `node --test api/visitors.test.js` |
 
@@ -307,4 +308,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **264** arquivos mapeados.
+Total: **265** arquivos mapeados.

@@ -76,6 +76,14 @@ function usageOf(prof, now) {
   };
 }
 
+/** Minutos de ESTUDO (o que o app mede) dos últimos 7 dias, como o app informou da última vez. */
+function studyOf(prof) {
+  const arr = String(prof.sm || '').split(',').map(Number);
+  const at = Number(prof.smt) || 0;
+  if (!at || arr.length !== 7 || arr.some((n) => !Number.isFinite(n))) return null;
+  return { days: arr.map((min, i) => ({ day: dayKey(at - (6 - i) * DAY), min })), total7: arr.reduce((a, b) => a + b, 0), updated: at };
+}
+
 /** Ficha do aparelho (atual e anterior) como o app e o servidor a gravaram. */
 function deviceOf(prof) {
   const parse = (s) => { try { const o = JSON.parse(s || ''); return o && typeof o === 'object' ? o : null; } catch (_) { return null; } };
@@ -293,6 +301,7 @@ function makeHandler(deps = {}) {
           // Já veio na leitura do perfil (0 comandos a mais): tempo de uso estimado e ficha do aparelho.
           usage: usageOf(prof, now),
           device: deviceOf(prof),
+          study: studyOf(prof),
           data: { classesMade, classesIn, lessonsIn, doneMarks, verdicts, openSlots, taken, pushDevices: devices },
         });
       }

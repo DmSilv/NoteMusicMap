@@ -63,8 +63,8 @@ async function touch(cmd, prof, code, now) {
 const SESSION_GAP = 12 * 60 * 1000; // sinal em até 12 min do anterior = mesma sessão
 const HIST_DAYS = 14;
 const DV_KEYS = ['pl', 'in', 'v', 'os', 'sc', 'lg', 'th', 'tc', 'mic', 'nt', 'tz', 'mem', 'cpu', 'net', 'dpr'];
-const DV_SERVER = ['br', 'ou', 'mob', 'g']; // o que o servidor deduz sozinho (navegador, sistema, celular, região)
-const DV_STABLE = ['pl', 'in', 'v', 'os', 'sc', 'lg', 'th', 'tc', 'tz', 'mem', 'cpu', 'dpr', 'br', 'ou', 'g']; // mudou isto = aparelho/versão mudou
+const DV_SERVER = ['br', 'ou', 'mob', 'g', 'md', 'ct']; // o que o servidor deduz sozinho (navegador, sistema, celular, região)
+const DV_STABLE = ['pl', 'in', 'v', 'os', 'sc', 'lg', 'th', 'tc', 'tz', 'mem', 'cpu', 'dpr', 'br', 'ou', 'g', 'md']; // mudou isto = aparelho/versão mudou
 const DV_RE = /^[A-Za-z0-9._-]{1,16}$/;
 
 /** Histórico "AAAA-MM-DD:min:sessões;..." em mapa. */
@@ -122,11 +122,27 @@ function deviceInfo(dv, headers) {
   for (const k of DV_KEYS) if (typeof src[k] === 'string' && DV_RE.test(src[k])) out[k] = src[k];
   const h = headers || {};
   Object.assign(out, uaInfo(h['user-agent']));
+  // Modelo do aparelho: a dica de cliente (Sec-CH-UA-Model) ou, se o navegador ainda mostra, o do User-Agent do Android.
+  const hint = String(h['sec-ch-ua-model'] || '').replace(/^"|"$/g, '');
+  const fromUa = (/Android [\d.]+; ([^;)]{2,40})[;)]/.exec(String(h['user-agent'] || '')) || [])[1] || '';
+  const md = (hint || fromUa).replace(/[^A-Za-z0-9 ._-]/g, '').trim().slice(0, 32);
+  if (md.length >= 2 && md !== 'K') out.md = md;
+  // Cidade aproximada (cabeçalho da Vercel, vem codificado); nunca o IP.
+  try {
+    const ct = decodeURIComponent(String(h['x-vercel-ip-city'] || '')).replace(/[^\p{L}\p{N} .'-]/gu, '').trim().slice(0, 40);
+    if (ct) out.ct = ct;
+  } catch (_) { /* cabeçalho torto: sem cidade */ }
   const country = String(h['x-vercel-ip-country'] || '').toLowerCase();
   const region = String(h['x-vercel-ip-country-region'] || '').toLowerCase();
   if (/^[a-z]{2}$/.test(country)) out.g = country + (/^[a-z0-9]{1,3}$/.test(region) ? '-' + region : '');
   for (const k of DV_SERVER) if (!out[k]) delete out[k];
   return out;
+}
+
+/** Minutos estudados nos últimos 7 dias (mais antigo primeiro), no formato "0,12,30,0,5,20,45". Vazio se não for isso. */
+function studyMinutes(dv) {
+  const s = dv && typeof dv === 'object' && !Array.isArray(dv) ? dv.sm : '';
+  return typeof s === 'string' && /^\d{1,4}(,\d{1,4}){6}$/.test(s) ? s : '';
 }
 
 async function seen(cmd, prof, code, now, info) {
@@ -147,6 +163,8 @@ async function seen(cmd, prof, code, now, info) {
       else if (changed) { fields.dp = prof.dv; fields.dn = String((Number(prof.dn) || 0) + 1); }
     }
   }
+  const sm = info && info.sm ? info.sm : '';
+  if (sm && sm !== prof.sm) { fields.sm = sm; fields.smt = String(now); }
   if (!due && !Object.keys(fields).length) return false;
   try {
     if (due) Object.assign(fields, { pa: String(now) }, usageUpdate(prof, now));
@@ -181,4 +199,4 @@ async function forget(cmd, code) {
   await cmd.pipeline([['ZREM', Z.last, code], ['ZREM', Z.born, code], ['ZREM', Z.teach, code], ['ZREM', Z.stud, code], ['ZREM', Z.on, code]]);
 }
 
-module.exports = { Z, TOUCH_EVERY, PRESENCE_EVERY, ONLINE_WINDOW, PRESENCE_KEEP, SESSION_GAP, created, touch, seen, setRole, forget, hot, parseHist, usageUpdate, uaInfo, deviceInfo };
+module.exports = { Z, TOUCH_EVERY, PRESENCE_EVERY, ONLINE_WINDOW, PRESENCE_KEEP, SESSION_GAP, created, touch, seen, setRole, forget, hot, parseHist, usageUpdate, uaInfo, deviceInfo, studyMinutes };

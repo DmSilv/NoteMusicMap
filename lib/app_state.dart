@@ -598,6 +598,10 @@ class AppState extends ChangeNotifier {
       'in': StatsService.installTag(),
       'v': StatsService.versionTag(),
       ...stats.deviceExtras(),
+      // Minutos estudados nos últimos 7 dias (só números por dia; nunca o que foi tocado).
+      'sm': [
+        for (var i = 6; i >= 0; i--) ((studySeconds[AppState.dayKey(DateTime.now().subtract(Duration(days: i)))] ?? 0) / 60).round().clamp(0, 9999),
+      ].join(','),
     };
   }
 
