@@ -322,6 +322,29 @@ class _GridPageState extends State<GridPage> {
     );
   }
 
+  /// As notas do exercício como estão escritas: uma linha "subindo" e outra "descendo" (os nomes mudam na menor melódica).
+  List<Widget> _scaleNoteLines() {
+    final seq = scaleSequence(app.scaleTonicMidi, app.scaleType, octaves: app.scaleOctaves, direction: app.scaleDirection);
+    final up = scaleMidis(app.scaleTonicMidi, app.scaleType, octaves: app.scaleOctaves);
+    final dir = app.scaleDirection;
+    String line(Iterable<int> ms, bool asc) => ms.map((m) => app.scaleNoteName(m, ascending: asc, withOctave: true)).join('  ·  ');
+    final upLine = line(up, true);
+    final downMidis = dir == ScaleDirection.up ? <int>[] : (dir == ScaleDirection.down ? seq : seq.sublist(up.length));
+    final downLine = line(downMidis, false);
+    Widget row(String label, IconData icon, Color c, String text) => Padding(
+          padding: const EdgeInsets.only(bottom: Ds.s8),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(icon, size: 18, color: c),
+            const SizedBox(width: Ds.s8),
+            Expanded(child: Text(text, style: TextStyle(fontSize: Ds.fontBody, color: AppColors.textDim, height: 1.5))),
+          ]),
+        );
+    final out = <Widget>[];
+    if (dir != ScaleDirection.down) out.add(row(tr('subindo'), Icons.arrow_upward_rounded, AppColors.flat, upLine));
+    if (dir != ScaleDirection.up) out.add(row(tr('descendo'), Icons.arrow_downward_rounded, AppColors.sharp, downLine));
+    return out;
+  }
+
   Widget _scaleSection() {
     final tonicPc = app.scaleTonicMidi % 12;
     final names = app.cfg.copyWith(transpose: 0);
@@ -352,10 +375,9 @@ class _GridPageState extends State<GridPage> {
               children: [
                 Text(tr('NOTAS DO EXERCÍCIO'), style: TextStyle(color: AppColors.textDim, fontSize: 12, letterSpacing: 1.1, fontWeight: FontWeight.w700)),
                 const SizedBox(height: Ds.s8),
-                Text(app.scaleNotes.map((m) => noteName(m, app.cfg)).join('  ·  '),
-                    style: TextStyle(fontSize: Ds.fontBody, color: AppColors.textDim, height: 1.5)),
+                ..._scaleNoteLines(),
                 const SizedBox(height: Ds.s4),
-                Text(tr('{0} notas no total, subindo e descendo.', [app.scaleNotes.length * 2 - 1]), style: Ds.support()),
+                Text(tr('{0} notas no total.', [scaleSequence(app.scaleTonicMidi, app.scaleType, octaves: app.scaleOctaves, direction: app.scaleDirection).length]), style: Ds.support()),
               ],
             ),
           ),
@@ -436,7 +458,7 @@ class _GridPageState extends State<GridPage> {
                         (t) => app.setScale(type: t),
                         hint: app.scaleType.arpeggio
                             ? tr('Como em Flesch: tríades em posição fundamental e nas duas inversões, 7ª da dominante e 7ª diminuta, em 1, 2 e 3 oitavas.')
-                            : tr('Na menor melódica, a escala sobe com 6ª e 7ª maiores e desce como menor natural.'),
+                            : tr('A menor melódica é a menor do sistema de Flesch: sobe com 6ª e 7ª elevadas (Lá e Si naturais em Dó menor) e desce como menor natural (Si♭ e Lá♭). Os nomes das notas já mudam na subida e na descida.'),
                       )),
               const Divider(height: 1),
               _tile(Icons.layers, tr('Oitavas'), '${app.scaleOctaves}',
@@ -447,6 +469,15 @@ class _GridPageState extends State<GridPage> {
                         (o) => app.setScale(octaves: o),
                         hint:
                             tr('Mais oitavas = exercício mais longo. Comece por 1 e aumente aos poucos.'),
+                      )),
+              const Divider(height: 1),
+              _tile(Icons.swap_vert_rounded, tr('Direção'), switch (app.scaleDirection) { ScaleDirection.up => tr('Só subindo'), ScaleDirection.down => tr('Só descendo'), ScaleDirection.both => tr('Subindo e descendo') },
+                  () => _pick<ScaleDirection>(
+                        tr('Direção'),
+                        [(ScaleDirection.both, tr('Subindo e descendo')), (ScaleDirection.up, tr('Só subindo')), (ScaleDirection.down, tr('Só descendo'))],
+                        app.scaleDirection,
+                        (d) => app.setScale(direction: d),
+                        hint: tr('Só descendo começa na nota mais aguda. Na menor melódica a descida usa as notas naturais.'),
                       )),
               const Divider(height: 1),
               _tile(Icons.straighten, tr('Afinação'), tuningSummary(app),

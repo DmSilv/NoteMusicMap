@@ -51,14 +51,14 @@ class ScaleExercisePage extends StatelessWidget {
               children: [
                 if (!app.listening) _needMic(context) else if (!e.finished) ...[
                   _target(e),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 8),
                   _live(e),
                 ],
                 if (e.finished) _result(context, e),
-                const SizedBox(height: 14),
-                _header(e),
                 const SizedBox(height: 10),
-                _steps(e),
+                _header(e),
+                const SizedBox(height: 8),
+                _scaleMap(e),
                 const SizedBox(height: 10),
                 if (!e.finished) _controls(context, e),
               ],
@@ -126,6 +126,14 @@ class ScaleExercisePage extends StatelessWidget {
             ]),
           ),
           DsSettingRow(
+            label: tr('Direção'),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              SizedBox(width: double.infinity, child: directionPicker(app, onChanged: () => app.startExercise(demoMode: app.demo))),
+              const DsGap(Ds.s8),
+              Text(tr('Muda a ordem das notas e recomeça o exercício.'), style: Ds.support()),
+            ]),
+          ),
+          DsSettingRow(
             label: tr('Afinação'),
             child: OutlinedButton.icon(
               onPressed: () => pickTuningSystem(c, app, tonicPc: app.scaleTonicMidi % 12),
@@ -168,39 +176,75 @@ class ScaleExercisePage extends StatelessWidget {
 
   Widget _target(ScaleExercise e) => e.flow ? _freeCard(e) : _guidedCard(e);
 
+  /// Esta nota aparece na SUBIDA da escala? (só as notas da descida, como o Si♭ da menor melódica, levam o nome de descida.)
+  bool _ascOf(ScaleExercise e, int m) {
+    for (var i = 0; i < e.sequence.length; i++) {
+      if (e.sequence[i] == m && e.ascendingAt(i)) return true;
+    }
+    return false;
+  }
+
+  /// Nome da nota como está escrito na escala (Si♭ ao descer, Si natural ao subir) e a oitava, para o rótulo grande.
+  Widget _bigNote(int midi, {required bool asc, required double size, required Color color}) {
+    final p = app.scaleNoteParts(midi, ascending: asc);
+    return NoteLabel(name: p.name, octave: p.octave, size: size, color: color);
+  }
+
+  /// Etiqueta "▲ Subindo" / "▼ Descendo": o músico sempre sabe para onde a escala vai.
+  Widget _dirTag(bool asc) {
+    final color = asc ? AppColors.flat : AppColors.sharp;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(999)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(asc ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, size: 16, color: color),
+        const SizedBox(width: 4),
+        Text(asc ? tr('subindo') : tr('descendo'), style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
+      ]),
+    );
+  }
+
   /// Modo guiado: uma nota por vez; a próxima só vem quando esta ficar afinada.
   Widget _guidedCard(ScaleExercise e) {
     final m = e.expected!;
+    final asc = e.ascendingAt(e.index);
     final hz = targetFreq(m, app.cfg);
     final cur = app.current;
     final onTarget = cur?.midi == m;
     final next = [
       for (var k = 1; k <= 3; k++)
-        if (e.index + k < e.sequence.length) e.sequence[e.index + k]
+        if (e.index + k < e.sequence.length) (e.sequence[e.index + k], e.ascendingAt(e.index + k))
     ];
     final status = e.tunedNow
         ? tr('Afinada! Segure só mais um instante…')
         : (onTarget ? tr('Quase: ajuste a afinação. A barra só enche quando estiver afinada.') : tr('Aguardando a nota certa'));
     return AppCard(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       child: Column(
         children: [
-          Text(tr('Toque agora'), style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-          const SizedBox(height: 6),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 260),
-            transitionBuilder: (c, a) => fadeThroughTransition(c, a),
-            child: KeyedSubtree(
-              key: ValueKey('${e.index}-$m'),
-              child: NoteLabel.midi(m, app.cfg,
-                  size: 84, color: e.tunedNow ? AppColors.inTune : AppColors.text),
+          Row(children: [
+            Text(tr('Toque agora'), style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+            const Spacer(),
+            Text('${hz.toStringAsFixed(1)} Hz', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+            const SizedBox(width: Ds.s8),
+            _dirTag(asc),
+          ]),
+          SizedBox(
+            height: 76,
+            child: Center(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 260),
+                transitionBuilder: (c, a) => fadeThroughTransition(c, a),
+                child: KeyedSubtree(
+                  key: ValueKey('${e.index}-$m'),
+                  child: _bigNote(m, asc: asc, size: 66, color: e.tunedNow ? AppColors.inTune : AppColors.text),
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 4),
-          Text('${hz.toStringAsFixed(2)} Hz', style: TextStyle(color: AppColors.textDim)),
           // Altura fixa: perto do fim a prévia tem menos notas, sem mexer na tela.
           SizedBox(
-            height: 38,
+            height: 30,
             child: next.isEmpty
                 ? null
                 : Row(
@@ -208,11 +252,10 @@ class ScaleExercisePage extends StatelessWidget {
                     children: [
                       Text(tr('Depois'), style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
                       const SizedBox(width: 8),
-                      for (final n in next) _miniNote(noteName(n, app.cfg, withOctave: true)),
+                      for (final n in next) _miniNote(app.scaleNoteName(n.$1, ascending: n.$2, withOctave: true)),
                     ],
                   ),
           ),
-          const SizedBox(height: 6),
           ClipRRect(
             borderRadius: BorderRadius.circular(6),
             child: LinearProgressIndicator(
@@ -222,13 +265,13 @@ class ScaleExercisePage extends StatelessWidget {
               color: AppColors.inTune,
             ),
           ),
-          const SizedBox(height: 6),
           SizedBox(
-            height: 34,
+            height: 28,
             child: Center(
               child: Text(status,
                   textAlign: TextAlign.center,
-                  maxLines: 2,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       color: e.tunedNow ? AppColors.inTune : AppColors.textDim,
                       fontSize: 12.5,
@@ -248,13 +291,16 @@ class ScaleExercisePage extends StatelessWidget {
     final live = (cur != null && cur.midi == heard) ? cur.cents : null;
     final color = live == null ? AppColors.text : intonationColor(live, app.zoneCents);
     return AppCard(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
       child: Column(
         children: [
-          Text(tr('Sua vez!'), style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-          const SizedBox(height: 6),
+          Row(children: [
+            Text(tr('Sua vez!'), style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+            const Spacer(),
+            Text(tr('{0} de {1} notas', [e.board.length, e.freeNotes.length]), style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+          ]),
           SizedBox(
-            height: 92,
+            height: 76,
             child: Center(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 220),
@@ -262,29 +308,26 @@ class ScaleExercisePage extends StatelessWidget {
                 child: heard == null
                     ? Text('–',
                         key: const ValueKey('none'),
-                        style: TextStyle(fontSize: 84, fontWeight: FontWeight.w800, color: AppColors.textDim))
-                    : KeyedSubtree(
-                        key: ValueKey('h$heard'),
-                        child: NoteLabel.midi(heard, app.cfg, size: 84, color: color)),
+                        style: TextStyle(fontSize: 60, fontWeight: FontWeight.w800, color: AppColors.textDim))
+                    : KeyedSubtree(key: ValueKey('h$heard'), child: _bigNote(heard, asc: _ascOf(e, heard), size: 66, color: color)),
               ),
             ),
           ),
           SizedBox(
-            height: 38,
+            height: 30,
             child: Center(
               child: e.allPlayed
                   ? Text(tr('Todas as notas foram tocadas! Toque em Concluir ou refine as que ficaram fora.'),
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.inTune, fontSize: 13, fontWeight: FontWeight.w600))
-                  : Wrap(
-                      alignment: WrapAlignment.center,
-                      crossAxisAlignment: WrapCrossAlignment.center,
+                      maxLines: 2,
+                      style: TextStyle(color: AppColors.inTune, fontSize: 12.5, fontWeight: FontWeight.w600))
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(tr('Faltam'), style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
                         const SizedBox(width: 8),
-                        for (final n in pending.take(4)) _miniNote(noteName(n, app.cfg, withOctave: true)),
-                        if (pending.length > 4)
-                          Text('+${pending.length - 4}', style: TextStyle(color: AppColors.textDim)),
+                        for (final n in pending.take(4)) _miniNote(app.scaleNoteName(n, ascending: _ascOf(e, n), withOctave: true)),
+                        if (pending.length > 4) Text('+${pending.length - 4}', style: TextStyle(color: AppColors.textDim)),
                       ],
                     ),
             ),
@@ -308,18 +351,20 @@ class ScaleExercisePage extends StatelessWidget {
     final cents = valid ? cur.cents : null;
     final cue = e.cue(cur?.midi, cur?.cents ?? 0);
     final exp = e.expected;
+    final asc = e.flow ? (e.currentFreeMidi == null ? e.direction != ScaleDirection.down : _ascOf(e, e.currentFreeMidi!)) : e.ascendingNow;
     return AppCard(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
       child: Column(
         children: [
           SmoothNeedle(cents: cents, zone: zone),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           GuidanceBanner(
+            compact: true,
             cents: cents,
             zone: zone,
             cue: cue,
-            noteLabel: (m) => noteName(m, app.cfg, withOctave: true),
-            idleTitle: e.flow ? tr('TOQUE UMA NOTA') : 'TOQUE ${exp == null ? '' : noteName(exp, app.cfg, withOctave: true).toUpperCase()}',
+            noteLabel: (m) => app.scaleNoteName(m, ascending: _ascOf(e, m) || (!e.flow && asc), withOctave: true),
+            idleTitle: e.flow ? tr('TOQUE UMA NOTA') : tr('TOQUE {0}', [exp == null ? '' : app.scaleNoteName(exp, ascending: asc, withOctave: true).toUpperCase()]),
             idleDetail: e.flow ? tr('Qualquer uma da escala!') : tr('Afine para liberar a próxima.'),
             tunedTitle: e.flow ? tr('AFINADA!') : tr('AFINADA — SEGURE'),
             tunedDetail: e.flow ? tr('Muito bem! Pode tocar outra nota.') : tr('Segure até a barra encher.'),
@@ -329,113 +374,111 @@ class ScaleExercisePage extends StatelessWidget {
     );
   }
 
-  /// Agrupa os quadradinhos por oitava: cada trecho seguido na mesma oitava vira um bloco com a
-  /// cor e o nome da oitava, para a pessoa saber onde está.
-  Widget _octaveBlocks(List<int> midis, Widget Function(int i, Color oc) chip) {
-    final lo = midis.reduce((a, b) => a < b ? a : b);
-    final n = app.scaleOctaves;
-    if (n == 1) return Wrap(spacing: 6, runSpacing: 6, children: [for (var i = 0; i < midis.length; i++) chip(i, octaveColor(0))]);
-    final blocks = <(int, List<Widget>)>[];
-    for (var i = 0; i < midis.length; i++) {
-      final o = octaveIndex(midis[i], lo, n);
-      if (blocks.isEmpty || blocks.last.$1 != o) blocks.add((o, <Widget>[]));
-      blocks.last.$2.add(chip(i, octaveColor(o)));
-    }
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      for (final (o, chips) in blocks)
-        Container(
-          width: double.infinity,
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-          decoration: BoxDecoration(
-            color: octaveColor(o).withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: octaveColor(o).withValues(alpha: 0.16)),
-          ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            if (n > 1)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(children: [
-                  Container(width: 8, height: 8, decoration: BoxDecoration(color: octaveColor(o).withValues(alpha: 0.6), shape: BoxShape.circle)),
-                  const SizedBox(width: 6),
-                  Text(octaveName(o), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textDim)),
-                ]),
-              ),
-            Wrap(spacing: 6, runSpacing: 6, children: chips),
-          ]),
-        ),
-    ]);
-  }
-
-  Widget _steps(ScaleExercise e) {
+  /// MAPA DA ESCALA: uma linha por oitava, com o nome da primeira nota ("Sol3") e todas as notas dela, cada
+  /// uma com o número da oitava. Fica sempre inteiro na tela (sem rolar) para o músico saber onde está.
+  Widget _scaleMap(ScaleExercise e) {
     final zone = app.zoneCents;
     final cur = app.current;
-    if (e.flow) {
-      // Painel da escala: cada nota muda de cor conforme a última medida;
-      // a que está soando agora acompanha o ponteiro ao vivo.
-      return AppCard(
-        padding: const EdgeInsets.all(12),
-        child: _octaveBlocks(e.freeNotes, (i, oc) {
-          final m = e.freeNotes[i];
-          return _noteChip(
-            noteName(m, app.cfg),
-            (cur != null && cur.midi == m && e.currentFreeMidi == m) ? cur.cents : e.board[m]?.cents,
-            current: e.currentFreeMidi == m,
-            zone: zone,
-            octave: oc,
-          );
-        }),
-      );
+    final n = app.scaleOctaves;
+    final notes = e.freeNotes; // distintas, do grave ao agudo
+    final lo = notes.first;
+    final rows = <int, List<int>>{};
+    for (final m in notes) {
+      rows.putIfAbsent(octaveIndex(m, lo, n), () => []).add(m);
     }
+    // Notas só da descida (ex.: Si♭ da menor melódica) pedem o nome de descida.
+    bool ascOf(int m) => _ascOf(e, m);
+    // Último resultado de cada nota (guiado).
+    final last = <int, StepResult>{};
+    if (!e.flow) {
+      for (final r in e.results) {
+        last[r.midi] = r;
+      }
+    }
+    final current = e.flow ? e.currentFreeMidi : (e.finished ? null : e.expected);
+    final order = rows.keys.toList()..sort();
     return AppCard(
-      padding: const EdgeInsets.all(12),
-      child: _octaveBlocks(
-        e.sequence,
-        (i, oc) => i < e.results.length && (e.results[i].skipped || e.results[i].cents == null)
-            ? _noteChip(noteName(e.sequence[i], app.cfg), null, current: false, zone: zone, skipped: true, octave: oc)
-            : _noteChip(
-                noteName(e.sequence[i], app.cfg),
-                i < e.results.length ? e.results[i].cents : null,
-                current: i == e.index && !e.finished,
-                zone: zone,
-                octave: oc,
-              ),
-      ),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+      child: Column(children: [
+        for (final o in order.reversed) // agudos em cima, como na partitura e na grade
+          _mapRow(
+            octave: o,
+            first: rows[o]!.first,
+            notes: rows[o]!,
+            hasCurrent: current != null && rows[o]!.contains(current),
+            chip: (m) {
+              double? cents;
+              var skipped = false;
+              if (e.flow) {
+                cents = (cur != null && cur.midi == m && e.currentFreeMidi == m) ? cur.cents : e.board[m]?.cents;
+              } else {
+                final r = last[m];
+                if (r != null) {
+                  skipped = r.skipped || r.cents == null;
+                  cents = r.cents;
+                }
+              }
+              final sp = app.scaleNoteParts(m, ascending: ascOf(m));
+              return _noteChip(sp.name, sp.octave, cents, current: current == m, zone: zone, skipped: skipped);
+            },
+          ),
+      ]),
     );
   }
 
-  Widget _noteChip(String label, double? cents,
-      {required bool current, required double zone, bool skipped = false, Color? octave}) {
+  Widget _mapRow({required int octave, required int first, required List<int> notes, required bool hasCurrent, required Widget Function(int) chip}) {
+    final c = octaveColor(octave);
+    final label = app.scaleNoteName(first, ascending: true, withOctave: true);
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 2),
+      padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 4),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: hasCurrent ? 0.14 : 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: c.withValues(alpha: hasCurrent ? 0.7 : 0.16)),
+      ),
+      child: Row(children: [
+        SizedBox(
+          width: 46,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: hasCurrent ? AppColors.text : AppColors.textDim)),
+            Text(tr('oitava'), style: TextStyle(fontSize: 9.5, color: AppColors.textDim)),
+          ]),
+        ),
+        Expanded(
+          child: Wrap(spacing: 3, runSpacing: 3, children: [for (final m in notes) chip(m)]),
+        ),
+      ]),
+    );
+  }
+
+  Widget _noteChip(String name, int octave, double? cents,
+      {required bool current, required double zone, bool skipped = false}) {
     Color fill = AppColors.surface2;
     Color text = AppColors.textDim;
-    Widget? icon;
-    if (skipped) {
-      icon = Icon(Icons.close, size: 14, color: AppColors.textDim);
-    } else if (cents != null) {
+    if (!skipped && cents != null) {
       final leg = legibleCell(intonationColor(cents, zone));
       fill = leg.fill;
       text = leg.text;
     }
+    if (current && cents == null) text = AppColors.text;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeOutCubic,
-      width: 40,
-      height: 34,
+      width: 31,
+      height: 40,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: fill,
-        borderRadius: BorderRadius.circular(9),
-        border: Border.all(
-            color: current ? AppColors.accent : Colors.transparent,
-            width: current ? 2.5 : 1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: current ? AppColors.accent : Colors.transparent, width: current ? 2.5 : 1),
       ),
-      child: icon ??
-          Text(label,
-              style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: current ? FontWeight.w800 : FontWeight.w700,
-                  color: current && cents == null ? AppColors.text : text)),
+      child: skipped
+          ? Icon(Icons.close, size: 14, color: AppColors.textDim)
+          : Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(name, style: TextStyle(fontSize: 11.5, height: 1.05, fontWeight: current ? FontWeight.w900 : FontWeight.w700, color: text)),
+              Text('$octave', style: TextStyle(fontSize: 9.5, height: 1.0, color: text.withValues(alpha: 0.75))),
+            ]),
     );
   }
 
@@ -571,3 +614,18 @@ Future<void> copyAiSummary(AppState app) async {
   await Clipboard.setData(ClipboardData(text: app.aiSummary()));
   app.say(tr('Resumo copiado. Cole numa IA de sua escolha e peça orientações.'));
 }
+
+/// Escolha da direção do exercício: subir, descer ou os dois. [onChanged] roda depois de aplicar.
+Widget directionPicker(AppState app, {VoidCallback? onChanged}) => SegmentedButton<ScaleDirection>(
+      showSelectedIcon: false,
+      segments: [
+        ButtonSegment(value: ScaleDirection.up, icon: const Icon(Icons.north_rounded, size: 18), label: Text(tr('Subir'))),
+        ButtonSegment(value: ScaleDirection.down, icon: const Icon(Icons.south_rounded, size: 18), label: Text(tr('Descer'))),
+        ButtonSegment(value: ScaleDirection.both, icon: const Icon(Icons.swap_vert_rounded, size: 18), label: Text(tr('Os dois'))),
+      ],
+      selected: {app.scaleDirection},
+      onSelectionChanged: (s) {
+        app.setScale(direction: s.first);
+        onChanged?.call();
+      },
+    );

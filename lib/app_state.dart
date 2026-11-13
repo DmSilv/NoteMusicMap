@@ -3458,7 +3458,23 @@ class AppState extends ChangeNotifier {
   int scaleTonicMidi = 55; // Sol3
   ScaleType scaleType = ScaleType.major;
   int scaleOctaves = 1;
+
+  /// Para onde vai o exercício: só subindo, só descendo ou os dois (padrão).
+  ScaleDirection scaleDirection = ScaleDirection.both;
   bool scaleMode = false;
+
+  /// A nota como está escrita na escala (Lá natural ao subir e Lá♭ ao descer em Dó menor melódica), com a oitava.
+  /// Com instrumento transpositor a grafia segue a regra comum (o nome já muda pela transposição).
+  ({String name, int octave}) scaleNoteParts(int midi, {required bool ascending}) {
+    if (cfg.transpose != 0) return (name: noteName(midi, cfg), octave: ((midi + cfg.transpose) ~/ 12) - 1);
+    final s = ScaleSpeller(scaleTonicMidi, scaleType).spell(midi, ascending: ascending);
+    return (name: s.name(), octave: s.octave);
+  }
+
+  String scaleNoteName(int midi, {required bool ascending, bool withOctave = false}) {
+    final p = scaleNoteParts(midi, ascending: ascending);
+    return withOctave ? '${p.name}${p.octave}' : p.name;
+  }
   List<int> get scaleNotes =>
       scaleMidis(scaleTonicMidi, scaleType, octaves: scaleOctaves);
 
@@ -3495,6 +3511,7 @@ class AppState extends ChangeNotifier {
       octaves: scaleOctaves,
       zone: kInTuneCents,
       flow: exerciseFlow,
+      direction: scaleDirection,
     );
     exerciseDone = false;
     lastSession = null;
@@ -3688,6 +3705,7 @@ class AppState extends ChangeNotifier {
         (p.getInt('noteSwitch') ?? NoteSwitchSpeed.normal.index).clamp(0, NoteSwitchSpeed.values.length - 1)];
     _display.speed = noteSwitch;
     exerciseFlow = p.getBool('exFlow') ?? true;
+    scaleDirection = ScaleDirection.values[(p.getInt('scale_dir') ?? ScaleDirection.both.index).clamp(0, ScaleDirection.values.length - 1)];
     dailyGoalMinutes = p.getDouble('goal') ?? 20;
     themeMode = ThemeMode.values[p.getInt('theme') ?? 0];
     langPref = p.getString('lang') ?? 'auto';
@@ -4045,13 +4063,17 @@ class AppState extends ChangeNotifier {
 
   /// Configura o exercício de escala. [tonicPc] 0..11; a oitava é escolhida
   /// perto da corda mais grave do instrumento atual.
-  void setScale({int? tonicPc, ScaleType? type, int? octaves, bool? enabled}) {
+  void setScale({int? tonicPc, ScaleType? type, int? octaves, bool? enabled, ScaleDirection? direction}) {
     if (tonicPc != null) {
       final low = instrument.strings.first.midi;
       scaleTonicMidi = low + (((tonicPc - low) % 12) + 12) % 12;
     }
     if (type != null) scaleType = type;
     if (octaves != null) scaleOctaves = octaves;
+    if (direction != null) {
+      scaleDirection = direction;
+      _prefs?.setInt('scale_dir', direction.index);
+    }
     if (enabled != null) {
       scaleMode = enabled;
     }

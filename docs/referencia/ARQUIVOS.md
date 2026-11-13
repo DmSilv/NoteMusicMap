@@ -133,6 +133,7 @@
 | `packages/afina_core/lib/i18n_en_b08.dart` | Dicionário português → inglês, parte b08 (ver i18n_en.dart). |
 | `packages/afina_core/lib/i18n_en_b09.dart` | Dicionário português → inglês, parte b09 (ver i18n_en.dart). |
 | `packages/afina_core/lib/i18n_en_b10.dart` | Dicionário português → inglês, parte b10 (ver i18n_en.dart). |
+| `packages/afina_core/lib/i18n_en_b11.dart` | Dicionário português → inglês, parte b11 (ver i18n_en.dart). |
 | `packages/afina_core/lib/i18n_en_srv.dart` | Dicionário português → inglês, parte srv (ver i18n_en.dart). |
 | `packages/afina_core/lib/identity.dart` | Identidade do perfil (Fase 1): quem é a pessoa, sem cadastro e sem servidor. - [Profile.id]: UUID do perfil. Todos os dados pertencem a ele, não ao aparelho. - [Profile.secret]: 256 bits aleatórios que provam que… |
 | `packages/afina_core/lib/input_guard.dart` | Limpeza e limites de tudo que a pessoa digita, cola ou lê de um QR. Dart puro. O app não monta HTML nem consulta banco com esses textos, mas eles aparecem na tela, vão para backups colados e (em resumo) para a IA.… |
@@ -155,6 +156,7 @@
 | `packages/afina_core/lib/practice_coach.dart` | Treinador: analisa o histórico de escalas e devolve orientações em português, como "Suas notas Mi estão ficando baixas: tente colocá-las um pouco mais altas". É uma análise por regras (estatística sobre as suas… |
 | `packages/afina_core/lib/rhythm_challenge.dart` | Modo desafio do metrônomo ("sabotagem"): de vez em quando, de surpresa, o andamento muda por alguns compassos ou o metrônomo fica mudo, e depois volta sempre ao andamento que a pessoa configurou. Serve para treinar a… |
 | `packages/afina_core/lib/scale_exercise.dart` | Exercício de escalas guiado (estilo "sistema de escalas" de Carl Flesch): o músico toca a escala subindo e descendo, em 1, 2 ou 3 oitavas, e o app acompanha nota por nota, medindo a afinação de cada uma. Dois jeitos… |
+| `packages/afina_core/lib/scale_spelling.dart` | Grafia das notas de uma escala ou arpejo: cada grau ganha a sua LETRA (Dó, Ré, Mi... em sequência), como está escrito na partitura. É o que faz a Dó menor melódica subir com Lá e Si naturais e descer com Si♭ e Lá♭, e… |
 | `packages/afina_core/lib/speed_trainer.dart` | Ajudantes do "Acelerar aos poucos": opções prontas, textos em linguagem simples e o tempo até o teto. Dart puro (sem Flutter), testado em test/speed_trainer_test.dart. |
 | `packages/afina_core/lib/start_checklist.dart` | "Comece por aqui": o que o professor novo precisa fazer para o app render (vincular, marcar aula, passar tarefa). Dart puro: o app diz o que já aconteceu e esta lógica diz o que falta e qual é o próximo passo. |
 | `packages/afina_core/lib/study_clock.dart` | Relógios de estudo: CRONÔMETRO (conta para cima) e MINUTERIA (conta para baixo até um tempo escolhido). Dart puro: o relógio de parede é passado de fora (ms), então dá para testar e para retomar depois de fechar o app. |
@@ -205,6 +207,7 @@
 | `packages/afina_core/test/rhythm_challenge_test.dart` | Sorteia [n] compassos e devolve a decisão de cada um. |
 | `packages/afina_core/test/scale_coach_test.dart` | Passos de uma escala em que cada nota (pitch class) tem um viés fixo. |
 | `packages/afina_core/test/scale_flow_test.dart` | Sol maior, 1 oitava. |
+| `packages/afina_core/test/scale_spelling_test.dart` | Testes do módulo `scale_spelling`. |
 | `packages/afina_core/test/speed_trainer_test.dart` | Renderiza [seconds] segundos e devolve os eventos de "primeiro tempo" de cada compasso. |
 | `packages/afina_core/test/start_checklist_test.dart` | Testes do módulo `start_checklist`. |
 | `packages/afina_core/test/study_clock_test.dart` | Testes do módulo `study_clock`. |
@@ -308,4 +311,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **265** arquivos mapeados.
+Total: **268** arquivos mapeados.

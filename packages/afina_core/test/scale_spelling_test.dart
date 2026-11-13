@@ -1,0 +1,98 @@
+import 'package:afina_core/afina_core.dart';
+import 'package:test/test.dart';
+
+String _seq(int tonic, ScaleType t, {required bool up}) {
+  final sp = ScaleSpeller(tonic, t);
+  final base = tonic + t.start;
+  final midis = up ? [for (final x in t.steps) base + x, base + 12] : [base + 12, for (final x in t.downSteps.reversed) base + x];
+  return midis.map((m) => sp.name(m, ascending: up)).join(' ');
+}
+
+void main() {
+  tearDown(() => Lang.current = AppLang.pt);
+
+  group('Dó menor melódica (Flesch): sobe com Lá e Si naturais, desce com Si♭ e Lá♭', () {
+    test('subindo', () => expect(_seq(60, ScaleType.melodicMinor, up: true), 'Dó Ré Mi♭ Fá Sol Lá Si Dó'));
+    test('descendo', () => expect(_seq(60, ScaleType.melodicMinor, up: false), 'Dó Si♭ Lá♭ Sol Fá Mi♭ Ré Dó'));
+  });
+
+  group('Ré menor (armadura com Si♭): sobe com Si natural e Dó♯, desce na armadura', () {
+    test('subindo', () => expect(_seq(62, ScaleType.melodicMinor, up: true), 'Ré Mi Fá Sol Lá Si Dó♯ Ré'));
+    test('descendo', () => expect(_seq(62, ScaleType.melodicMinor, up: false), 'Ré Dó Si♭ Lá Sol Fá Mi Ré'));
+  });
+
+  test('menor natural e harmônica seguem a armadura / o sensível', () {
+    expect(_seq(62, ScaleType.naturalMinor, up: true), 'Ré Mi Fá Sol Lá Si♭ Dó Ré');
+    expect(_seq(62, ScaleType.harmonicMinor, up: true), 'Ré Mi Fá Sol Lá Si♭ Dó♯ Ré');
+  });
+
+  test('maiores com a grafia certa (nada de Sol♯ no lugar de Lá♭)', () {
+    expect(_seq(55, ScaleType.major, up: true), 'Sol Lá Si Dó Ré Mi Fá♯ Sol');
+    expect(_seq(68, ScaleType.major, up: true), 'Lá♭ Si♭ Dó Ré♭ Mi♭ Fá Sol Lá♭');
+    expect(_seq(61, ScaleType.major, up: true), 'Ré♭ Mi♭ Fá Sol♭ Lá♭ Si♭ Dó Ré♭');
+    expect(_seq(66, ScaleType.major, up: true), 'Fá♯ Sol♯ Lá♯ Si Dó♯ Ré♯ Mi♯ Fá♯');
+  });
+
+  test('cromática: sobe com sustenidos e desce com bemóis', () {
+    final s = ScaleSpeller(60, ScaleType.chromatic);
+    expect([for (final m in [61, 63, 66, 68, 70]) s.name(m, ascending: true)], ['Dó♯', 'Ré♯', 'Fá♯', 'Sol♯', 'Lá♯']);
+    expect([for (final m in [70, 68, 66, 63, 61]) s.name(m, ascending: false)], ['Si♭', 'Lá♭', 'Sol♭', 'Mi♭', 'Ré♭']);
+  });
+
+  test('arpejos: tríades e sétimas na letra certa', () {
+    final maj = ScaleSpeller(55, ScaleType.majorTriad);
+    expect([for (final m in [55, 59, 62, 67]) maj.name(m, ascending: true)], ['Sol', 'Si', 'Ré', 'Sol']);
+    final min = ScaleSpeller(62, ScaleType.minorTriad);
+    expect([for (final m in [62, 65, 69]) min.name(m, ascending: true)], ['Ré', 'Fá', 'Lá']);
+    final dom = ScaleSpeller(67, ScaleType.dominantSeventh);
+    expect([for (final m in [67, 71, 74, 77]) dom.name(m, ascending: true)], ['Sol', 'Si', 'Ré', 'Fá']);
+    final dim = ScaleSpeller(60, ScaleType.diminishedSeventh);
+    expect([for (final m in [60, 63, 66, 69]) dim.name(m, ascending: true)], ['Dó', 'Mi♭', 'Sol♭', 'Lá']);
+  });
+
+  test('a oitava acompanha a letra (Dó4 = dó central) e o nome sai em inglês', () {
+    final s = ScaleSpeller(55, ScaleType.major);
+    expect(s.name(55, ascending: true, withOctave: true), 'Sol3');
+    expect(s.name(66, ascending: true, withOctave: true), 'Fá♯4');
+    Lang.current = AppLang.en;
+    expect(s.name(66, ascending: true, withOctave: true), 'F♯4');
+    expect(ScaleSpeller(60, ScaleType.melodicMinor).name(70, ascending: false), 'B♭');
+  });
+
+  group('direção do exercício', () {
+    test('subindo e descendo (padrão): 15 notas numa oitava de escala maior', () {
+      final e = ScaleExercise(tonicMidi: 55, type: ScaleType.major, octaves: 1, zone: 10);
+      expect(e.sequence.length, 15);
+      expect(e.upCount, 8);
+      expect(e.ascendingAt(7), isTrue);
+      expect(e.ascendingAt(8), isFalse);
+    });
+
+    test('só subindo', () {
+      final e = ScaleExercise(tonicMidi: 55, type: ScaleType.major, octaves: 2, zone: 10, direction: ScaleDirection.up);
+      expect(e.sequence.first, 55);
+      expect(e.sequence.last, 79);
+      expect(e.sequence.length, 15);
+      expect(e.sequence.every((m) => e.ascendingAt(e.sequence.indexOf(m))), isTrue);
+    });
+
+    test('só descendo: começa na tônica mais alta e termina na mais grave', () {
+      final e = ScaleExercise(tonicMidi: 55, type: ScaleType.major, octaves: 2, zone: 10, direction: ScaleDirection.down);
+      expect(e.sequence.first, 79);
+      expect(e.sequence.last, 55);
+      expect(e.sequence.length, 15);
+      expect(e.upCount, 0);
+      expect(e.ascendingNow, isFalse);
+      for (var i = 1; i < e.sequence.length; i++) {
+        expect(e.sequence[i], lessThan(e.sequence[i - 1]));
+      }
+    });
+
+    test('menor melódica descendo usa as notas naturais (Si♭ e Lá♭ em Dó menor)', () {
+      final e = ScaleExercise(tonicMidi: 60, type: ScaleType.melodicMinor, octaves: 1, zone: 10, direction: ScaleDirection.down);
+      expect(e.sequence, [72, 70, 68, 67, 65, 63, 62, 60]);
+      final up = ScaleExercise(tonicMidi: 60, type: ScaleType.melodicMinor, octaves: 1, zone: 10, direction: ScaleDirection.up);
+      expect(up.sequence, [60, 62, 63, 65, 67, 69, 71, 72]);
+    });
+  });
+}

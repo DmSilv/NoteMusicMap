@@ -235,3 +235,9 @@ O painel foi redesenhado com o design system do app: cores iguais (testadas cont
 
 ## Cartão de resumo que é o botão de configurar (novembro/2026)
 - Nova peça `DsConfigCard` (`design_system.dart`): resumo do que está valendo + **ícone de ajustes na ponta direita**; tocar em qualquer parte abre o modal. Usada em **Escalas e Arpejos** (o cartão com o nome da escala), **Grade** ("Ajustes da grade · Igual · Lá 440 Hz") e **Metrônomo** ("4/4 · colcheias · Clique"). Saiu o botão "Configurar escala" solto embaixo. No Afinador o botão fica, porque o cartão do instrumento já abre outra coisa (a lista de instrumentos).
+
+## Escalas guiada e livre: mapa de oitavas, direção e grafia por direção (novembro/2026)
+- **Tela de exercício sem rolar**: cartão da nota mais baixo, banner de orientação compacto (altura fixa, "TOQUE UMA NOTA" menor) e um **mapa da escala**: uma linha por oitava ("Dó4", "Dó5"…) com todas as notas e o número da oitava em cada quadradinho, a nota atual destacada e a linha dela realçada. Vale para escalas e arpejos, no modo guiado e no livre. A etiqueta "▲ subindo / ▼ descendo" fica no cartão.
+- **Direção** (`ScaleDirection`): só subindo, só descendo (começa na nota mais aguda) ou os dois. Em Configurar escala e nos Ajustes do exercício; guardada no aparelho (`scale_dir`).
+- **Grafia como na partitura** (`scale_spelling.dart`): cada grau ganha a sua letra; a **Dó menor melódica** sobe com Lá e Si naturais e desce com Si♭ e Lá♭; **Ré menor** sobe com Si natural e Dó♯ e desce na armadura; maiores com a grafia certa (Lá♭, não Sol♯); cromática sobe com sustenidos e desce com bemóis. A lista de notas da tela de Escalas mostra uma linha "subindo" e outra "descendo". A menor melódica é a menor do sistema de Flesch (as alturas já eram assim; o que faltava era o nome certo em cada direção).
+- **Ainda aberto**: a ordem exata dos arpejos de cada tonalidade menor no Flesch (ver pergunta ao Daniel).

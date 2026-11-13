@@ -36,8 +36,12 @@ class GuidanceBanner extends StatefulWidget {
   /// Nomes para o aviso de nota errada.
   final String Function(int midi)? noteLabel;
 
+  /// Versão baixa e de altura fixa (a mesma em todos os estados), para a tela de exercício caber sem rolar.
+  final bool compact;
+
   const GuidanceBanner({
     super.key,
+    this.compact = false,
     required this.cents,
     required this.zone,
     this.cue,
@@ -155,7 +159,7 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOutCubic,
-          height: data.kind == GuideKind.idle ? 68 : 92,
+          height: widget.compact ? 60 : (data.kind == GuideKind.idle ? 68 : 92),
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
@@ -172,7 +176,7 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
               key: ValueKey('${data.kind}-${data.title}'),
               children: [
                 SizedBox(
-                  width: data.kind == GuideKind.idle ? 40 : 52,
+                  width: widget.compact ? 34 : (data.kind == GuideKind.idle ? 40 : 52),
                   child: AnimatedBuilder(
                     animation: _bounce,
                     builder: (context, child) {
@@ -181,7 +185,7 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
                           : 0.0;
                       return Transform.translate(offset: Offset(0, dy), child: child);
                     },
-                    child: Icon(icon, size: data.kind == GuideKind.idle ? 26 : 44, color: data.kind == GuideKind.idle ? color.withValues(alpha: 0.7) : color),
+                    child: Icon(icon, size: widget.compact ? (data.kind == GuideKind.idle ? 20 : 30) : (data.kind == GuideKind.idle ? 26 : 44), color: data.kind == GuideKind.idle ? color.withValues(alpha: 0.7) : color),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -198,7 +202,7 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
                           maxLines: 1,
                           style: TextStyle(
                             color: data.kind == GuideKind.idle ? AppColors.textDim : color,
-                            fontSize: data.kind == GuideKind.idle ? 17 : 24,
+                            fontSize: widget.compact ? (data.kind == GuideKind.idle ? 14 : 19) : (data.kind == GuideKind.idle ? 17 : 24),
                             fontWeight: data.kind == GuideKind.idle ? FontWeight.w700 : FontWeight.w900,
                             letterSpacing: 0.4,
                           ),
@@ -209,9 +213,9 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
                         stale && data.kind != GuideKind.idle
                             ? tr('Última orientação: {0}', [data.detail])
                             : data.detail,
-                        maxLines: 2,
+                        maxLines: widget.compact ? 1 : 2,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: data.kind == GuideKind.idle ? AppColors.textDim : AppColors.text, fontSize: data.kind == GuideKind.idle ? 13 : 14.5, height: 1.2),
+                        style: TextStyle(color: data.kind == GuideKind.idle ? AppColors.textDim : AppColors.text, fontSize: widget.compact ? 12 : (data.kind == GuideKind.idle ? 13 : 14.5), height: 1.2),
                       ),
                     ],
                   ),

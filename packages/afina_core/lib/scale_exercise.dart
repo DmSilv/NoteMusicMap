@@ -16,12 +16,16 @@ library;
 
 import 'pitch_grid.dart';
 
+/// Para onde vai o exercício: só subindo, só descendo, ou subindo e descendo.
+enum ScaleDirection { up, down, both }
+
 /// Sequência completa: sobe até a tônica mais alta e desce até a tônica
 /// (sem repetir a nota do topo). Na menor melódica, desce como menor natural.
+/// [direction]: só subindo, só descendo (começa na tônica mais alta) ou os dois.
 List<int> scaleSequence(int tonicMidi, ScaleType t,
-    {int octaves = 1, bool descend = true}) {
+    {int octaves = 1, bool descend = true, ScaleDirection direction = ScaleDirection.both}) {
   final up = scaleMidis(tonicMidi, t, octaves: octaves);
-  if (!descend) return up;
+  if (!descend || direction == ScaleDirection.up) return up;
   final base = tonicMidi + t.start;
   final down = <int>[];
   for (var o = octaves - 1; o >= 0; o--) {
@@ -29,6 +33,7 @@ List<int> scaleSequence(int tonicMidi, ScaleType t,
       down.add(base + 12 * o + s);
     }
   }
+  if (direction == ScaleDirection.down) return [up.last, ...down];
   return [...up, ...down];
 }
 
@@ -114,6 +119,7 @@ class FreeNote {
 class ScaleExercise {
   final List<int> sequence;
   final int upCount;
+  final ScaleDirection direction;
   final int tonicMidi;
   final double zone;
 
@@ -177,9 +183,10 @@ class ScaleExercise {
     bool flow = false,
     this.flowMinSeconds = 0.05,
     this.flowReleaseSeconds = 0.22,
+    this.direction = ScaleDirection.both,
   })  : _flow = flow,
-        sequence = scaleSequence(tonicMidi, type, octaves: octaves),
-        upCount = scaleMidis(tonicMidi, type, octaves: octaves).length {
+        sequence = scaleSequence(tonicMidi, type, octaves: octaves, direction: direction),
+        upCount = direction == ScaleDirection.down ? 0 : scaleMidis(tonicMidi, type, octaves: octaves).length {
     _scalePcs = {for (final m in sequence) m % 12};
     freeNotes = ({...sequence}.toList()..sort());
   }
@@ -200,7 +207,10 @@ class ScaleExercise {
     return null;
   }
 
-  bool get ascendingNow => _flow ? true : index < upCount;
+  bool get ascendingNow => _flow ? direction != ScaleDirection.down : index < upCount;
+
+  /// O passo [i] da sequência é de subida?
+  bool ascendingAt(int i) => i < upCount;
   double get progress {
     if (_flow) return freeNotes.isEmpty ? 0 : board.length / freeNotes.length;
     return sequence.isEmpty ? 0 : index / sequence.length;
