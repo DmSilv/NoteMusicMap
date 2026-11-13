@@ -79,6 +79,26 @@ void main() {
     expect(down.ottava, (0, 2)); // só a descida começa no Mi♭7
   });
 
+  test('Mi♭ menor melódica (Flesch nº 5): a subida segue o molde das maiores, a descida tem o seu', () {
+    final seq = scaleSequence(63, ScaleType.melodicMinor, octaves: 3);
+    expect(seq.length, 43);
+    final p = violinFingeringPlan(tonicMidi: 63, type: ScaleType.melodicMinor, octaves: 3, direction: ScaleDirection.both)!;
+    final maj = violinFingeringPlan(tonicMidi: 63, type: ScaleType.major, octaves: 3, direction: ScaleDirection.both)!;
+    for (final i in [0, 9, 15, 17, 21]) {
+      expect(p.fingers[i], maj.fingers[i], reason: 'subida, nota \$i');
+    }
+    expect(p.fingers[22], '3'); // na maior seria 4
+    expect(p.fingers[24], '3');
+    expect(p.fingers[27], '3');
+    expect(p.fingers[34], '2');
+    expect(p.fingers.where((x) => x != null).length, 9);
+    expect(p.ottava, (18, 23));
+    // o topo é o Mi♭ e a descida usa as notas naturais (Ré♭ e Dó♭ nas notas 22 e 23)
+    expect(seq[21], seq[0] + 36);
+    expect(seq[22], seq[21] - 2);
+    expect(seq[23], seq[21] - 4);
+  });
+
   group('dedilhado vindo do servidor (painel do administrador)', () {
     tearDown(() => setViolinFingeringFromJson(null));
 
