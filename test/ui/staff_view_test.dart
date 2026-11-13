@@ -218,6 +218,14 @@ void main() {
     await shot('r_8va_triplet_dark', StaffView(score: s8, current: 20, maxHeight: 420, hints: true), dark: true);
     await shot('s_light_paper_in_dark_app', StaffView(score: cm, current: 5, marks: marks, colors: StaffColors.light), dark: true);
     await shot('t_dark_paper_in_light_app', StaffView(score: cm, current: 5, marks: marks, colors: StaffColors.dark), dark: false);
+    // as escalas do Flesch como o app mostra (dedilhado e 8va da tabela), 3 oitavas em tercinas
+    for (final c in [('u_flesch_a_menor', 57, ScaleType.melodicMinor), ('u_flesch_sol_maior', 55, ScaleType.major), ('u_flesch_si_maior', 59, ScaleType.major), ('u_flesch_fas_menor_8va', 66, ScaleType.melodicMinor), ('u_flesch_do_maior', 60, ScaleType.major)]) {
+      final up = scaleMidis(c.$2, c.$3, octaves: 3).length;
+      final plan = violinFingeringPlan(tonicMidi: c.$2, type: c.$3, octaves: 3, direction: ScaleDirection.both)!;
+      final sc = buildStaffScore(tonicMidi: c.$2, type: c.$3, sequence: scaleSequence(c.$2, c.$3, octaves: 3), upCount: up, rhythm: StaffRhythm.triplet, fingers: plan.fingers, ottava: plan.ottava != null, ottavaRange: plan.ottava);
+      await shot(c.$1, StaffView(score: sc, current: 3, maxHeight: 330, names: StaffNames.ledger));
+      await shot('${c.$1}_dark', StaffView(score: sc, current: 3, maxHeight: 330, names: StaffNames.ledger), dark: true);
+    }
     await shot('i_narrow_300_dark', StaffView(score: _score(60, ScaleType.melodicMinor, r: StaffRhythm.triplet), current: 0), dark: true, width: 300);
   });
 }

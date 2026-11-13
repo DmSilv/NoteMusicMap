@@ -1,0 +1,4 @@
+Coloque aqui o PDF do método (ou fotos) para eu ler.
+
+Nada desta pasta vai para o repositório (veja .gitignore): fica só no seu computador.
+Use o nome que quiser, por exemplo: flesch-sistema-de-escalas.pdf

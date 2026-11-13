@@ -55,6 +55,43 @@ void main() {
     expect(hasViolinFingering(58, ScaleType.major, 2), isFalse);
   });
 
+  test('as 24 escalas do Nº 5 (12 maiores e 12 menores melódicas, 3 oitavas) estão na tabela, cada uma uma vez', () {
+    final seen = <String>{};
+    for (final e in violinFingeringEntries()) {
+      expect(e.octaves, 3);
+      expect(seen.add('${e.tonicPc}|${e.alt}|${e.type.name}'), isTrue, reason: 'repetida: ${e.tonicPc} ${e.type.name}');
+    }
+    for (var pc = 0; pc < 12; pc++) {
+      // a grafia do livro: Ré♭, Sol♭ (outra grafia do Fá♯), Si; menores Mi♭, Sol♯, Si♭, Dó♯, Fá♯
+      expect(seen.contains('$pc|${pc == 6}|major'), isTrue, reason: 'falta maior $pc');
+      expect(seen.contains('$pc|false|melodicMinor'), isTrue, reason: 'falta menor $pc');
+    }
+    expect(seen.length, 24);
+  });
+
+  test('conferências cruzadas entre as 24: pontos de mudança, 4º dedo só em corda solta e 8va dentro da escala', () {
+    for (final e in violinFingeringEntries()) {
+      final tonic = 55 + ((e.tonicPc - 55) % 12 + 12) % 12;
+      final seq = scaleSequence(tonic, e.type, octaves: e.octaves);
+      final who = '${e.tonicPc} ${e.type.name}';
+      // os pontos de mudança de posição (1 nas notas 9, 15 e 17) são os mesmos em todas as escalas que os têm
+      for (final i in [9, 15, 17]) {
+        if (e.marks.containsKey(i)) expect(e.marks[i], '1', reason: '$who nota $i');
+      }
+      // na primeira oitava e meia, um 4º dedo só aparece onde a 4ª posição da corda cai (Ré4, Lá4/Lá♯4, Mi5: a nota da corda solta de cima, ±1 semitom)
+      for (final m in e.marks.entries.where((m) => m.value == '4' && m.key < 9)) {
+        expect([62, 69, 76].any((o) => (seq[m.key] - o).abs() <= 1), isTrue, reason: '$who nota ${m.key}');
+      }
+      // o topo da escala (nota 21) nunca leva corda solta e o 8va, quando existe, cobre o topo
+      expect(seq[21], tonic + 36);
+      final o = e.ottava;
+      if (o != null) {
+        expect(o.$1, 18);
+        expect(o.$2, inInclusiveRange(21, seq.length - 1), reason: who);
+      }
+    }
+  });
+
   test('Mi♭ maior (Flesch nº 5): mesmo molde dos pontos de mudança do Si♭ maior, 8va nas 6 notas do topo', () {
     final seq = scaleSequence(63, ScaleType.major, octaves: 3);
     expect(seq.first, 63); // Mi♭4

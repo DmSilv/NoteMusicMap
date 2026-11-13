@@ -57,6 +57,50 @@ const List<_Entry> _violin = [
   // desce com Ré♭ e Dó♭. 8va nas 6 notas do topo (Si♭6 a Dó♭7). A subida segue o mesmo molde das maiores (notas 9, 15, 17 e 21); a descida
   // é diferente da maior: 3 nas notas 22, 24 e 27 e 2 na 34.
   _Entry(3, false, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}, ottava: (18, 23)),
+
+  // ---- As demais escalas do Nº 5 (3 oitavas), lidas do PDF do método (números em cima das notas = dedilhado original do Flesch). ----
+  // Maiores
+  // Dó maior, a partir do Dó4. Molde das maiores; sem 8va; sem 4º dedo no lugar das cordas soltas (o livro não escreve).
+  _Entry(0, false, ScaleType.major, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '4', 26: '3', 29: '3'}),
+  // Fá maior, a partir do Fá4. Molde das maiores; 8va nas 6 notas do topo (como Mi♭ maior).
+  _Entry(5, false, ScaleType.major, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '4', 26: '3', 29: '3'}, ottava: (18, 23)),
+  // Lá♭ maior, a partir do Lá♭3 (corda Sol). Sem cordas soltas na escala. Só um 4 no topo (nota 21) e a nota 29 é 2 (nas outras é 3). Sem 8va.
+  _Entry(8, false, ScaleType.major, 3, {9: '1', 15: '1', 17: '1', 21: '4', 26: '3', 29: '2'}),
+  // Ré♭ maior, a partir do Ré♭4. Molde das maiores; sem 8va.
+  _Entry(1, false, ScaleType.major, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '4', 26: '3', 29: '3'}),
+  // Si maior, a partir do Si3 (corda Sol). Só um 4 no topo (nota 22) e corda solta Mi5 na descida (nota 32). Sem 8va.
+  _Entry(11, false, ScaleType.major, 3, {0: '2', 9: '1', 15: '1', 17: '1', 22: '4', 26: '3', 29: '3', 32: '0'}),
+  // Mi maior, a partir do Mi4. Molde das maiores; sem 8va.
+  _Entry(4, false, ScaleType.major, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '4', 26: '3', 29: '3'}),
+  // Lá maior, a partir do Lá3 (corda Sol): 4º dedo no Ré4 e no Lá4 subindo; descendo 2 na nota 29 e cordas soltas Mi5, Lá4 e Ré4 (31, 35 e 39).
+  _Entry(9, false, ScaleType.major, 3, {3: '4', 7: '4', 9: '1', 15: '1', 17: '1', 21: '4', 26: '3', 29: '2', 31: '0', 35: '0', 39: '0'}),
+  // Sol maior, a partir do Sol3 (corda Sol solta): 4º dedo no Ré4 e no Lá4 subindo; só um 1 na 2ª oitava (nota 17); 4 na nota 26 e cordas
+  // soltas Mi5, Lá4 e Ré4 descendo (30, 34 e 38).
+  _Entry(7, false, ScaleType.major, 3, {4: '4', 8: '4', 9: '1', 17: '1', 21: '4', 22: '4', 26: '4', 30: '0', 34: '0', 38: '0'}),
+  // Menores (melódicas: sobem com a sexta e a sétima maiores e descem naturais)
+  // Lá menor, a partir do Lá3 (corda Sol). Sem os 4 do topo; 3 e 4 na descida (24 e 27) e cordas soltas Mi5, Lá4 e Ré4 (31, 35 e 39).
+  _Entry(9, false, ScaleType.melodicMinor, 3, {3: '4', 7: '4', 9: '1', 15: '1', 17: '1', 24: '3', 27: '4', 31: '0', 35: '0', 39: '0'}),
+  // Ré menor, a partir do Ré4 (corda Ré solta, como no Ré maior). Molde das menores.
+  _Entry(2, false, ScaleType.melodicMinor, 3, {0: '0', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
+  // Sol menor, a partir do Sol3: 4º dedo no Ré4 e no Lá4 subindo; 2 na nota 23; cordas soltas Lá4 e Ré4 descendo (34 e 38).
+  _Entry(7, false, ScaleType.melodicMinor, 3, {4: '4', 8: '4', 9: '1', 17: '1', 21: '4', 22: '3', 23: '2', 24: '3', 27: '3', 34: '0', 38: '0'}),
+  // Dó menor, a partir do Dó4. Molde das menores.
+  _Entry(0, false, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
+  // Fá menor, a partir do Fá4. Molde das menores; 8va nas 6 notas do topo.
+  _Entry(5, false, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}, ottava: (18, 23)),
+  // Si♭ menor, a partir do Si♭3 (corda Sol): 4º dedo no Lá4 subindo (o Ré♭4 não é corda solta). Molde das menores.
+  _Entry(10, false, ScaleType.melodicMinor, 3, {0: '2', 6: '4', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
+  // Sol♯ menor, a partir do Sol♯3 (corda Sol). Só um 1 na 2ª oitava (nota 17) e um 2 perto do fim (nota 40). Primeiras notas: o livro escreve
+  // números que não deu para ler com segurança (veja o relatório).
+  _Entry(8, false, ScaleType.melodicMinor, 3, {9: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 40: '2'}),
+  // Dó♯ menor, a partir do Dó♯4. Molde das menores.
+  _Entry(1, false, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
+  // Fá♯ menor, a partir do Fá♯4. Molde das menores; 8va nas 6 notas do topo.
+  _Entry(6, false, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}, ottava: (18, 23)),
+  // Si menor, a partir do Si3 (corda Sol): 4º dedo no Ré4 e no Lá4 subindo; cordas soltas Lá4 e Ré4 descendo (36 e 40).
+  _Entry(11, false, ScaleType.melodicMinor, 3, {0: '2', 2: '4', 6: '4', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2', 36: '0', 40: '0'}),
+  // Mi menor, a partir do Mi4. Molde das menores.
+  _Entry(4, false, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
 ];
 
 /// Escalas que o administrador corrigiu ou incluiu no painel (vêm do servidor); valem no lugar das do app.

@@ -137,9 +137,8 @@ function suggest(pc, alt, type, oct) {
   const marks = { ...MOLD };
   const notes = ['Pontos de mudança (1 1 1, 4 4, 3 3) iguais aos de Si♭, Mi♭, Sol♭ e Ré maiores.'];
   let open = 0;
-  // O 4º dedo no lugar da corda solta só aparece quando a escala COMEÇA na corda Sol (Si♭ maior). Ré, Mi♭ e Sol♭ maiores começam a partir da
-  // corda Ré e não têm esse número na subida.
-  const startsOnG = tonicMidi(pc) < 62;
+  // O 4º dedo no lugar da corda solta só aparece nas escalas que começam na corda Sol, de Sol3 a Si♭3 (Si♭, Lá, Sol; o Dó4 não).
+  const startsOnG = tonicMidi(pc) < 59; // Sol, Lá♭, Lá, Si♭ (o Dó maior, que começa no Dó4, não usa)
   for (const r of startsOnG ? noteRows(pc, alt, type, oct) : []) {
     if ([62, 69, 76].includes(r.midi) && marks[r.i] === undefined) {
       marks[r.i] = r.asc ? '4' : '0';
