@@ -604,17 +604,33 @@ class HelpButton extends StatelessWidget {
   final String title;
   final List<(String, String)> sections;
   final String? footer;
-  const HelpButton({super.key, required this.title, required this.sections, this.footer});
+
+  /// Contornado: um botão de verdade, para ficar sozinho ao lado de um cartão.
+  final bool outlined;
+  const HelpButton({super.key, required this.title, required this.sections, this.footer, this.outlined = false});
 
   @override
-  Widget build(BuildContext context) => IconButton(
-        tooltip: tr('Ajuda: {0}', [title]),
-        visualDensity: VisualDensity.compact,
-        constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-        padding: EdgeInsets.zero,
-        icon: Icon(Icons.help_outline, size: 20, color: AppColors.textDim),
-        onPressed: () => showInfoSheet(context, title, sections, footer: footer),
+  Widget build(BuildContext context) {
+    void open() => showInfoSheet(context, title, sections, footer: footer);
+    final tip = tr('Ajuda: {0}', [title]);
+    // Alvo de toque de 48 px (antes 36): mais fácil de acertar, principalmente com o dedo ou com tremor.
+    const size = Size(Ds.tap, Ds.tap);
+    if (outlined) {
+      return IconButton.outlined(
+        tooltip: tip,
+        style: IconButton.styleFrom(minimumSize: size, side: BorderSide(color: AppColors.outline, width: 1.5)),
+        icon: Icon(Icons.help_outline_rounded, size: 22, color: AppColors.textDim),
+        onPressed: open,
       );
+    }
+    return IconButton(
+      tooltip: tip,
+      constraints: const BoxConstraints(minWidth: Ds.tap, minHeight: Ds.tap),
+      padding: EdgeInsets.zero,
+      icon: Icon(Icons.help_outline, size: 22, color: AppColors.textDim),
+      onPressed: open,
+    );
+  }
 }
 
 /// Textos de ajuda (um só lugar, para as telas não se contradizerem).

@@ -106,47 +106,72 @@ class DsSettingsButton extends StatelessWidget {
 }
 
 /// Cartão de resumo que é também o botão de configurar: mostra o que está valendo agora e, na ponta direita,
-/// o ícone de ajustes (que avisa que dá para alterar). Tocar em qualquer parte abre os ajustes (modal).
-/// Use no lugar de "um texto de resumo + um botão Ajustes separado".
+/// o ícone de ajustes (que avisa que dá para alterar). Tocar em qualquer parte do cartão abre os ajustes (modal).
+///
+/// Acessibilidade (regras que todo cartão tocável do app segue):
+///  - UM controle por área: o cartão é um botão só, e o [extra] (ex.: "?") fica FORA dele, ao lado, como outro botão
+///    (nunca um botão dentro de um botão: o toque ficava ambíguo e o alvo, pequeno);
+///  - alvos de toque de pelo menos 48 px (cartão e [extra]);
+///  - leitor de tela: um único item "[rótulo], [resumo]. Toque para alterar", sem ler o ícone decorativo;
+///  - destaque de foco e de passagem do mouse (teclado e computador).
 class DsConfigCard extends StatelessWidget {
   final Widget child;
   final VoidCallback onTap;
+
+  /// O que o botão faz ("Configurar escala"). O leitor de tela lê isto e depois o [semanticValue].
   final String semanticLabel;
 
-  /// Algo antes do ícone (por exemplo o "?" de ajuda). Fica fora da área que abre os ajustes? Não: o próprio botão cuida do toque.
+  /// O resumo que o cartão mostra, em texto simples, para o leitor de tela ("Escala de Sol Maior, 1 oitava").
+  final String? semanticValue;
+
+  /// Outro botão ao lado do cartão (fora dele), como o "?" de ajuda.
   final Widget? extra;
-  const DsConfigCard({super.key, required this.child, required this.onTap, required this.semanticLabel, this.extra});
+  const DsConfigCard({super.key, required this.child, required this.onTap, required this.semanticLabel, this.semanticValue, this.extra});
 
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(Ds.radiusControl + 4);
-    return Semantics(
+    final card = Semantics(
       button: true,
       label: semanticLabel,
+      value: semanticValue,
+      hint: tr('Toque para alterar'),
+      excludeSemantics: true,
+      onTap: onTap,
       child: Material(
         color: AppColors.accent.withValues(alpha: 0.10),
         shape: RoundedRectangleBorder(borderRadius: radius, side: BorderSide(color: AppColors.accent.withValues(alpha: 0.4))),
         child: InkWell(
           borderRadius: radius,
           onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(Ds.s16, Ds.s12, Ds.s12, Ds.s12),
-            child: Row(children: [
-              Expanded(child: child),
-              ?extra,
-              const SizedBox(width: Ds.s8),
-              // O ícone de alterar, sempre na ponta direita.
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(Ds.radiusControl)),
-                child: Icon(Icons.tune_rounded, size: 22, color: AppColors.accent),
-              ),
-            ]),
+          focusColor: AppColors.accent.withValues(alpha: 0.2),
+          hoverColor: AppColors.accent.withValues(alpha: 0.08),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: Ds.tap + 16),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(Ds.s16, Ds.s12, Ds.s12, Ds.s12),
+              child: Row(children: [
+                Expanded(child: child),
+                const SizedBox(width: Ds.s8),
+                // O ícone de alterar, sempre na ponta direita (só enfeite para o leitor de tela: o cartão inteiro já é o botão).
+                Container(
+                  width: Ds.tap - 4,
+                  height: Ds.tap - 4,
+                  decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(Ds.radiusControl)),
+                  child: Icon(Icons.tune_rounded, size: 22, color: AppColors.accent),
+                ),
+              ]),
+            ),
           ),
         ),
       ),
     );
+    if (extra == null) return card;
+    return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+      Expanded(child: card),
+      const SizedBox(width: Ds.s8),
+      extra!,
+    ]);
   }
 }
 

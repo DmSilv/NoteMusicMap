@@ -268,6 +268,7 @@ class _MetronomePageState extends State<MetronomePage>
             const DsGap(Ds.gap),
             DsConfigCard(
               semanticLabel: tr('Ajustes do metrônomo'),
+              semanticValue: _settingsSummary(m),
               onTap: _openSettings,
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(tr('Ajustes do metrônomo'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),

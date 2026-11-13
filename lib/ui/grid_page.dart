@@ -178,7 +178,6 @@ class _GridPageState extends State<GridPage> {
           Expanded(child: IntonationLegend(zone: zone, compact: true)),
           IconButton(
             tooltip: tr('Como ler as cores'),
-            visualDensity: VisualDensity.compact,
             icon: const Icon(Icons.help_outline),
             onPressed: _explainColors,
           ),
@@ -190,6 +189,7 @@ class _GridPageState extends State<GridPage> {
         const DsGap(Ds.gap),
         DsConfigCard(
           semanticLabel: tr('Ajustes da grade'),
+          semanticValue: tuningSummary(app),
           onTap: _openGridSettings,
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(tr('Ajustes da grade'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
@@ -301,7 +301,8 @@ class _GridPageState extends State<GridPage> {
     return DsConfigCard(
       semanticLabel: tr('Configurar escala'),
       onTap: _openScaleSettings,
-      extra: app.scaleType.hint.isEmpty ? null : HelpButton(title: tr('Sobre este exercício'), sections: [(tr('O que é'), app.scaleType.hint)]),
+      semanticValue: tr('{0}, {1} {2}, começa em {3}', [_scaleTitle(tonicPc), app.scaleOctaves, app.scaleOctaves == 1 ? tr('oitava') : tr('oitavas'), noteName(app.scaleTonicMidi + app.scaleType.start, app.cfg, withOctave: true)]),
+      extra: app.scaleType.hint.isEmpty ? null : HelpButton(outlined: true, title: tr('Sobre este exercício'), sections: [(tr('O que é'), app.scaleType.hint)]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

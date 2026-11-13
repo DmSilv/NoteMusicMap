@@ -57,6 +57,9 @@ ThemeData buildTheme({required bool dark}) {
           outline: AppColors.outline,
         );
   return ThemeData(
+    // Acessibilidade: densidade normal e área de toque de pelo menos 48 px em todo botão (inclusive os "compactos").
+    visualDensity: VisualDensity.standard,
+    materialTapTargetSize: MaterialTapTargetSize.padded,
     useMaterial3: true,
     colorScheme: scheme,
     scaffoldBackgroundColor: AppColors.bg,

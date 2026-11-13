@@ -54,3 +54,10 @@ O painel segue o mesmo sistema, em CSS:
 
 ## Onde já está aplicado
 Afinador (instrumento + Ajustes, Ouvir fixo), Metrônomo (BPM, play e Modo desafio à vista; ajustes no modal), Grade (ajustes no modal), Escalas (escala + Iniciar à vista; configurar no modal), Meu espaço (agenda em primeiro lugar; estudo e cronômetro num bloco só; gráficos na tela Evolução; meta no modal; explicações dos timers no "?"), sino com sugestões. Telas de professor e aluno (listas, fichas) ainda usam os espaçamentos antigos e entram nas próximas passadas.
+
+## Acessibilidade dos controles (regra para toda tela)
+- **Um controle por área.** Nunca um botão dentro de outro (ex.: "?" dentro de um cartão tocável): o toque fica ambíguo e o alvo, pequeno. O "?" fica ao lado do cartão, como botão próprio (`HelpButton(outlined: true)`), e o cartão que abre ajustes é o `DsConfigCard`.
+- **Alvo de toque de pelo menos 48 px** (`Ds.tap`), inclusive no "?" (antes 36) e nas setas de oitava (44). O tema usa `MaterialTapTargetSize.padded` e densidade normal, então até botões "compactos" têm área de toque de 48 px.
+- **Leitor de tela:** cartão tocável = um item só, com rótulo, resumo e a dica "Toque para alterar"; ícone decorativo fora da leitura; botão só de ícone sempre com `tooltip`.
+- **Foco e passagem do mouse** visíveis (teclado e computador).
+- Testes: `test/ui/ds_config_card_test.dart` (um controle por área, 48 px, leitor de tela).

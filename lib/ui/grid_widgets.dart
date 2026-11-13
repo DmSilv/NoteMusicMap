@@ -40,7 +40,7 @@ class OctaveNav extends StatelessWidget {
 
     Widget arrow(IconData i, String tip, VoidCallback? on) => IconButton(
           tooltip: tip,
-          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
           padding: EdgeInsets.zero,
           style: IconButton.styleFrom(backgroundColor: AppColors.surface2, shape: const CircleBorder()),
           icon: Icon(i, size: 22),
