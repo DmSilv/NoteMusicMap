@@ -186,9 +186,18 @@ const List<_Entry> _violin = [
   _Entry(6, false, ScaleType.minorTriad1, 3, {3: '1', 6: '1', 13: '2', 16: '2'}),
   _Entry(2, false, ScaleType.majorTriad2, 3, {1: '0', 4: '1', 7: '1', 12: '1', 15: '0', 16: '2'}),
   _Entry(2, false, ScaleType.minorTriad2, 3, {1: '0', 4: '1', 7: '1', 12: '1', 15: '0', 16: '2'}),
-  // Seção de Sol maior (só os dois primeiros arpejos: nos outros três a descida não deu para ler com segurança).
+  // Seção de Sol maior: Sol menor, Sol maior, Mi menor com Sol no baixo, Dó maior e Dó menor com Sol no baixo (a descida dos três últimos foi lida em zoom: 2 na nota 13 e 1 na 16).
   _Entry(7, false, ScaleType.minorTriad, 3, {3: '1', 6: '1', 13: '1', 16: '0', 17: '2'}),
   _Entry(7, false, ScaleType.majorTriad, 3, {3: '1', 6: '1', 13: '1', 16: '0'}),
+  _Entry(4, false, ScaleType.minorTriad1, 3, {3: '1', 6: '1', 13: '2', 16: '1'}),
+  _Entry(0, false, ScaleType.majorTriad2, 3, {3: '1', 6: '1', 13: '2', 16: '1'}),
+  _Entry(0, false, ScaleType.minorTriad2, 3, {3: '1', 13: '2', 16: '1'}),
+  // 7ªs (semicolcheias de 4 em 4, 25 notas: grupos [0-3] [4-7] [8-11] [12-15] [16-19] [20-23] e a nota 24). Quase toda nota leva número, então a tabela é cheia.
+  // Seção de Dó, lida em zoom, grupo a grupo. 7ª diminuta (o livro escreve Dó Ré♯ Fá♯ Lá): 4º dedo no Ré♯4 e 1º no Fá♯4, depois 1 1 3 4, 1 2 3 e a descida 4 3 2 1 / 4 2 4 3,
+  // com 4º dedo no Ré♯4 final. Corda solta Lá4 (nota 21) só nos números de baixo (do editor), não aqui.
+  _Entry(0, false, ScaleType.diminishedSeventh, 3, {1: '4', 2: '1', 4: '1', 5: '1', 6: '3', 7: '4', 9: '1', 10: '2', 11: '3', 12: '4', 13: '3', 14: '2', 15: '1', 16: '4', 17: '2', 18: '4', 19: '3', 23: '4'}),
+  // 7ª da dominante (Dó Mi Sol Si♭): 1 no Mi5, 1 2 3 no alto, 4 3 2 1 na descida e 4º dedo no Dó6.
+  _Entry(0, false, ScaleType.dominantSeventh, 3, {5: '1', 9: '1', 10: '2', 11: '3', 12: '4', 13: '3', 14: '2', 15: '1', 16: '4'}),
 ];
 
 /// Escalas que o administrador corrigiu ou incluiu no painel (vêm do servidor); valem no lugar das do app.

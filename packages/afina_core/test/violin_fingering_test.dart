@@ -128,6 +128,11 @@ void main() {
     const allowed = {0, 1, 2, 3, 4, 6, 7, 8, 12, 13, 15, 16, 17};
     final seen = <String>{};
     for (final e in violinFingeringEntries().where((e) => e.type.arpeggio)) {
+      // as 7ªs têm outro desenho (25 notas, quase todas numeradas): conferência própria no teste das 7ªs
+      if (e.type == ScaleType.dominantSeventh || e.type == ScaleType.diminishedSeventh) {
+        expect(seen.add('${e.tonicPc}|${e.type.name}'), isTrue);
+        continue;
+      }
       expect(seen.add('${e.tonicPc}|${e.type.name}'), isTrue, reason: 'arpejo repetido: ${e.tonicPc} ${e.type.name}');
       final root = scaleTonicFor(e.tonicPc, e.type, 55);
       final seq = scaleSequence(root, e.type, octaves: e.octaves);
@@ -153,6 +158,32 @@ void main() {
     final p = violinFingeringPlan(tonicMidi: 66, type: ScaleType.majorTriad, octaves: 3, direction: ScaleDirection.both)!;
     expect(p.fingers[4], '2');
     setViolinFingeringFromJson(null);
+  });
+
+  test('as 5 tríades do Nº 5 estão nas 12 raízes: 60 arpejos (menor, maior, menor 1ª inversão, maior e menor 2ª inversão)', () {
+    const tipos = [ScaleType.minorTriad, ScaleType.majorTriad, ScaleType.minorTriad1, ScaleType.majorTriad2, ScaleType.minorTriad2];
+    final seen = {for (final e in violinFingeringEntries().where((e) => tipos.contains(e.type))) '${e.tonicPc}|${e.type.name}'};
+    for (final ty in tipos) {
+      for (var pc = 0; pc < 12; pc++) {
+        expect(seen.contains('$pc|${ty.name}'), isTrue, reason: 'falta ${ty.name} pc $pc');
+      }
+    }
+    expect(seen.length, 60);
+  });
+
+  test('7ªs do Flesch (seção de Dó): 25 notas, marcas nos índices certos e 4º dedo nos pontos de mudança', () {
+    for (final ty in [ScaleType.diminishedSeventh, ScaleType.dominantSeventh]) {
+      final seq = scaleSequence(scaleTonicFor(0, ty, 55), ty, octaves: 3);
+      expect(seq.length, 25);
+      expect(seq.first, 60);
+      final p = violinFingeringPlan(tonicMidi: scaleTonicFor(0, ty, 55), type: ty, octaves: 3, direction: ScaleDirection.both)!;
+      expect(p.fingers.length, 25);
+      // o alto (notas 12 a 15, do Dó7 descendo) é 4 3 2 1 nas duas
+      expect(p.fingers.sublist(12, 16), ['4', '3', '2', '1']);
+      expect(p.fingers[16], '4');
+      // sem número que caia fora dos 25 índices e sem 0 (nenhuma corda solta escrita nestas)
+      expect(p.fingers.where((f) => f == '0'), isEmpty);
+    }
   });
 
   test('conferências cruzadas entre as 24: pontos de mudança, 4º dedo só em corda solta e 8va dentro da escala', () {
