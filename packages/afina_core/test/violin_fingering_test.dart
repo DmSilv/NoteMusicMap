@@ -125,7 +125,7 @@ void main() {
   });
 
   test('arpejos lidos: marcas só nos pontos de mudança conhecidos, nos 19 índices, e a 1ª nota em Sol3 ou acima', () {
-    const allowed = {0, 1, 2, 4, 7, 8, 12};
+    const allowed = {0, 1, 2, 3, 4, 6, 7, 8, 12, 13, 15, 16, 17};
     final seen = <String>{};
     for (final e in violinFingeringEntries().where((e) => e.type.arpeggio)) {
       expect(seen.add('${e.tonicPc}|${e.type.name}'), isTrue, reason: 'arpejo repetido: ${e.tonicPc} ${e.type.name}');
@@ -136,9 +136,14 @@ void main() {
       for (final k in e.marks.keys) {
         expect(allowed.contains(k), isTrue, reason: '${e.tonicPc} ${e.type.name}: nota $k');
       }
-      expect(e.marks[4], '1', reason: 'molde: 1º dedo na nota 4');
-      expect(e.marks[7], '1');
-      expect(e.marks[12], '4');
+      // a partir do Dó4 o molde é 1 na nota 4, 1 na 7 e 4 na 12; as seções que começam na corda Sol baixa (Sol, Lá♭, Lá) têm o seu desenho
+      if (seq.first >= 60) {
+        expect(e.marks[4], '1', reason: 'molde: 1º dedo na nota 4');
+        expect(e.marks[7], '1');
+        expect(e.marks[12], '4');
+      } else {
+        expect(e.marks.values.where((v) => v == '1').length, greaterThanOrEqualTo(2), reason: 'corda Sol baixa: 1º dedo no começo dos grupos');
+      }
     }
   });
 

@@ -1124,6 +1124,168 @@
         "12": "4"
       },
       "ottava": null
+    },
+    {
+      "pc": 8,
+      "alt": false,
+      "type": "minorTriad",
+      "oct": 3,
+      "marks": {
+        "3": "1",
+        "6": "1",
+        "13": "1",
+        "16": "1"
+      },
+      "ottava": null
+    },
+    {
+      "pc": 8,
+      "alt": false,
+      "type": "majorTriad",
+      "oct": 3,
+      "marks": {
+        "3": "1",
+        "6": "1",
+        "13": "1",
+        "16": "1"
+      },
+      "ottava": null
+    },
+    {
+      "pc": 5,
+      "alt": false,
+      "type": "minorTriad1",
+      "oct": 3,
+      "marks": {
+        "3": "1",
+        "6": "1",
+        "13": "2",
+        "16": "2"
+      },
+      "ottava": null
+    },
+    {
+      "pc": 1,
+      "alt": false,
+      "type": "majorTriad2",
+      "oct": 3,
+      "marks": {
+        "3": "2",
+        "7": "1",
+        "8": "3",
+        "12": "1",
+        "16": "2"
+      },
+      "ottava": null
+    },
+    {
+      "pc": 1,
+      "alt": false,
+      "type": "minorTriad2",
+      "oct": 3,
+      "marks": {
+        "3": "2",
+        "7": "1",
+        "12": "1",
+        "16": "2"
+      },
+      "ottava": null
+    },
+    {
+      "pc": 9,
+      "alt": false,
+      "type": "minorTriad",
+      "oct": 3,
+      "marks": {
+        "3": "1",
+        "6": "1",
+        "13": "1",
+        "16": "1"
+      },
+      "ottava": null
+    },
+    {
+      "pc": 9,
+      "alt": false,
+      "type": "majorTriad",
+      "oct": 3,
+      "marks": {
+        "3": "1",
+        "6": "1",
+        "13": "1",
+        "16": "1"
+      },
+      "ottava": null
+    },
+    {
+      "pc": 6,
+      "alt": false,
+      "type": "minorTriad1",
+      "oct": 3,
+      "marks": {
+        "3": "1",
+        "6": "1",
+        "13": "2",
+        "16": "2"
+      },
+      "ottava": null
+    },
+    {
+      "pc": 2,
+      "alt": false,
+      "type": "majorTriad2",
+      "oct": 3,
+      "marks": {
+        "1": "0",
+        "4": "1",
+        "7": "1",
+        "12": "1",
+        "15": "0",
+        "16": "2"
+      },
+      "ottava": null
+    },
+    {
+      "pc": 2,
+      "alt": false,
+      "type": "minorTriad2",
+      "oct": 3,
+      "marks": {
+        "1": "0",
+        "4": "1",
+        "7": "1",
+        "12": "1",
+        "15": "0",
+        "16": "2"
+      },
+      "ottava": null
+    },
+    {
+      "pc": 7,
+      "alt": false,
+      "type": "minorTriad",
+      "oct": 3,
+      "marks": {
+        "3": "1",
+        "6": "1",
+        "13": "1",
+        "16": "0",
+        "17": "2"
+      },
+      "ottava": null
+    },
+    {
+      "pc": 7,
+      "alt": false,
+      "type": "majorTriad",
+      "oct": 3,
+      "marks": {
+        "3": "1",
+        "6": "1",
+        "13": "1",
+        "16": "0"
+      },
+      "ottava": null
     }
   ]
 }

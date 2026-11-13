@@ -174,6 +174,21 @@ const List<_Entry> _violin = [
   _Entry(1, false, ScaleType.minorTriad1, 3, {4: '1', 7: '1', 8: '3', 12: '4'}),
   _Entry(9, false, ScaleType.majorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
   _Entry(9, false, ScaleType.minorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
+  // Seção de Lá♭ maior (corda Sol baixa: 1º dedo no começo dos grupos, notas 3 e 6, e na descida nas notas 13 e 16).
+  _Entry(8, false, ScaleType.minorTriad, 3, {3: '1', 6: '1', 13: '1', 16: '1'}),
+  _Entry(8, false, ScaleType.majorTriad, 3, {3: '1', 6: '1', 13: '1', 16: '1'}),
+  _Entry(5, false, ScaleType.minorTriad1, 3, {3: '1', 6: '1', 13: '2', 16: '2'}),
+  _Entry(1, false, ScaleType.majorTriad2, 3, {3: '2', 7: '1', 8: '3', 12: '1', 16: '2'}),
+  _Entry(1, false, ScaleType.minorTriad2, 3, {3: '2', 7: '1', 12: '1', 16: '2'}),
+  // Seção de Lá maior (corda Sol baixa; corda solta Ré4 e Lá4 nos arpejos com Ré).
+  _Entry(9, false, ScaleType.minorTriad, 3, {3: '1', 6: '1', 13: '1', 16: '1'}),
+  _Entry(9, false, ScaleType.majorTriad, 3, {3: '1', 6: '1', 13: '1', 16: '1'}),
+  _Entry(6, false, ScaleType.minorTriad1, 3, {3: '1', 6: '1', 13: '2', 16: '2'}),
+  _Entry(2, false, ScaleType.majorTriad2, 3, {1: '0', 4: '1', 7: '1', 12: '1', 15: '0', 16: '2'}),
+  _Entry(2, false, ScaleType.minorTriad2, 3, {1: '0', 4: '1', 7: '1', 12: '1', 15: '0', 16: '2'}),
+  // Seção de Sol maior (só os dois primeiros arpejos: nos outros três a descida não deu para ler com segurança).
+  _Entry(7, false, ScaleType.minorTriad, 3, {3: '1', 6: '1', 13: '1', 16: '0', 17: '2'}),
+  _Entry(7, false, ScaleType.majorTriad, 3, {3: '1', 6: '1', 13: '1', 16: '0'}),
 ];
 
 /// Escalas que o administrador corrigiu ou incluiu no painel (vêm do servidor); valem no lugar das do app.
