@@ -101,7 +101,7 @@ const List<_Entry> _violin = [
   // Fá♯ menor, a partir do Fá♯4. Molde das menores; 8va nas 6 notas do topo.
   _Entry(6, false, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}, ottava: (18, 23)),
   // Si menor, a partir do Si3 (corda Sol): 4º dedo no Ré4 e no Lá4 subindo; cordas soltas Lá4 e Ré4 descendo (36 e 40).
-  _Entry(11, false, ScaleType.melodicMinor, 3, {0: '2', 2: '4', 6: '4', 9: '1', 16: '1', 18: '1', 22: '4', 23: '3', 24: '3', 27: '3', 34: '2', 36: '0', 40: '0'}),
+  _Entry(11, false, ScaleType.melodicMinor, 3, {0: '2', 2: '4', 6: '4', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2', 36: '0', 40: '0'}),
   // Mi menor, a partir do Mi4. Molde das menores.
   _Entry(4, false, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
   // ---- A outra grafia das mesmas escalas (as notas são as mesmas, então o dedilhado e o 8va também): o livro só traz uma grafia de cada. ----
