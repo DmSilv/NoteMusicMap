@@ -66,6 +66,7 @@
 | `lib/ui/notifications_sheet.dart` | Central de avisos (sino): lista todos os avisos, marca como lidos, limpa e leva ao lugar certo conforme o tipo. |
 | `lib/ui/octave_colors.dart` | Uma cor para cada oitava do exercício (escalas e arpejos), diferente das cores de afinação (azul, verde, laranja): violeta, rosa, dourado e prata. |
 | `lib/ui/open_slots_page.dart` | Horários livres do professor (publicar e apagar) e "Pegar horário" do aluno. |
+| `lib/ui/paper_picker.dart` | A partitura está escura agora? ("Igual ao app" segue o tema.) |
 | `lib/ui/pedal_view.dart` | Modo "Pedal" do Afinador: escolha notas num teclado e elas soam juntas, sustentadas. Serve para tocar uma melodia por cima (bordão) e para treinar o ouvido com intervalos e acordes. Soa no sistema de afinação… |
 | `lib/ui/perf.dart` | Um [Listenable] que nunca avisa nada. Uma aba escondida escuta este em vez do app: assim ela não se reconstrói enquanto não está na tela, e volta a atualizar sozinha (o ListenableBuilder reassina) quando fica visível. |
 | `lib/ui/pomodoro_card.dart` | Timer de estudo (Pomodoro) com alarme sutil. |
@@ -77,6 +78,7 @@
 | `lib/ui/reminder_card.dart` | Lembrete de aula 15 minutos antes (notificação do navegador, mesmo com o app fechado). Mostra a situação deste aparelho e o botão para ligar ou desligar. |
 | `lib/ui/safe_input.dart` | Filtro de digitação: tira na hora caracteres de controle e invisíveis (inclusive os que invertem a direção do texto) e corta no tamanho do campo, contando letras e não bytes. Colar um texto gigante também é cortado. |
 | `lib/ui/scale_exercise_page.dart` | Exercício de escala guiado: o app mostra a próxima nota, acompanha a afinação de cada uma e, no fim, dá a pontuação e orientações. |
+| `lib/ui/scale_settings.dart` | Os ajustes da escala num lugar só, sem modal dentro de modal: tudo aparece na própria folha, em seções, e é a MESMA folha na aba Escalas e na tela do exercício (a pessoa não precisa lembrar onde está cada coisa). Só… |
 | `lib/ui/settings_page.dart` | Ajustes: aparência, afinação, microfone, metrônomo, grade, estudo, permissões e privacidade, conta, sobre e diagnóstico (problemas recentes e envio de relatórios). |
 | `lib/ui/share_sheet.dart` | Compartilhar o app (QR, copiar link, enviar) e o convite do professor. |
 | `lib/ui/slot_form_page.dart` | Formulário de aula marcada (aluno, dia, hora, duração, repetir, observação) com as regras de horário. |
@@ -325,4 +327,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **282** arquivos mapeados.
+Total: **284** arquivos mapeados.

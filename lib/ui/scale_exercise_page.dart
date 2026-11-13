@@ -8,12 +8,11 @@ import 'guidance_banner.dart';
 import 'needle.dart';
 import 'note_widgets.dart';
 import 'octave_colors.dart';
+import 'scale_settings.dart';
 import 'staff_card.dart';
-import 'staff_settings.dart';
 import 'staff_view.dart';
 import 'theme.dart';
 import 'transitions.dart';
-import 'tuning_pick.dart';
 import 'widgets.dart';
 
 /// Exercício de escala guiado: o app mostra a próxima nota, acompanha a
@@ -114,6 +113,7 @@ class ScaleExercisePage extends StatelessWidget {
       fingers: app.scaleFingering,
       alt: app.scaleAltActive,
       paper: app.scalePaper,
+      onPaper: (p) => app.setStaff(paper: p),
       hintNow: !e.flow && !e.finished && e.waitingSeconds >= kHintAfterSeconds,
     );
   }
@@ -146,55 +146,8 @@ class ScaleExercisePage extends StatelessWidget {
     );
   }
 
-  /// Ajustes do exercício (modal): afinação e jeito de tocar.
-  void _openSettings(BuildContext context) {
-    showDsSheet(
-      context,
-      title: tr('Ajustes do exercício'),
-      listenable: Listenable.merge([app, app.live]),
-      children: (c) {
-        final e = app.exercise;
-        return [
-          DsSettingRow(
-            label: tr('Jeito de tocar'),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              SizedBox(
-                width: double.infinity,
-                child: SegmentedButton<bool>(
-                  showSelectedIcon: false,
-                  segments: [
-                    ButtonSegment(value: true, icon: Icon(Icons.shuffle_rounded, size: 18), label: Text(tr('Livre'))),
-                    ButtonSegment(value: false, icon: Icon(Icons.format_list_numbered_rounded, size: 18), label: Text(tr('Guiado'))),
-                  ],
-                  selected: {e?.flow ?? true},
-                  onSelectionChanged: (v) => app.setExerciseFlow(v.first),
-                ),
-              ),
-              const DsGap(Ds.s8),
-              Text((e?.flow ?? true) ? tr('Toque as notas na ordem que quiser.') : tr('Uma nota de cada vez, na ordem.'), style: Ds.support()),
-            ]),
-          ),
-          DsSettingRow(
-            label: tr('Direção'),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              SizedBox(width: double.infinity, child: directionPicker(app, onChanged: () => app.startExercise(demoMode: app.demo))),
-              const DsGap(Ds.s8),
-              Text(tr('Muda a ordem das notas e recomeça o exercício.'), style: Ds.support()),
-            ]),
-          ),
-          ...staffSettingRows(app),
-          DsSettingRow(
-            label: tr('Afinação'),
-            child: OutlinedButton.icon(
-              onPressed: () => pickTuningSystem(c, app, tonicPc: app.scaleTonicMidi % 12),
-              icon: const Icon(Icons.straighten, size: 20),
-              label: Text(tuningSummary(app)),
-            ),
-          ),
-        ];
-      },
-    );
-  }
+  /// Ajustes do exercício: a mesma folha da aba Escalas (tudo no mesmo lugar).
+  void _openSettings(BuildContext context) => showScaleSettings(context, app, exercise: true);
 
   Widget _needMic(BuildContext context) {
     return AppCard(

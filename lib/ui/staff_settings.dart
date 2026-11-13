@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'design_system.dart';
+import 'paper_picker.dart';
 
 /// Texto curto do que está valendo na partitura (para o resumo do ajuste).
 String staffSummary(AppState app) => app.scaleStaff ? '${staffRhythmLabel(app.scaleRhythm)} · ${staffNamesLabel(app.scaleNames).toLowerCase()}' : tr('Desligada');
@@ -24,7 +25,7 @@ String staffNamesLabel(StaffNames n) => switch (n) {
 /// Usadas no modal de configurar a escala e no do exercício.
 List<Widget> staffSettingRows(AppState app) => [
       DsSettingRow(
-        label: tr('Partitura'),
+        label: tr('Mostrar a partitura'),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           SizedBox(
             width: double.infinity,
@@ -48,16 +49,7 @@ List<Widget> staffSettingRows(AppState app) => [
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             SizedBox(
               width: double.infinity,
-              child: SegmentedButton<StaffPaper>(
-                showSelectedIcon: false,
-                segments: [
-                  ButtonSegment(value: StaffPaper.auto, label: Text(tr('Igual ao app'))),
-                  ButtonSegment(value: StaffPaper.light, label: Text(tr('Clara'))),
-                  ButtonSegment(value: StaffPaper.dark, label: Text(tr('Escura'))),
-                ],
-                selected: {app.scalePaper},
-                onSelectionChanged: (v) => app.setStaff(paper: v.first),
-              ),
+              child: PaperPicker(value: app.scalePaper, onChanged: (p) => app.setStaff(paper: p)),
             ),
             const DsGap(Ds.s8),
             Text(tr('Só a partitura: clara é papel branco com tinta preta, escura é fundo preto com tinta branca, em qualquer tema do app.'), style: Ds.support()),

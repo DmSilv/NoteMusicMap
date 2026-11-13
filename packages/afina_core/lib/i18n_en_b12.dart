@@ -26,4 +26,8 @@ const Map<String, String> kEnB12 = {
   'Clara': 'Light',
   'Escura': 'Dark',
   'Só a partitura: clara é papel branco com tinta preta, escura é fundo preto com tinta branca, em qualquer tema do app.': 'Sheet music only: light is white paper with black ink, dark is a black background with white ink, in any app theme.',
+  'Partitura clara': 'Light sheet music',
+  'Partitura escura': 'Dark sheet music',
+  'Como tocar': 'How to play',
+  'Mostrar a partitura': 'Show the sheet music',
 };

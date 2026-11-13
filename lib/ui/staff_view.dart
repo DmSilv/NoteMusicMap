@@ -88,6 +88,9 @@ class StaffView extends StatefulWidget {
   final bool hints;
   final bool hintNow;
 
+  /// Algo à esquerda da linha de baixo (o botão sol/lua da cor da partitura), junto do "1 / 2".
+  final Widget? footerLeading;
+
   const StaffView({
     super.key,
     required this.score,
@@ -99,6 +102,7 @@ class StaffView extends StatefulWidget {
     this.colors,
     this.hints = false,
     this.hintNow = false,
+    this.footerLeading,
   });
 
   @override
@@ -151,12 +155,13 @@ class _StaffViewState extends State<StaffView> {
         image: true,
         child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           ExcludeSemantics(child: CustomPaint(size: Size(width, total), painter: painter)),
-          if (pages > 1 && w.current != null)
-            Padding(padding: const EdgeInsets.only(top: 4, right: 4), child: Align(alignment: Alignment.centerRight, child: label)),
-          if (pages > 1 && w.current == null)
-            Align(
-              alignment: Alignment.centerRight,
-              child: Semantics(
+          if (pages > 1 || w.footerLeading != null)
+            Row(children: [
+              if (w.footerLeading != null) w.footerLeading!,
+              const Spacer(),
+              if (pages > 1 && w.current != null) Padding(padding: const EdgeInsets.only(top: 4, right: 4), child: label),
+              if (pages > 1 && w.current == null)
+              Semantics(
                 button: true,
                 label: tr('Próxima página da partitura'),
                 excludeSemantics: true,
@@ -173,7 +178,7 @@ class _StaffViewState extends State<StaffView> {
                   ),
                 ),
               ),
-            ),
+            ]),
         ]),
       );
     });

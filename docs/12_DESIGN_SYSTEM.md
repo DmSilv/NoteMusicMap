@@ -67,3 +67,7 @@ Afinador (instrumento + Ajustes, Ouvir fixo), Metrônomo (BPM, play e Modo desaf
 - Sempre **dentro da largura do celular**: o tamanho do espaço de pauta é calculado pela largura disponível (entre 6 e 10,5 px) e o que não cabe em altura vira páginas (`1 / 2`). Nada de rolagem horizontal.
 - Peça única: `StaffView` / `StaffCard` (`lib/ui/`). Teste: `test/ui/staff_view_test.dart` (claro e escuro, larguras de 300 a 420 px, páginas).
 - **Cor independente do tema do app:** o ajuste **Cor da partitura** (igual ao app, clara ou escura, `StaffPaper`) vale só para a partitura. Clara = papel branco com tinta `#111B25`; escura = fundo preto com tinta branca; as cores das notas tocadas são fixas por fundo (as da agulha em cada tema) e o teste `staff_view_test.dart` exige contraste mínimo de cada uma com o seu fundo (4:1 no claro, 5:1 a 7:1 no escuro).
+
+## Ajustes de uma tela: uma folha só, tudo à vista
+- **Sem modal dentro de modal.** Os ajustes de uma tela ficam numa única folha, em seções com título (ESCALA, COMO TOCAR, PARTITURA, AFINAÇÃO), com a escolha à mostra (chips, segmentos, amostras), e a **mesma folha** abre na aba e na tela do exercício (`scale_settings.dart`). A pessoa não precisa lembrar onde está cada coisa. Só uma escolha longa e rara (Afinação) abre folha própria.
+- **O que muda a leitura vai no próprio cartão.** A cor da partitura tem o botão **sol/lua** direto no cartão (duas amostras, uma branca e uma preta, a que vale com borda de destaque) e, na folha, três amostras de verdade (clara, escura, igual ao app). Alvo de 48 px nos dois.

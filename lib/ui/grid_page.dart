@@ -8,8 +8,8 @@ import 'grid_widgets.dart';
 import 'note_widgets.dart';
 import 'perf.dart';
 import 'scale_exercise_page.dart';
+import 'scale_settings.dart';
 import 'staff_card.dart';
-import 'staff_settings.dart';
 import 'design_system.dart';
 import 'theme.dart';
 import 'tuning_pick.dart';
@@ -262,34 +262,6 @@ class _GridPageState extends State<GridPage> {
   /// "Lá♭" -> "Lá bemol" (leitura natural).
   String _spoken(String n) => n.replaceAll('♭', ' bemol').replaceAll('♯', ' sustenido');
 
-  /// Opção da tônica: "Lá bemol (Sol sustenido)" nas teclas pretas, para achar rápido.
-  String _tonicLabel(int pc) {
-    final base = app.cfg.copyWith(transpose: 0, keyFlats: null);
-    final a = noteName(pc + 60, base);
-    // A outra grafia da mesma tecla (Lá♭ <-> Sol♯), para achar rápido.
-    final other = a.contains('♯') ? noteNamesFlat[pc] : (a.contains('♭') ? noteNamesSharp[pc] : a);
-    return a == other ? _spoken(a) : '${_spoken(a)}  ·  ${_spoken(other)}';
-  }
-
-  /// Opções da tônica. Onde a tonalidade existe nas duas grafias (Fá♯ e Sol♭ maiores, por exemplo) cada uma é uma opção
-  /// (valor = classe + 100 para a outra grafia); nas demais, a tecla com os dois nomes.
-  List<(int, String)> _tonicOptions() {
-    final minor = app.scaleType.isMinor;
-    final out = <(int, String)>[];
-    for (var pc = 0; pc < 12; pc++) {
-      final midi = 60 + pc;
-      if (!app.scaleType.arpeggio && app.scaleType != ScaleType.chromatic && ScaleSpeller.hasAlt(midi, minor: minor)) {
-        final (l1, a1) = ScaleSpeller(midi, app.scaleType).tonicSpelling;
-        final (l2, a2) = ScaleSpeller(midi, app.scaleType, alt: true).tonicSpelling;
-        out.add((pc, _spoken(SpelledNote(l1, a1, 4).name())));
-        out.add((pc + 100, _spoken(SpelledNote(l2, a2, 4).name())));
-      } else {
-        out.add((pc, _tonicLabel(pc)));
-      }
-    }
-    return out;
-  }
-
   /// "Escala de Fá Maior" / "Escala de Lá bemol menor harmônica".
   String _scaleTitle(int tonicPc) {
     final type = app.scaleType;
@@ -387,6 +359,7 @@ class _GridPageState extends State<GridPage> {
         fingers: app.scaleFingering,
         alt: app.scaleAltActive,
         paper: app.scalePaper,
+        onPaper: (p) => app.setStaff(paper: p),
         maxHeight: 400,
         semanticLabel: tr('Partitura do exercício'),
       );
@@ -456,15 +429,8 @@ class _GridPageState extends State<GridPage> {
     );
   }
 
-  /// Modal da escala: tônica, tipo, oitavas, afinação e como o exercício acompanha.
-  void _openScaleSettings() {
-    showDsSheet(
-      context,
-      title: tr('Configurar escala'),
-      listenable: app,
-      children: (c) => _scaleSettingsList(app.scaleTonicMidi % 12, app.cfg.copyWith(transpose: 0)),
-    );
-  }
+  /// Ajustes da escala: uma folha só, com tudo à vista (a mesma do exercício).
+  void _openScaleSettings() => showScaleSettings(context, app, exercise: false, onReport: _showReport);
 
   /// Modal dos ajustes da grade (memória da nota, troca de nota, microfone, zerar).
   void _openGridSettings() {
@@ -474,111 +440,6 @@ class _GridPageState extends State<GridPage> {
       listenable: app,
       children: (c) => [_settingsSection()],
     );
-  }
-
-  List<Widget> _scaleSettingsList(int tonicPc, TuningConfig names) {
-    return [
-        AppCard(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(
-            children: [
-              _tile(Icons.music_note, tr('Tônica (nota inicial)'), _spoken(noteName(tonicPc + 60, names)),
-                  () => _pick<int>(
-                        tr('Tônica'),
-                        _tonicOptions(),
-                        tonicPc + (app.scaleAltActive ? 100 : 0),
-                        (v) {
-                          final pc = v % 100;
-                          app.setScale(tonicPc: pc, alt: v >= 100);
-                          // Justa/pitagórica dependem da tônica: acompanha.
-                          if (app.system != TuningSystem.equal) app.setTuning(tonicPc: pc);
-                        },
-                      )),
-              const Divider(height: 1),
-              _tile(Icons.stacked_line_chart,
-                  app.scaleType.arpeggio ? tr('Tipo de arpejo') : tr('Tipo de escala'), app.scaleType.label,
-                  () => _pick<ScaleType>(
-                        app.scaleType.arpeggio ? tr('Tipo de arpejo') : tr('Tipo de escala'),
-                        [
-                          for (final t in app.scaleType.arpeggio ? ScaleType.arpeggios : ScaleType.scales)
-                            (t, t.label)
-                        ],
-                        app.scaleType,
-                        (t) => app.setScale(type: t),
-                        hint: app.scaleType.arpeggio
-                            ? tr('Como em Flesch: tríades em posição fundamental e nas duas inversões, 7ª da dominante e 7ª diminuta, em 1, 2 e 3 oitavas.')
-                            : tr('A menor melódica é a menor do sistema de Flesch: sobe com 6ª e 7ª elevadas (Lá e Si naturais em Dó menor) e desce como menor natural (Si♭ e Lá♭). Os nomes das notas já mudam na subida e na descida.'),
-                      )),
-              const Divider(height: 1),
-              _tile(Icons.layers, tr('Oitavas'), '${app.scaleOctaves}',
-                  () => _pick<int>(
-                        tr('Quantas oitavas'),
-                        [(1, tr('1 oitava')), (2, tr('2 oitavas')), (3, tr('3 oitavas')), (4, tr('4 oitavas'))],
-                        app.scaleOctaves,
-                        (o) => app.setScale(octaves: o),
-                        hint:
-                            tr('Mais oitavas = exercício mais longo. Comece por 1 e aumente aos poucos.'),
-                      )),
-              const Divider(height: 1),
-              _tile(Icons.swap_vert_rounded, tr('Direção'), switch (app.scaleDirection) { ScaleDirection.up => tr('Só subindo'), ScaleDirection.down => tr('Só descendo'), ScaleDirection.both => tr('Subindo e descendo') },
-                  () => _pick<ScaleDirection>(
-                        tr('Direção'),
-                        [(ScaleDirection.both, tr('Subindo e descendo')), (ScaleDirection.up, tr('Só subindo')), (ScaleDirection.down, tr('Só descendo'))],
-                        app.scaleDirection,
-                        (d) => app.setScale(direction: d),
-                        hint: tr('Só descendo começa na nota mais aguda. Na menor melódica a descida usa as notas naturais.'),
-                      )),
-              const Divider(height: 1),
-              _tile(Icons.queue_music_rounded, tr('Partitura'), staffSummary(app),
-                  () => showDsSheet(context, title: tr('Partitura'), listenable: app, children: (_) => staffSettingRows(app))),
-              const Divider(height: 1),
-              _tile(Icons.straighten, tr('Afinação'), tuningSummary(app),
-                  () => pickTuningSystem(context, app, tonicPc: tonicPc)),
-            ],
-          ),
-        ),
-        const DsGap(Ds.gap),
-        // Como o exercício acompanha: guiado (padrão) ou livre.
-        AppCard(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: SwitchListTile(
-            secondary: Icon(Icons.play_circle_outline, color: AppColors.textDim),
-            title: Text(tr('Execução livre'), style: TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: Text(
-              app.exerciseFlow
-                  ? tr('Qualquer ordem, o app valida cada nota.')
-                  : tr('Guiado: uma nota por vez.'),
-              style: const TextStyle(fontSize: Ds.fontLabel),
-            ),
-            value: app.exerciseFlow,
-            onChanged: app.setExerciseFlow,
-          ),
-        ),
-        const DsGap(Ds.gap),
-        AppCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(children: [
-                Expanded(
-                  child: Text(tr('Marcar a escala na grade'),
-                      style: TextStyle(fontWeight: FontWeight.w700)),
-                ),
-                Switch(value: app.scaleMode, onChanged: (v) => app.setScale(enabled: v)),
-              ]),
-              Text(tr('Destaca as notas na aba Grade.'), style: Ds.support()),
-              if (app.scaleMode) ...[
-                const SizedBox(height: Ds.s12),
-                OutlinedButton.icon(
-                  onPressed: _showReport,
-                  icon: const Icon(Icons.assessment_outlined),
-                  label: Text(tr('Ver relatório do que toquei')),
-                ),
-              ],
-            ],
-          ),
-        ),
-    ];
   }
 
   // =====================================================================
