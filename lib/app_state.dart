@@ -3477,13 +3477,19 @@ class AppState extends ChangeNotifier {
   /// Dedilhado do Flesch em cima das notas (só violino, só nas escalas que já têm tabela conferida).
   bool scaleFingers = true;
 
+  /// A tônica é escrita na outra grafia (Sol♭ em vez de Fá♯, Ré♯ menor em vez de Mi♭ menor...), quando as duas existem.
+  bool scaleAlt = false;
+
+  /// "alt" que de fato vale: só quando a tônica atual tem outra grafia.
+  bool get scaleAltActive => scaleAlt && ScaleSpeller.hasAlt(scaleTonicMidi, minor: scaleType.isMinor);
+
   /// Dedilhado da escala de agora, na ordem das notas do exercício, ou null (outro instrumento, desligado ou sem tabela).
   List<String?>? get scaleFingering => scaleFingers ? scalePlan?.fingers : null;
 
   /// A escala como o livro escreve (dedilhado e 8va), quando o instrumento é o violino e há tabela.
   FingeringPlan? get scalePlan {
     if (instrument.id != 'violino') return null;
-    return violinFingeringPlan(tonicMidi: scaleTonicMidi, type: scaleType, octaves: scaleOctaves, direction: scaleDirection);
+    return violinFingeringPlan(tonicMidi: scaleTonicMidi, type: scaleType, octaves: scaleOctaves, direction: scaleDirection, alt: scaleAlt);
   }
 
   /// 8va do desenho: com tabela do livro, só onde o livro usa (e se o ajuste estiver ligado); sem tabela, a regra automática.
@@ -3491,13 +3497,13 @@ class AppState extends ChangeNotifier {
   (int, int)? get staffOttavaRange => scaleOttava ? scalePlan?.ottava : null;
 
   /// O instrumento é o violino e esta escala tem dedilhado (para mostrar o ajuste só quando faz sentido).
-  bool get hasFingeringHere => instrument.id == 'violino' && hasViolinFingering(scaleTonicMidi, scaleType, scaleOctaves);
+  bool get hasFingeringHere => instrument.id == 'violino' && hasViolinFingering(scaleTonicMidi, scaleType, scaleOctaves, alt: scaleAlt);
 
   /// A nota como está escrita na escala (Lá natural ao subir e Lá♭ ao descer em Dó menor melódica), com a oitava.
   /// Com instrumento transpositor a grafia segue a regra comum (o nome já muda pela transposição).
   ({String name, int octave}) scaleNoteParts(int midi, {required bool ascending}) {
     if (cfg.transpose != 0) return (name: noteName(midi, cfg), octave: ((midi + cfg.transpose) ~/ 12) - 1);
-    final s = ScaleSpeller(scaleTonicMidi, scaleType).spell(midi, ascending: ascending);
+    final s = ScaleSpeller(scaleTonicMidi, scaleType, alt: scaleAlt).spell(midi, ascending: ascending);
     return (name: s.name(), octave: s.octave);
   }
 
@@ -3741,6 +3747,9 @@ class AppState extends ChangeNotifier {
     scaleHints = p.getBool('scale_hints') ?? true;
     scaleOttava = p.getBool('scale_8va') ?? true;
     scaleFingers = p.getBool('scale_fingers') ?? true;
+    scaleAlt = p.getBool('scale_alt') ?? false;
+    // Dedilhados que o administrador corrigiu: o último que o app recebeu vale já na abertura (e funciona sem internet).
+    setViolinFingeringFromJson(p.getString('fing_json'));
     scaleNames = StaffNames.values[(p.getInt('scale_names') ?? StaffNames.none.index).clamp(0, StaffNames.values.length - 1)];
     dailyGoalMinutes = p.getDouble('goal') ?? 20;
     themeMode = ThemeMode.values[p.getInt('theme') ?? 0];
@@ -3827,7 +3836,28 @@ class AppState extends ChangeNotifier {
     }
     grid = PitchGrid(history: history, holdSeconds: holdSeconds <= 0 ? null : holdSeconds);
     _studyTimer = Timer.periodic(const Duration(seconds: 1), (_) => _studyTick());
+    unawaited(syncFingering());
     notifyListeners();
+  }
+
+  /// Busca os dedilhados que o administrador corrigiu ou incluiu no painel: um GET por abertura (a CDN guarda a resposta por 5 minutos,
+  /// então quase não toca o banco). Sem internet, com resposta estranha ou sem o servidor, segue com o que já tem.
+  Future<void> syncFingering() async {
+    final Uri? ep = kApiBase.isNotEmpty ? Uri.parse('$kApiBase/api/fingering') : (kIsWeb ? Uri.base.resolve('/api/fingering') : null);
+    if (ep == null) return;
+    try {
+      final r = await http.get(ep).timeout(const Duration(seconds: 8));
+      if (r.statusCode != 200 || r.body.length > 200000) return;
+      final j = jsonDecode(r.body);
+      if (j is! Map || j['items'] is! List) return; // não é a resposta esperada (ex.: página de erro): não apaga o que já vale
+      setViolinFingeringFromJson(r.body);
+      if (_prefs?.getString('fing_json') != r.body) {
+        _prefs?.setString('fing_json', r.body);
+        notifyListeners();
+      }
+    } catch (_) {
+      // sem rede: fica o que já valia
+    }
   }
 
   Future<void> _save() async {
@@ -4099,7 +4129,11 @@ class AppState extends ChangeNotifier {
 
   /// Configura o exercício de escala. [tonicPc] 0..11; a oitava é escolhida
   /// perto da corda mais grave do instrumento atual.
-  void setScale({int? tonicPc, ScaleType? type, int? octaves, bool? enabled, ScaleDirection? direction}) {
+  void setScale({int? tonicPc, ScaleType? type, int? octaves, bool? enabled, ScaleDirection? direction, bool? alt}) {
+    if (alt != null) {
+      scaleAlt = alt;
+      _prefs?.setBool('scale_alt', alt);
+    }
     if (tonicPc != null) {
       final low = instrument.strings.first.midi;
       scaleTonicMidi = low + (((tonicPc - low) % 12) + 12) % 12;

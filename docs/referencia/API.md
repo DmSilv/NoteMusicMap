@@ -3,7 +3,7 @@
 > **Gerado automaticamente** por `scripts/gen_docs.js` a partir do código. Não edite à mão: rode `node scripts/gen_docs.js`.
 > Cada endpoint é um arquivo em `api/` (uma função da Vercel). O limite do plano Hobby é **12 funções**; arquivos de teste ficam fora do deploy.
 
-Funções hoje: **8 de 12**.
+Funções hoje: **9 de 12**.
 
 ## `/api/admin`
 
@@ -39,6 +39,11 @@ Funções hoje: **8 de 12**.
   feature_set {id, mode, pct?}        off | list | pct | all
   feature_grant {id, code, students?} libera um código (e, se students, os alunos vinculados a ele)
   feature_revoke {id, code, students?} tira da lista
+ Dedilhado do violino (Flesch), editado à mão (docs/07_PAINEL_ADMIN.md):
+  fing_list                  o que vem no app (seed) e o que foi corrigido/incluído aqui (1 comando no Redis)
+  fing_rows {pc,alt,type,oct} as notas da escala (nome, 8va, corda solta) e o que está salvo para ela (0 ou 1 comando)
+  fing_save {pc,alt,type,oct,marks,ottava}  salva (vale no lugar da tabela do app); devolve avisos, sem impedir
+  fing_delete {pc,alt,type,oct}  apaga a correção daqui (volta ao que vem no app, se houver)
 
 Não há cadastro nem login no app: "usuário" = perfil anônimo (código + apelido). O apelido pertence
 ao usuário (volta a cada sincronização), por isso o painel não o edita.
@@ -62,6 +67,10 @@ Custo: só quando o admin abre o painel (kpis ~35 comandos; lista de 25 = ~27; d
 | `features` | Recursos liberados aos poucos |
 | `feature_set` | — |
 | `feature_grant` | — |
+| `fing_list` | — |
+| `fing_rows` | — |
+| `fing_save` | — |
+| `fing_delete` | — |
 | `sweep` | — |
 | `push` | Avisos de bug grave neste navegador |
 | `presence` | Presença: perfis com vínculo ligado e o app à frente |
@@ -140,6 +149,14 @@ memória da instância (e vão para o log da Vercel); com Upstash Redis ficam gu
 | Ação / tipo | Descrição (comentário do código) |
 |---|---|
 | `rating` | — |
+
+## `/api/fingering`
+
+```text
+GET /api/fingering: dedilhados do violino que o administrador corrigiu ou incluiu (ver _lib/fingering.js).
+Público e sem dado pessoal. O app busca uma vez por abertura; a CDN guarda a resposta por 5 minutos, então o Redis
+quase não é tocado (no máximo 1 comando a cada 5 minutos por região). O que vem daqui vale no lugar da tabela do app.
+```
 
 ## `/api/link`
 

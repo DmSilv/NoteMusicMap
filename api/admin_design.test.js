@@ -38,7 +38,7 @@ test('a escala de espaço é a do app (4, 8, 12, 16, 20, 24, 32) e os raios são
 test('as abas têm ícone, nome e uma dica do que mostram', () => {
   const nav = markup.slice(markup.indexOf('<nav class="tabs"'), markup.indexOf('</nav>'));
   const botoes = nav.match(/<button data-tab="[^>]+>[\s\S]*?<\/button>/g) || [];
-  assert.equal(botoes.length, 9, 'são 9 abas');
+  assert.equal(botoes.length, 10, 'são 10 abas');
   for (const b of botoes) {
     assert.match(b, /<use href="#i-[a-z]+"/, 'cada aba tem ícone');
     assert.match(b, /title="[^"]{12,}"/, 'cada aba tem uma dica');

@@ -271,6 +271,25 @@ class _GridPageState extends State<GridPage> {
     return a == other ? _spoken(a) : '${_spoken(a)}  ·  ${_spoken(other)}';
   }
 
+  /// Opções da tônica. Onde a tonalidade existe nas duas grafias (Fá♯ e Sol♭ maiores, por exemplo) cada uma é uma opção
+  /// (valor = classe + 100 para a outra grafia); nas demais, a tecla com os dois nomes.
+  List<(int, String)> _tonicOptions() {
+    final minor = app.scaleType.isMinor;
+    final out = <(int, String)>[];
+    for (var pc = 0; pc < 12; pc++) {
+      final midi = 60 + pc;
+      if (!app.scaleType.arpeggio && app.scaleType != ScaleType.chromatic && ScaleSpeller.hasAlt(midi, minor: minor)) {
+        final (l1, a1) = ScaleSpeller(midi, app.scaleType).tonicSpelling;
+        final (l2, a2) = ScaleSpeller(midi, app.scaleType, alt: true).tonicSpelling;
+        out.add((pc, _spoken(SpelledNote(l1, a1, 4).name())));
+        out.add((pc + 100, _spoken(SpelledNote(l2, a2, 4).name())));
+      } else {
+        out.add((pc, _tonicLabel(pc)));
+      }
+    }
+    return out;
+  }
+
   /// "Escala de Fá Maior" / "Escala de Lá bemol menor harmônica".
   String _scaleTitle(int tonicPc) {
     final type = app.scaleType;
@@ -293,8 +312,12 @@ class _GridPageState extends State<GridPage> {
         type == ScaleType.harmonicMinor ||
         type == ScaleType.melodicMinor;
     final flats = minor ? const {3, 10} : const {1, 3, 8, 10};
-    final nota = _spoken(noteName(tonicPc + 60,
+    var nota = _spoken(noteName(tonicPc + 60,
         app.cfg.copyWith(transpose: 0, autoSpelling: false, preferFlats: flats.contains(tonicPc) || (app.preferFlats && !minor && tonicPc != 6))));
+    if (app.scaleAltActive) {
+      final (l, a) = ScaleSpeller(app.scaleTonicMidi, type, alt: true).tonicSpelling;
+      nota = _spoken(SpelledNote(l, a, 4).name());
+    }
     return type == ScaleType.chromatic ? tr('Escala Cromática a partir de {0}', [nota]) : tr('Escala de {0} {1}', [nota, tipo]);
   }
 
@@ -362,6 +385,7 @@ class _GridPageState extends State<GridPage> {
         ottava: app.staffOttavaAuto,
         ottavaRange: app.staffOttavaRange,
         fingers: app.scaleFingering,
+        alt: app.scaleAltActive,
         maxHeight: 400,
         semanticLabel: tr('Partitura do exercício'),
       );
@@ -460,10 +484,11 @@ class _GridPageState extends State<GridPage> {
               _tile(Icons.music_note, tr('Tônica (nota inicial)'), _spoken(noteName(tonicPc + 60, names)),
                   () => _pick<int>(
                         tr('Tônica'),
-                        [for (var pc = 0; pc < 12; pc++) (pc, _tonicLabel(pc))],
-                        tonicPc,
-                        (pc) {
-                          app.setScale(tonicPc: pc);
+                        _tonicOptions(),
+                        tonicPc + (app.scaleAltActive ? 100 : 0),
+                        (v) {
+                          final pc = v % 100;
+                          app.setScale(tonicPc: pc, alt: v >= 100);
                           // Justa/pitagórica dependem da tônica: acompanha.
                           if (app.system != TuningSystem.equal) app.setTuning(tonicPc: pc);
                         },

@@ -103,6 +103,7 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `fb_rating` | feedback_service.dart |
 | `fb_snooze_until` | feedback_service.dart |
 | `fb_snoozes` | feedback_service.dart |
+| `fing_json` | app_state.dart |
 | `flash` | app_state.dart |
 | `flats` | app_state.dart |
 | `gain` | app_state.dart |
@@ -144,6 +145,7 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `report_mode` | app_state.dart |
 | `roleCardHidden` | app_state.dart |
 | `scale_8va` | app_state.dart |
+| `scale_alt` | app_state.dart |
 | `scale_dir` | app_state.dart |
 | `scale_fingers` | app_state.dart |
 | `scale_hints` | app_state.dart |
@@ -189,4 +191,4 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `verdict_rev` | app_state.dart |
 | `verdicts` | app_state.dart |
 
-Total: **115** chaves locais.
+Total: **117** chaves locais.

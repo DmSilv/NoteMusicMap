@@ -95,8 +95,8 @@ const List<int> _majorFifths = [0, 2, 4, -1, 1, 3, 5]; // Dó Ré Mi Fá Sol Lá
 /// Armadura da tonalidade de uma escala ou arpejo cuja tônica (raiz) é [tonicMidi].
 /// Maiores e menores usam a tonalidade da própria tônica; a 7ª da dominante usa a tonalidade para a qual
 /// resolve (uma quinta abaixo); a cromática usa a maior da tônica (e escreve os acidentes que faltarem).
-KeySignature keySignatureFor(int tonicMidi, ScaleType type) {
-  final sp = ScaleSpeller(tonicMidi, type);
+KeySignature keySignatureFor(int tonicMidi, ScaleType type, {bool alt = false}) {
+  final sp = ScaleSpeller(tonicMidi, type, alt: alt);
   final (letter, acc) = sp.tonicSpelling;
   final minor = type.isMinor || type == ScaleType.diminishedSeventh;
   var f = _majorFifths[letter] + 7 * acc - (minor ? 3 : 0);
@@ -259,9 +259,12 @@ StaffScore buildStaffScore({
 
   /// 8va exatamente como o livro escreve: primeira e última nota (índices da sequência); vale no lugar da regra automática.
   (int, int)? ottavaRange,
+
+  /// Outra grafia da tônica (Sol♭ em vez de Fá♯).
+  bool alt = false,
 }) {
-  final speller = ScaleSpeller(tonicMidi, type);
-  final key = keySignatureFor(tonicMidi, type);
+  final speller = ScaleSpeller(tonicMidi, type, alt: alt);
+  final key = keySignatureFor(tonicMidi, type, alt: alt);
   final n = sequence.length;
   final ticks = rhythmTicks(n, rhythm);
   final bars = <List<StaffEvent>>[];

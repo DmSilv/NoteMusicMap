@@ -39,14 +39,24 @@ class SpelledNote {
   String name({bool withOctave = false}) => '$_letterName$_accName${withOctave ? octave : ''}';
 }
 
+/// Outra grafia da mesma tônica quando as duas tonalidades existem (até 7 acidentes): Fá♯ ↔ Sol♭ (6), Dó♯ ↔ Ré♭... A chave é a classe de altura.
+const Map<int, (int, int)> _majorAlt = {1: (0, 1), 6: (4, -1), 11: (0, -1)}; // Dó♯, Sol♭, Dó♭ maiores
+const Map<int, (int, int)> _minorAlt = {3: (1, 1), 8: (5, -1), 10: (5, 1)}; // Ré♯, Lá♭, Lá♯ menores
+
 class ScaleSpeller {
   final int tonicMidi;
   final ScaleType type;
+
+  /// Usa a outra grafia da tônica (Sol♭ em vez de Fá♯), quando existe; sem efeito nas demais.
+  final bool alt;
   late final int _tonicLetter;
 
-  ScaleSpeller(this.tonicMidi, this.type) {
-    _tonicLetter = (type.isMinor ? _minorTonic : _majorTonic)[tonicMidi % 12].$1;
+  ScaleSpeller(this.tonicMidi, this.type, {this.alt = false}) {
+    _tonicLetter = tonicSpelling.$1;
   }
+
+  /// Esta tônica tem outra grafia (Fá♯ ↔ Sol♭)?
+  static bool hasAlt(int tonicMidi, {required bool minor}) => (minor ? _minorAlt : _majorAlt).containsKey(tonicMidi % 12);
 
   Map<int, int>? _letters(bool ascending) => switch (type) {
         ScaleType.major => _major,
@@ -62,7 +72,14 @@ class ScaleSpeller {
       };
 
   /// Letra (0 = Dó ... 6 = Si) e acidente da tônica, como se escreve o nome da tonalidade (base da armadura de clave).
-  (int, int) get tonicSpelling => (type.isMinor ? _minorTonic : _majorTonic)[tonicMidi % 12];
+  (int, int) get tonicSpelling {
+    final pc = tonicMidi % 12;
+    if (alt) {
+      final a = (type.isMinor ? _minorAlt : _majorAlt)[pc];
+      if (a != null) return a;
+    }
+    return (type.isMinor ? _minorTonic : _majorTonic)[pc];
+  }
 
   /// A nota [midi] escrita como estaria na partitura, subindo ou descendo.
   SpelledNote spell(int midi, {required bool ascending}) {

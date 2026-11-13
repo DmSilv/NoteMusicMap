@@ -29,6 +29,11 @@
 //   feature_set {id, mode, pct?}        off | list | pct | all
 //   feature_grant {id, code, students?} libera um código (e, se students, os alunos vinculados a ele)
 //   feature_revoke {id, code, students?} tira da lista
+//  Dedilhado do violino (Flesch), editado à mão (docs/07_PAINEL_ADMIN.md):
+//   fing_list                  o que vem no app (seed) e o que foi corrigido/incluído aqui (1 comando no Redis)
+//   fing_rows {pc,alt,type,oct} as notas da escala (nome, 8va, corda solta) e o que está salvo para ela (0 ou 1 comando)
+//   fing_save {pc,alt,type,oct,marks,ottava}  salva (vale no lugar da tabela do app); devolve avisos, sem impedir
+//   fing_delete {pc,alt,type,oct}  apaga a correção daqui (volta ao que vem no app, se houver)
 //
 // Não há cadastro nem login no app: "usuário" = perfil anônimo (código + apelido). O apelido pertence
 // ao usuário (volta a cada sincronização), por isso o painel não o edita.
@@ -49,6 +54,8 @@ const { validSubscription } = require('./_lib/webpush');
 const { K: EK, day: errDay, hour: errHour, sanitize } = require('./_lib/errors_lib');
 const features = require('./_lib/features');
 const costModel = require('./_lib/cost_model');
+const fing = require('./_lib/fingering');
+const fingSeed = require('./_lib/fingering_seed.json');
 
 const { Z } = profiles;
 
@@ -575,6 +582,51 @@ function makeHandler(deps = {}) {
         for (const c of targets) await (on ? features.grant : features.revoke)(store, cmd, id, c);
         await log(action, code, `${id}${targets.length > 1 ? ' +' + (targets.length - 1) + ' alunos' : ''}`);
         return send(200, { ok: true, changed: targets.length });
+      }
+
+      if (action === 'fing_list') {
+        const over = await fing.listOverrides(store);
+        const types = Object.entries(fing.TYPES).map(([id, t]) => ({ id, label: t.label, minor: !!t.minor, arpeggio: !!t.arpeggio, n: t.steps.length }));
+        const nameOf = (e) => {
+          const [l, a] = fing.tonicSpelling(e.pc, e.type, e.alt);
+          const tonic = ['Dó', 'Ré', 'Mi', 'Fá', 'Sol', 'Lá', 'Si'][l] + (a === 1 ? '♯' : a === -1 ? '♭' : '');
+          return tonic + ' ' + fing.TYPES[e.type].label.toLowerCase() + ' · ' + e.oct + (e.oct === 1 ? ' oitava' : ' oitavas');
+        };
+        const named = (list) => list.map((e) => ({ ...e, name: nameOf(e) }));
+        return send(200, { ok: true, seed: named(fingSeed.items), overrides: named(over), types });
+      }
+      if (action === 'fing_rows') {
+        const v = fing.validate({ pc: b.pc, alt: b.alt, type: b.type, oct: b.oct, marks: {}, ottava: null });
+        if (v.error) return send(400, { error: v.error });
+        const e = v.entry;
+        const stored = await store.hget(fing.HASH, fing.keyOf(e.pc, e.alt, e.type, e.oct));
+        let cur = null;
+        let source = null;
+        if (stored !== undefined) {
+          cur = fing.unpack(fing.keyOf(e.pc, e.alt, e.type, e.oct), stored);
+          source = 'servidor';
+        } else {
+          const s = fingSeed.items.find((x) => x.pc === e.pc && x.alt === e.alt && x.type === e.type && x.oct === e.oct);
+          if (s) { cur = s; source = 'app'; }
+        }
+        const names = (alt) => { const [l, a] = fing.tonicSpelling(e.pc, e.type, alt); return ['Dó', 'Ré', 'Mi', 'Fá', 'Sol', 'Lá', 'Si'][l] + (a === 1 ? '♯' : a === -1 ? '♭' : ''); };
+        return send(200, { ok: true, rows: fing.noteRows(e.pc, e.alt, e.type, e.oct), hasAlt: fing.hasAlt(e.pc, e.type), tonic: names(false), tonicAlt: fing.hasAlt(e.pc, e.type) ? names(true) : null, source, marks: cur ? cur.marks : {}, ottava: cur ? cur.ottava : null });
+      }
+      if (action === 'fing_save') {
+        const v = fing.validate(b);
+        if (v.error) return send(400, { error: v.error });
+        const e = v.entry;
+        await store.hset(fing.HASH, fing.keyOf(e.pc, e.alt, e.type, e.oct), fing.pack(e, now));
+        await log('fing_save', '', fing.keyOf(e.pc, e.alt, e.type, e.oct));
+        return send(200, { ok: true, warnings: v.warnings });
+      }
+      if (action === 'fing_delete') {
+        const v = fing.validate({ pc: b.pc, alt: b.alt, type: b.type, oct: b.oct });
+        if (v.error) return send(400, { error: v.error });
+        const e = v.entry;
+        await store.hdel(fing.HASH, fing.keyOf(e.pc, e.alt, e.type, e.oct));
+        await log('fing_delete', '', fing.keyOf(e.pc, e.alt, e.type, e.oct));
+        return send(200, { ok: true });
       }
 
       if (action === 'sweep') {

@@ -23,7 +23,7 @@
 - **No GitHub (manual, uma vez):** Settings › Code security: ligar *Secret scanning* e *Push protection*; Settings › Branches: proteger o `main` exigindo o CI verde.
 
 ## Limites que mordem
-1. **12 funções na Vercel Hobby.** Cada arquivo em `api/` (fora de `_lib/`) conta, **inclusive `*.test.js`**. Os testes ficam fora do deploy via `.vercelignore`. Hoje: 8 funções (`admin`, `ai-status`, `coach`, `errors`, `feedback`, `link`, `remind`, `stats`). Antes de criar um endpoint: `ls api/*.js | grep -v test | wc -l`. Se encostar em 12, **dobre ações dentro de um endpoint existente** (como `kpis`/`bugs` dentro de `admin`).
+1. **12 funções na Vercel Hobby.** Cada arquivo em `api/` (fora de `_lib/`) conta, **inclusive `*.test.js`**. Os testes ficam fora do deploy via `.vercelignore`. Hoje: 9 funções (`admin`, `ai-status`, `coach`, `errors`, `feedback`, `fingering`, `link`, `remind`, `stats`). Antes de criar um endpoint: `ls api/*.js | grep -v test | wc -l`. Se encostar em 12, **dobre ações dentro de um endpoint existente** (como `kpis`/`bugs` dentro de `admin`).
 2. **500 mil comandos/mês no Upstash (gratuito).** Veja a aba Custos. Regras: nada de polling de lista, ações novas medem custo, tetos e limites por perfil.
 3. **QStash**: uma mensagem por vez (o próximo lembrete).
 

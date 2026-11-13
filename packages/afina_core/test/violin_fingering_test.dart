@@ -78,4 +78,58 @@ void main() {
     expect(up.ottava, (18, 21)); // só a subida: do Si♭6 ao Mi♭7
     expect(down.ottava, (0, 2)); // só a descida começa no Mi♭7
   });
+
+  group('dedilhado vindo do servidor (painel do administrador)', () {
+    tearDown(() => setViolinFingeringFromJson(null));
+
+    String items(List<String> xs) => '{"v":1,"items":[${xs.join(",")}]}';
+
+    test('uma correção vale no lugar da tabela do app, e apagar volta ao app', () {
+      expect(violinFingering(tonicMidi: 58, type: ScaleType.major, octaves: 3, direction: ScaleDirection.both)![9], '1');
+      final n = setViolinFingeringFromJson(items(['{"pc":10,"alt":false,"type":"major","oct":3,"marks":{"9":"2","0":"1"},"ottava":[18,23]}']));
+      expect(n, 1);
+      final p = violinFingeringPlan(tonicMidi: 58, type: ScaleType.major, octaves: 3, direction: ScaleDirection.both)!;
+      expect(p.fingers[9], '2');
+      expect(p.fingers[0], '1');
+      expect(p.fingers[2], isNull); // o que não está na correção some (ela substitui a tabela inteira)
+      expect(p.ottava, (18, 23));
+      setViolinFingeringFromJson(items([]));
+      expect(violinFingering(tonicMidi: 58, type: ScaleType.major, octaves: 3, direction: ScaleDirection.both)![9], '1');
+    });
+
+    test('uma escala incluída no painel aparece (Ré maior, 2 oitavas), na outra grafia também', () {
+      expect(hasViolinFingering(62, ScaleType.major, 2), isFalse);
+      setViolinFingeringFromJson(items([
+        '{"pc":2,"alt":false,"type":"major","oct":2,"marks":{"0":"1"},"ottava":null}',
+        '{"pc":1,"alt":true,"type":"major","oct":1,"marks":{"3":"4"}}',
+      ]));
+      expect(hasViolinFingering(62, ScaleType.major, 2), isTrue);
+      expect(hasViolinFingering(61, ScaleType.major, 1, alt: true), isTrue);
+      expect(hasViolinFingering(61, ScaleType.major, 1), isFalse);
+      expect(violinFingeringRemoteCount, 2);
+    });
+
+    test('entrada inválida é ignorada, sem derrubar as boas', () {
+      final n = setViolinFingeringFromJson(items([
+        '{"pc":99,"alt":false,"type":"major","oct":3,"marks":{}}',
+        '{"pc":2,"alt":false,"type":"xyz","oct":3,"marks":{}}',
+        '{"pc":2,"alt":false,"type":"major","oct":9,"marks":{}}',
+        '{"pc":2,"alt":false,"type":"major","oct":1,"marks":{"99":"1"}}',
+        '{"pc":2,"alt":false,"type":"major","oct":1,"marks":{"1":"7"}}',
+        '{"pc":0,"alt":true,"type":"major","oct":1,"marks":{}}',
+        '{"pc":2,"alt":false,"type":"major","oct":1,"marks":{},"ottava":[5,2]}',
+        '{"pc":4,"alt":false,"type":"major","oct":1,"marks":{"1":"2"}}',
+        '3',
+      ]));
+      expect(n, 1);
+      expect(hasViolinFingering(64, ScaleType.major, 1), isTrue);
+    });
+
+    test('resposta que não é JSON não derruba o app (fica sem correções)', () {
+      expect(setViolinFingeringFromJson('<html>erro</html>'), 0);
+      expect(setViolinFingeringFromJson(null), 0);
+      expect(violinFingeringRemoteCount, 0);
+      expect(hasViolinFingering(58, ScaleType.major, 3), isTrue); // a tabela do app continua
+    });
+  });
 }

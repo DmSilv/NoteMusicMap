@@ -34,6 +34,7 @@ StaffScore _score(int tonic, ScaleType t, {int octaves = 1, ScaleDirection d = S
 }
 
 void main() {
+  _altTests();
   _ottavaTests();
   group('posição na pauta (clave de Sol)', () {
     test('notas de referência', () {
@@ -348,6 +349,55 @@ void _ottavaTests() {
       for (final e in s.events.where((e) => e.ottava)) {
         expect(e.writtenPos, lessThanOrEqualTo(16));
       }
+    });
+  });
+}
+
+void _altTests() {
+  group('outra grafia da tônica (Sol♭ em vez de Fá♯)', () {
+    test('armaduras: Sol♭ maior 6 bemóis, Dó♯ maior 7 sustenidos, Dó♭ maior 7 bemóis, Ré♯ menor 6 sustenidos, Lá♭ menor 7 bemóis', () {
+      expect(keySignatureFor(66, ScaleType.major).fifths, 6); // Fá♯ (padrão)
+      expect(keySignatureFor(66, ScaleType.major, alt: true).fifths, -6); // Sol♭
+      expect(keySignatureFor(61, ScaleType.major, alt: true).fifths, 7);
+      expect(keySignatureFor(71, ScaleType.major, alt: true).fifths, -7);
+      expect(keySignatureFor(63, ScaleType.naturalMinor, alt: true).fifths, 6);
+      expect(keySignatureFor(68, ScaleType.naturalMinor, alt: true).fifths, -7);
+      expect(keySignatureFor(70, ScaleType.naturalMinor, alt: true).fifths, 7);
+      // sem outra grafia, "alt" não muda nada
+      expect(keySignatureFor(60, ScaleType.major, alt: true).fifths, 0);
+    });
+
+    test('Sol♭ maior escreve Sol♭ Lá♭ Si♭ Dó♭ Ré♭ Mi♭ Fá', () {
+      final s = ScaleSpeller(66, ScaleType.major, alt: true);
+      expect([for (final m in [66, 68, 70, 71, 73, 75, 77, 78]) s.name(m, ascending: true)], ['Sol♭', 'Lá♭', 'Si♭', 'Dó♭', 'Ré♭', 'Mi♭', 'Fá', 'Sol♭']);
+      final d = ScaleSpeller(66, ScaleType.major);
+      expect(d.name(66, ascending: true), 'Fá♯');
+    });
+
+    test('ida e volta com a outra grafia, em todos os tipos, 1 a 3 oitavas e os 4 ritmos', () {
+      for (final t in ScaleType.values) {
+        for (final pc in [1, 3, 6, 8, 10, 11]) {
+          if (!ScaleSpeller.hasAlt(pc, minor: t.isMinor)) continue;
+          for (var oct = 1; oct <= 3; oct++) {
+            final tonic = 48 + pc;
+            final seq = scaleSequence(tonic, t, octaves: oct);
+            final up = scaleMidis(tonic, t, octaves: oct).length;
+            for (final r in StaffRhythm.values) {
+              final s = buildStaffScore(tonicMidi: tonic, type: t, sequence: seq, upCount: up, rhythm: r, alt: true);
+              expect(_readBack(s), seq, reason: '${t.name} pc $pc $oct oit. ${r.name}');
+              expect(s.key.fifths.abs(), lessThanOrEqualTo(7));
+            }
+          }
+        }
+      }
+    });
+
+    test('Sol♭ maior: a tabela do livro só vale na outra grafia', () {
+      expect(hasViolinFingering(66, ScaleType.major, 3, alt: true), isTrue);
+      expect(hasViolinFingering(66, ScaleType.major, 3), isFalse);
+      final p = violinFingeringPlan(tonicMidi: 66, type: ScaleType.major, octaves: 3, direction: ScaleDirection.both, alt: true)!;
+      expect(p.fingers[0], '2');
+      expect(p.ottava, (18, 26));
     });
   });
 }

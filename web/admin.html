@@ -132,6 +132,20 @@
     .spark { display: inline-flex; align-items: flex-end; gap: 1px; height: 22px; }
     .spark i { display: block; width: 4px; background: var(--accent); border-radius: 1px; min-height: 1px; opacity: .85; }
 
+    /* Partituras: formulário do dedilhado */
+    .fg-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--s12); margin-bottom: var(--s12); }
+    .fg-grid label { display: flex; flex-direction: column; gap: var(--s4); font-size: 13px; color: var(--dim); }
+    #fgList td:first-child, #fgList .tag { white-space: nowrap; }
+    .fg-head { font-size: 17px; font-weight: 800; margin: var(--s16) 0 var(--s4); }
+    .fg-sub { color: var(--dim); font-size: 13.5px; margin: 0 0 var(--s12); }
+    .fg-rows { max-height: 520px; overflow: auto; border: 1px solid var(--outline); border-radius: var(--r-ctl); margin-bottom: var(--s12); }
+    .fg-rows table td, .fg-rows table th { padding: var(--s8) var(--s12); }
+    .fg-rows tr.on td { background: rgba(31,230,143,.08); }
+    .fg-rows select { min-width: 72px; }
+    .fg-oct { display: flex; gap: var(--s12); align-items: center; flex-wrap: wrap; margin-bottom: var(--s12); }
+    .fg-oct input { width: 90px; }
+    .fg-warn { color: var(--sharp); font-size: 13.5px; margin: var(--s8) 0; }
+
     /* tabelas */
     table { width: 100%; border-collapse: collapse; font-size: 14px; }
     th { text-align: left; color: var(--dim); font-weight: 600; font-size: 12.5px; padding: var(--s8) var(--s12); }
@@ -376,6 +390,7 @@
       <button data-tab="people" role="tab" aria-selected="false" title="Perfis, vínculos, suporte e acervo"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg><span>Pessoas</span></button>
       <button data-tab="bugs" role="tab" aria-selected="false" title="Erros do app e avisos de problema grave"><svg class="i" aria-hidden="true"><use href="#i-bug"/></svg><span>Bugs</span> <span id="bugBadge" class="tag x" hidden></span></button>
       <button data-tab="features" role="tab" aria-selected="false" title="Liberar novidades aos poucos"><svg class="i" aria-hidden="true"><use href="#i-toggle"/></svg><span>Recursos</span></button>
+      <button data-tab="fing" role="tab" aria-selected="false" title="Corrigir ou incluir o dedilhado do violino (método de Flesch) que o app mostra nas partituras"><svg class="i" aria-hidden="true"><use href="#i-music"/></svg><span>Partituras</span></button>
       <button data-tab="costs" role="tab" aria-selected="false" title="Quanto custa manter o app e projeções"><svg class="i" aria-hidden="true"><use href="#i-coin"/></svg><span>Custos</span></button>
       <button data-tab="system" role="tab" aria-selected="false" title="Banco de dados, servidor e chaves configuradas"><svg class="i" aria-hidden="true"><use href="#i-server"/></svg><span>Sistema</span></button>
         <span class="tab-ind" id="tabInd"></span>
@@ -588,6 +603,24 @@
       <p class="lead">Cada novidade nasce desligada. Libere para alguns códigos, depois para uma parte dos usuários e, por fim, para todos.
         <b>Desligado</b> vale para todos (inclusive quem está na lista) e chega aos aparelhos em até 1 minuto. O servidor é quem decide; esconder no app não basta.</p>
       <div id="ffBox"><div class="empty">Carregando…</div></div>
+    </main>
+
+    <!-- ===== Partituras (dedilhado do violino) ===== -->
+    <main id="tab-fing" hidden>
+      <h2>Dedilhado do violino (Flesch)</h2>
+      <p class="lead">As escalas que já têm números de dedo no app, as que você corrigiu aqui e as que você incluiu. O que você salva vale no lugar do que vem no app e chega aos aparelhos na próxima abertura do app (em até 5 minutos).</p>
+      <div id="fgList"><div class="empty">Carregando…</div></div>
+      <h2>Editar ou incluir uma escala</h2>
+      <p class="lead">Escolha a escala e toque em <b>Carregar notas</b>. Preencha o dedo (0 a 4) só nas notas em que o livro escreve um número e deixe as outras em branco. O 8va, se o livro usar, vai de uma nota a outra.</p>
+      <div class="card" id="fgForm">
+        <div class="fg-grid">
+          <label>Tônica <select id="fgPc"></select></label>
+          <label>Tipo <select id="fgType"></select></label>
+          <label>Oitavas <select id="fgOct"></select></label>
+        </div>
+        <div class="toolbar"><button id="fgLoad">Carregar notas</button></div>
+        <div id="fgRows"></div>
+      </div>
     </main>
 
     <!-- ===== Sistema ===== -->
@@ -1884,11 +1917,139 @@
   }
   $('sysPill').onclick = function () { showTab('system'); loaded.system = true; loadSystem(); };
 
+  // ---------------- Partituras: dedilhado do violino ----------------
+  var FG = { types: [], seed: [], over: [], cur: null, source: null };
+  var FG_PC = ['Dó', 'Dó♯ / Ré♭', 'Ré', 'Ré♯ / Mi♭', 'Mi', 'Fá', 'Fá♯ / Sol♭', 'Sol', 'Sol♯ / Lá♭', 'Lá', 'Lá♯ / Si♭', 'Si'];
+  function fgKey(e) { return e.pc + '|' + (e.alt ? 1 : 0) + '|' + e.type + '|' + e.oct; }
+  function fgTag(txt, cls) { var s = document.createElement('span'); s.className = 'tag ' + (cls || ''); s.textContent = txt; return s; }
+  function loadFing() {
+    var box = $('fgList');
+    post({ action: 'fing_list' }).then(function (r) {
+      if (r.status !== 200) { box.textContent = 'Não foi possível carregar: ' + why(r); return; }
+      FG.types = r.j.types; FG.seed = r.j.seed; FG.over = r.j.overrides;
+      fgFillForm(); fgRenderList();
+    }).catch(function () { box.textContent = 'Sem conexão com o servidor.'; });
+  }
+  function fgFillForm() {
+    var pc = $('fgPc'), ty = $('fgType'), oc = $('fgOct');
+    if (!pc.options.length) { FG_PC.forEach(function (n, i) { var o = document.createElement('option'); o.value = String(i); o.textContent = n; pc.appendChild(o); }); }
+    if (!ty.options.length) { FG.types.forEach(function (x) { var o = document.createElement('option'); o.value = x.id; o.textContent = x.label; ty.appendChild(o); }); }
+    if (!oc.options.length) { [1, 2, 3, 4].forEach(function (n) { var o = document.createElement('option'); o.value = String(n); o.textContent = n + (n === 1 ? ' oitava' : ' oitavas'); oc.appendChild(o); }); oc.value = '3'; }
+  }
+  function fgRenderList() {
+    var box = $('fgList'); box.innerHTML = '';
+    var over = {}; FG.over.forEach(function (e) { over[fgKey(e)] = e; });
+    var seen = {}, list = [];
+    FG.seed.forEach(function (e) { var k = fgKey(e); seen[k] = 1; list.push(over[k] ? { e: over[k], src: 'corrigida' } : { e: e, src: 'app' }); });
+    FG.over.forEach(function (e) { if (!seen[fgKey(e)]) list.push({ e: e, src: 'nova' }); });
+    if (!list.length) { box.innerHTML = '<div class="empty">Nenhuma escala ainda. Use o formulário abaixo.</div>'; return; }
+    var tb = document.createElement('table');
+    tb.innerHTML = '<thead><tr><th>Escala</th><th>Origem</th><th>Números</th><th>8va</th><th></th></tr></thead>';
+    var body = document.createElement('tbody');
+    list.forEach(function (it) {
+      var e = it.e, tr = document.createElement('tr');
+      var td = document.createElement('td'); td.textContent = e.name; tr.appendChild(td);
+      td = document.createElement('td'); td.appendChild(it.src === 'app' ? fgTag('vem no app', '') : (it.src === 'corrigida' ? fgTag('corrigida aqui', 'i') : fgTag('incluída aqui', 's'))); tr.appendChild(td);
+      td = document.createElement('td'); td.textContent = String(Object.keys(e.marks || {}).length) + ' notas'; tr.appendChild(td);
+      td = document.createElement('td'); td.textContent = e.ottava ? ('notas ' + e.ottava[0] + ' a ' + e.ottava[1]) : 'sem 8va'; tr.appendChild(td);
+      td = document.createElement('td');
+      var b = document.createElement('button'); b.textContent = 'Editar'; b.onclick = function () { fgEdit(e); }; td.appendChild(b);
+      tr.appendChild(td); body.appendChild(tr);
+    });
+    tb.appendChild(body); var wrap = document.createElement('div'); wrap.style.overflowX = 'auto'; wrap.appendChild(tb); box.appendChild(wrap);
+  }
+  function fgEdit(e) {
+    $('fgPc').value = String(e.pc); $('fgType').value = e.type; $('fgOct').value = String(e.oct);
+    fgLoadRows(!!e.alt);
+    $('fgForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function fgSel() { return { pc: Number($('fgPc').value), type: $('fgType').value, oct: Number($('fgOct').value) }; }
+  function fgLoadRows(alt) {
+    var s = fgSel(), rows = $('fgRows');
+    rows.innerHTML = '<div class="empty">Carregando as notas…</div>';
+    post({ action: 'fing_rows', pc: s.pc, alt: !!alt, type: s.type, oct: s.oct }).then(function (r) {
+      if (r.status !== 200) { rows.textContent = 'Não foi possível carregar as notas: ' + why(r); return; }
+      FG.cur = { pc: s.pc, alt: !!alt, type: s.type, oct: s.oct }; FG.source = r.j.source;
+      fgRenderRows(r.j);
+    }).catch(function () { rows.textContent = 'Sem conexão com o servidor.'; });
+  }
+  function fgRenderRows(j) {
+    var box = $('fgRows'); box.innerHTML = '';
+    var tonic = FG.cur.alt && j.tonicAlt ? j.tonicAlt : j.tonic;
+    var ty = ''; FG.types.forEach(function (x) { if (x.id === FG.cur.type) ty = x.label.toLowerCase(); });
+    var h = document.createElement('div'); h.className = 'fg-head'; h.textContent = tonic + ' ' + ty + ' · ' + FG.cur.oct + (FG.cur.oct === 1 ? ' oitava' : ' oitavas'); box.appendChild(h);
+    var sub = document.createElement('p'); sub.className = 'fg-sub';
+    sub.textContent = j.source === 'servidor' ? 'Salvo aqui (vale no lugar do que vem no app).' : (j.source === 'app' ? 'Vem no app. Se você salvar, a sua versão passa a valer.' : 'Ainda sem dedilhado. Preencha e salve para incluir.');
+    box.appendChild(sub);
+    if (j.hasAlt) {
+      var lab = document.createElement('label'); lab.style.cssText = 'display:inline-flex;flex-direction:column;gap:4px;font-size:13px;color:var(--dim);margin-bottom:12px';
+      lab.appendChild(document.createTextNode('Grafia da tônica'));
+      var sel = document.createElement('select');
+      [[false, j.tonic], [true, j.tonicAlt]].forEach(function (p) { var o = document.createElement('option'); o.value = p[0] ? '1' : '0'; o.textContent = p[1]; sel.appendChild(o); });
+      sel.value = FG.cur.alt ? '1' : '0'; sel.onchange = function () { fgLoadRows(sel.value === '1'); };
+      lab.appendChild(sel); box.appendChild(lab);
+    }
+    var wrap = document.createElement('div'); wrap.className = 'fg-rows';
+    var tb = document.createElement('table'); tb.innerHTML = '<thead><tr><th>Nº</th><th>Sentido</th><th>Nota</th><th>Dedo</th></tr></thead>';
+    var body = document.createElement('tbody');
+    j.rows.forEach(function (r) {
+      var tr = document.createElement('tr'); if (j.marks[String(r.i)] !== undefined) tr.className = 'on';
+      var td = document.createElement('td'); td.textContent = String(r.i); tr.appendChild(td);
+      td = document.createElement('td'); td.textContent = r.asc ? 'sobe' : 'desce'; tr.appendChild(td);
+      td = document.createElement('td'); td.textContent = r.name + r.octave; if (r.open) td.appendChild(fgTag('corda solta', 'b')); tr.appendChild(td);
+      td = document.createElement('td'); var s = document.createElement('select'); s.setAttribute('data-i', String(r.i)); s.setAttribute('aria-label', 'Dedo da nota ' + r.i);
+      ['', '0', '1', '2', '3', '4'].forEach(function (v) { var o = document.createElement('option'); o.value = v; o.textContent = v === '' ? '–' : v; s.appendChild(o); });
+      s.value = j.marks[String(r.i)] !== undefined ? String(j.marks[String(r.i)]) : '';
+      s.onchange = function () { tr.className = s.value === '' ? '' : 'on'; };
+      td.appendChild(s); tr.appendChild(td); body.appendChild(tr);
+    });
+    tb.appendChild(body); wrap.appendChild(tb); box.appendChild(wrap);
+    var oc = document.createElement('div'); oc.className = 'fg-oct';
+    oc.appendChild(document.createTextNode('8va (opcional): da nota '));
+    var a = document.createElement('input'); a.type = 'number'; a.min = '0'; a.max = String(j.rows.length - 1); a.id = 'fgOa'; a.setAttribute('aria-label', 'Primeira nota sob o 8va'); oc.appendChild(a);
+    oc.appendChild(document.createTextNode(' até a nota '));
+    var z = document.createElement('input'); z.type = 'number'; z.min = '0'; z.max = String(j.rows.length - 1); z.id = 'fgOz'; z.setAttribute('aria-label', 'Última nota sob o 8va'); oc.appendChild(z);
+    if (j.ottava) { a.value = String(j.ottava[0]); z.value = String(j.ottava[1]); }
+    box.appendChild(oc);
+    var warn = document.createElement('div'); warn.className = 'fg-warn'; warn.id = 'fgWarn'; box.appendChild(warn);
+    var bar = document.createElement('div'); bar.className = 'toolbar';
+    var save = document.createElement('button'); save.className = 'primary'; save.textContent = 'Salvar'; save.onclick = fgSave; bar.appendChild(save);
+    if (j.source === 'servidor') {
+      var inSeed = FG.seed.some(function (e) { return fgKey(e) === fgKey(FG.cur); });
+      var del = document.createElement('button'); del.textContent = inSeed ? 'Voltar ao que vem no app' : 'Apagar esta escala'; del.onclick = fgDelete; bar.appendChild(del);
+    }
+    box.appendChild(bar);
+  }
+  function fgSave() {
+    var marks = {}, sels = $('fgRows').querySelectorAll('select[data-i]');
+    for (var i = 0; i < sels.length; i++) { if (sels[i].value !== '') marks[sels[i].getAttribute('data-i')] = sels[i].value; }
+    var a = $('fgOa').value, z = $('fgOz').value, ott = (a !== '' && z !== '') ? [Number(a), Number(z)] : null;
+    if ((a === '') !== (z === '')) { toast('Preencha as duas notas do 8va (ou deixe as duas em branco).', 'bad'); return; }
+    var c = FG.cur;
+    post({ action: 'fing_save', pc: c.pc, alt: c.alt, type: c.type, oct: c.oct, marks: marks, ottava: ott }).then(function (r) {
+      if (r.status === 200) {
+        toast('Salvo. Vale nos aparelhos na próxima abertura do app.', 'ok');
+        var w = r.j.warnings || []; $('fgWarn').textContent = w.length ? ('Atenção: ' + w.join(' ')) : '';
+        loadFing(); loadLog();
+      } else toast('Não foi possível salvar: ' + why(r), 'bad');
+    }).catch(function () { toast('Sem conexão com o servidor. Nada foi salvo.', 'bad'); });
+  }
+  function fgDelete() {
+    var c = FG.cur, inSeed = FG.seed.some(function (e) { return fgKey(e) === fgKey(c); });
+    askConfirm({ title: inSeed ? 'Voltar ao que vem no app?' : 'Apagar esta escala?', body: inSeed ? 'A sua correção sai e o app volta a mostrar o dedilhado que já vem nele.' : 'O dedilhado desta escala deixa de aparecer no app.', ok: inSeed ? 'Voltar' : 'Apagar', danger: !inSeed }).then(function (y) {
+      if (!y) return;
+      post({ action: 'fing_delete', pc: c.pc, alt: c.alt, type: c.type, oct: c.oct }).then(function (r) {
+        if (r.status === 200) { toast(inSeed ? 'Voltou ao que vem no app.' : 'Escala apagada.', 'ok'); loadFing(); loadLog(); fgLoadRows(c.alt); } else toast('Não foi possível: ' + why(r), 'bad');
+      }).catch(function () { toast('Sem conexão com o servidor. Nada foi alterado.', 'bad'); });
+    });
+  }
+  $('fgLoad').onclick = function () { fgLoadRows(false); };
+
   // ---------------- Abas ----------------
   var current = 'overview', loaded = {};
   function showTab(name) {
     current = name;
-    ['overview', 'visitors', 'usage', 'devices', 'people', 'bugs', 'features', 'costs', 'system'].forEach(function (t) { $('tab-' + t).hidden = t !== name; });
+    ['overview', 'visitors', 'usage', 'devices', 'people', 'bugs', 'features', 'fing', 'costs', 'system'].forEach(function (t) { $('tab-' + t).hidden = t !== name; });
     var bs = $('tabs').querySelectorAll('button'); for (var i = 0; i < bs.length; i++) { var isOn = bs[i].getAttribute('data-tab') === name; bs[i].className = isOn ? 'on' : ''; bs[i].setAttribute('aria-selected', isOn ? 'true' : 'false'); }
     var mainEl = $('tab-' + name); mainEl.classList.add('enter'); setTimeout(function () { mainEl.classList.remove('enter'); }, 1200);
     moveInd();
@@ -1900,6 +2061,7 @@
     if (name === 'bugs') { loadBugs(); loadPush(); }
     if (name === 'costs') loadCosts();
     if (name === 'features') loadFeatures();
+    if (name === 'fing') loadFing();
     if (name === 'devices') loadDevices();
     if (name === 'visitors') loadVisitors();
     if (name === 'system') loadSystem();

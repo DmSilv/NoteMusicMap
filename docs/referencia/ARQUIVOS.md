@@ -238,6 +238,7 @@
 | `api/coach.js` | Função da Vercel: POST /api/coach (IA com vários serviços e fila) Recebe um RESUMO de números (nunca áudio) e um tipo de pedido, escolhe o serviço de IA certo (Gemini, OpenAI, Claude, Groq, Mistral, OpenRouter),… |
 | `api/errors.js` | POST /api/errors: relatório de erro do app (anônimo e sem dados pessoais). O app manda o que aconteceu (código, tela, detalhe já higienizado, versão, aparelho, trilha de telas). O servidor higieniza DE NOVO (nunca… |
 | `api/feedback.js` | POST /api/feedback: nota do app e respostas das pesquisas rápidas (anônimas). GET /api/feedback: resumo para o dono do app (exige FEEDBACK_ADMIN_KEY). Privacidade: guarda só a resposta, a versão e um código do… |
+| `api/fingering.js` | GET /api/fingering: dedilhados do violino que o administrador corrigiu ou incluiu (ver _lib/fingering.js). Público e sem dado pessoal. O app busca uma vez por abertura; a CDN guarda a resposta por 5 minutos, então o… |
 | `api/link.js` | POST /api/link: vínculo entre professor e aluno, registrado dos dois lados. Quem lê o QR (ou digita o código) do outro cria o vínculo; ele passa a valer para os dois, e cada um vê o outro na sua lista na próxima… |
 | `api/remind.js` | POST /api/remind: chamado pelo QStash 15 minutos antes de uma aula. Envia a notificação ao professor e ao aluno (Web Push) e agenda o lembrete da próxima aula (se a aula é semanal). Só aceita mensagens que o próprio… |
 | `api/stats.js` | /api/stats: métricas ANÔNIMAS de uso do app. POST (o app, sem chave): { t: 'open'\|'beat', id, d?: { pl, in, v, o?, x?: { os, sc, lg, th, tc, mic, nt } }, tabs?: [...] } id = código aleatório do aparelho (NÃO é o… |
@@ -253,6 +254,7 @@
 | `api/_lib/error_store.js` | Gravação dos relatórios de erro no Redis (usada pelo endpoint do app e pelos erros do próprio servidor). Limites, agrupamento por impressão digital, reabertura e modo leve num só lugar. |
 | `api/_lib/errors_lib.js` | Regras dos relatórios de erro (iguais às do app, em `afina_core/errors.dart`): higienização, impressão digital do bug, validação do pacote e nomes das chaves no Redis. |
 | `api/_lib/features.js` | Recursos liberados aos poucos ("chaves"): cada novidade nasce desligada, é liberada por código de perfil, depois por porcentagem e, por fim, para todos. O SERVIDOR decide; o app só esconde o que não está ligado.… |
+| `api/_lib/fingering.js` | Dedilhado do violino (método de Flesch) editado pelo administrador. O app traz as escalas já conferidas (packages/afina_core/lib/violin_fingering.dart). O administrador pode corrigir uma delas ou incluir outra pelo… |
 | `api/_lib/library.js` | Acervo e Repertório do professor (só LINKS, nenhum arquivo é guardado aqui). O professor cadastra título, autor e o endereço do material (Google Drive, IMSLP, YouTube…); o aluno vinculado abre o endereço. Liberado só… |
 | `api/_lib/metrics.js` | Métricas anônimas de uso: nomes das chaves, o dia (fuso de Brasília) e o contador que o servidor soma sozinho quando algo acontece (aula enviada, vínculo criado...). Falhar aqui NUNCA pode derrubar o que o usuário… |
 | `api/_lib/profiles.js` | Índice dos perfis anônimos (código + apelido) para o painel do administrador: quando entrou, última atividade, papel (professor / aluno) e bloqueio. NÃO há cadastro nem login. Custo: 3 comandos quando o perfil nasce;… |
@@ -282,6 +284,7 @@
 | `api/errors.test.js` | Relatórios de erro do app e a aba "Bugs" do painel, sem rede: `node --test api/errors.test.js` |
 | `api/features.test.js` | Testes das chaves de recursos (liberação aos poucos): `node --test api/features.test.js` |
 | `api/feedback.test.js` | Testes da nota do app e das pesquisas rápidas, sem rede: `node --test api/feedback.test.js` |
+| `api/fingering.test.js` | Dedilhado do violino editado no painel: validação, notas de cada escala, ações do admin e a leitura pública. `node --test api/fingering.test.js` |
 | `api/funnel.test.js` | Testes do funil de ativação e da comparação de agendas do painel: `node --test api/funnel.test.js` |
 | `api/guardrails.test.js` | Guardrails de segurança da API: entradas malformadas, gigantes e hostis. Nada pode quebrar, vazar segredo ou gravar lixo. `node --test api/guardrails.test.js` |
 | `api/indicators.test.js` | Testes dos indicadores de saúde do uso no painel, sem rede: `node --test api/indicators.test.js` |
@@ -322,4 +325,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **279** arquivos mapeados.
+Total: **282** arquivos mapeados.

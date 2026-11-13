@@ -11,6 +11,7 @@
 | `/api/admin` | Painel: indicadores, perfis, bugs, saúde, custos | Painel | Chave de admin (cabeçalho) |
 | `/api/remind` | Dispara o lembrete de aula (Web Push) | QStash | Assinatura do QStash |
 | `/api/coach`, `/api/ai-status` | Análise por IA com fila | App | Cabeçalho do aparelho + limites |
+| `/api/fingering` | Dedilhados do violino corrigidos/incluídos no painel (GET; o app busca 1 vez por abertura; CDN guarda 5 min) | App | Nenhuma (dado público, sem pessoa) |
 | `/api/feedback` | Nota do app e pesquisas | App / admin | Aparelho / chave de feedback |
 
 ## Autenticação anônima (`/api/link`)
