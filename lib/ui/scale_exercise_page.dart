@@ -113,6 +113,7 @@ class ScaleExercisePage extends StatelessWidget {
       ottavaRange: app.staffOttavaRange,
       fingers: app.scaleFingering,
       alt: app.scaleAltActive,
+      paper: app.scalePaper,
       hintNow: !e.flow && !e.finished && e.waitingSeconds >= kHintAfterSeconds,
     );
   }

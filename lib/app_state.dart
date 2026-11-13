@@ -3480,6 +3480,9 @@ class AppState extends ChangeNotifier {
   /// A tônica é escrita na outra grafia (Sol♭ em vez de Fá♯, Ré♯ menor em vez de Mi♭ menor...), quando as duas existem.
   bool scaleAlt = false;
 
+  /// Cor da partitura, independente do tema do app: igual ao app, sempre clara ou sempre escura.
+  StaffPaper scalePaper = StaffPaper.auto;
+
   /// "alt" que de fato vale: só quando a tônica atual tem outra grafia.
   bool get scaleAltActive => scaleAlt && ScaleSpeller.hasAlt(scaleTonicMidi, minor: scaleType.isMinor);
 
@@ -3748,6 +3751,7 @@ class AppState extends ChangeNotifier {
     scaleOttava = p.getBool('scale_8va') ?? true;
     scaleFingers = p.getBool('scale_fingers') ?? true;
     scaleAlt = p.getBool('scale_alt') ?? false;
+    scalePaper = StaffPaper.values[(p.getInt('scale_paper') ?? 0).clamp(0, StaffPaper.values.length - 1)];
     // Dedilhados que o administrador corrigiu: o último que o app recebeu vale já na abertura (e funciona sem internet).
     setViolinFingeringFromJson(p.getString('fing_json'));
     scaleNames = StaffNames.values[(p.getInt('scale_names') ?? StaffNames.none.index).clamp(0, StaffNames.values.length - 1)];
@@ -4151,7 +4155,11 @@ class AppState extends ChangeNotifier {
   }
 
   /// Ajustes da partitura (só mudam como ela é escrita e mostrada; o exercício toca igual).
-  void setStaff({bool? on, StaffRhythm? rhythm, StaffNames? names, bool? hints, bool? ottava, bool? fingers}) {
+  void setStaff({bool? on, StaffRhythm? rhythm, StaffNames? names, bool? hints, bool? ottava, bool? fingers, StaffPaper? paper}) {
+    if (paper != null) {
+      scalePaper = paper;
+      _prefs?.setInt('scale_paper', paper.index);
+    }
     if (fingers != null) {
       scaleFingers = fingers;
       _prefs?.setBool('scale_fingers', fingers);

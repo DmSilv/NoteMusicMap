@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:afina/ui/staff_card.dart';
@@ -47,6 +48,16 @@ Future<void> _png(WidgetTester tester, Key key, String name) async {
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
     await File('$dir/$name.png').writeAsBytes(data!.buffer.asUint8List());
   });
+}
+
+double _lum(Color c) {
+  double ch(double v) => v <= 0.03928 ? v / 12.92 : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
+  return 0.2126 * ch(c.r) + 0.7152 * ch(c.g) + 0.0722 * ch(c.b);
+}
+
+double _contrast(Color a, Color b) {
+  final la = _lum(a), lb = _lum(b);
+  return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
 }
 
 void main() {
@@ -117,6 +128,39 @@ void main() {
     expect(tester.getSize(find.byType(StaffView)).height, h1);
   });
 
+  test('a cor da partitura é independente do tema do app: clara ou escura em qualquer tema', () {
+    for (final appDark in [false, true]) {
+      AppColors.dark = appDark;
+      final l = StaffColors.fromTheme(StaffPaper.light);
+      final d = StaffColors.fromTheme(StaffPaper.dark);
+      expect(l.paper, const Color(0xFFFFFFFF));
+      expect(l.ink, const Color(0xFF111B25));
+      expect(d.paper, const Color(0xFF000000));
+      expect(d.ink, const Color(0xFFFFFFFF));
+      // "igual ao app" segue o tema
+      expect(StaffColors.fromTheme().paper, appDark ? d.paper : l.paper);
+      // as cores das notas tocadas contrastam com o fundo escolhido (nada de verde claro sobre papel branco)
+      expect(_contrast(l.inTune, l.paper), greaterThan(4.0));
+      expect(_contrast(l.flat, l.paper), greaterThan(4.0));
+      expect(_contrast(l.sharp, l.paper), greaterThan(4.0));
+      expect(_contrast(d.inTune, d.paper), greaterThan(7.0));
+      expect(_contrast(d.flat, d.paper), greaterThan(5.0));
+      expect(_contrast(d.sharp, d.paper), greaterThan(7.0));
+      expect(_contrast(l.ink, l.paper), greaterThan(12.0));
+      expect(_contrast(d.ink, d.paper), greaterThan(18.0));
+    }
+  });
+
+  testWidgets('o cartão usa o fundo escolhido, mesmo com o app no outro tema', (tester) async {
+    AppColors.dark = true;
+    await tester.pumpWidget(_host(StaffCard(tonicMidi: 55, type: ScaleType.major, sequence: scaleSequence(55, ScaleType.major), upCount: 8, paper: StaffPaper.light), dark: true));
+    final box = tester.widget<Container>(find.descendant(of: find.byType(StaffCard), matching: find.byType(Container)).first);
+    expect((box.decoration as BoxDecoration).color, const Color(0xFFFFFFFF));
+    await tester.pumpWidget(_host(StaffCard(tonicMidi: 55, type: ScaleType.major, sequence: scaleSequence(55, ScaleType.major), upCount: 8, paper: StaffPaper.dark), dark: false));
+    final box2 = tester.widget<Container>(find.descendant(of: find.byType(StaffCard), matching: find.byType(Container)).first);
+    expect((box2.decoration as BoxDecoration).color, const Color(0xFF000000));
+  });
+
   test('o fundo da partitura é preto puro no escuro e a tinta é branca', () {
     AppColors.dark = true;
     final d = StaffColors.fromTheme();
@@ -172,6 +216,8 @@ void main() {
     final s8 = buildStaffScore(tonicMidi: 72, type: ScaleType.melodicMinor, sequence: seq8, upCount: scaleMidis(72, ScaleType.melodicMinor, octaves: 2).length, rhythm: StaffRhythm.triplet, ottava: true, fingers: [for (var i = 0; i < seq8.length; i++) (i % 4 == 0) ? '${1 + (i ~/ 4) % 4}' : null]);
     await shot('q_8va_triplet_light', StaffView(score: s8, current: 17, maxHeight: 420, hints: true));
     await shot('r_8va_triplet_dark', StaffView(score: s8, current: 20, maxHeight: 420, hints: true), dark: true);
+    await shot('s_light_paper_in_dark_app', StaffView(score: cm, current: 5, marks: marks, colors: StaffColors.light), dark: true);
+    await shot('t_dark_paper_in_light_app', StaffView(score: cm, current: 5, marks: marks, colors: StaffColors.dark), dark: false);
     await shot('i_narrow_300_dark', StaffView(score: _score(60, ScaleType.melodicMinor, r: StaffRhythm.triplet), current: 0), dark: true, width: 300);
   });
 }

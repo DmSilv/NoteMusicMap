@@ -386,6 +386,7 @@ class _GridPageState extends State<GridPage> {
         ottavaRange: app.staffOttavaRange,
         fingers: app.scaleFingering,
         alt: app.scaleAltActive,
+        paper: app.scalePaper,
         maxHeight: 400,
         semanticLabel: tr('Partitura do exercício'),
       );

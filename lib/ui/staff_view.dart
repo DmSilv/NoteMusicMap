@@ -18,14 +18,30 @@ class StaffColors {
   final Color sharp;
   const StaffColors({required this.paper, required this.ink, required this.dim, required this.inTune, required this.flat, required this.sharp});
 
-  factory StaffColors.fromTheme() => StaffColors(
-        paper: AppColors.dark ? const Color(0xFF000000) : AppColors.surface,
-        ink: AppColors.dark ? const Color(0xFFFFFFFF) : AppColors.text,
-        dim: AppColors.textDim,
-        inTune: AppColors.inTune,
-        flat: AppColors.flat,
-        sharp: AppColors.sharp,
-      );
+  /// Cores fixas de cada fundo: não dependem do tema do app, então a partitura pode ser clara dentro de um app escuro
+  /// (e o contrário) sem perder leitura. As cores das notas tocadas são as mesmas da agulha em cada tema.
+  static const StaffColors light = StaffColors(
+    paper: Color(0xFFFFFFFF),
+    ink: Color(0xFF111B25),
+    dim: Color(0xFF4C5C6C),
+    inTune: Color(0xFF0B7F57),
+    flat: Color(0xFF1E62BD),
+    sharp: Color(0xFFB05400),
+  );
+  static const StaffColors dark = StaffColors(
+    paper: Color(0xFF000000),
+    ink: Color(0xFFFFFFFF),
+    dim: Color(0xFF8FA0B1),
+    inTune: Color(0xFF1FE68F),
+    flat: Color(0xFF2E9BFF),
+    sharp: Color(0xFFFF9226),
+  );
+
+  /// [paper] decide: seguir o tema do app (padrão), sempre clara ou sempre escura.
+  factory StaffColors.fromTheme([StaffPaper paper = StaffPaper.auto]) {
+    final isDark = switch (paper) { StaffPaper.auto => AppColors.dark, StaffPaper.light => false, StaffPaper.dark => true };
+    return isDark ? dark : light;
+  }
 
   Color of(StaffMark m) => switch (m) { StaffMark.inTune => inTune, StaffMark.flat => flat, StaffMark.sharp => sharp };
 }

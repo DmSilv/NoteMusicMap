@@ -44,6 +44,26 @@ List<Widget> staffSettingRows(AppState app) => [
       ),
       if (app.scaleStaff) ...[
         DsSettingRow(
+          label: tr('Cor da partitura'),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<StaffPaper>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: StaffPaper.auto, label: Text(tr('Igual ao app'))),
+                  ButtonSegment(value: StaffPaper.light, label: Text(tr('Clara'))),
+                  ButtonSegment(value: StaffPaper.dark, label: Text(tr('Escura'))),
+                ],
+                selected: {app.scalePaper},
+                onSelectionChanged: (v) => app.setStaff(paper: v.first),
+              ),
+            ),
+            const DsGap(Ds.s8),
+            Text(tr('Só a partitura: clara é papel branco com tinta preta, escura é fundo preto com tinta branca, em qualquer tema do app.'), style: Ds.support()),
+          ]),
+        ),
+        DsSettingRow(
           label: tr('Como escrever as notas'),
           child: Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
             for (final r in StaffRhythm.values)

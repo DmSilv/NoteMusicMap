@@ -32,6 +32,9 @@ class StaffCard extends StatefulWidget {
   final List<String?>? fingers;
   final bool alt;
 
+  /// Cor da partitura (igual ao app, sempre clara ou sempre escura).
+  final StaffPaper paper;
+
   const StaffCard({
     super.key,
     required this.tonicMidi,
@@ -50,6 +53,7 @@ class StaffCard extends StatefulWidget {
     this.ottavaRange,
     this.fingers,
     this.alt = false,
+    this.paper = StaffPaper.auto,
   });
 
   @override
@@ -73,7 +77,7 @@ class _StaffCardState extends State<StaffCard> {
   @override
   Widget build(BuildContext context) {
     final w = widget;
-    final cols = StaffColors.fromTheme();
+    final cols = StaffColors.fromTheme(w.paper);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(8, 10, 8, 8),

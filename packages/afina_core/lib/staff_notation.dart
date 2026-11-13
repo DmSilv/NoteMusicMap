@@ -125,6 +125,10 @@ enum StaffRhythm {
   triplet,
 }
 
+/// Cor da partitura, independente do tema do app: igual ao app, sempre clara (papel branco, tinta preta) ou sempre escura
+/// (fundo preto, tinta branca).
+enum StaffPaper { auto, light, dark }
+
 /// Quando escrever o nome das notas embaixo da pauta.
 enum StaffNames {
   /// Nunca (só a partitura).

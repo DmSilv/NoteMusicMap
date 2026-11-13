@@ -21,4 +21,9 @@ const Map<String, String> kEnB12 = {
   'Dedilhado do Flesch': 'Flesch fingering',
   'Ligado': 'On',
   'Números dos dedos em cima das notas, como no método. Só nas escalas já conferidas com o livro.': 'Finger numbers above the notes, as in the method book. Only for scales already checked against the book.',
+  'Cor da partitura': 'Sheet music color',
+  'Igual ao app': 'Same as the app',
+  'Clara': 'Light',
+  'Escura': 'Dark',
+  'Só a partitura: clara é papel branco com tinta preta, escura é fundo preto com tinta branca, em qualquer tema do app.': 'Sheet music only: light is white paper with black ink, dark is a black background with white ink, in any app theme.',
 };
