@@ -217,7 +217,7 @@
 | `packages/afina_core/test/rhythm_challenge_test.dart` | Sorteia [n] compassos e devolve a decisão de cada um. |
 | `packages/afina_core/test/scale_coach_test.dart` | Passos de uma escala em que cada nota (pitch class) tem um viés fixo. |
 | `packages/afina_core/test/scale_flow_test.dart` | Sol maior, 1 oitava. |
-| `packages/afina_core/test/scale_spelling_test.dart` | maiores: Fá♯ (padrão) e Sol♭ (outra grafia) são a mesma tecla |
+| `packages/afina_core/test/scale_spelling_test.dart` | Lá♭ (pc 8): maior só tem esta grafia; menor tem Sol♯ (comum) e Lá♭ (outra) |
 | `packages/afina_core/test/scale_waiting_test.dart` | Testes do módulo `scale_waiting`. |
 | `packages/afina_core/test/speed_trainer_test.dart` | Renderiza [seconds] segundos e devolve os eventos de "primeiro tempo" de cada compasso. |
 | `packages/afina_core/test/staff_layout_test.dart` | perto: no máximo ~3 espaços acima do alto da nota (ou da haste) |

@@ -37,6 +37,15 @@ const Map<int, int> _diminished7 = {0: 0, 3: 2, 6: 4, 9: 5}; // a 7ª diminuta e
   return null;
 }
 
+/// Ao trocar só o TIPO da escala (Maior -> Menor melódica) mantém o nome que a pessoa escolheu: Lá♭ maior vira Lá♭ menor (e não Sol♯ menor).
+/// Devolve a "outra grafia" (alt) que vale no novo tipo, ou null se não há o que mudar (cromática, arpejos ou tonalidade que não existe
+/// com esse nome: Sol♯ maior não existe, então fica a grafia comum).
+bool? altKeepingSpelling(int tonicMidi, ScaleType from, bool fromAlt, ScaleType to) {
+  if (to == ScaleType.chromatic || to.arpeggio || from == ScaleType.chromatic || from.arpeggio) return null;
+  final (l, a) = ScaleSpeller(tonicMidi, from, alt: fromAlt && ScaleSpeller.hasAlt(tonicMidi, minor: from.isMinor)).tonicSpelling;
+  return tonicForSpelling(l, a, to)?.alt;
+}
+
 /// Uma nota escrita: letra, acidente e oitava (convenção científica: Dó4 = dó central).
 class SpelledNote {
   final int letter;

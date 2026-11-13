@@ -9,6 +9,21 @@ String _seq(int tonic, ScaleType t, {required bool up}) {
 }
 
 void main() {
+  test('trocar só o tipo mantém o nome da tônica (Lá♭ maior -> Lá♭ menor, Sol♯ menor -> Sol♯ maior não existe)', () {
+    // Lá♭ (pc 8): maior só tem esta grafia; menor tem Sol♯ (comum) e Lá♭ (outra)
+    expect(altKeepingSpelling(56, ScaleType.major, false, ScaleType.melodicMinor), isTrue);
+    expect(altKeepingSpelling(56, ScaleType.melodicMinor, true, ScaleType.major), isFalse);
+    // Ré♭ maior -> menor: Ré♭ menor não existe (8 bemóis): fica como está
+    expect(altKeepingSpelling(61, ScaleType.major, false, ScaleType.melodicMinor), isNull);
+    // Dó♯ menor -> Dó♯ maior (7 sustenidos, outra grafia do Ré♭)
+    expect(altKeepingSpelling(61, ScaleType.melodicMinor, false, ScaleType.major), isTrue);
+    // Mi♭ maior -> Mi♭ menor melódica: grafia comum nos dois
+    expect(altKeepingSpelling(63, ScaleType.major, false, ScaleType.melodicMinor), isFalse);
+    // cromática e arpejos não mexem
+    expect(altKeepingSpelling(56, ScaleType.major, false, ScaleType.chromatic), isNull);
+    expect(altKeepingSpelling(56, ScaleType.major, false, ScaleType.majorTriad), isNull);
+  });
+
   tearDown(() => Lang.current = AppLang.pt);
 
   group('Dó menor melódica (Flesch): sobe com Lá e Si naturais, desce com Si♭ e Lá♭', () {

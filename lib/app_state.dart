@@ -4141,6 +4141,14 @@ class AppState extends ChangeNotifier {
   /// Configura o exercício de escala. [tonicPc] 0..11; a oitava é escolhida
   /// perto da corda mais grave do instrumento atual.
   void setScale({int? tonicPc, ScaleType? type, int? octaves, bool? enabled, ScaleDirection? direction, bool? alt}) {
+    // trocar só o tipo (Maior -> Menor melódica) mantém o nome da tônica que a pessoa escolheu: Lá♭ maior vira Lá♭ menor, não Sol♯ menor
+    if (type != null && tonicPc == null && alt == null && type != scaleType) {
+      final keep = altKeepingSpelling(scaleTonicMidi, scaleType, scaleAlt, type);
+      if (keep != null && keep != scaleAlt) {
+        scaleAlt = keep;
+        _prefs?.setBool('scale_alt', keep);
+      }
+    }
     if (alt != null) {
       scaleAlt = alt;
       _prefs?.setBool('scale_alt', alt);
