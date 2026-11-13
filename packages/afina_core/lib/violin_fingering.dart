@@ -67,8 +67,8 @@ const List<_Entry> _violin = [
   _Entry(0, false, ScaleType.major, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '4', 26: '3', 29: '3'}),
   // Fá maior, a partir do Fá4. Molde das maiores; 8va nas 6 notas do topo (como Mi♭ maior).
   _Entry(5, false, ScaleType.major, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '4', 26: '3', 29: '3'}, ottava: (18, 23)),
-  // Lá♭ maior, a partir do Lá♭3 (corda Sol). Sem cordas soltas na escala. Só um 4 no topo (nota 21) e a nota 29 é 2 (nas outras é 3). Sem 8va.
-  _Entry(8, false, ScaleType.major, 3, {9: '1', 15: '1', 17: '1', 21: '4', 26: '3', 29: '2'}),
+  // Lá♭ maior, a partir do Lá♭3 (corda Sol). Sem cordas soltas na escala. Só um 4 no topo (nota 22; 1º dedo nas notas 10, 16 e 18, contadas cabeça a cabeça) e a nota 29 é 2 (nas outras é 3). Sem 8va.
+  _Entry(8, false, ScaleType.major, 3, {10: '1', 16: '1', 18: '1', 22: '4', 26: '3', 29: '2'}),
   // Ré♭ maior, a partir do Ré♭4. Molde das maiores; sem 8va.
   _Entry(1, false, ScaleType.major, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '4', 26: '3', 29: '3'}),
   // Si maior, a partir do Si3 (corda Sol). Só um 4 no topo (nota 22) e corda solta Mi5 na descida (nota 32). Sem 8va.
@@ -76,17 +76,17 @@ const List<_Entry> _violin = [
   // Mi maior, a partir do Mi4. Molde das maiores; sem 8va.
   _Entry(4, false, ScaleType.major, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '4', 26: '3', 29: '3'}),
   // Lá maior, a partir do Lá3 (corda Sol): 4º dedo no Ré4 e no Lá4 subindo; descendo 2 na nota 29 e cordas soltas Mi5, Lá4 e Ré4 (31, 35 e 39).
-  _Entry(9, false, ScaleType.major, 3, {3: '4', 7: '4', 9: '1', 15: '1', 17: '1', 21: '4', 26: '3', 29: '2', 31: '0', 35: '0', 39: '0'}),
+  _Entry(9, false, ScaleType.major, 3, {3: '4', 7: '4', 10: '1', 16: '1', 18: '1', 22: '4', 26: '3', 29: '2', 31: '0', 35: '0', 39: '0'}),
   // Sol maior, a partir do Sol3 (corda Sol solta): 4º dedo no Ré4 e no Lá4 subindo; só um 1 na 2ª oitava (nota 17); 4 na nota 26 e cordas
   // soltas Mi5, Lá4 e Ré4 descendo (30, 34 e 38).
-  _Entry(7, false, ScaleType.major, 3, {4: '4', 8: '4', 9: '1', 17: '1', 21: '4', 22: '4', 26: '4', 30: '0', 34: '0', 38: '0'}),
+  _Entry(7, false, ScaleType.major, 3, {4: '4', 8: '4', 11: '1', 17: '1', 21: '4', 22: '4', 26: '4', 30: '0', 34: '0', 38: '0'}),
   // Menores (melódicas: sobem com a sexta e a sétima maiores e descem naturais)
   // Lá menor, a partir do Lá3 (corda Sol). Sem os 4 do topo; 3 e 4 na descida (24 e 27) e cordas soltas Mi5, Lá4 e Ré4 (31, 35 e 39).
-  _Entry(9, false, ScaleType.melodicMinor, 3, {3: '4', 7: '4', 9: '1', 15: '1', 17: '1', 24: '3', 27: '4', 31: '0', 35: '0', 39: '0'}),
+  _Entry(9, false, ScaleType.melodicMinor, 3, {3: '4', 7: '4', 10: '1', 16: '1', 18: '1', 24: '3', 27: '4', 31: '0', 35: '0', 39: '0'}),
   // Ré menor, a partir do Ré4 (corda Sol, 3ª posição, 2º dedo, como no Ré maior). Molde das menores.
   _Entry(2, false, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
   // Sol menor, a partir do Sol3: 4º dedo no Ré4 e no Lá4 subindo; 2 na nota 23; cordas soltas Lá4 e Ré4 descendo (34 e 38).
-  _Entry(7, false, ScaleType.melodicMinor, 3, {4: '4', 8: '4', 9: '1', 17: '1', 21: '4', 22: '3', 23: '2', 24: '3', 27: '3', 34: '0', 38: '0'}),
+  _Entry(7, false, ScaleType.melodicMinor, 3, {4: '4', 8: '4', 11: '1', 17: '1', 21: '4', 22: '3', 23: '2', 24: '3', 27: '3', 34: '0', 38: '0'}),
   // Dó menor, a partir do Dó4. Molde das menores.
   _Entry(0, false, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
   // Fá menor, a partir do Fá4. Molde das menores; 8va nas 6 notas do topo.
@@ -95,13 +95,13 @@ const List<_Entry> _violin = [
   _Entry(10, false, ScaleType.melodicMinor, 3, {0: '2', 6: '4', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
   // Sol♯ menor, a partir do Sol♯3 (corda Sol). Só um 1 na 2ª oitava (nota 17) e um 2 perto do fim (nota 40). Primeiras notas: o livro escreve
   // números que não deu para ler com segurança (veja o relatório).
-  _Entry(8, false, ScaleType.melodicMinor, 3, {0: '1', 1: '2', 2: '2', 9: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 40: '2'}),
+  _Entry(8, false, ScaleType.melodicMinor, 3, {0: '1', 1: '2', 2: '2', 11: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 40: '2'}),
   // Dó♯ menor, a partir do Dó♯4. Molde das menores.
   _Entry(1, false, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
   // Fá♯ menor, a partir do Fá♯4. Molde das menores; 8va nas 6 notas do topo.
   _Entry(6, false, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}, ottava: (18, 23)),
   // Si menor, a partir do Si3 (corda Sol): 4º dedo no Ré4 e no Lá4 subindo; cordas soltas Lá4 e Ré4 descendo (36 e 40).
-  _Entry(11, false, ScaleType.melodicMinor, 3, {0: '2', 2: '4', 6: '4', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2', 36: '0', 40: '0'}),
+  _Entry(11, false, ScaleType.melodicMinor, 3, {0: '2', 2: '4', 6: '4', 9: '1', 16: '1', 18: '1', 22: '4', 23: '3', 24: '3', 27: '3', 34: '2', 36: '0', 40: '0'}),
   // Mi menor, a partir do Mi4. Molde das menores.
   _Entry(4, false, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
   // ---- A outra grafia das mesmas escalas (as notas são as mesmas, então o dedilhado e o 8va também): o livro só traz uma grafia de cada. ----
@@ -114,7 +114,7 @@ const List<_Entry> _violin = [
   // Ré♯ menor melódica (mesmas notas do Mi♭ menor).
   _Entry(3, true, ScaleType.melodicMinor, 3, {0: '2', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}, ottava: (18, 23)),
   // Lá♭ menor melódica (mesmas notas do Sol♯ menor).
-  _Entry(8, true, ScaleType.melodicMinor, 3, {0: '1', 1: '2', 2: '2', 9: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 40: '2'}),
+  _Entry(8, true, ScaleType.melodicMinor, 3, {0: '1', 1: '2', 2: '2', 11: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 40: '2'}),
   // Lá♯ menor melódica (mesmas notas do Si♭ menor).
   _Entry(10, true, ScaleType.melodicMinor, 3, {0: '2', 6: '4', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
   // ---- Arpejos do Nº 5 (logo depois da escala), 3 oitavas, em linhas de 3 compassos: cada compasso é um arpejo que sobe 3 oitavas e desce, e o
