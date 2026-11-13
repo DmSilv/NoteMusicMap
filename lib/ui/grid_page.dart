@@ -269,12 +269,8 @@ class _GridPageState extends State<GridPage> {
   String _scaleTitle(int tonicPc) {
     final type = app.scaleType;
     if (type.arpeggio) {
-      // Arpejos: grafia da raiz (Lá bemol, Fá sustenido) como nas tonalidades.
-      final minorChord = type.isMinor;
-      final flatsA = minorChord ? const {3, 10} : const {1, 3, 8, 10};
-      final raiz = _spoken(noteName(tonicPc + 60,
-          app.cfg.copyWith(transpose: 0, autoSpelling: false, preferFlats: flatsA.contains(tonicPc) || (app.preferFlats && !minorChord && tonicPc != 6))));
-      return type.display(raiz);
+      // Arpejos: a mesma grafia da raiz que a partitura usa (Lá bemol, Fá sustenido, 7ª diminuta de Dó sustenido).
+      return type.display(_spoken(tonicNameFor(app.scaleTonicMidi, type, alt: app.scaleAlt)));
     }
     final tipo = switch (type) {
       ScaleType.major => tr('Maior'),
@@ -282,17 +278,14 @@ class _GridPageState extends State<GridPage> {
       ScaleType.majorPentatonic => tr('Pentatônica Maior'),
       _ => type.label.isEmpty ? type.label : type.label[0].toLowerCase() + type.label.substring(1),
     };
-    // Grafia usual das tonalidades: Lá bemol Maior, Fá sustenido menor etc.
+    // Grafia usual das tonalidades (Lá bemol Maior, Fá sustenido menor...), a mesma da partitura e do seletor de tônica. A cromática segue a preferência de bemóis.
     final minor = type == ScaleType.naturalMinor ||
         type == ScaleType.harmonicMinor ||
         type == ScaleType.melodicMinor;
     final flats = minor ? const {3, 10} : const {1, 3, 8, 10};
-    var nota = _spoken(noteName(tonicPc + 60,
-        app.cfg.copyWith(transpose: 0, autoSpelling: false, preferFlats: flats.contains(tonicPc) || (app.preferFlats && !minor && tonicPc != 6))));
-    if (app.scaleAltActive) {
-      final (l, a) = ScaleSpeller(app.scaleTonicMidi, type, alt: true).tonicSpelling;
-      nota = _spoken(SpelledNote(l, a, 4).name());
-    }
+    final nota = _spoken(type == ScaleType.chromatic
+        ? noteName(tonicPc + 60, app.cfg.copyWith(transpose: 0, autoSpelling: false, preferFlats: flats.contains(tonicPc) || (app.preferFlats && !minor && tonicPc != 6)))
+        : tonicNameFor(app.scaleTonicMidi, type, alt: app.scaleAlt));
     return type == ScaleType.chromatic ? tr('Escala Cromática a partir de {0}', [nota]) : tr('Escala de {0} {1}', [nota, tipo]);
   }
 
@@ -643,7 +636,7 @@ class _GridPageState extends State<GridPage> {
           padding: const EdgeInsets.all(20),
           children: [
             Text(
-              app.scaleType.display(noteName(app.scaleTonicMidi, app.cfg)),
+              app.scaleType.display(app.scaleTonicName),
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 4),

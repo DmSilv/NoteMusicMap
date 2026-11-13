@@ -9,6 +9,21 @@ String _seq(int tonic, ScaleType t, {required bool up}) {
 }
 
 void main() {
+  test('nome da tônica para títulos: o mesmo da partitura, com a outra grafia quando pedida', () {
+    expect(tonicNameFor(61, ScaleType.major), 'Ré♭');
+    expect(tonicNameFor(61, ScaleType.major, alt: true), 'Dó♯');
+    expect(tonicNameFor(61, ScaleType.melodicMinor), 'Dó♯');
+    expect(tonicNameFor(56, ScaleType.melodicMinor), 'Sol♯');
+    expect(tonicNameFor(56, ScaleType.melodicMinor, alt: true), 'Lá♭');
+    expect(tonicNameFor(66, ScaleType.major), 'Fá♯');
+    expect(tonicNameFor(66, ScaleType.major, alt: true), 'Sol♭');
+    // arpejos: a outra grafia não existe; a 7ª diminuta de Ré♭ chama-se Dó♯ (como a partitura)
+    expect(tonicNameFor(61, ScaleType.majorTriad, alt: true), 'Ré♭');
+    expect(tonicNameFor(61, ScaleType.diminishedSeventh), 'Dó♯');
+    expect(tonicNameFor(63, ScaleType.diminishedSeventh), 'Ré♯');
+    expect(tonicNameFor(60, ScaleType.dominantSeventh), 'Dó');
+  });
+
   test('arpejos validados nas 12 tonalidades: tríades e 7ª da dominante em terças de letras, sem dobrados; 7ª diminuta sem dobrados', () {
     for (var pc = 0; pc < 12; pc++) {
       final tonic = 55 + ((pc - 55) % 12 + 12) % 12;

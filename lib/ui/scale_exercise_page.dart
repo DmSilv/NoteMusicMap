@@ -23,7 +23,7 @@ class ScaleExercisePage extends StatelessWidget {
   const ScaleExercisePage({super.key, required this.app});
 
   String get _title =>
-      tr('{0} · {1} oitava{2}', [app.scaleType.display(noteName(app.scaleTonicMidi, app.cfg)), app.scaleOctaves, app.scaleOctaves > 1 ? 's' : '']);
+      tr('{0} · {1} oitava{2}', [app.scaleType.display(app.scaleTonicName), app.scaleOctaves, app.scaleOctaves > 1 ? 's' : '']);
 
   @override
   Widget build(BuildContext context) {

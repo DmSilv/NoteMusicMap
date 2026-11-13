@@ -43,6 +43,14 @@ bool _dim7Sharp(int tonicMidi) => _dim7SharpRoot.containsKey(tonicMidi % 12);
   return null;
 }
 
+/// O nome da tônica como a partitura a escreve ("Lá♭", "Dó♯"), o mesmo da escolha de tônica e dos títulos: título, partitura e seletor não discordam.
+/// [alt] pede a outra grafia (Sol♭ em vez de Fá♯), quando existe. Arpejos e cromática seguem a grafia comum.
+String tonicNameFor(int tonicMidi, ScaleType type, {bool alt = false}) {
+  final useAlt = alt && ScaleSpeller.hasAlt(tonicMidi, minor: type.isMinor);
+  final (l, a) = ScaleSpeller(tonicMidi, type, alt: useAlt).tonicSpelling;
+  return SpelledNote(l, a, 4).name();
+}
+
 /// Ao trocar só o TIPO da escala (Maior -> Menor melódica) mantém o nome que a pessoa escolheu: Lá♭ maior vira Lá♭ menor (e não Sol♯ menor).
 /// Devolve a "outra grafia" (alt) que vale no novo tipo, ou null se não há o que mudar (cromática, arpejos ou tonalidade que não existe
 /// com esse nome: Sol♯ maior não existe, então fica a grafia comum).

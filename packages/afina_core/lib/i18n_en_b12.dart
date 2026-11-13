@@ -45,6 +45,6 @@ const Map<String, String> kEnB12 = {
   'Outro nome da tônica (Lá♭ em vez de Sol♯) e outros tipos de escala.': 'Another name for the tonic (A♭ instead of G♯) and other scale types.',
   'O menor aqui é o melódico, o do método de Flesch.': 'The minor here is the melodic minor, the one in the Flesch method.',
   'Toque na nota em que a escala começa.': 'Tap the note the scale starts on.',
-  'Números dos dedos, só nas escalas já conferidas.': 'Finger numbers, only for scales already checked.',
+  'Números dos dedos, só nas escalas e arpejos já conferidos.': 'Finger numbers, only for scales and arpeggios already checked.',
   'Só muda como as notas aparecem; o exercício é o mesmo.': 'This only changes how the notes appear; the exercise is the same.',
 };

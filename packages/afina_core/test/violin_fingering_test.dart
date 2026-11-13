@@ -147,6 +147,14 @@ void main() {
     }
   });
 
+  test('entrada de arpejo com outra grafia vinda do servidor é ignorada', () {
+    final n = setViolinFingeringFromJson('{"v":1,"items":[{"pc":6,"alt":true,"type":"majorTriad","oct":3,"marks":{"4":"1"}},{"pc":6,"alt":false,"type":"majorTriad","oct":3,"marks":{"4":"2"}}]}');
+    expect(n, 1);
+    final p = violinFingeringPlan(tonicMidi: 66, type: ScaleType.majorTriad, octaves: 3, direction: ScaleDirection.both)!;
+    expect(p.fingers[4], '2');
+    setViolinFingeringFromJson(null);
+  });
+
   test('conferências cruzadas entre as 24: pontos de mudança, 4º dedo só em corda solta e 8va dentro da escala', () {
     for (final e in violinFingeringEntries().where((e) => !e.type.arpeggio)) {
       final tonic = scaleTonicFor(e.tonicPc, e.type, 55);

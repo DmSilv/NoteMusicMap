@@ -1,4 +1,4 @@
-/// Dedilhado do violino para as escalas do "sistema de escalas" de Carl Flesch, lido das páginas do método.
+/// Dedilhado do violino para as escalas e os arpejos do "sistema de escalas" de Carl Flesch (Nº 5, 3 oitavas), lido das páginas do método.
 ///
 /// O Flesch NÃO numera todas as notas: só os pontos de mudança (começo de posição, nota no alto, uso do 4º dedo no lugar
 /// da corda solta na subida e da corda solta na descida). Por isso a tabela é esparsa: índice da nota na sequência
@@ -223,7 +223,7 @@ _Entry? _parseEntry(Object? x) {
   final type = ScaleType.values.where((t) => t.name == x['type']).firstOrNull;
   if (pc is! int || pc < 0 || pc > 11 || oct is! int || oct < 1 || oct > 4 || type == null) return null;
   final alt = x['alt'] == true;
-  if (alt && !ScaleSpeller.hasAlt(pc, minor: type.isMinor)) return null;
+  if (alt && (type.arpeggio || !ScaleSpeller.hasAlt(pc, minor: type.isMinor))) return null;
   final n = 2 * oct * type.steps.length + 1;
   final marks = <int, String>{};
   final rawMarks = x['marks'];

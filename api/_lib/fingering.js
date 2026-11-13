@@ -75,7 +75,8 @@ function tonicMidi(pc, start = 0) { return 55 + mod(pc + start - 55, 12) - start
 
 function hasAlt(pc, type) {
   const t = TYPES[type];
-  return !!t && Object.prototype.hasOwnProperty.call(t.minor ? MINOR_ALT : MAJOR_ALT, pc);
+  // arpejos não têm a outra grafia (a raiz se escreve do jeito de sempre)
+  return !!t && !t.arpeggio && Object.prototype.hasOwnProperty.call(t.minor ? MINOR_ALT : MAJOR_ALT, pc);
 }
 
 function tonicSpelling(pc, type, alt) {

@@ -3490,6 +3490,9 @@ class AppState extends ChangeNotifier {
   /// Cor da partitura, independente do tema do app: igual ao app, sempre clara ou sempre escura.
   StaffPaper scalePaper = StaffPaper.light;
 
+  /// Nome da tônica como a partitura a escreve (para títulos). Instrumento transpositor e cromática seguem o nome comum da nota.
+  String get scaleTonicName => (cfg.transpose != 0 || scaleType == ScaleType.chromatic) ? noteName(scaleTonicMidi, cfg) : tonicNameFor(scaleTonicMidi, scaleType, alt: scaleAlt);
+
   /// "alt" que de fato vale: só quando a tônica atual tem outra grafia.
   bool get scaleAltActive => scaleAlt && scaleType != ScaleType.chromatic && !scaleType.arpeggio && ScaleSpeller.hasAlt(scaleTonicMidi, minor: scaleType.isMinor);
 
@@ -3628,7 +3631,7 @@ class AppState extends ChangeNotifier {
       origin: student != null ? kOriginTeacherDevice : kOriginSelf,
       date: DateTime.now(),
       title:
-          tr('{0} · {1} oitava{2}', [scaleType.display(noteName(scaleTonicMidi, cfg)), scaleOctaves, scaleOctaves > 1 ? 's' : '']),
+          tr('{0} · {1} oitava{2}', [scaleType.display(scaleTonicName), scaleOctaves, scaleOctaves > 1 ? 's' : '']),
       octaves: scaleOctaves,
       zone: kInTuneCents,
       accuracy: sc.accuracy,
@@ -4385,7 +4388,7 @@ class AppState extends ChangeNotifier {
     scaleSessions.insert(0, {
       'date': DateTime.now().toIso8601String(),
       'scale':
-          scaleType.display(noteName(scaleTonicMidi, cfg)),
+          scaleType.display(scaleTonicName),
       'accuracy': r.accuracy,
       'played': r.played,
       'total': r.notes.length,

@@ -174,7 +174,7 @@
 | `packages/afina_core/lib/teacher.dart` | Área do professor (versão local, sem login): alunos, tarefas, observações, relatórios e troca de dados por texto. Dart puro e testável. |
 | `packages/afina_core/lib/tone_synth.dart` | Síntese do tom de referência (diapasão) como um trecho que se repete sem emendas. Em vez de gerar o som aos pedaços em tempo real (o que falha se um pedaço atrasa), calcula-se UM trecho com um número inteiro de… |
 | `packages/afina_core/lib/tuning.dart` | Matemática de afinação do app. Tudo aqui é teoria musical pública (razões de intervalos de 3 e 5 limites, cents, temperamento igual). Nenhum código de terceiros. DECISÕES DE PRECISÃO (leia antes de mudar): 1. A… |
-| `packages/afina_core/lib/violin_fingering.dart` | Dedilhado do violino para as escalas do "sistema de escalas" de Carl Flesch, lido das páginas do método. O Flesch NÃO numera todas as notas: só os pontos de mudança (começo de posição, nota no alto, uso do 4º dedo no… |
+| `packages/afina_core/lib/violin_fingering.dart` | Dedilhado do violino para as escalas e os arpejos do "sistema de escalas" de Carl Flesch (Nº 5, 3 oitavas), lido das páginas do método. O Flesch NÃO numera todas as notas: só os pontos de mudança (começo de posição,… |
 
 ## Testes do núcleo (`packages/afina_core/test/`)
 
@@ -217,7 +217,7 @@
 | `packages/afina_core/test/rhythm_challenge_test.dart` | Sorteia [n] compassos e devolve a decisão de cada um. |
 | `packages/afina_core/test/scale_coach_test.dart` | Passos de uma escala em que cada nota (pitch class) tem um viés fixo. |
 | `packages/afina_core/test/scale_flow_test.dart` | Sol maior, 1 oitava. |
-| `packages/afina_core/test/scale_spelling_test.dart` | a raiz e as notas do acorde, na ordem de acorde (sem a nota de chegada) |
+| `packages/afina_core/test/scale_spelling_test.dart` | arpejos: a outra grafia não existe; a 7ª diminuta de Ré♭ chama-se Dó♯ (como a partitura) |
 | `packages/afina_core/test/scale_waiting_test.dart` | Testes do módulo `scale_waiting`. |
 | `packages/afina_core/test/speed_trainer_test.dart` | Renderiza [seconds] segundos e devolve os eventos de "primeiro tempo" de cada compasso. |
 | `packages/afina_core/test/staff_layout_test.dart` | perto: no máximo ~3 espaços acima do alto da nota (ou da haste) |

@@ -40,6 +40,15 @@ async function get(H, method = 'GET') {
   return res;
 }
 
+test('arpejo não aceita a outra grafia (Sol♭, Dó♯...)', () => {
+  const ok = fing.validate({ pc: 6, alt: false, type: 'majorTriad', oct: 3, marks: { 4: '1' }, ottava: null });
+  assert.ok(ok.entry, 'sem alt vale');
+  const bad = fing.validate({ pc: 6, alt: true, type: 'majorTriad', oct: 3, marks: {}, ottava: null });
+  assert.ok(bad.error);
+  assert.equal(fing.hasAlt(6, 'majorTriad'), false);
+  assert.equal(fing.hasAlt(6, 'major'), true);
+});
+
 test('7ª diminuta: Dó♯, Ré♯ e Sol♯ escritos como no app (sem dobrados)', () => {
   const names = (pc) => fing.noteRows(pc, false, 'diminishedSeventh', 1).slice(0, 4).map((r) => r.name).join(' ');
   assert.equal(names(1), 'Dó♯ Mi Sol Si♭');

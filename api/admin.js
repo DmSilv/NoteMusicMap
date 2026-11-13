@@ -591,7 +591,9 @@ function makeHandler(deps = {}) {
         const nameOf = (e) => {
           const [l, a] = fing.tonicSpelling(e.pc, e.type, e.alt);
           const tonic = ['Dó', 'Ré', 'Mi', 'Fá', 'Sol', 'Lá', 'Si'][l] + (a === 1 ? '♯' : a === -1 ? '♭' : '');
-          return tonic + ' ' + fing.TYPES[e.type].label.toLowerCase() + ' · ' + e.oct + (e.oct === 1 ? ' oitava' : ' oitavas');
+          const ty = fing.TYPES[e.type];
+          const nm = ty.arpeggio ? ty.label + ' de ' + tonic : tonic + ' ' + ty.label.toLowerCase();
+          return nm + ' · ' + e.oct + (e.oct === 1 ? ' oitava' : ' oitavas');
         };
         const named = (list) => list.map((e) => ({ ...e, name: nameOf(e) }));
         return send(200, { ok: true, seed: named(fingSeed.items), overrides: named(over), types, tonics: { major: fing.tonicChoices(false), minor: fing.tonicChoices(true) } });

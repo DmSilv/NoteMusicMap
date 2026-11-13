@@ -59,7 +59,7 @@ List<Widget> staffSettingRows(AppState app) => [
             _helpSwitch(tr('Dica ao demorar numa nota aguda'), tr('Mostra o nome da nota se você demorar.'), app.scaleHints, (v) => app.setStaff(hints: v)),
             _helpSwitch(tr('8va nas notas muito agudas'), tr('Escreve uma oitava abaixo, com o sinal 8va e o nome.'), app.scaleOttava, (v) => app.setStaff(ottava: v)),
             if (app.hasFingeringHere)
-              _helpSwitch(tr('Dedilhado do Flesch'), tr('Números dos dedos, só nas escalas já conferidas.'), app.scaleFingers, (v) => app.setStaff(fingers: v)),
+              _helpSwitch(tr('Dedilhado do Flesch'), tr('Números dos dedos, só nas escalas e arpejos já conferidos.'), app.scaleFingers, (v) => app.setStaff(fingers: v)),
           ]),
         ),
       ],

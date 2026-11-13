@@ -1942,10 +1942,11 @@
     var box = $('fgCover'), ty = $('fgCovType'), oc = $('fgCovOct');
     if (!ty.options.length) { FG.types.forEach(function (x) { var o = document.createElement('option'); o.value = x.id; o.textContent = x.label; ty.appendChild(o); }); ty.onchange = fgCover; }
     if (!oc.options.length) { [1, 2, 3, 4].forEach(function (n) { var o = document.createElement('option'); o.value = String(n); o.textContent = n + (n === 1 ? ' oitava' : ' oitavas'); oc.appendChild(o); }); oc.value = '3'; oc.onchange = fgCover; }
-    var t = ty.value, oct = Number(oc.value), minor = false; FG.types.forEach(function (x) { if (x.id === t) minor = x.minor; });
+    var t = ty.value, oct = Number(oc.value), minor = false, arp = false; FG.types.forEach(function (x) { if (x.id === t) { minor = x.minor; arp = !!x.arpeggio; } });
     var have = {}; FG.seed.concat(FG.over).forEach(function (e) { have[fgKey(e)] = 1; });
     box.innerHTML = '';
-    (FG.tonics[minor ? 'minor' : 'major'] || []).forEach(function (c) {
+    // arpejos não têm a outra grafia (Sol♭, Dó♯...): só a raiz de sempre
+    (FG.tonics[minor ? 'minor' : 'major'] || []).filter(function (c) { return !(arp && c.alt); }).forEach(function (c) {
       var k = fgKey({ pc: c.pc, alt: c.alt, type: t, oct: oct }), b = document.createElement('button');
       b.className = have[k] ? 'has' : 'no'; b.textContent = (have[k] ? '✓ ' : '○ ') + c.name;
       b.onclick = function () { $('fgPc').value = String(c.pc); $('fgType').value = t; $('fgOct').value = String(oct); fgLoadRows(c.alt); $('fgForm').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
