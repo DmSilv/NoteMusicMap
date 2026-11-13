@@ -3509,7 +3509,7 @@ class AppState extends ChangeNotifier {
   }
 
   /// 8va do desenho: com tabela do livro, só onde o livro usa (e se o ajuste estiver ligado); sem tabela, a regra automática.
-  bool get staffOttavaAuto => scaleOttava && scalePlan == null;
+  bool get staffOttavaAuto => scaleOttava && (scalePlan == null || (scaleType.arpeggio && scalePlan!.ottava == null));
   (int, int)? get staffOttavaRange => scaleOttava ? scalePlan?.ottava : null;
 
   /// O instrumento é o violino e esta escala tem dedilhado (para mostrar o ajuste só quando faz sentido).

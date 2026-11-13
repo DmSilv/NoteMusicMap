@@ -126,6 +126,54 @@ const List<_Entry> _violin = [
   _Entry(9, false, ScaleType.minorTriad1, 3, {4: '1', 7: '1', 12: '4'}),
   _Entry(5, false, ScaleType.majorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
   _Entry(5, false, ScaleType.minorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
+  // Seção de Fá maior: tônica menor, tônica maior, relativa menor invertida, IV maior e IV menor em 2ª inversão.
+  _Entry(5, false, ScaleType.minorTriad, 3, {0: '2', 4: '1', 7: '1', 12: '4'}),
+  _Entry(5, false, ScaleType.majorTriad, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(2, false, ScaleType.minorTriad1, 3, {4: '1', 7: '1', 8: '3', 12: '4'}),
+  _Entry(10, false, ScaleType.majorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(10, false, ScaleType.minorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
+  // Seção de Si♭ maior: tônica menor, tônica maior, relativa menor invertida, IV maior e IV menor em 2ª inversão.
+  _Entry(10, false, ScaleType.minorTriad, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(10, false, ScaleType.majorTriad, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(7, false, ScaleType.minorTriad1, 3, {4: '1', 7: '1', 8: '3', 12: '4'}),
+  _Entry(3, false, ScaleType.majorTriad2, 3, {2: '3', 4: '1', 7: '1', 12: '4'}),
+  _Entry(3, false, ScaleType.minorTriad2, 3, {2: '3', 4: '1', 7: '1', 12: '4'}),
+  // Seção de Mi♭ maior: tônica menor, tônica maior, relativa menor invertida, IV maior e IV menor em 2ª inversão.
+  _Entry(3, false, ScaleType.minorTriad, 3, {0: '2', 4: '1', 7: '1', 12: '4'}),
+  _Entry(3, false, ScaleType.majorTriad, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(0, false, ScaleType.minorTriad1, 3, {4: '1', 7: '1', 8: '3', 12: '4'}),
+  _Entry(8, false, ScaleType.majorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(8, false, ScaleType.minorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
+  // Seção de Ré♭ maior (a nota 8 da 3ª tríade por analogia com as outras seções: o número fica no corte da página): tônica menor, tônica maior, relativa menor invertida, IV maior e IV menor em 2ª inversão.
+  _Entry(1, false, ScaleType.minorTriad, 3, {0: '2', 4: '1', 7: '1', 12: '4'}),
+  _Entry(1, false, ScaleType.majorTriad, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(10, false, ScaleType.minorTriad1, 3, {4: '1', 7: '1', 8: '3', 12: '4'}),
+  _Entry(6, false, ScaleType.majorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(6, false, ScaleType.minorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
+  // Seção de Sol♭ maior: tônica menor, tônica maior, relativa menor invertida, IV maior e IV menor em 2ª inversão.
+  _Entry(6, false, ScaleType.minorTriad, 3, {0: '2', 4: '1', 7: '1', 12: '4'}),
+  _Entry(6, false, ScaleType.majorTriad, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(3, false, ScaleType.minorTriad1, 3, {4: '1', 7: '1', 8: '3', 12: '4'}),
+  _Entry(11, false, ScaleType.majorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(11, false, ScaleType.minorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
+  // Seção de Si maior (começa na corda Sol: 4º dedo na nota 1 da 3ª tríade): tônica menor, tônica maior, relativa menor invertida, IV maior e IV menor em 2ª inversão.
+  _Entry(11, false, ScaleType.minorTriad, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(11, false, ScaleType.majorTriad, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(8, false, ScaleType.minorTriad1, 3, {1: '4', 4: '1', 7: '1', 8: '3', 12: '4'}),
+  _Entry(4, false, ScaleType.majorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(4, false, ScaleType.minorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
+  // Seção de Ré maior: tônica menor, tônica maior, relativa menor invertida, IV maior e IV menor em 2ª inversão.
+  _Entry(2, false, ScaleType.minorTriad, 3, {0: '2', 4: '1', 7: '1', 12: '4'}),
+  _Entry(2, false, ScaleType.majorTriad, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(11, false, ScaleType.minorTriad1, 3, {4: '1', 7: '1', 8: '3', 12: '4'}),
+  _Entry(7, false, ScaleType.majorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(7, false, ScaleType.minorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
+  // Seção de Mi maior: tônica menor, tônica maior, relativa menor invertida, IV maior e IV menor em 2ª inversão.
+  _Entry(4, false, ScaleType.minorTriad, 3, {0: '2', 4: '1', 7: '1', 12: '4'}),
+  _Entry(4, false, ScaleType.majorTriad, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(1, false, ScaleType.minorTriad1, 3, {4: '1', 7: '1', 8: '3', 12: '4'}),
+  _Entry(9, false, ScaleType.majorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(9, false, ScaleType.minorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
 ];
 
 /// Escalas que o administrador corrigiu ou incluiu no painel (vêm do servidor); valem no lugar das do app.

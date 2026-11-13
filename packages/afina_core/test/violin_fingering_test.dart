@@ -124,6 +124,24 @@ void main() {
     expect(hasViolinFingering(60, ScaleType.majorTriad, 3, alt: true), isTrue);
   });
 
+  test('arpejos lidos: marcas só nos pontos de mudança conhecidos, nos 19 índices, e a 1ª nota em Sol3 ou acima', () {
+    const allowed = {0, 1, 2, 4, 7, 8, 12};
+    final seen = <String>{};
+    for (final e in violinFingeringEntries().where((e) => e.type.arpeggio)) {
+      expect(seen.add('${e.tonicPc}|${e.type.name}'), isTrue, reason: 'arpejo repetido: ${e.tonicPc} ${e.type.name}');
+      final root = scaleTonicFor(e.tonicPc, e.type, 55);
+      final seq = scaleSequence(root, e.type, octaves: e.octaves);
+      expect(seq.first, greaterThanOrEqualTo(55));
+      expect(seq.first, lessThan(67), reason: '1ª nota do arpejo deve ficar até o Sol4');
+      for (final k in e.marks.keys) {
+        expect(allowed.contains(k), isTrue, reason: '${e.tonicPc} ${e.type.name}: nota $k');
+      }
+      expect(e.marks[4], '1', reason: 'molde: 1º dedo na nota 4');
+      expect(e.marks[7], '1');
+      expect(e.marks[12], '4');
+    }
+  });
+
   test('conferências cruzadas entre as 24: pontos de mudança, 4º dedo só em corda solta e 8va dentro da escala', () {
     for (final e in violinFingeringEntries().where((e) => !e.type.arpeggio)) {
       final tonic = scaleTonicFor(e.tonicPc, e.type, 55);
