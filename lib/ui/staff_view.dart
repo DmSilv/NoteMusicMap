@@ -452,7 +452,16 @@ class _StaffPainter extends CustomPainter {
         } else {
           continue;
         }
-        _drawName(canvas, nm, left, py(s.labelTop) + 2 + row * rowH, fs, isCur ? colors.ink : colors.dim, weight);
+        // plaquinha discreta atrás do nome e, na 2ª linha, um fio até a nota: o nome fica preso à nota de cima, não solto
+        final top = py(s.labelTop) + 2 + row * rowH;
+        final pill = RRect.fromLTRBR(left - 3, top - 0.5, left + tw + 3, top + fs * 1.12, Radius.circular(fs * 0.45));
+        if (row == 1) {
+          canvas.drawLine(Offset(cx, py(s.labelTop) + 1), Offset(cx, pill.top), Paint()
+            ..color = colors.dim.withValues(alpha: 0.45)
+            ..strokeWidth = 1);
+        }
+        canvas.drawRRect(pill, Paint()..color = (isCur ? colors.ink : colors.dim).withValues(alpha: isCur ? 0.16 : 0.1));
+        _drawName(canvas, nm, left, top, fs, isCur ? colors.ink : colors.dim, weight);
       }
     }
   }
