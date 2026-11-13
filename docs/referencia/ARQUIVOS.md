@@ -220,7 +220,7 @@
 | `packages/afina_core/test/scale_spelling_test.dart` | maiores: Fá♯ (padrão) e Sol♭ (outra grafia) são a mesma tecla |
 | `packages/afina_core/test/scale_waiting_test.dart` | Testes do módulo `scale_waiting`. |
 | `packages/afina_core/test/speed_trainer_test.dart` | Renderiza [seconds] segundos e devolve os eventos de "primeiro tempo" de cada compasso. |
-| `packages/afina_core/test/staff_layout_test.dart` | as notas com 8va usam a posição escrita (uma oitava abaixo) |
+| `packages/afina_core/test/staff_layout_test.dart` | perto: no máximo ~3 espaços acima do alto da nota (ou da haste) |
 | `packages/afina_core/test/staff_notation_test.dart` | Leitor independente: lê a partitura como um músico (armadura + acidentes valem até a barra de compasso) e devolve a nota MIDI que cada evento representa. Se bater com a sequência do exercício, a escrita está certa. |
 | `packages/afina_core/test/start_checklist_test.dart` | Testes do módulo `start_checklist`. |
 | `packages/afina_core/test/study_clock_test.dart` | Testes do módulo `study_clock`. |

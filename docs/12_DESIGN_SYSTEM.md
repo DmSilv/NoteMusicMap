@@ -4,7 +4,7 @@
 
 ## Princípios
 1. **O essencial primeiro.** A primeira tela mostra só o que a pessoa usa a cada abertura e a **ação principal visível sem rolar** (ex.: botão **Ouvir** fixo embaixo no Afinador, play grande no Metrônomo, **Iniciar exercício** em Escalas).
-2. **Configuração em modal.** Tudo que é ajuste ou alteração (captação do microfone, Lá de referência, compasso, som, tônica, meta diária…) fica num **modal que sobe de baixo** (`showDsSheet`), aberto por um botão **Ajustes ⚙** (`DsSettingsButton`). A pessoa altera, toca em **Concluir** e volta para a tela. Escolhas curtas e frequentes (instrumento, modo Cordas/Cromático/Pedal) ficam à vista.
+2. **Configuração em modal.** Tudo que é ajuste ou alteração (captação do microfone, Lá de referência, compasso, som, tônica, meta diária…) fica num **modal que sobe de baixo** (`showDsSheet`), aberto por um botão **Ajustes ⚙** (`DsSettingsButton`). A pessoa altera (cada ajuste **vale na hora**, sem botão de confirmar) e fecha no **X** do canto, arrastando para baixo ou tocando fora. Escolhas curtas e frequentes (instrumento, modo Cordas/Cromático/Pedal) ficam à vista.
 3. **Texto explicativo no "?".** Parágrafos vão para `HelpButton`/`Help`; a tela mostra no máximo uma linha de apoio. `scripts/check_text.js` trava textos longos.
 4. **Avisos e sugestões no sino.** "Como posso te chamar?" e "Instale no celular" ficam no sino (`lib/ui/suggestions.dart`), nunca presos no topo. Só o que bloqueia o uso (versão nova, vínculo desligado com gente dependendo dele) aparece como faixa fina.
 5. **Uma ação principal por tela**, grande e na cor de destaque (`DsPrimaryButton`, 56 px).
@@ -23,7 +23,7 @@
 | `Ds.fontBody / fontSupport / fontLabel / fontTitle` | 16 / 14 / 13 / 20 | texto (nada abaixo de 13 em tela nova) |
 
 ## Componentes
-- `showDsSheet(context, title:, listenable:, children:)`: o modal de ajustes (título, **Concluir**, conteúdo rolável que se atualiza sozinho).
+- `showDsSheet(context, title:, listenable:, children:)`: o modal de ajustes (título, **X de fechar**, conteúdo rolável que se atualiza sozinho).
 - `DsSettingsButton`: botão "Ajustes" (ícone de controles).
 - `DsPrimaryButton`: ação principal, largura total.
 - `DsSettingRow`: rótulo + controle dentro de um modal.

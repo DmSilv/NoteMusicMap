@@ -355,13 +355,18 @@ LaidSystem _layoutSystem(StaffScore score, List<int> barIdx, double header, doub
     if (tb != null) fy = math.max(fy, tb + 1.9);
     l.fingerY = fy;
   }
-  // os números de um compasso ficam todos na mesma altura (fileira limpa, em vez de uma escada)
-  final rowY = <int, double>{};
-  for (final l in laid) {
-    if (l.fingerY != null) rowY[l.e.bar] = math.max(rowY[l.e.bar] ?? 0, l.fingerY!);
-  }
-  for (final l in laid) {
-    if (l.fingerY != null) l.fingerY = rowY[l.e.bar];
+  // os números de um grupo de barra ficam na mesma altura (uma fileira limpa por grupo, logo acima da barra); notas soltas, cada uma
+  // logo acima da sua cabeça. Assim o número fica perto da nota que ele nomeia, sem uma escada nem uma fileira longe lá em cima.
+  for (final g in groups.values) {
+    var m = -1e9;
+    for (final l in g) {
+      if (l.fingerY != null) m = math.max(m, l.fingerY!);
+    }
+    if (m > -1e9) {
+      for (final l in g) {
+        if (l.fingerY != null) l.fingerY = m;
+      }
+    }
   }
   // 8va: um trecho seguido de notas com o sinal vira uma linha tracejada acima de tudo (notas, números, "3")
   final ottavas = <LaidOttava>[];

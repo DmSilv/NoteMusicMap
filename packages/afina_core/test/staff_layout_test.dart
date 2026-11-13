@@ -127,6 +127,60 @@ void main() {
 
 void _fingerTests() {
   group('dedilhado em cima das notas', () {
+    test('leitura precisa nas 24 escalas do Flesch: o número fica perto da sua nota, não cruza o "3" nem o vizinho', () {
+      for (final w in [300.0, 358.0, 390.0]) {
+        for (final r in [StaffRhythm.quarter, StaffRhythm.eighth, StaffRhythm.triplet]) {
+          for (final en in violinFingeringEntries()) {
+            final tonic = 55 + ((en.tonicPc - 55) % 12 + 12) % 12;
+            final plan = violinFingeringPlan(tonicMidi: tonic, type: en.type, octaves: 3, direction: ScaleDirection.both, alt: en.alt)!;
+            final sc = buildStaffScore(
+                tonicMidi: tonic,
+                type: en.type,
+                sequence: scaleSequence(tonic, en.type, octaves: 3),
+                upCount: scaleMidis(tonic, en.type, octaves: 3).length,
+                rhythm: r,
+                fingers: plan.fingers,
+                ottava: plan.ottava != null,
+                ottavaRange: plan.ottava,
+                alt: en.alt);
+            final lay = layoutStaff(sc, widthPx: w);
+            final who = '${en.tonicPc} ${en.type.name} ${r.name} w=$w';
+            for (final s in lay.systems) {
+              final f = [for (final e in s.events) if (e.fingerY != null) e];
+              for (final e in f) {
+                // perto: no máximo ~3 espaços acima do alto da nota (ou da haste)
+                final top = e.e.hasStem && e.stemUp ? e.stemTipY : e.y + 0.6;
+                expect(e.fingerY! - top, lessThan(3.2), reason: '$who nota ${e.e.index}');
+                // longe do "3" das tercinas: nunca por cima dele
+                for (final tp in s.tuplets) {
+                  if ((tp.x - (e.x + e.headW / 2)).abs() < 0.9) expect(e.fingerY!, greaterThan(tp.baselineY + 1.4), reason: '$who nota ${e.e.index}');
+                }
+              }
+              // e não cruzam o acidente da nota vizinha (o número tem ~1,2 espaço de largura e ~1,5 de altura)
+              for (final e in f) {
+                final cx = e.x + e.headW / 2;
+                for (final q in s.events) {
+                  if (identical(q, e) || q.accX == null) continue;
+                  final overX = cx + 0.6 > q.accX! && cx - 0.6 < q.accX! + 1.1;
+                  final overY = e.fingerY! < q.y + 1.9 && e.fingerY! + 1.5 > q.y - 1.4;
+                  expect(overX && overY, isFalse, reason: '$who número da nota ${e.e.index} sobre o acidente da ${q.e.index}');
+                }
+              }
+              // dois números na mesma altura não se tocam (cada um tem ~1,2 espaço de largura)
+              for (var i = 0; i < f.length; i++) {
+                for (var j = i + 1; j < f.length; j++) {
+                  if ((f[i].fingerY! - f[j].fingerY!).abs() < 1.0) {
+                    final d = ((f[i].x + f[i].headW / 2) - (f[j].x + f[j].headW / 2)).abs();
+                    expect(d, greaterThan(1.3), reason: '$who notas ${f[i].e.index} e ${f[j].e.index}');
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
     StaffScore withFingers(StaffRhythm r, {int octaves = 1}) {
       final seq = scaleSequence(62, ScaleType.melodicMinor, octaves: octaves);
       return buildStaffScore(

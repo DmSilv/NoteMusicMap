@@ -29,7 +29,7 @@ class SettingsPage extends StatelessWidget {
   final AppState app;
   const SettingsPage({super.key, required this.app});
 
-  /// Abre o modal de um assunto: mexe, toca em "Concluir" e volta à lista.
+  /// Abre o modal de um assunto: mexe (vale na hora), fecha no X e volta à lista.
   void _open(BuildContext context, String title, List<Widget> Function(BuildContext) children) =>
       showDsSheet(context, title: title, listenable: Listenable.merge([app, app.feedback]), children: children);
 

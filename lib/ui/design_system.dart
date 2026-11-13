@@ -212,7 +212,8 @@ class DsSettingRow extends StatelessWidget {
       );
 }
 
-/// Abre o modal de ajustes: sobe de baixo, você altera e toca em "Concluir" para voltar.
+/// Abre o modal de ajustes: sobe de baixo; cada ajuste vale na hora (não há o que confirmar), então o canto tem só um X para fechar
+/// (também fecha arrastando para baixo, tocando fora ou pelo botão voltar).
 /// [listenable] reconstrói o conteúdo quando o estado muda (ex.: o próprio AppState).
 Future<void> showDsSheet(
   BuildContext context, {
@@ -233,7 +234,7 @@ Future<void> showDsSheet(
           padding: const EdgeInsets.fromLTRB(Ds.screenPad, 0, Ds.s12, Ds.s8),
           child: Row(children: [
             Expanded(child: Text(title, style: Ds.title())),
-            TextButton(onPressed: () => Navigator.of(c).pop(), child: Text(tr('Concluir'))),
+            IconButton(onPressed: () => Navigator.of(c).pop(), tooltip: tr('Fechar'), icon: const Icon(Icons.close_rounded)),
           ]),
         ),
         const Divider(height: 1),

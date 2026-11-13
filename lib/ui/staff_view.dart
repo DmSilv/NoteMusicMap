@@ -429,6 +429,7 @@ class _StaffPainter extends CustomPainter {
       final fs = staffNameFontSize(sp);
       final rowH = fs * 1.15;
       var edge0 = -1e9, edge1 = -1e9;
+      final pending = <({String nm, double left, double top, double tw, double cx, double fromY, bool cur, FontWeight weight})>[];
       final twoRows = layout.score.rhythm == StaffRhythm.eighth || layout.score.rhythm == StaffRhythm.triplet;
       for (final e in s.events) {
         final wp = e.e.writtenPos;
@@ -452,16 +453,22 @@ class _StaffPainter extends CustomPainter {
         } else {
           continue;
         }
-        // plaquinha discreta atrás do nome e, na 2ª linha, um fio até a nota: o nome fica preso à nota de cima, não solto
-        final top = py(s.labelTop) + 2 + row * rowH;
-        final pill = RRect.fromLTRBR(left - 3, top - 0.5, left + tw + 3, top + fs * 1.12, Radius.circular(fs * 0.45));
-        if (row == 1) {
-          canvas.drawLine(Offset(cx, py(s.labelTop) + 1), Offset(cx, pill.top), Paint()
-            ..color = colors.dim.withValues(alpha: 0.45)
-            ..strokeWidth = 1);
-        }
-        canvas.drawRRect(pill, Paint()..color = (isCur ? colors.ink : colors.dim).withValues(alpha: isCur ? 0.16 : 0.1));
-        _drawName(canvas, nm, left, top, fs, isCur ? colors.ink : colors.dim, weight);
+        // o fio sai de baixo da cabeça (só quando a haste não atrapalha: haste para cima ou sem haste)
+        final headBottom = py(e.y - 0.62);
+        final fromY = (e.stemUp || !e.e.hasStem) ? headBottom : py(s.labelTop);
+        pending.add((nm: nm, left: left, top: py(s.labelTop) + 2 + row * rowH, tw: tw, cx: cx, fromY: fromY, cur: isCur, weight: weight));
+      }
+      // fios (atrás) e plaquinhas: o nome fica preso à sua nota mesmo quando a nota está longe (agudas, 8va) ou na 2ª linha
+      final linePaint = Paint()
+        ..color = colors.dim.withValues(alpha: 0.4)
+        ..strokeWidth = 0.9;
+      for (final p in pending) {
+        if (p.top - p.fromY > sp * 1.2) canvas.drawLine(Offset(p.cx, p.fromY + 1), Offset(p.cx, p.top - 0.5), linePaint);
+      }
+      for (final p in pending) {
+        final pill = RRect.fromLTRBR(p.left - 3, p.top - 0.5, p.left + p.tw + 3, p.top + fs * 1.12, Radius.circular(fs * 0.45));
+        canvas.drawRRect(pill, Paint()..color = (p.cur ? colors.ink : colors.dim).withValues(alpha: p.cur ? 0.16 : 0.1));
+        _drawName(canvas, p.nm, p.left, p.top, fs, p.cur ? colors.ink : colors.dim, p.weight);
       }
     }
   }
