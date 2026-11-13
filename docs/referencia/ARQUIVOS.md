@@ -171,6 +171,7 @@
 | `packages/afina_core/lib/teacher.dart` | Área do professor (versão local, sem login): alunos, tarefas, observações, relatórios e troca de dados por texto. Dart puro e testável. |
 | `packages/afina_core/lib/tone_synth.dart` | Síntese do tom de referência (diapasão) como um trecho que se repete sem emendas. Em vez de gerar o som aos pedaços em tempo real (o que falha se um pedaço atrasa), calcula-se UM trecho com um número inteiro de… |
 | `packages/afina_core/lib/tuning.dart` | Matemática de afinação do app. Tudo aqui é teoria musical pública (razões de intervalos de 3 e 5 limites, cents, temperamento igual). Nenhum código de terceiros. DECISÕES DE PRECISÃO (leia antes de mudar): 1. A… |
+| `packages/afina_core/lib/violin_fingering.dart` | Dedilhado do violino para as escalas do "sistema de escalas" de Carl Flesch, lido das páginas do método. O Flesch NÃO numera todas as notas: só os pontos de mudança (começo de posição, nota no alto, uso do 4º dedo no… |
 
 ## Testes do núcleo (`packages/afina_core/test/`)
 
@@ -226,6 +227,7 @@
 | `packages/afina_core/test/tone_synth_test.dart` | Do contrabaixo ao violino agudo, e referências de orquestra. |
 | `packages/afina_core/test/tuning_test.dart` | C2 fica ~5.87 cents abaixo do temperado. |
 | `packages/afina_core/test/vibrato_test.dart` | Violino sintético: segue [midis] (cada um por [noteMs]) com [centerCents] de desvio médio e vibrato de ±[depth] cents a [rate] Hz. |
+| `packages/afina_core/test/violin_fingering_test.dart` | Cordas soltas do violino: Sol3, Ré4, Lá4, Mi5. |
 
 ## API (funções da Vercel, `api/`)
 
@@ -320,4 +322,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **277** arquivos mapeados.
+Total: **279** arquivos mapeados.

@@ -110,6 +110,7 @@ class ScaleExercisePage extends StatelessWidget {
       semanticLabel: tr('Partitura do exercício'),
       hints: !e.flow && app.scaleHints,
       ottava: app.scaleOttava,
+      fingers: app.scaleFingering,
       hintNow: !e.flow && !e.finished && e.waitingSeconds >= kHintAfterSeconds,
     );
   }

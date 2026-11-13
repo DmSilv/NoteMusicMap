@@ -65,6 +65,26 @@ List<Widget> staffSettingRows(AppState app) => [
               ),
           ]),
         ),
+        if (app.hasFingeringHere)
+          DsSettingRow(
+            label: tr('Dedilhado do Flesch'),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<bool>(
+                  showSelectedIcon: false,
+                  segments: [
+                    ButtonSegment(value: true, label: Text(tr('Ligado'))),
+                    ButtonSegment(value: false, label: Text(tr('Desligado'))),
+                  ],
+                  selected: {app.scaleFingers},
+                  onSelectionChanged: (v) => app.setStaff(fingers: v.first),
+                ),
+              ),
+              const DsGap(Ds.s8),
+              Text(tr('Números dos dedos em cima das notas, como no método. Só nas escalas já conferidas com o livro.'), style: Ds.support()),
+            ]),
+          ),
         DsSettingRow(
           label: tr('Notas muito agudas (8va)'),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

@@ -18,4 +18,7 @@ const Map<String, String> kEnB12 = {
   'Se você demorar numa nota bem aguda (acima da pauta), o nome dela aparece embaixo.': 'If you take a while on a very high note (above the staff), its name appears below.',
   'Notas muito agudas (8va)': 'Very high notes (8va)',
   'De Sol6 para cima as notas são escritas uma oitava abaixo, sob o sinal 8va, e ganham o nome.': 'From G6 up, notes are written an octave lower under the 8va sign, and show their names.',
+  'Dedilhado do Flesch': 'Flesch fingering',
+  'Ligado': 'On',
+  'Números dos dedos em cima das notas, como no método. Só nas escalas já conferidas com o livro.': 'Finger numbers above the notes, as in the method book. Only for scales already checked against the book.',
 };

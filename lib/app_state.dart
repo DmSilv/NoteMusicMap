@@ -3474,6 +3474,18 @@ class AppState extends ChangeNotifier {
   /// Notas muito agudas (de Sol6 para cima) escritas uma oitava abaixo, com o sinal 8va e o nome da nota.
   bool scaleOttava = true;
 
+  /// Dedilhado do Flesch em cima das notas (só violino, só nas escalas que já têm tabela conferida).
+  bool scaleFingers = true;
+
+  /// Dedilhado da escala de agora, na ordem das notas do exercício, ou null (outro instrumento, desligado ou sem tabela).
+  List<String?>? get scaleFingering {
+    if (!scaleFingers || instrument.id != 'violino') return null;
+    return violinFingering(tonicMidi: scaleTonicMidi, type: scaleType, octaves: scaleOctaves, direction: scaleDirection);
+  }
+
+  /// O instrumento é o violino e esta escala tem dedilhado (para mostrar o ajuste só quando faz sentido).
+  bool get hasFingeringHere => instrument.id == 'violino' && hasViolinFingering(scaleTonicMidi, scaleType, scaleOctaves);
+
   /// A nota como está escrita na escala (Lá natural ao subir e Lá♭ ao descer em Dó menor melódica), com a oitava.
   /// Com instrumento transpositor a grafia segue a regra comum (o nome já muda pela transposição).
   ({String name, int octave}) scaleNoteParts(int midi, {required bool ascending}) {
@@ -3721,6 +3733,7 @@ class AppState extends ChangeNotifier {
     scaleRhythm = StaffRhythm.values[(p.getInt('scale_rhythm') ?? StaffRhythm.quarter.index).clamp(0, StaffRhythm.values.length - 1)];
     scaleHints = p.getBool('scale_hints') ?? true;
     scaleOttava = p.getBool('scale_8va') ?? true;
+    scaleFingers = p.getBool('scale_fingers') ?? true;
     scaleNames = StaffNames.values[(p.getInt('scale_names') ?? StaffNames.none.index).clamp(0, StaffNames.values.length - 1)];
     dailyGoalMinutes = p.getDouble('goal') ?? 20;
     themeMode = ThemeMode.values[p.getInt('theme') ?? 0];
@@ -4097,7 +4110,11 @@ class AppState extends ChangeNotifier {
   }
 
   /// Ajustes da partitura (só mudam como ela é escrita e mostrada; o exercício toca igual).
-  void setStaff({bool? on, StaffRhythm? rhythm, StaffNames? names, bool? hints, bool? ottava}) {
+  void setStaff({bool? on, StaffRhythm? rhythm, StaffNames? names, bool? hints, bool? ottava, bool? fingers}) {
+    if (fingers != null) {
+      scaleFingers = fingers;
+      _prefs?.setBool('scale_fingers', fingers);
+    }
     if (ottava != null) {
       scaleOttava = ottava;
       _prefs?.setBool('scale_8va', ottava);

@@ -360,6 +360,7 @@ class _GridPageState extends State<GridPage> {
         rhythm: app.scaleRhythm,
         names: app.scaleNames,
         ottava: app.scaleOttava,
+        fingers: app.scaleFingering,
         maxHeight: 300,
         semanticLabel: tr('Partitura do exercício'),
       );

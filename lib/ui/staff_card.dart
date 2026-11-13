@@ -28,6 +28,7 @@ class StaffCard extends StatefulWidget {
   final bool hints;
   final bool hintNow;
   final bool ottava;
+  final List<String?>? fingers;
 
   const StaffCard({
     super.key,
@@ -44,6 +45,7 @@ class StaffCard extends StatefulWidget {
     this.hints = false,
     this.hintNow = false,
     this.ottava = false,
+    this.fingers,
   });
 
   @override
@@ -56,9 +58,9 @@ class _StaffCardState extends State<StaffCard> {
 
   StaffScore _build() {
     final w = widget;
-    final k = '${w.tonicMidi}|${w.type.name}|${w.sequence.length}|${w.sequence.isEmpty ? 0 : w.sequence.first}|${w.upCount}|${w.rhythm.index}|${w.ottava}';
+    final k = '${w.tonicMidi}|${w.type.name}|${w.sequence.length}|${w.sequence.isEmpty ? 0 : w.sequence.first}|${w.upCount}|${w.rhythm.index}|${w.ottava}|${w.fingers?.join(',')}';
     if (_score == null || k != _scoreKey) {
-      _score = buildStaffScore(tonicMidi: w.tonicMidi, type: w.type, sequence: w.sequence, upCount: w.upCount, rhythm: w.rhythm, ottava: w.ottava);
+      _score = buildStaffScore(tonicMidi: w.tonicMidi, type: w.type, sequence: w.sequence, upCount: w.upCount, rhythm: w.rhythm, ottava: w.ottava, fingers: w.fingers);
       _scoreKey = k;
     }
     return _score!;
