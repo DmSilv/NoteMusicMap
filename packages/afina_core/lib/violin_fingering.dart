@@ -117,6 +117,15 @@ const List<_Entry> _violin = [
   _Entry(8, true, ScaleType.melodicMinor, 3, {0: '1', 1: '2', 2: '2', 9: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 40: '2'}),
   // Lá♯ menor melódica (mesmas notas do Si♭ menor).
   _Entry(10, true, ScaleType.melodicMinor, 3, {0: '2', 6: '4', 9: '1', 15: '1', 17: '1', 21: '4', 22: '3', 24: '3', 27: '3', 34: '2'}),
+  // ---- Arpejos do Nº 5 (logo depois da escala), 3 oitavas, em linhas de 3 compassos: cada compasso é um arpejo que sobe 3 oitavas e desce, e o
+  // último Dó do exercício é o primeiro do compasso seguinte. Todos começam na mesma nota (a tônica da seção), por isso o acorde pode estar invertido:
+  // na seção de Dó há Dó menor, Dó maior, Lá menor com Dó no baixo (Dó Mi Lá), Fá maior com Dó no baixo (Dó Fá Lá) e Fá menor com Dó no baixo.
+  // Seção de Dó maior, arpejos de tríade (lidos): 1º dedo no Mi/Fá da 2ª oitava (nota 4) e da 3ª (nota 7) e 4º dedo na descida (nota 12).
+  _Entry(0, false, ScaleType.minorTriad, 3, {0: '2', 4: '1', 7: '1', 12: '4'}),
+  _Entry(0, false, ScaleType.majorTriad, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(9, false, ScaleType.minorTriad1, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(5, false, ScaleType.majorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
+  _Entry(5, false, ScaleType.minorTriad2, 3, {4: '1', 7: '1', 12: '4'}),
 ];
 
 /// Escalas que o administrador corrigiu ou incluiu no painel (vêm do servidor); valem no lugar das do app.
@@ -177,7 +186,8 @@ _Entry? _parseEntry(Object? x) {
 bool hasViolinFingering(int tonicMidi, ScaleType type, int octaves, {bool alt = false}) => _find(tonicMidi, type, octaves, alt) != null;
 
 _Entry? _find(int tonicMidi, ScaleType type, int octaves, bool alt) {
-  final useAlt = alt && ScaleSpeller.hasAlt(tonicMidi, minor: type.isMinor);
+  // arpejos não têm a "outra grafia" (a raiz se escreve do jeito de sempre)
+  final useAlt = !type.arpeggio && alt && ScaleSpeller.hasAlt(tonicMidi, minor: type.isMinor);
   for (final e in [..._remote, ..._violin]) {
     if (e.tonicPc == tonicMidi % 12 && e.alt == useAlt && e.type == type && e.octaves == octaves) return e;
   }
@@ -229,7 +239,8 @@ StartHint? violinStartHint({required int tonicMidi, required ScaleType type, req
   final n = ScaleSpeller(tonicMidi, type).spell(first, ascending: true);
   final d = n.octave * 7 + n.letter - (3 * 7 + 4);
   final f = int.tryParse(e.marks[0] ?? '');
-  if (f == null || f < 1) return const StartHint(4, 1, null);
+  // sem número: de Sol3 a Si3 é a 1ª posição; mais agudo, o livro não diz (o dedo vem do arpejo anterior), então não há dica
+  if (f == null || f < 1) return first < 60 ? const StartHint(4, 1, null) : null;
   return StartHint(4, (d - f + 1).clamp(1, 7), f);
 }
 

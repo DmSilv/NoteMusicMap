@@ -7,7 +7,7 @@ const _open = {55, 62, 69, 76};
 void main() {
   test('a tabela confere com a sequência: índices existentes e dedos de 0 a 4', () {
     for (final e in violinFingeringEntries()) {
-      final tonic = 55 + ((e.tonicPc - 55) % 12 + 12) % 12; // oitava perto da corda Sol, como o app
+      final tonic = scaleTonicFor(e.tonicPc, e.type, 55); // oitava perto da corda Sol, como o app
       final seq = scaleSequence(tonic, e.type, octaves: e.octaves);
       for (final m in e.marks.entries) {
         expect(m.key, inInclusiveRange(0, seq.length - 1), reason: 'índice ${m.key}');
@@ -18,7 +18,7 @@ void main() {
 
   test('todo "0" cai numa corda solta do violino (pega número lido na nota errada)', () {
     for (final e in violinFingeringEntries()) {
-      final tonic = 55 + ((e.tonicPc - 55) % 12 + 12) % 12;
+      final tonic = scaleTonicFor(e.tonicPc, e.type, 55);
       final seq = scaleSequence(tonic, e.type, octaves: e.octaves);
       for (final m in e.marks.entries.where((m) => m.value == '0')) {
         expect(_open.contains(seq[m.key]), isTrue, reason: 'índice ${m.key} = nota ${seq[m.key]}');
@@ -57,7 +57,7 @@ void main() {
 
   test('as 24 escalas do Nº 5 (12 maiores e 12 menores melódicas, 3 oitavas) estão na tabela, e a outra grafia (bemol/sustenido) também', () {
     final seen = <String>{};
-    for (final e in violinFingeringEntries()) {
+    for (final e in violinFingeringEntries().where((e) => !e.type.arpeggio)) {
       expect(e.octaves, 3);
       expect(seen.add('${e.tonicPc}|${e.alt}|${e.type.name}'), isTrue, reason: 'repetida: ${e.tonicPc} ${e.type.name}');
     }
@@ -103,9 +103,30 @@ void main() {
     expect(violinStartHint(tonicMidi: 60, type: ScaleType.major, octaves: 2, direction: ScaleDirection.both), isNull);
   });
 
+  test('arpejos do Flesch (seção de Dó): registro, 1ª nota e marcas', () {
+    // Fá maior com Dó no baixo: a raiz é o Fá3 e o exercício começa no Dó4, como o livro (e não no Dó5)
+    final root = scaleTonicFor(5, ScaleType.majorTriad2, 55);
+    expect(root, 53);
+    final seq = scaleSequence(root, ScaleType.majorTriad2, octaves: 3);
+    expect(seq.length, 19);
+    expect(seq.first, 60);
+    final p = violinFingeringPlan(tonicMidi: root, type: ScaleType.majorTriad2, octaves: 3, direction: ScaleDirection.both)!;
+    expect(p.fingers.length, 19);
+    expect([for (var i = 0; i < 19; i++) if (p.fingers[i] != null) i], [4, 7, 12]);
+    // Lá menor com Dó no baixo: a raiz é o Lá3 e começa no Dó4
+    expect(scaleSequence(scaleTonicFor(9, ScaleType.minorTriad1, 55), ScaleType.minorTriad1, octaves: 3).first, 60);
+    // Dó menor tem o 2 na 1ª nota: 2ª posição na corda Sol
+    final h = violinStartHint(tonicMidi: 60, type: ScaleType.minorTriad, octaves: 3, direction: ScaleDirection.both)!;
+    expect((h.string, h.position), (4, 2));
+    // Dó maior arpejo: o livro não escreve número na 1ª nota (vem do arpejo anterior): sem dica de posição
+    expect(violinStartHint(tonicMidi: 60, type: ScaleType.majorTriad, octaves: 3, direction: ScaleDirection.both), isNull);
+    // a outra grafia não existe nos arpejos
+    expect(hasViolinFingering(60, ScaleType.majorTriad, 3, alt: true), isTrue);
+  });
+
   test('conferências cruzadas entre as 24: pontos de mudança, 4º dedo só em corda solta e 8va dentro da escala', () {
-    for (final e in violinFingeringEntries()) {
-      final tonic = 55 + ((e.tonicPc - 55) % 12 + 12) % 12;
+    for (final e in violinFingeringEntries().where((e) => !e.type.arpeggio)) {
+      final tonic = scaleTonicFor(e.tonicPc, e.type, 55);
       final seq = scaleSequence(tonic, e.type, octaves: e.octaves);
       final who = '${e.tonicPc} ${e.type.name}';
       // os pontos de mudança de posição (1 nas notas 9, 15 e 17) são os mesmos em todas as escalas que os têm

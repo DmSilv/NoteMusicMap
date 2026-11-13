@@ -130,7 +130,7 @@ void _fingerTests() {
     test('leitura precisa nas 24 escalas do Flesch: o número fica perto da sua nota, não cruza o "3" nem o vizinho', () {
       for (final w in [300.0, 358.0, 390.0]) {
         for (final r in [StaffRhythm.quarter, StaffRhythm.eighth, StaffRhythm.triplet]) {
-          for (final en in violinFingeringEntries()) {
+          for (final en in violinFingeringEntries().where((e) => !e.type.arpeggio)) {
             final tonic = 55 + ((en.tonicPc - 55) % 12 + 12) % 12;
             final plan = violinFingeringPlan(tonicMidi: tonic, type: en.type, octaves: 3, direction: ScaleDirection.both, alt: en.alt)!;
             final sc = buildStaffScore(

@@ -3504,7 +3504,7 @@ class AppState extends ChangeNotifier {
 
   /// Corda e posição em que a escala do livro começa (só violino, escala com tabela, subindo).
   StartHint? get scaleStartHint {
-    if (instrument.id != 'violino' || scaleType.arpeggio) return null;
+    if (instrument.id != 'violino') return null;
     return violinStartHint(tonicMidi: scaleTonicMidi, type: scaleType, octaves: scaleOctaves, direction: scaleDirection, alt: scaleAlt);
   }
 
@@ -4159,11 +4159,12 @@ class AppState extends ChangeNotifier {
       scaleAlt = alt;
       _prefs?.setBool('scale_alt', alt);
     }
-    if (tonicPc != null) {
-      final low = instrument.strings.first.midi;
-      scaleTonicMidi = low + (((tonicPc - low) % 12) + 12) % 12;
-    }
     if (type != null) scaleType = type;
+    if (tonicPc != null || type != null) {
+      // a raiz acompanha o tipo: nas inversões a 1ª nota do exercício é que fica perto da corda grave
+      final low = instrument.strings.first.midi;
+      scaleTonicMidi = scaleTonicFor(tonicPc ?? scaleTonicMidi % 12, scaleType, low);
+    }
     if (octaves != null) scaleOctaves = octaves;
     if (direction != null) {
       scaleDirection = direction;

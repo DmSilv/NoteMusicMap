@@ -385,6 +385,14 @@ enum ScaleType {
   String display(String note) => arpeggio ? tr('{0} de {1}', [label, note]) : '$note ${label.toLowerCase()}';
 }
 
+/// A raiz (tônica) do exercício para a classe de altura [pc]: a primeira nota do exercício (raiz + início das inversões) cai na oitava mais
+/// perto da corda mais grave [low] (Sol3 no violino). Nas inversões a raiz pode ficar abaixo da corda grave (Fá maior, 2ª inversão: raiz Fá3,
+/// começa no Dó4), que é como o método de Flesch escreve.
+int scaleTonicFor(int pc, ScaleType type, int low) {
+  final first = low + ((((pc + type.start) - low) % 12) + 12) % 12;
+  return first - type.start;
+}
+
 /// Notas do exercício subindo [octaves] oitavas, terminando na nota de chegada
 /// (uma oitava acima da inicial, no fim da última oitava).
 List<int> scaleMidis(int tonicMidi, ScaleType t, {int octaves = 1}) {

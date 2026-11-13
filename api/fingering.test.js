@@ -40,6 +40,14 @@ async function get(H, method = 'GET') {
   return res;
 }
 
+test('7ª diminuta: Dó♯, Ré♯ e Sol♯ escritos como no app (sem dobrados)', () => {
+  const names = (pc) => fing.noteRows(pc, false, 'diminishedSeventh', 1).slice(0, 4).map((r) => r.name).join(' ');
+  assert.equal(names(1), 'Dó♯ Mi Sol Si♭');
+  assert.equal(names(3), 'Ré♯ Fá♯ Lá Dó');
+  assert.equal(names(8), 'Sol♯ Si Ré Fá');
+  assert.equal(names(0), 'Dó Mi♭ Sol♭ Lá');
+});
+
 test('o seed do painel é o mesmo da tabela do app (rode node scripts/gen_fingering_seed.js se falhar)', () => {
   const cur = fs.readFileSync(seedGen.OUT, 'utf8');
   assert.equal(cur, seedGen.build());

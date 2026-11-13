@@ -49,6 +49,9 @@ const L_MAJTRI = { 0: 0, 4: 2, 7: 4 };
 const L_MINTRI = { 0: 0, 3: 2, 7: 4 };
 const L_DOM7 = { 0: 0, 4: 2, 7: 4, 10: 6 };
 const L_DIM7 = { 0: 0, 3: 2, 6: 4, 9: 5 };
+// 7ª diminuta de Dó♯, Ré♯ e Sol♯: raiz com sustenido e a letra da 7ª (Dó♯ Mi Sol Si♭); igual a scale_spelling.dart
+const L_DIM7_SEVENTH = { 0: 0, 3: 2, 6: 4, 9: 6 };
+const DIM7_SHARP_ROOT = { 1: [0, 1], 3: [1, 1], 8: [4, 1] };
 function letterMap(type, ascending) {
   switch (type) {
     case 'major': return L_MAJOR;
@@ -68,7 +71,7 @@ function letterMap(type, ascending) {
 const mod = (a, n) => ((a % n) + n) % n;
 
 /** Tônica (MIDI) como o app escolhe: a oitava mais perto da corda Sol do violino (Sol3 = 55). */
-function tonicMidi(pc) { return 55 + mod(pc - 55, 12); }
+function tonicMidi(pc, start = 0) { return 55 + mod(pc + start - 55, 12) - start; }
 
 function hasAlt(pc, type) {
   const t = TYPES[type];
@@ -77,6 +80,7 @@ function hasAlt(pc, type) {
 
 function tonicSpelling(pc, type, alt) {
   const t = TYPES[type];
+  if (type === 'diminishedSeventh' && DIM7_SHARP_ROOT[pc]) return DIM7_SHARP_ROOT[pc];
   if (alt) {
     const a = (t.minor ? MINOR_ALT : MAJOR_ALT)[pc];
     if (a) return a;
@@ -87,7 +91,7 @@ function tonicSpelling(pc, type, alt) {
 /** Notas da sequência "subindo e descendo", como o exercício do app (a nota do topo aparece uma vez). */
 function sequence(pc, type, oct) {
   const t = TYPES[type];
-  const base = tonicMidi(pc) + (t.start || 0);
+  const base = tonicMidi(pc, t.start || 0) + (t.start || 0);
   const up = [];
   for (let o = 0; o < oct; o++) for (const s of t.steps) up.push(base + 12 * o + s);
   up.push(base + 12 * oct);
@@ -103,12 +107,12 @@ function seqLength(type, oct) { return 2 * oct * TYPES[type].steps.length + 1; }
 /** Nome (com ♯ ♭) e oitava de cada nota, como o app escreve (letra por grau, sobe e desce diferente na menor melódica). */
 function noteRows(pc, alt, type, oct) {
   const { midis, upCount } = sequence(pc, type, oct);
-  const tonic = tonicMidi(pc); // a raiz (nas inversões a escala começa em outra nota, mas a grafia parte da raiz)
+  const tonic = tonicMidi(pc, TYPES[type].start || 0); // a raiz (nas inversões a escala começa em outra nota, mas a grafia parte da raiz)
   const [tl] = tonicSpelling(pc, type, alt);
   return midis.map((m, i) => {
     const asc = i < upCount;
     const p = m % 12;
-    const map = letterMap(type, asc);
+    const map = type === 'diminishedSeventh' && DIM7_SHARP_ROOT[mod(tonic, 12)] ? L_DIM7_SEVENTH : letterMap(type, asc);
     let letter, acc;
     if (!map) {
       const up = [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [3, 0], [3, 1], [4, 0], [4, 1], [5, 0], [5, 1], [6, 0]];

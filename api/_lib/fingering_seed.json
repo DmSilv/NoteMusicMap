@@ -566,6 +566,67 @@
         "34": "2"
       },
       "ottava": null
+    },
+    {
+      "pc": 0,
+      "alt": false,
+      "type": "minorTriad",
+      "oct": 3,
+      "marks": {
+        "0": "2",
+        "4": "1",
+        "7": "1",
+        "12": "4"
+      },
+      "ottava": null
+    },
+    {
+      "pc": 0,
+      "alt": false,
+      "type": "majorTriad",
+      "oct": 3,
+      "marks": {
+        "4": "1",
+        "7": "1",
+        "12": "4"
+      },
+      "ottava": null
+    },
+    {
+      "pc": 9,
+      "alt": false,
+      "type": "minorTriad1",
+      "oct": 3,
+      "marks": {
+        "4": "1",
+        "7": "1",
+        "12": "4"
+      },
+      "ottava": null
+    },
+    {
+      "pc": 5,
+      "alt": false,
+      "type": "majorTriad2",
+      "oct": 3,
+      "marks": {
+        "4": "1",
+        "7": "1",
+        "12": "4"
+      },
+      "ottava": null
+    },
+    {
+      "pc": 5,
+      "alt": false,
+      "type": "minorTriad2",
+      "oct": 3,
+      "marks": {
+        "4": "1",
+        "7": "1",
+        "12": "4"
+      },
+      "ottava": null
     }
   ]
 }
