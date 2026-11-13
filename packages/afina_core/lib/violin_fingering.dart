@@ -198,6 +198,15 @@ const List<_Entry> _violin = [
   _Entry(0, false, ScaleType.diminishedSeventh, 3, {1: '4', 2: '1', 4: '1', 5: '1', 6: '3', 7: '4', 9: '1', 10: '2', 11: '3', 12: '4', 13: '3', 14: '2', 15: '1', 16: '4', 17: '2', 18: '4', 19: '3', 23: '4'}),
   // 7ª da dominante (Dó Mi Sol Si♭): 1 no Mi5, 1 2 3 no alto, 4 3 2 1 na descida e 4º dedo no Dó6.
   _Entry(0, false, ScaleType.dominantSeventh, 3, {5: '1', 9: '1', 10: '2', 11: '3', 12: '4', 13: '3', 14: '2', 15: '1', 16: '4'}),
+  // Seção de Fá: sob o 8va o livro não escreve os números do alto (notas 12 a 15).
+  _Entry(5, false, ScaleType.diminishedSeventh, 3, {1: '4', 2: '1', 3: '3', 5: '1', 6: '3', 7: '4', 8: '2', 9: '1', 10: '2', 11: '3', 16: '4', 17: '2', 18: '4', 19: '3'}),
+  _Entry(5, false, ScaleType.dominantSeventh, 3, {5: '1', 9: '1', 10: '2', 11: '3', 16: '4'}),
+  // Seção de Si♭ (começa na corda Sol baixa): 2 na 1ª nota; corda solta Ré4 (nota 1) na dominante e Mi5 (nota 18) na diminuta.
+  _Entry(10, false, ScaleType.diminishedSeventh, 3, {0: '2', 1: '4', 2: '1', 3: '3', 4: '1', 5: '1', 6: '3', 7: '4', 8: '2', 9: '1', 10: '2', 11: '3', 16: '4', 18: '0', 19: '3', 23: '4'}),
+  _Entry(10, false, ScaleType.dominantSeventh, 3, {1: '0', 5: '1', 9: '1', 10: '2', 11: '3', 16: '4'}),
+  // Seção de Mi♭: sob o 8va faltam os números das notas 12 a 15; no começo da diminuta o livro não escreve nada nas notas 0 a 3.
+  _Entry(3, false, ScaleType.diminishedSeventh, 3, {4: '1', 5: '1', 6: '3', 7: '4', 8: '2', 9: '1', 10: '2', 11: '3', 16: '4', 17: '2', 18: '4', 19: '3', 20: '1', 22: '1', 23: '4'}),
+  _Entry(3, false, ScaleType.dominantSeventh, 3, {0: '2', 5: '1', 9: '1', 10: '2', 11: '3', 16: '4'}),
 ];
 
 /// Escalas que o administrador corrigiu ou incluiu no painel (vêm do servidor); valem no lugar das do app.
