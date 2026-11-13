@@ -392,9 +392,9 @@ void _altTests() {
       }
     });
 
-    test('Sol♭ maior: a tabela do livro só vale na outra grafia', () {
+    test('Sol♭ maior e Fá♯ maior: as duas grafias têm o dedilhado do livro (mesmas notas)', () {
       expect(hasViolinFingering(66, ScaleType.major, 3, alt: true), isTrue);
-      expect(hasViolinFingering(66, ScaleType.major, 3), isFalse);
+      expect(hasViolinFingering(66, ScaleType.major, 3), isTrue);
       final p = violinFingeringPlan(tonicMidi: 66, type: ScaleType.major, octaves: 3, direction: ScaleDirection.both, alt: true)!;
       expect(p.fingers[0], '2');
       expect(p.ottava, (18, 26));
