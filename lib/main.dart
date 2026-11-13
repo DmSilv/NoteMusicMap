@@ -608,13 +608,21 @@ class _HomeShellState extends State<HomeShell> {
           ),
         ),
         // Em duas telas, cada lado tem o seu seletor: a barra de baixo não é necessária.
-        bottomNavigationBar: split ? null : NavigationBar(
-          selectedIndex: kTabOrder.indexOf(_index),
-          onDestinationSelected: (k) => _go(kTabOrder[k]),
-          destinations: [
-            for (final t in kTabOrder) NavigationDestination(icon: Icon(_icons[t]), label: _titles[t]),
-          ],
-        ),
+        // Em telas estreitas (até ~360 px) o rótulo diminui para "Meu espaço" caber numa linha só, em vez de quebrar em duas.
+        bottomNavigationBar: split
+            ? null
+            : NavigationBarTheme(
+                data: Theme.of(context).navigationBarTheme.copyWith(
+                      labelTextStyle: WidgetStateProperty.all(TextStyle(fontSize: MediaQuery.sizeOf(context).width < 360 ? 10 : 11.5, fontWeight: FontWeight.w600)),
+                    ),
+                child: NavigationBar(
+                  selectedIndex: kTabOrder.indexOf(_index),
+                  onDestinationSelected: (k) => _go(kTabOrder[k]),
+                  destinations: [
+                    for (final t in kTabOrder) NavigationDestination(icon: Icon(_icons[t]), label: _titles[t]),
+                  ],
+                ),
+              ),
       ),
     );
   }
