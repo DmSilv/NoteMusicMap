@@ -52,25 +52,33 @@ publicação (o link já aceita `?o=ig`, `?o=yt`) e comparar antes e depois.
 Tudo na primeira sessão leva a **um momento**: a pessoa toca uma corda, a agulha se mexe e aparece **AFINADA!**. Esse é o "aha"
 do app. O resto (escalas, partitura, metrônomo, professor) vem depois, como próximo passo sugerido, não como menu.
 
-## 4. Apresentação breve (4 telas, 20 a 30 segundos, sempre com "Pular")
+## 4. Apresentação breve (4 telas + a conquista, 20 a 30 segundos, sempre com "Pular")
 
-Protótipo navegável: [prototipo_apresentacao/index.html](prototipo_apresentacao/index.html) (abre no navegador; é um roteiro, não o app).
+Protótipo navegável (versão 2): [prototipo_apresentacao/index.html](prototipo_apresentacao/index.html). Abre no navegador, em tema claro
+e escuro, de 320 a 430 px de largura; é um roteiro, não o app. Para ver pelo servidor local: `node -e "require('http').createServer((q,r)=>{r.setHeader('content-type','text/html;charset=utf-8');r.end(require('fs').readFileSync('docs/prototipo_apresentacao/index.html'))}).listen(8150)"`.
 
 | # | Tela | Texto | O que mostra |
 |---|---|---|---|
-| 1 | Promessa | **Seu instrumento afinado e estudando de verdade.** O Notemusic ouve você tocar e mostra, em tempo real, se cada nota está certa. | Agulha animada: baixa → quase → **AFINADA!** (a missão em 3 segundos) |
-| 2 | O que tem aqui | **Tudo para o seu estudo, num só lugar.** Afinador · Escalas com partitura (nota, dedo e posição, método Flesch) · Metrônomo e treino | Três cartões; o afinador destacado |
-| 3 | Personalizar | **Vamos personalizar em 5 segundos.** Instrumento (Violino, Viola, Violoncelo, Violão, Outro) e "Como você estuda?" (Sozinho, Tenho professor, Sou professor) | Duas perguntas de um toque; **Sozinho abre o Afinador**, as outras abrem o Meu espaço |
-| 4 | Primeira ação | **Toque uma corda e veja a mágica.** Pede o microfone **aqui**, com a frase de privacidade: "o som é analisado no aparelho e descartado; nada é gravado nem enviado" | Cordas do instrumento escolhido, botão **Permitir o microfone e afinar** e "Agora não" |
+| 1 | Promessa | **Seu instrumento afinado e estudando de verdade.** O Notemusic ouve você tocar e mostra na hora se cada nota está certa. Sem cadastro e sem custo. | **O próprio afinador**, não uma ilustração: a agulha sobe de "Um pouco baixa" a "Afinada!" em ciclo (a missão em 4 segundos) |
+| 2 | O que tem aqui | **Tudo para o seu estudo, num só lugar.** Comece pelo afinador e vá para as escalas quando quiser. | Três pedaços reais do app: partitura com dedo e posição ("corda Sol (IV), 2ª posição"), metrônomo e evolução |
+| 3 | Personalizar | **Dois toques para deixar do seu jeito.** Instrumento (Violino, Viola, Violoncelo, Violão, Outro) e "Como você estuda?" (Sozinho, Tenho professor, Sou professor) | Ícones de linha e duas escolhas de um toque; **Sozinho abre o Afinador**, as outras abrem o Meu espaço |
+| 4 | Primeira ação | **Toque uma corda e veja a nota aparecer.** Pede o microfone **aqui**, com a frase de privacidade: o som é analisado no aparelho e descartado; nada é gravado nem enviado | Violino com a corda Lá vibrando, ondas e o "Lá4"; botão **Permitir o microfone e afinar** e "Agora não" |
+| 5 | Primeira conquista | **Primeira nota afinada!** (só aparece depois do microfone) | Anel que fecha em volta do "Lá4" e o cartão **"Seu primeiro passo, 1 de 3"** (✓ afinar uma corda · tocar a primeira escala · estudar 5 min com o metrônomo) |
+
+Princípios aplicados (da pesquisa): mostrar **pedaços reais do produto** em vez de ilustração genérica; no máximo 3 a 4 telas antes do
+valor; **"Pular" sempre à vista** e barra de progresso segmentada; permissão pedida **depois** de mostrar o valor e com a
+explicação de privacidade no mesmo lugar; botão principal único, com verbo ("Permitir o microfone e afinar"); texto curto (título
+de até 2 linhas, até em 320 px); movimento leve que respeita "reduzir movimento"; toque mínimo de 44 px e contraste conferido nos
+dois temas. A tela 5 existe porque o primeiro "aha" precisa de **reforço e de um próximo passo**, senão a pessoa acerta a nota e fecha o app.
 
 Depois da tela 4 a pessoa cai no **Afinador já ouvindo**, com a agulha pronta. Quando acertar a primeira nota, o app comemora (já
-existe o "momento de sucesso") e sugere **um próximo passo** (tocar a primeira escala).
+existe o "momento de sucesso") e mostra o cartão de **próximo passo** (tocar a primeira escala).
 
 ## 5. Plano em fases
 
 | Fase | O que entra | Esforço | Como saber que deu certo |
 |---|---|---|---|
-| **A. Entrada** (primeiro) | As 4 telas acima; **home depende da resposta** (sozinho abre o Afinador); microfone pedido só na tela 4 (a caixa "Vamos deixar tudo pronto" some); "Pular" sempre visível; textos em `tr()` e inglês | 2 a 3 dias | Mais gente chega à 1ª nota afinada na 1ª sessão |
+| **A. Entrada** (primeiro) | As 4 telas e a conquista acima; **home depende da resposta** (sozinho abre o Afinador); microfone pedido só na tela 4 (a caixa "Vamos deixar tudo pronto" some); "Pular" sempre visível; textos em `tr()` e inglês | 2 a 3 dias | Mais gente chega à 1ª nota afinada na 1ª sessão |
 | **B. Primeiros passos** | Cartão **"Seu primeiro passo"** no Afinador e no Meu espaço, como o "Comece por aqui" do professor: ✓ afinar uma corda · ✓ tocar a primeira escala (Sol maior, 1 oitava, já escolhida, um botão **Tocar agora**) · ✓ marcar 5 min de estudo; trocar o jargão por rótulos claros ("Cordas soltas" → "Afinar as cordas"; "Pedal" some do primeiro plano); aviso curto na 1ª vez que abrir Escalas e Grade; o afinador começa a ouvir sozinho depois da permissão | 3 a 5 dias | Mais gente toca uma escala na 1ª semana |
 | **C. Voltar amanhã** | **Meta do dia** simples (5 min) e **dias seguidos** com perdão de 1 dia; lembrete combinado com a pessoa (o push já existe; falta ligar o QStash); **resumo da semana** em Evolução; convite para **instalar o app** só na 2ª sessão; convite para **vincular o professor** só depois da 1ª conquista | 1 a 2 semanas | D1 e D7 sobem |
 | **D. Medir** (começa junto com A) | Eventos de **primeira vez**: abriu, escolheu instrumento, liberou o microfone, **1ª nota afinada** (o aha), 1ª escala iniciada e concluída, voltou no dia 1 e no 7. Novo cartão no painel: **"Ativação do músico solo"**, separado por origem do link (`?o=`) | 1 a 2 dias | Dá para comparar publicações e versões |
