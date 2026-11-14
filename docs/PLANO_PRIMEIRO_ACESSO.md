@@ -74,6 +74,8 @@ dois temas. A tela 5 existe porque o primeiro "aha" precisa de **reforço e de u
 Depois da tela 4 a pessoa cai no **Afinador já ouvindo**, com a agulha pronta. Quando acertar a primeira nota, o app comemora (já
 existe o "momento de sucesso") e mostra o cartão de **próximo passo** (tocar a primeira escala).
 
+> **Estado (14/11/2026):** a variante 4.1 foi aprovada e já está implementada no app (local, ainda sem publicar): ver `lib/ui/welcome_tour.dart` e o histórico.
+
 ### 4.1 Variante para o visitante curioso (vem de anúncio, não sabe o que é)
 
 Protótipo: [prototipo_apresentacao/curioso.html](prototipo_apresentacao/curioso.html), feito com **capturas reais do app** (pasta `img/`, recortadas por CSS dentro de uma moldura de celular; para ver as imagens abra por um servidor local, não pelo arquivo). **Não pede nada**: sem pergunta, sem microfone, sem campo. Só mostra, em tom leve, e termina deixando a pessoa **escolher o lado**.

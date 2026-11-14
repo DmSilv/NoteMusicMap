@@ -30,6 +30,7 @@ import 'ui/study_page.dart';
 import 'ui/theme.dart';
 import 'ui/success_moment.dart';
 import 'ui/toast.dart';
+import 'ui/welcome_tour.dart';
 import 'ui/tuner_page.dart';
 
 AppState? _app;
@@ -103,74 +104,31 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
       GlobalKey<ScaffoldMessengerState>();
   final GlobalKey<NavigatorState> _navKey = GlobalKey<NavigatorState>();
 
-  /// Boas-vindas com os acessos de que o app precisa (só na primeira abertura).
+  /// Apresentação do primeiro acesso (só na primeira abertura). Não pede nada: o microfone é
+  /// pedido na hora em que a pessoa for ouvir (ver [_micRationale]) e o professor só vira
+  /// professor se tocar na porta "Sou professor".
   Future<void> _onboarding() async {
     final ctx = _navKey.currentContext;
     if (ctx == null || !mounted) return;
-    Widget item(IconData i, String t, String d) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(i, size: 24),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(t, style: const TextStyle(fontWeight: FontWeight.w700)),
-                Text(d, style: const TextStyle(fontSize: 13, height: 1.3)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-    final ok = await showDialog<bool>(
-      context: ctx,
-      barrierDismissible: false,
-      builder: (c) => AlertDialog(
-        title: Text(tr('Vamos deixar tudo pronto')),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Center(child: AppLogo(size: 56)),
-              const SizedBox(height: 14),
-              Text(tr('O Notemusic usa:')),
-              item(
-                Icons.mic,
-                tr('Microfone'),
-                tr('Para ouvir seu instrumento. O som é analisado no aparelho e nunca é gravado nem enviado.'),
-              ),
-              item(
-                Icons.vibration,
-                tr('Vibração'),
-                tr('Na batida do metrônomo, no fim do timer e nas notas das escalas. Você pode desligar depois.'),
-              ),
-              item(
-                Icons.cloud_outlined,
-                tr('Internet (opcional)'),
-                tr('Só se você pedir a análise por IA. O resto funciona sem internet.'),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(c, false),
-            child: Text(tr('Agora não')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: Text(tr('Permitir')),
-          ),
-        ],
-      ),
-    );
+    final choice = await showWelcomeTour(ctx);
     widget.app.markOnboarded();
-    if (ok == true) await widget.app.requestAllPermissions();
+    unawaited(widget.app.checkVibration());
+    switch (choice) {
+      case TourChoice.study:
+        widget.app.goTab?.call(kTabTuner);
+      case TourChoice.hasTeacher:
+        widget.app.goTab?.call(kTabStudy); // o Meu espaço já traz "Ler QR do professor"
+      case TourChoice.teacher:
+        widget.app.goTab?.call(kTabStudy);
+        final c = _navKey.currentContext;
+        if (c == null || !mounted) return;
+        // ignore: use_build_context_synchronously
+        if (await requireNickname(c, widget.app, reason: tr('Para ser professor, seus alunos precisam ver o seu nome.'))) {
+          widget.app.setTeacherMode(true);
+        }
+      case TourChoice.look:
+        break;
+    }
   }
 
   /// Explica para que o microfone é usado antes do primeiro pedido do sistema.
@@ -213,7 +171,7 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     widget.app.markTab('tuner');
     widget.app.askMicRationale = _micRationale;
-    // Primeiro uso: pede de uma vez tudo o que o app precisa.
+    // Primeiro uso: apresentação curta (sem pedir nada).
     if (!widget.app.onboarded) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _onboarding());
     }

@@ -18,7 +18,7 @@ function extractKeys() {
   const add = (key, file, line) => { if (!keys.has(key)) keys.set(key, []); keys.get(key).push({ file, line }); };
   const visit = (code, file, baseLine) => {
     for (const g of findGroups(code)) {
-      const before = code.slice(Math.max(0, g.start - 12), g.start);
+      const before = code.slice(Math.max(0, g.start - 80), g.start);
       const line = baseLine + code.slice(0, g.start).split('\n').length - 1;
       const { key } = groupKey(g);
       if (/\btr\(\s*$/.test(before) || /\/\*tr\*\/$/.test(before)) add(key, file, line);
