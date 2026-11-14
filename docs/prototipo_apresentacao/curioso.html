@@ -32,7 +32,7 @@
   .track { flex: 1; min-height: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
   .track::-webkit-scrollbar { display: none; }
   .slide { flex: 0 0 100%; scroll-snap-align: center; scroll-snap-stop: always; padding: 6px 22px 8px; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
-  .art { flex: 1 1 auto; min-height: 150px; display: flex; align-items: safe center; justify-content: safe center; padding: 6px 0; overflow: hidden; }
+  .art { flex: 1 1 auto; min-height: 150px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 6px 0; overflow: hidden; }
   .copy { flex: none; padding-bottom: 6px; }
   h1 { font-size: clamp(26px, 8.2vw, 34px); line-height: 1.06; font-weight: 800; letter-spacing: -.03em; text-wrap: balance; }
   h1 .g { color: var(--accent); }
@@ -49,55 +49,26 @@
   .slide.in .copy .sub { animation: rise .5s cubic-bezier(.2,.8,.2,1) .2s forwards; }
   @keyframes rise { to { opacity: 1; transform: none; } }
 
-  /* 1 · a dúvida de todo músico */
-  .scene { width: 100%; max-width: 340px; display: grid; gap: 12px; }
-  .bubble { justify-self: start; max-width: 80%; background: var(--surface2); border-radius: 18px 18px 18px 4px; padding: 11px 14px; font-size: 15px; font-weight: 600; }
-  .bubble.me { justify-self: end; background: var(--tint); color: var(--text); border-radius: 18px 18px 4px 18px; }
-  .tuner { background: var(--surface); border: 1px solid var(--outline); border-radius: var(--r-card); padding: 14px 16px; }
-  .tuner .head { display: flex; justify-content: space-between; color: var(--dim); font-size: 12.5px; }
-  .tuner .big { font-size: 56px; font-weight: 800; letter-spacing: -.04em; line-height: 1; text-align: center; margin: 4px 0 0; }
-  .tuner .big sub { font-size: 22px; color: var(--dim); }
-  .meter { position: relative; height: 18px; border-radius: 9px; background: var(--surface2); margin-top: 12px; }
-  .meter .zone { position: absolute; left: 42%; width: 16%; top: 0; bottom: 0; background: var(--ink-a); border-radius: 9px; }
-  .meter .pin { position: absolute; top: -5px; width: 6px; height: 28px; border-radius: 3px; background: var(--flat); left: 10%; transition: left .9s cubic-bezier(.3,.7,.2,1), background .3s; }
-  .says { margin-top: 12px; height: 50px; border-radius: 14px; border: 2px solid var(--outline); background: var(--surface2); display: flex; align-items: center; gap: 10px; padding: 0 12px; font-weight: 800; font-size: 16px; transition: border-color .3s, background .3s; }
-  .says svg { width: 26px; height: 26px; color: var(--dim); flex: none; }
-  .says.low { border-color: var(--flat); } .says.low svg { color: var(--flat); }
-  .says.ok { border-color: var(--accent); background: var(--tint); } .says.ok svg { color: var(--accent); }
+  /* moldura de celular com capturas REAIS do app (recortadas por CSS) */
+  .phone { position: relative; flex: 1 1 0; min-height: 0; max-height: 400px; aspect-ratio: 780 / 1070; max-width: 100%; border-radius: 26px; border: 5px solid #05080b; background: #0F1419; overflow: hidden; box-shadow: 0 14px 40px rgba(0,0,0,.35), 0 0 0 1px var(--outline); }
+  .phone img { position: absolute; left: 0; top: 0; width: 100%; height: auto; margin-top: calc(var(--y, 0) / 780 * -100%); opacity: 0; transition: opacity 0s .45s; display: block; }
+  .phone img.on { opacity: 1; z-index: 2; transition: opacity .4s ease; }
+  .phone::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 10%; background: linear-gradient(to bottom, rgba(15,20,25,0), #0F1419 92%); z-index: 3; pointer-events: none; }
+  .phone.nf::before { display: none; }
+  .phone::after { z-index: 4; content: ""; position: absolute; inset: 0; border-radius: 21px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.06); pointer-events: none; }
+  .cap { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; padding: 7px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--outline); font-weight: 700; font-size: 14px; text-align: center; transition: border-color .3s, color .3s; }
+  .cap i { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex: none; transition: background .3s; }
+  .cap.hi i { background: var(--sharp); }
+  .bubble { align-self: flex-start; background: var(--surface2); border-radius: 18px 18px 18px 4px; padding: 10px 14px; font-size: 15px; font-weight: 600; max-width: 85%; }
+  .tabs { display: flex; gap: 5px; width: 100%; justify-content: center; flex-wrap: nowrap; }
+  .tabs button { height: 36px; padding: 0 11px; white-space: nowrap; border-radius: 999px; border: 1px solid var(--outline); background: var(--surface); font-weight: 700; font-size: 14px; cursor: pointer; color: var(--dim); }
+  .tabs button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--on); }
+  .cap2 { text-align: center; color: var(--dim); font-size: 14px; min-height: 20px; }
 
-  /* 2 · caixa de ferramentas */
-  .tools { width: 100%; max-width: 350px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .tool { background: var(--surface); border: 1px solid var(--outline); border-radius: var(--r-card); padding: 14px; }
-  .tool svg { width: 34px; height: 34px; color: var(--accent); }
-  .tool b { display: block; margin-top: 10px; font-size: 16px; }
-  .tool span { display: block; margin-top: 3px; color: var(--dim); font-size: 13px; line-height: 1.35; }
-  .slide.in .tool { animation: rise .5s cubic-bezier(.2,.8,.2,1) both; }
-  .slide.in .tool:nth-child(1) { animation-delay: .1s; } .slide.in .tool:nth-child(2) { animation-delay: .18s; } .slide.in .tool:nth-child(3) { animation-delay: .26s; } .slide.in .tool:nth-child(4) { animation-delay: .34s; }
-
-  /* 3 · aluno ou professor */
-  .who { width: 100%; max-width: 350px; }
-  .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface); border: 1px solid var(--outline); border-radius: 16px; padding: 4px; }
-  .seg button { border: 0; background: none; height: 44px; border-radius: 12px; font-weight: 800; font-size: 15px; cursor: pointer; color: var(--dim); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; background: var(--surface); border: 1px solid var(--outline); border-radius: 16px; padding: 4px; width: 100%; max-width: 350px; }
+  .seg button { border: 0; background: none; height: 42px; border-radius: 12px; font-weight: 800; font-size: 15px; cursor: pointer; color: var(--dim); }
   .seg button[aria-pressed="true"] { background: var(--accent); color: var(--on); }
-  .panel { margin-top: 12px; display: grid; gap: 10px; }
-  .panel[hidden] { display: none; }
-  .card { background: var(--surface); border: 1px solid var(--outline); border-radius: var(--r-card); padding: 14px; }
-  .task small { color: var(--dim); font-size: 12.5px; }
-  .task b { display: block; font-size: 16px; margin: 2px 0 10px; }
-  .task .go { display: flex; align-items: center; gap: 10px; height: 46px; border-radius: 14px; background: var(--surface2); padding: 0 14px; font-weight: 700; font-size: 14.5px; transition: background .3s; }
-  .task .go svg { width: 22px; height: 22px; flex: none; color: var(--outline); transition: color .3s; }
-  .task.done .go { background: var(--tint); } .task.done .go svg { color: var(--accent); }
-  .streak { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14.5px; }
-  .streak .dots { display: flex; gap: 5px; margin-left: auto; }
-  .streak .dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--surface2); }
-  .streak .dots i.on { background: var(--accent); }
-  .pupil { display: flex; align-items: center; gap: 12px; padding: 10px 14px; }
-  .pupil .av { width: 38px; height: 38px; border-radius: 50%; background: var(--surface2); display: grid; place-items: center; font-weight: 800; flex: none; }
-  .pupil b { font-size: 15px; } .pupil small { display: block; color: var(--dim); font-size: 12.5px; }
-  .chip { margin-left: auto; font-size: 12px; font-weight: 800; padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
-  .chip.ok { background: var(--tint); color: var(--accent); } .chip.warn { background: color-mix(in srgb, var(--sharp) 20%, transparent); color: var(--sharp); } .chip.blue { background: color-mix(in srgb, var(--flat) 20%, transparent); color: var(--flat); }
 
-  /* 4 · escolha */
   .picks { width: 100%; display: grid; gap: 10px; }
   .pick { display: flex; align-items: center; gap: 14px; text-align: left; width: 100%; background: var(--surface); border: 2px solid var(--outline); border-radius: 18px; padding: 14px; cursor: pointer; min-height: 72px; transition: border-color .15s, background .15s, transform .12s; }
   .pick:active { transform: scale(.985); }
@@ -107,23 +78,24 @@
   .pick b { display: block; font-size: 17px; } .pick small { display: block; margin-top: 2px; color: var(--dim); font-size: 13px; line-height: 1.3; }
   .pick .ar { margin-left: auto; width: 20px; height: 20px; color: var(--dim); flex: none; }
   .pick.main { border-color: var(--accent); background: var(--tint); }
-  .note { text-align: center; color: var(--dim); font-size: 13px; margin-top: 12px; line-height: 1.4; }
+  .look { display: block; width: 100%; margin-top: 6px; height: 44px; background: none; border: 0; color: var(--dim); font-weight: 600; font-size: 15px; cursor: pointer; }
+  .trust { list-style: none; padding: 0; margin-top: auto; padding-bottom: 6px; white-space: nowrap; display: flex; flex-wrap: wrap; gap: 8px 12px; justify-content: center; color: var(--dim); font-size: 12.5px; font-weight: 600; }
+  .trust li { display: inline-flex; align-items: center; gap: 6px; } .trust svg { width: 16px; height: 16px; color: var(--accent); }
   .toast { position: absolute; left: 20px; right: 20px; bottom: 28px; background: var(--surface); border: 2px solid var(--accent); border-radius: 16px; padding: 12px 14px; font-weight: 700; font-size: 14px; line-height: 1.35; opacity: 0; transform: translateY(12px); pointer-events: none; transition: opacity .25s, transform .25s; z-index: 5; }
   .toast.show { opacity: 1; transform: none; }
 
-  @media (max-height: 700px) { .sub { font-size: 15px; } .art { min-height: 120px; } }
+  @media (max-height: 700px) { .sub { font-size: 15px; } .art { min-height: 120px; } .phone { max-height: 340px; } }
   @media (max-height: 640px) {
-    h1 { font-size: clamp(22px, 7vw, 27px); } .sub { font-size: 14px; margin-top: 6px; } .art { min-height: 0; padding: 2px 0; }
-    .scene { gap: 8px; } .bubble { padding: 8px 12px; font-size: 14px; } .tuner { padding: 10px 12px; } .tuner .big { font-size: 40px; } .says { height: 42px; margin-top: 8px; }
-    .tool { padding: 10px 12px; } .tool svg { width: 26px; height: 26px; } .tool b { margin-top: 6px; font-size: 14.5px; } .tool span { font-size: 12px; } .tools { gap: 8px; }
-    .seg button { height: 38px; } .panel { gap: 8px; margin-top: 8px; } .card { padding: 10px 12px; } .pupil { padding: 7px 12px; } .pupil .av { width: 32px; height: 32px; }
-    .pick { min-height: 54px; padding: 8px 12px; } .pick .ic { width: 38px; height: 38px; } .pick small { font-size: 12px; } .picks { gap: 8px; } .note { margin-top: 8px; font-size: 12px; }
+    h1 { font-size: clamp(22px, 7vw, 27px); } .sub { font-size: 14px; margin-top: 6px; } .art { min-height: 0; padding: 2px 0; gap: 6px; }
+    .bubble { padding: 7px 12px; font-size: 14px; } .phone { max-height: 260px; border-radius: 20px; border-width: 4px; } .cap { min-height: 30px; padding: 4px 12px; font-size: 13px; }
+    .tabs button { height: 30px; padding: 0 11px; font-size: 13px; } .cap2 { font-size: 12.5px; min-height: 0; } .seg button { height: 36px; }
+    .pick { min-height: 54px; padding: 8px 12px; } .pick .ic { width: 38px; height: 38px; } .pick small { font-size: 12px; } .picks { gap: 7px; } .look { height: 38px; }
     .foot { padding-top: 6px; padding-bottom: 10px; } .cta { height: 50px; } .tag { display: none; }
     .brand svg { width: 28px; height: 28px; } .row { height: 34px; } .top { padding-top: 8px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .slide .art, .slide .copy h1, .slide .copy .sub { opacity: 1; transform: none; animation: none !important; }
-    .slide.in .tool { animation: none; } .prog i::after, .meter .pin { transition: none; }
+    .prog i::after, .phone img { transition: none; }
   }
 </style>
 </head>
@@ -141,19 +113,15 @@
   </div>
 
   <div class="track" id="track">
-    <!-- 1 · a dúvida que todo músico já teve -->
+    <!-- 1 · a dúvida que todo músico já teve (tela real do afinador) -->
     <section class="slide in" aria-label="Passo 1 de 4">
       <div class="art">
-        <div class="scene" aria-hidden="true">
-          <div class="bubble">Será que essa nota está afinada?</div>
-          <div class="tuner">
-            <div class="head"><span>Violino</span><span>Lá de referência 440 Hz</span></div>
-            <div class="big">Lá<sub>4</sub></div>
-            <div class="meter"><div class="zone"></div><div class="pin" id="pin"></div></div>
-            <div class="says low" id="says"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path id="saysP" d="M16 6v17M9 17l7 7 7-7"/></svg><span id="sayT">Um pouquinho baixa</span></div>
-          </div>
-          <div class="bubble me" id="reply">O Notemusic responde na hora.</div>
+        <div class="bubble">Será que essa nota está afinada?</div>
+        <div class="phone nf" aria-hidden="true" id="ph1">
+          <img src="img/afinador-agudo.png" alt="" class="on" style="--y:402">
+          <img src="img/afinador-afinado.png" alt="" style="--y:402">
         </div>
+        <div class="cap hi" id="cap1" role="status"><i></i><span id="cap1t">Agudo: desça a afinação</span></div>
       </div>
       <div class="copy">
         <h1>Tocou a nota e ficou <span class="g">na dúvida?</span></h1>
@@ -161,15 +129,19 @@
       </div>
     </section>
 
-    <!-- 2 · a caixa de ferramentas -->
+    <!-- 2 · a caixa de ferramentas (telas reais) -->
     <section class="slide" aria-label="Passo 2 de 4">
       <div class="art">
-        <div class="tools" aria-hidden="true">
-          <div class="tool"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22a11 11 0 0 1 22 0"/><path d="M16 22l5-8"/><circle cx="16" cy="22" r="1.600" fill="currentColor"/></svg><b>Afinador</b><span>Corda a corda, com a agulha mostrando o caminho.</span></div>
-          <div class="tool"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h26M3 15h26M3 20h26M3 25h26"/><circle cx="9" cy="25" r="2.200" fill="currentColor"/><circle cx="16" cy="20" r="2.200" fill="currentColor"/><circle cx="23" cy="15" r="2.200" fill="currentColor"/></svg><b>Escalas</b><span>Com dedo e posição, do jeito que o livro ensina.</span></div>
-          <div class="tool"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 28 14 5h4l3 23z"/><path d="M16 22 22 9"/><path d="M10 28h12"/></svg><b>Metrônomo</b><span>O chefe do tempo, sem reclamar de hora extra.</span></div>
-          <div class="tool"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="7" width="22" height="20" rx="4"/><path d="M5 13h22M11 4v6M21 4v6"/><path d="m12 20 3 3 5-6"/></svg><b>Agenda</b><span>Aula marcada, lembrete e ninguém esquece.</span></div>
+        <div class="phone" aria-hidden="true" id="ph2">
+          <img src="img/afinador-afinado.png" alt="" class="on" style="--y:402">
+          <img src="img/escalas.png" alt="" style="--y:245">
+          <img src="img/metronomo.png" alt="" style="--y:245">
+          <img src="img/grade.png" alt="" style="--y:480">
         </div>
+        <div class="tabs" role="group" aria-label="Ferramentas" id="tabs">
+          <button type="button" aria-pressed="true">Afinador</button><button type="button" aria-pressed="false">Escalas</button><button type="button" aria-pressed="false">Metrônomo</button><button type="button" aria-pressed="false">Grade</button>
+        </div>
+        <div class="cap2" id="cap2">Corda a corda, com a agulha mostrando o caminho.</div>
       </div>
       <div class="copy">
         <h1>Uma caixa de ferramentas, <span class="g">zero bagunça</span></h1>
@@ -180,25 +152,18 @@
     <!-- 3 · aluno e professor (a pessoa escolhe o lado que quer ver) -->
     <section class="slide" aria-label="Passo 3 de 4">
       <div class="art">
-        <div class="who">
-          <div class="seg" role="group" aria-label="Ver como">
-            <button type="button" id="bAl" aria-pressed="true">Sou aluno</button>
-            <button type="button" id="bPr" aria-pressed="false">Sou professor</button>
-          </div>
-          <div class="panel" id="pAl">
-            <div class="card task" id="task"><small>Tarefa da professora Clara</small><b>Escala de Sol, 3 oitavas, 80 BPM</b><div class="go"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="11"/><path d="M7 12.300l3.300 3.300L17 8.800" fill="none" stroke="var(--bg)" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="goT">Toque para estudar</span></div></div>
-            <div class="card streak"><span>Dias seguidos</span><span class="dots"><i class="on"></i><i class="on"></i><i class="on"></i><i id="d4"></i><i></i></span></div>
-          </div>
-          <div class="panel" id="pPr" hidden>
-            <div class="card pupil"><span class="av">A</span><span><b>Ana</b><small>estudou 12 min hoje</small></span><span class="chip ok">em dia</span></div>
-            <div class="card pupil"><span class="av">P</span><span><b>Pedro</b><small>4 dias sem abrir o app</small></span><span class="chip warn">dar um toque</span></div>
-            <div class="card pupil"><span class="av">L</span><span><b>Lia</b><small>entregou a escala de Ré</small></span><span class="chip blue">corrigir</span></div>
-          </div>
+        <div class="seg" role="group" aria-label="Ver como">
+          <button type="button" id="bAl" aria-pressed="true">Tenho professor</button>
+          <button type="button" id="bPr" aria-pressed="false">Sou professor</button>
+        </div>
+        <div class="phone" aria-hidden="true" id="ph3">
+          <img src="img/aluno.png" alt="" class="on" style="--y:100">
+          <img src="img/professor.png" alt="" style="--y:100">
         </div>
       </div>
       <div class="copy">
-        <h1 id="h3">Seu professor passa a tarefa, <span class="g">você estuda</span></h1>
-        <p class="sub" id="s3">O app ouve, confere e mostra para ele como foi. Sem print de WhatsApp.</p>
+        <h1 id="h3">A aula e as tarefas <span class="g">num lugar só</span></h1>
+        <p class="sub" id="s3">Seu professor marca a aula, você vê na hora e pega um horário livre.</p>
       </div>
     </section>
 
@@ -206,36 +171,39 @@
     <section class="slide" aria-label="Passo 4 de 4">
       <div class="copy" style="padding-top:2px">
         <h1>Gostou? <span class="g">Escolha</span> por onde começar</h1>
-        <p class="sub">Nada de formulário agora. Você só cria conta quando quiser guardar seu progresso ou ligar com o professor.</p>
+        <p class="sub">Nada de formulário. Seus dados ficam neste aparelho e a conta só entra em cena se você quiser ligar com um professor.</p>
       </div>
-      <div class="art" style="align-items:flex-start;padding-top:10px">
-        <div style="width:100%">
-          <div class="picks">
-            <button class="pick main" type="button" data-go="Abre o Afinador já ouvindo, no seu ritmo. A conta só aparece se você quiser vincular um professor.">
-              <span class="ic"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22a11 11 0 0 1 22 0"/><path d="M16 22l5-8"/></svg></span>
-              <span><b>Quero estudar</b><small>Afinador e escalas, direto ao ponto</small></span>
-              <svg class="ar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
-            </button>
-            <button class="pick" type="button" data-go="Abre o Meu espaço de professor, com o código para seus alunos se vincularem. A conta é criada aqui, em um passo.">
-              <span class="ic"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="11" r="4.500"/><path d="M4 26c0-5 3.500-8 8-8s8 3 8 8"/><path d="M22 12h6M25 9v6"/></svg></span>
-              <span><b>Sou professor</b><small>Acompanhe seus alunos sem planilha</small></span>
-              <svg class="ar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
-            </button>
-            <button class="pick" type="button" data-go="Abre o app inteiro para você fuçar. Sem pedir nada.">
-              <span class="ic"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 16s5-9 14-9 14 9 14 9-5 9-14 9S2 16 2 16z"/><circle cx="16" cy="16" r="4"/></svg></span>
-              <span><b>Só quero olhar</b><small>Sem compromisso, volto quando quiser</small></span>
-              <svg class="ar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
-            </button>
-          </div>
-          <p class="note">Quem já tem conta entra por "Já tenho conta" no menu.</p>
+      <div class="art" style="justify-content:flex-start;gap:12px;padding-top:14px">
+        <div class="picks">
+          <button class="pick main" type="button" data-go="abre o Afinador, no seu ritmo. Nenhum cadastro.">
+            <span class="ic"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22a11 11 0 0 1 22 0"/><path d="M16 22l5-8"/></svg></span>
+            <span><b>Quero estudar</b><small>Afinador, escalas e metrônomo</small></span>
+            <svg class="ar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+          </button>
+          <button class="pick" type="button" data-go="abre o leitor de QR para ler o código do seu professor e ver aulas e tarefas no Meu espaço.">
+            <span class="ic"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11V6a2 2 0 0 1 2-2h5M21 4h5a2 2 0 0 1 2 2v5M28 21v5a2 2 0 0 1-2 2h-5M11 28H6a2 2 0 0 1-2-2v-5"/><path d="M10 12h4v4h-4zM18 12h4v4h-4zM10 20h4M18 20h4"/></svg></span>
+            <span><b>Tenho professor</b><small>Leia o QR dele e veja aulas e tarefas</small></span>
+            <svg class="ar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+          </button>
+          <button class="pick" type="button" data-go="liga o Modo professor: cadastre alunos, passe tarefas e gere relatórios.">
+            <span class="ic"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="11" r="4.500"/><path d="M4 26c0-5 3.500-8 8-8s8 3 8 8"/><path d="M22 12h6M25 9v6"/></svg></span>
+            <span><b>Sou professor</b><small>Alunos, agenda e tarefas num só lugar</small></span>
+            <svg class="ar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round"><path d="m9 5 7 7-7 7"/></svg>
+          </button>
+          <button class="look" type="button" style="margin-top:0" data-go="abre o app inteiro para você fuçar, sem pedir nada.">Só quero olhar</button>
         </div>
+        <ul class="trust" aria-label="Garantias">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2.500"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Sem cadastro</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="3" width="10" height="18" rx="2.500"/><path d="M11 18h2"/></svg>Dados no aparelho</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>Instala no celular</li>
+        </ul>
       </div>
     </section>
   </div>
 
   <div class="foot" id="foot"><button class="cta" id="cta" type="button"><span>Continuar</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
   <div class="toast" id="toast" role="status"></div>
-  <div class="tag">protótipo de roteiro, não é o app</div>
+  <div class="tag">protótipo de roteiro · telas reais do app</div>
 </div>
 <script>
   const $ = (s) => document.querySelector(s), $$ = (s) => [...document.querySelectorAll(s)];
@@ -247,7 +215,6 @@
     segs.forEach((s, k) => { s.className = k < i ? 'done' : k === i ? 'cur' : ''; });
     foot.style.display = i === 3 ? 'none' : '';
     $('#skip').style.visibility = i === 3 ? 'hidden' : 'visible';
-    if (i === 2) demoTask();
   };
   const go = (n) => { i = Math.max(0, Math.min(3, n)); track.scrollTo({ left: i * track.clientWidth, behavior: reduce ? 'auto' : 'smooth' }); mark(); };
   track.addEventListener('scroll', () => { const n = Math.round(track.scrollLeft / track.clientWidth); if (n !== i) { i = n; mark(); } }, { passive: true });
@@ -255,31 +222,32 @@
   $('#skip').onclick = () => go(3);
   document.addEventListener('keydown', (e) => { if (e.key === 'ArrowRight') go(i + 1); if (e.key === 'ArrowLeft') go(i - 1); });
 
-  // tela 1: pergunta, agulha e resposta
-  const says = $('#says'), sayT = $('#sayT'), pin = $('#pin'), saysP = $('#saysP');
-  const steps = [[0, 'low', 'Um pouquinho baixa', 'M16 6v17M9 17l7 7 7-7', '10%'], [1400, 'low', 'Um pouquinho baixa', 'M16 6v17M9 17l7 7 7-7', '30%'], [2800, 'low', 'Quase lá', 'M16 6v17M9 17l7 7 7-7', '43%'], [3800, 'ok', 'Afinada!', 'M7 17l6 6L25 10', '49%']];
-  let timers = [];
-  const apply = ([, c, tx, d, left]) => { says.className = 'says ' + c; sayT.textContent = tx; saysP.setAttribute('d', d); pin.style.left = left; pin.style.background = c === 'ok' ? 'var(--accent)' : 'var(--flat)'; };
-  const cycle = () => { timers.forEach(clearTimeout); timers = steps.map((x) => setTimeout(() => apply(x), x[0])); };
-  if (reduce) apply(steps[3]); else { cycle(); setInterval(cycle, 8000); }
+  const show = (box, k) => $$(box + ' img').forEach((im, j) => im.classList.toggle('on', j === k));
 
-  // tela 3: escolher o lado
+  // tela 1: a mesma corda desafinada e afinada, nas telas reais do app
+  const f1 = [['Agudo: desça a afinação', true], ['Afinado', false]]; let k1 = 0;
+  const step1 = () => { k1 = (k1 + 1) % 2; show('#ph1', k1); $('#cap1t').textContent = f1[k1][0]; $('#cap1').classList.toggle('hi', f1[k1][1]); };
+  if (reduce) { k1 = 0; step1(); } else setInterval(step1, 2800);
+
+  // tela 2: troca sozinha entre as quatro telas; se a pessoa tocar, para
+  const tools = ['Corda a corda, com a agulha mostrando o caminho.', 'Escalas e arpejos na partitura, com exercício guiado.', 'O chefe do tempo, sem reclamar de hora extra.', 'Toque qualquer nota e veja se está afinada.'];
+  const tabs = $$('#tabs button'); let k2 = 0, auto2;
+  const pick2 = (n) => { k2 = n; show('#ph2', n); tabs.forEach((b, j) => b.setAttribute('aria-pressed', j === n)); $('#cap2').textContent = tools[n]; };
+  tabs.forEach((b, n) => b.addEventListener('click', () => { clearInterval(auto2); pick2(n); }));
+  if (!reduce) auto2 = setInterval(() => { if (i === 1) pick2((k2 + 1) % 4); }, 3200);
+
+  // tela 3: o lado que a pessoa quer ver
   const bAl = $('#bAl'), bPr = $('#bPr');
   const side = (prof) => {
-    bAl.setAttribute('aria-pressed', !prof); bPr.setAttribute('aria-pressed', prof);
-    $('#pAl').hidden = prof; $('#pPr').hidden = !prof;
-    $('#h3').innerHTML = prof ? 'Veja quem estudou, <span class="g">sem planilha</span>' : 'Seu professor passa a tarefa, <span class="g">você estuda</span>';
-    $('#s3').textContent = prof ? 'Cada aluno mostra o que fez e você só precisa corrigir e dar o próximo passo.' : 'O app ouve, confere e mostra para ele como foi. Sem print de WhatsApp.';
-    if (!prof) demoTask();
+    bAl.setAttribute('aria-pressed', !prof); bPr.setAttribute('aria-pressed', prof); show('#ph3', prof ? 1 : 0);
+    $('#h3').innerHTML = prof ? 'Agenda e alunos, <span class="g">sem planilha</span>' : 'A aula e as tarefas <span class="g">num lugar só</span>';
+    $('#s3').textContent = prof ? 'Marque aulas, abra horários livres e abra a ficha de cada aluno com um toque.' : 'Seu professor marca a aula, você vê na hora e pega um horário livre.';
   };
   bAl.onclick = () => side(false); bPr.onclick = () => side(true);
-  let tt;
-  function demoTask() { const task = $('#task'), d4 = $('#d4'); clearTimeout(tt); task.classList.remove('done'); d4.classList.remove('on'); $('#goT').textContent = 'Toque para estudar';
-    tt = setTimeout(() => { task.classList.add('done'); d4.classList.add('on'); $('#goT').textContent = 'Feito! Mais um dia seguido'; }, reduce ? 100 : 1500); }
 
-  // tela 4: nada é exigido, o protótipo só mostra para onde cada escolha leva
+  // tela 4: o protótipo só mostra para onde cada porta leva
   const toast = $('#toast'); let th;
-  $$('.pick').forEach((b) => b.addEventListener('click', () => { toast.textContent = 'No app: ' + b.dataset.go.charAt(0).toLowerCase() + b.dataset.go.slice(1); toast.classList.add('show'); clearTimeout(th); th = setTimeout(() => toast.classList.remove('show'), 4200); }));
+  $$('[data-go]').forEach((b) => b.addEventListener('click', () => { toast.textContent = 'No app: ' + b.dataset.go; toast.classList.add('show'); clearTimeout(th); th = setTimeout(() => toast.classList.remove('show'), 4200); }));
   mark();
 </script>
 </body>

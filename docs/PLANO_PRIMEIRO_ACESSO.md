@@ -76,16 +76,23 @@ existe o "momento de sucesso") e mostra o cartão de **próximo passo** (tocar a
 
 ### 4.1 Variante para o visitante curioso (vem de anúncio, não sabe o que é)
 
-Protótipo: [prototipo_apresentacao/curioso.html](prototipo_apresentacao/curioso.html). **Não pede nada** (sem pergunta, sem microfone, sem campo); só mostra, em tom leve, e termina deixando a pessoa **escolher o lado**.
+Protótipo: [prototipo_apresentacao/curioso.html](prototipo_apresentacao/curioso.html), feito com **capturas reais do app** (pasta `img/`, recortadas por CSS dentro de uma moldura de celular; para ver as imagens abra por um servidor local, não pelo arquivo). **Não pede nada**: sem pergunta, sem microfone, sem campo. Só mostra, em tom leve, e termina deixando a pessoa **escolher o lado**.
 
-| # | Tela | Ideia | Como funciona |
+| # | Tela | Ideia | O que mostra (tela real) |
 |---|---|---|---|
-| 1 | **Tocou a nota e ficou na dúvida?** | Começa pela dúvida que todo músico já teve, em formato de conversa | Balão de pergunta, afinador de verdade respondendo (baixa, quase, afinada) e balão de resposta |
-| 2 | **Uma caixa de ferramentas, zero bagunça** | Responde "o que é isso?" em 4 cartões com uma frase bem-humorada cada | Afinador, Escalas, Metrônomo, Agenda |
-| 3 | **Seu professor passa a tarefa, você estuda** ou **Veja quem estudou, sem planilha** | A pessoa **escolhe o lado que quer ver** (Sou aluno / Sou professor) e vê o que o app faz por ela | Aluno: a tarefa da professora vira ✓ e soma um dia seguido. Professor: lista de alunos com "em dia", "dar um toque", "corrigir" |
-| 4 | **Gostou? Escolha por onde começar** | Três portas sem formulário: **Quero estudar**, **Sou professor**, **Só quero olhar** | "Nada de formulário agora": a conta só nasce quando a pessoa quiser guardar o progresso ou ligar com o professor |
+| 1 | **Tocou a nota e ficou na dúvida?** | Começa pela dúvida que todo músico já teve | Afinador real alternando "Agudo: desça a afinação" (Sol, +22,4 Hz) e "Afinado" (Ré, +1,6 Hz) |
+| 2 | **Uma caixa de ferramentas, zero bagunça** | Responde "o que é isso?" mostrando o app, com abas que trocam sozinhas | Afinador, Escalas (partitura e exercício guiado), Metrônomo, Grade |
+| 3 | **A aula e as tarefas num lugar só** / **Agenda e alunos, sem planilha** | A pessoa **escolhe o lado que quer ver** | Meu espaço do aluno (aula marcada, "Pegar horário", Tarefas) e do professor (próxima aula, ficha do aluno, horários livres) |
+| 4 | **Gostou? Escolha por onde começar** | Três portas sem formulário: **Quero estudar**, **Tenho professor** (ler o QR dele), **Sou professor** (Modo professor), mais "Só quero olhar" | Faixa "Sem cadastro · Dados no aparelho · Instala no celular" |
 
-Por que assim: quem chega curioso precisa primeiro **entender** (telas 1 e 2), depois **se ver dentro** (tela 3: o lado escolhido já é o primeiro sinal de papel) e só então **escolher** (tela 4). O cadastro do professor vira "um passo" na hora em que ele toca em "Sou professor" (abre o Meu espaço com o código para os alunos); o aluno só cria conta quando for vincular. Medir: toques em cada porta da tela 4 e em "Sou aluno / Sou professor" da tela 3 (um contador agregado cada), para saber o que o público de cada publicação quer.
+**O que as capturas revelaram do app (a corrigir ou aproveitar):**
+- **Não existe cadastro com e-mail ou senha.** A identidade é um código do aparelho (ex.: NDYP-S5MG) e uma chave de recuperação; o rodapé de "Minha conta" já diz "Sem cadastro: seus dados ficam neste aparelho". Então "cadastrar como professor ou aluno" na prática é **ligar o Modo professor** (Minha conta) ou **ler o QR do professor** (aluno). O protótipo foi escrito assim.
+- A 1ª tela do app novo é o **Meu espaço vazio** com "Vincule seu professor" e os botões "Ler QR do professor" e "Sou professor": é o melhor ponto para aplicar as portas da tela 4, no lugar de um cartão que não explica nada.
+- "Sou professor" hoje só liga o Modo professor depois de **Minha conta**; não é um passo direto. Se a tela 4 prometer "um toque", o app precisa **abrir o Modo professor ligado**.
+- No Escalas, o dedilhado **não aparece na escala de Sol maior de 1 oitava** (só nas que têm marcas na tabela); por isso a apresentação fala em "partitura e exercício guiado", sem prometer dedo e posição em tudo.
+- Na tela do Afinador há um aviso de teste ("[dev] Simulação silenciosa") só no build de demonstração; as capturas foram recortadas para ficar fora dele.
+
+Por que assim: quem chega curioso precisa primeiro **entender** (telas 1 e 2), depois **se ver dentro** (tela 3: o lado escolhido já é o primeiro sinal de papel) e só então **escolher** (tela 4). Medir: toques em cada porta da tela 4 e em "Tenho professor / Sou professor" da tela 3 (um contador agregado cada).
 
 ## 5. Plano em fases
 
