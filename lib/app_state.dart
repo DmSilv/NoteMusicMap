@@ -2038,6 +2038,9 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// ALUNO: chegou aula nova (o professor encerrou a aula ou passou tarefas). A tela principal usa para avisar na hora.
+  void Function(List<SharedLesson> fresh)? onLessonsArrived;
+
   /// ALUNO: traz as aulas dos professores do servidor.
   Future<void> pullLessons({bool announce = true}) async {
     if (_lessonsPulling || !linkEnabled || linkUnavailable) return;
@@ -2073,6 +2076,7 @@ class AppState extends ChangeNotifier {
         final msg = newLessonsMessage(fresh);
         addNotice('lesson', msg);
         say(msg);
+        onLessonsArrived?.call(fresh);
       }
     } finally {
       _lessonsPulling = false;

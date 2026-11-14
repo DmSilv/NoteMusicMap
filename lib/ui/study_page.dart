@@ -56,15 +56,20 @@ class StudyPage extends StatelessWidget {
     return ListenableBuilder(
       listenable: active ? app : kNeverNotifies,
       builder: (context, _) {
-        return ListView(
-          padding: Ds.screen,
-          children: [
-            // Agenda: próxima aula, as seguintes e os atalhos (marcar, horários livres, agenda completa).
-            HubSection(app: app),
-            const DsGap(Ds.gap),
-            if (app.libraryVisible) ...[_materialCard(context), const DsGap(Ds.gap)],
-            FeedbackInviteCard(app: app),
-          ],
+        // Puxar para baixo atualiza (aluno: aulas e tarefas novas; professor: o que os alunos fizeram).
+        return RefreshIndicator(
+          onRefresh: app.syncLinks,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: Ds.screen,
+            children: [
+              // Agenda: próxima aula, as seguintes e os atalhos (marcar, horários livres, agenda completa).
+              HubSection(app: app),
+              const DsGap(Ds.gap),
+              if (app.libraryVisible) ...[_materialCard(context), const DsGap(Ds.gap)],
+              FeedbackInviteCard(app: app),
+            ],
+          ),
         );
       },
     );

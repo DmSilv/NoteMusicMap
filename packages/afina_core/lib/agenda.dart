@@ -308,6 +308,22 @@ List<SlotOccurrence> agendaBetween(Iterable<ClassSlot> slots, int fromMs, int to
   return out;
 }
 
+/// Quando o Meu espaço do aluno deve ficar atento a novidades do professor (aula encerrada, tarefas novas) sem gastar à toa:
+/// 0 = nada por perto (não consulta sozinho; só ao abrir, ao voltar ao app e ao puxar a tela);
+/// 1 = há aula por perto (de 15 min antes do começo até 30 min depois do fim): consulta normal (a cada ~30 s, esticando se nada muda);
+/// 2 = hora de encerrar a aula (de 5 min antes do fim até 20 min depois): consulta mais rápida (~10 s).
+/// A consulta é o contador barato `rev` (1 comando); só vale quando há aula marcada, então o custo fica restrito a esses minutos.
+int lessonLiveMode(Iterable<ClassSlot> slots, int nowMs) {
+  var mode = 0;
+  for (final o in agendaBetween(slots, nowMs - 4 * 60 * kMsMinute, nowMs + 15 * kMsMinute + 1)) {
+    final end = o.startMs + o.slot.endOffsetMs;
+    if (nowMs < o.startMs - 15 * kMsMinute || nowMs > end + 30 * kMsMinute) continue;
+    if (mode < 1) mode = 1;
+    if (nowMs >= end - 5 * kMsMinute && nowMs <= end + 20 * kMsMinute) mode = 2;
+  }
+  return mode;
+}
+
 /// As aulas de um dia (no relógio local).
 List<SlotOccurrence> agendaDay(Iterable<ClassSlot> slots, DateTime day) {
   final from = DateTime(day.year, day.month, day.day);

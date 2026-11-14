@@ -79,6 +79,79 @@ class DsIconBadge extends StatelessWidget {
   }
 }
 
+/// Situação de uma tarefa (texto, ícone e cor). É a MESMA para o professor e para o aluno: validada (verde),
+/// refazer e atrasada (laranja), levada e a enviar (azul), aguardando (destaque).
+class DsStatus {
+  final String text;
+  final IconData icon;
+  final Color color;
+  const DsStatus(this.text, this.icon, this.color);
+}
+
+/// Linha de tarefa padrão, igual no app do professor e no do aluno: ícone do tipo, título, UMA linha de apoio
+/// (a situação, se houver; senão o texto de apoio) e, à direita, o que a tela quiser (atalho, ✓, seta).
+class DsTaskRow extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? support;
+  final DsStatus? status;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+  const DsTaskRow({super.key, required this.icon, required this.title, this.support, this.status, this.trailing, this.onTap});
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 72),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(Ds.s16, Ds.s12, Ds.s12, Ds.s12),
+            child: Row(children: [
+              DsIconBadge(icon, size: 40),
+              const SizedBox(width: Ds.s12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                  Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: Ds.fontBody, height: 1.25, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: Ds.s4),
+                  if (status != null)
+                    Row(children: [
+                      Icon(status!.icon, size: 14, color: status!.color),
+                      const SizedBox(width: Ds.s4),
+                      Flexible(child: Text(status!.text, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: Ds.fontLabel, fontWeight: FontWeight.w700, color: status!.color))),
+                    ])
+                  else if (support != null && support!.isNotEmpty)
+                    Text(support!, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: Ds.fontLabel, color: AppColors.textDim)),
+                ]),
+              ),
+              if (trailing != null) ...[const SizedBox(width: Ds.s8), trailing!],
+            ]),
+          ),
+        ),
+      );
+}
+
+/// Cabeçalho de um cartão: selo com ícone, título e (opcional) apoio e ação à direita. Igual em todas as fichas.
+class DsCardTitle extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final Widget? trailing;
+  const DsCardTitle(this.icon, this.title, {super.key, this.subtitle, this.trailing});
+
+  @override
+  Widget build(BuildContext context) => Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        DsIconBadge(icon, size: 36),
+        const SizedBox(width: Ds.s12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, height: 1.2)),
+            if (subtitle != null) Padding(padding: const EdgeInsets.only(top: 2), child: Text(subtitle!, style: Ds.support())),
+          ]),
+        ),
+        ?trailing,
+      ]);
+}
+
 /// Espaço vertical padrão entre blocos.
 class DsGap extends StatelessWidget {
   final double h;

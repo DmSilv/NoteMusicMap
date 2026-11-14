@@ -133,13 +133,13 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
   /// A situação mais importante da tarefa (texto, ícone, cor) ou null.
   /// Quem decide é o professor: o aluno não marca nada. Situações: validada, refazer, levada para a próxima aula
   /// (o professor mandou a mesma tarefa de novo, numa aula mais nova) ou atrasada.
-  (String, IconData, Color)? _statusOf(SharedLesson l, Assignment t, bool overdue) {
+  DsStatus? _statusOf(SharedLesson l, Assignment t, bool overdue) {
     final state = app.taskStateOf(l, t);
-    if (state == StudentTaskState.validated) return (tr('validada'), Icons.verified_rounded, AppColors.inTune);
-    if (state == StudentTaskState.returned) return (tr('refazer'), Icons.replay_rounded, AppColors.sharp);
-    if (_carried.contains('${l.id}:${t.id}')) return (tr('levada para a próxima aula'), Icons.redo_rounded, AppColors.flat);
-    if (state == StudentTaskState.claimed) return (tr('aguardando o professor'), Icons.hourglass_top_rounded, AppColors.accent);
-    return overdue ? (tr('atrasada'), Icons.schedule_rounded, AppColors.sharp) : null;
+    if (state == StudentTaskState.validated) return DsStatus(tr('validada'), Icons.verified_rounded, AppColors.inTune);
+    if (state == StudentTaskState.returned) return DsStatus(tr('refazer'), Icons.replay_rounded, AppColors.sharp);
+    if (_carried.contains('${l.id}:${t.id}')) return DsStatus(tr('levada para a próxima aula'), Icons.redo_rounded, AppColors.flat);
+    if (state == StudentTaskState.claimed) return DsStatus(tr('aguardando o professor'), Icons.hourglass_top_rounded, AppColors.accent);
+    return overdue ? DsStatus(tr('atrasada'), Icons.schedule_rounded, AppColors.sharp) : null;
   }
 
   @override
@@ -284,7 +284,7 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
     final who = l.teacherName.trim().isNotEmpty ? l.teacherName.trim() : l.teacherLabel;
     final n = tasks.length;
     return Padding(
-      padding: const EdgeInsets.only(bottom: Ds.s12),
+      padding: const EdgeInsets.only(bottom: Ds.gap),
       child: AppCard(
         padding: EdgeInsets.zero,
         child: Theme(
@@ -292,7 +292,7 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
           child: ExpansionTile(
             key: PageStorageKey('lesson-$_tab-${l.id}'),
             initiallyExpanded: expanded,
-            tilePadding: const EdgeInsets.symmetric(horizontal: Ds.s16, vertical: 2),
+            tilePadding: const EdgeInsets.symmetric(horizontal: Ds.s16, vertical: Ds.s8),
             childrenPadding: const EdgeInsets.only(bottom: Ds.s8),
             expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
             title: Text(l.label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
@@ -307,8 +307,12 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
     );
   }
 
-  /// "Observações do professor": uma linha que abre o texto num modal.
-  Widget _notesRow(SharedLesson l) => InkWell(
+  /// "Observações do professor": linha padrão com a primeira frase de prévia; abre o texto todo num modal.
+  Widget _notesRow(SharedLesson l) => DsTaskRow(
+        icon: Icons.chat_bubble_outline_rounded,
+        title: tr('Observações do professor'),
+        support: l.notes.first,
+        trailing: Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
         onTap: () => showDsSheet(
           context,
           title: tr('Observações do professor'),
@@ -319,63 +323,27 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
             for (final n in l.notes) Padding(padding: const EdgeInsets.only(bottom: Ds.s12), child: Text(n, style: const TextStyle(fontSize: Ds.fontBody, height: 1.4))),
           ],
         ),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 56),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: Ds.s16),
-            child: Row(children: [
-              DsIconBadge(Icons.chat_bubble_outline_rounded, size: 40),
-              const SizedBox(width: Ds.s12),
-              Expanded(child: Text(tr('Observações do professor'), style: const TextStyle(fontSize: Ds.fontBody, fontWeight: FontWeight.w700))),
-              Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
-            ]),
-          ),
-        ),
       );
 
   /// Uma tarefa em linha: ícone do tipo, título, UMA linha de apoio (situação ou meta) e o atalho de estudo.
   /// Tocar na linha abre os detalhes num modal.
   Widget _taskRow(SharedLesson l, Assignment t, bool overdue) {
     final validated = app.taskStateOf(l, t) == StudentTaskState.validated;
-    final status = _statusOf(l, t, overdue);
-    final meta = t.isScale ? tr('Meta {0}% de acerto', [(t.goal * 100).round()]) : t.kind.label;
     final action = _actionOf(l, t);
-    return InkWell(
+    return DsTaskRow(
+      icon: taskKindIcon(t.kind),
+      title: t.title,
+      support: t.isScale ? tr('Meta {0}% de acerto', [(t.goal * 100).round()]) : t.kind.label,
+      status: _statusOf(l, t, overdue),
       onTap: () => _openTask(l, t, overdue),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 64),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(Ds.s16, Ds.s8, Ds.s12, Ds.s8),
-          child: Row(children: [
-            DsIconBadge(taskKindIcon(t.kind), size: 40),
-            const SizedBox(width: Ds.s12),
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                Text(t.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: Ds.fontBody, height: 1.25, fontWeight: FontWeight.w700)),
-                if (status != null)
-                  Row(children: [
-                    Icon(status.$2, size: 14, color: status.$3),
-                    const SizedBox(width: 4),
-                    Flexible(child: Text(status.$1, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: Ds.fontLabel, fontWeight: FontWeight.w700, color: status.$3))),
-                  ])
-                else
-                  Text(meta, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: Ds.fontLabel, color: AppColors.textDim)),
-              ]),
-            ),
-            if (action != null && !validated)
-              IconButton.filledTonal(
-                tooltip: action.label,
-                style: IconButton.styleFrom(minimumSize: const Size(Ds.tap, Ds.tap)),
-                onPressed: action.run,
-                icon: Icon(action.icon),
-              )
-            else if (validated)
-              Padding(padding: const EdgeInsets.symmetric(horizontal: Ds.s12), child: Icon(Icons.check_circle_rounded, color: AppColors.inTune))
-            else
-              Padding(padding: const EdgeInsets.symmetric(horizontal: Ds.s12), child: Icon(Icons.chevron_right_rounded, color: AppColors.textDim)),
-          ]),
-        ),
-      ),
+      trailing: action != null && !validated
+          ? IconButton.filledTonal(
+              tooltip: action.label,
+              style: IconButton.styleFrom(minimumSize: const Size(Ds.tap, Ds.tap)),
+              onPressed: action.run,
+              icon: Icon(action.icon),
+            )
+          : (validated ? Icon(Icons.check_circle_rounded, color: AppColors.inTune) : Icon(Icons.chevron_right_rounded, color: AppColors.textDim)),
     );
   }
 
@@ -416,9 +384,9 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
           if (status != null) ...[
             const SizedBox(height: Ds.s12),
             Row(children: [
-              Icon(status.$2, size: 18, color: status.$3),
+              Icon(status.icon, size: 18, color: status.color),
               const SizedBox(width: 6),
-              Text(status.$1, style: TextStyle(fontSize: Ds.fontSupport, fontWeight: FontWeight.w700, color: status.$3)),
+              Text(status.text, style: TextStyle(fontSize: Ds.fontSupport, fontWeight: FontWeight.w700, color: status.color)),
             ]),
           ],
           if (action != null) ...[

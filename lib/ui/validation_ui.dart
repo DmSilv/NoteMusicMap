@@ -42,6 +42,10 @@ Future<void> showReviewSheet(BuildContext context, AppState app, Student student
           const SizedBox(width: Ds.s12),
           Expanded(child: Text(t.title, style: const TextStyle(fontSize: Ds.fontBody, fontWeight: FontWeight.w700))),
         ]),
+        if (t.note.isNotEmpty) ...[
+          const SizedBox(height: Ds.s12),
+          Text(t.note, style: Ds.support()),
+        ],
         if (t.awaitsValidation) ...[
           const SizedBox(height: Ds.s8),
           Row(children: [
@@ -88,54 +92,38 @@ class ValidationCard extends StatelessWidget {
     final list = app.awaitingOf(student);
     if (list.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: Ds.gap),
       child: AppCard(
-        padding: const EdgeInsets.fromLTRB(Ds.s16, Ds.s16, Ds.s8, Ds.s8),
+        padding: EdgeInsets.zero,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Icon(Icons.fact_check_outlined, color: AppColors.accent),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                list.length == 1 ? tr('1 tarefa para avaliar') : tr('{0} tarefas para avaliar', [list.length]),
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-              ),
-            ),
-          ]),
-          const SizedBox(height: 2),
           Padding(
-            padding: const EdgeInsets.only(right: Ds.s8),
-            child: Text(tr('Como foi a semana de {0}? Valide, mande refazer ou leve para a próxima aula.', [student.name]), style: Ds.support()),
+            padding: const EdgeInsets.fromLTRB(Ds.s16, Ds.s16, Ds.s16, Ds.s8),
+            child: DsCardTitle(
+              Icons.fact_check_outlined,
+              list.length == 1 ? tr('1 tarefa para avaliar') : tr('{0} tarefas para avaliar', [list.length]),
+              subtitle: tr('Como foi a semana de {0}? Valide, mande refazer ou leve para a próxima aula.', [student.name]),
+            ),
           ),
-          const SizedBox(height: Ds.s4),
           for (final t in list)
-            InkWell(
-              borderRadius: BorderRadius.circular(Ds.radiusControl),
+            DsTaskRow(
+              icon: taskKindIcon(t.kind),
+              title: t.title,
+              support: t.kind.label,
+              status: t.awaitsValidation ? DsStatus(tr('Aluno marcou como feita'), Icons.fact_check_outlined, AppColors.accent) : null,
               onTap: () => showReviewSheet(context, app, student, t),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 60),
-                child: Row(children: [
-                  Icon(taskKindIcon(t.kind), size: 20, color: AppColors.textDim),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-                      Text(t.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody)),
-                      if (t.awaitsValidation) Text(tr('Aluno marcou como feita'), style: TextStyle(color: AppColors.accent, fontSize: Ds.fontLabel, fontWeight: FontWeight.w700)),
-                    ]),
-                  ),
-                  IconButton.filledTonal(
-                    tooltip: tr('Está boa'),
-                    style: IconButton.styleFrom(minimumSize: const Size(Ds.tap, Ds.tap)),
-                    onPressed: () => app.reviewAssignment(student, t.id, TaskReview.ok),
-                    icon: const Icon(Icons.check_rounded),
-                  ),
-                  Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
-                ]),
-              ),
+              trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+                IconButton.filledTonal(
+                  tooltip: tr('Está boa'),
+                  style: IconButton.styleFrom(minimumSize: const Size(Ds.tap, Ds.tap)),
+                  onPressed: () => app.reviewAssignment(student, t.id, TaskReview.ok),
+                  icon: const Icon(Icons.check_rounded),
+                ),
+                Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
+              ]),
             ),
           if (list.length > 1)
-            Align(
-              alignment: Alignment.centerLeft,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(Ds.s8, 0, Ds.s8, Ds.s8),
               child: TextButton.icon(
                 onPressed: () {
                   for (final t in list) {

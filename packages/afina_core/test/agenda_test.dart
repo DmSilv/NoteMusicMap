@@ -9,6 +9,7 @@ ClassSlot slot(String id, int start,
         id: id, studentCode: sc, startMs: start, durationMin: dur, weekly: weekly, skipped: skipped, updatedMs: 1, canceled: canceled);
 
 void main() {
+  liveTests();
   final seg = ms(2026, 11, 9, 15); // segunda 15:00
 
   group('ocorrências', () {
@@ -344,6 +345,38 @@ void main() {
     test('pausar respeita o limite de datas canceladas por regra', () {
       final muitas = sem('r', 'A', d(16, 17), x: [for (var k = 1; k <= kMaxSlotSkips; k++) d(16, 17) - k * kMsWeek]);
       expect(planPause([muitas], d(20, 0), d(27, 23)).ok, isFalse);
+    });
+  });
+}
+
+void liveTests() {
+  group('lessonLiveMode: quando o Meu espaço do aluno fica atento', () {
+    final aula = ms(2026, 11, 16, 17); // segunda 17:00, 45 min (termina 17:45)
+    final s = ClassSlot(id: 'a1', startMs: aula, durationMin: 45, updatedMs: 1);
+    int m(int h, int mi) => lessonLiveMode([s], ms(2026, 11, 16, h, mi));
+    test('longe da aula: não consulta sozinho', () {
+      expect(m(12, 0), 0);
+      expect(m(16, 30), 0);
+      expect(m(18, 30), 0);
+    });
+    test('de 15 min antes até o fim: consulta normal', () {
+      expect(m(16, 45), 1);
+      expect(m(17, 20), 1);
+    });
+    test('na hora de encerrar (5 min antes do fim até 20 min depois): rápida', () {
+      expect(m(17, 40), 2);
+      expect(m(17, 45), 2);
+      expect(m(18, 5), 2);
+    });
+    test('depois disso ainda confere por mais um pouco, e para', () {
+      expect(m(18, 10), 1);
+      expect(m(18, 15), 1);
+      expect(m(18, 16), 0);
+    });
+    test('aula semanal: vale nas semanas seguintes; sem aulas: nada', () {
+      final w = ClassSlot(id: 'w', startMs: aula, durationMin: 45, weekly: true, updatedMs: 1);
+      expect(lessonLiveMode([w], ms(2026, 11, 23, 17, 42)), 2);
+      expect(lessonLiveMode(const [], ms(2026, 11, 16, 17, 42)), 0);
     });
   });
 }

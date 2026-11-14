@@ -30,7 +30,7 @@ class HubSection extends StatelessWidget {
   const HubSection({super.key, required this.app});
 
   @override
-  Widget build(BuildContext context) => _Ticker(builder: _content);
+  Widget build(BuildContext context) => _LiveWatch(app: app, child: _Ticker(builder: _content));
 
   Widget _content(BuildContext context) {
     final now = DateTime.now();
@@ -61,15 +61,15 @@ class HubSection extends StatelessWidget {
       ..._news(context, view),
       _heroCard(context, hero, nc, view, extra: _agendaExtra(context, view, nc, layout.tools, now)),
       if (isT && StartCard.visibleFor(app)) StartCard(app: app) else if (isT && StartCard.hiddenFor(app)) StartCardReturn(app: app),
-      const SizedBox(height: 12),
+      const SizedBox(height: Ds.gap),
       if (tiles.length == 2) _pair(tiles[0], tiles[1]) else if (tiles.length == 1) tiles.first,
-      if (tiles.isNotEmpty) const SizedBox(height: 12),
+      if (tiles.isNotEmpty) const SizedBox(height: Ds.gap),
     ]);
   }
 
   /// Alternador Aluno | Professor (só para quem tem os dois papéis).
   Widget _viewSwitch(HubView view) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.only(bottom: Ds.s16),
         child: SizedBox(
           width: double.infinity,
           child: SegmentedButton<HubView>(
@@ -128,7 +128,7 @@ class HubSection extends StatelessWidget {
     return Align(
       alignment: Alignment.centerRight,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: Ds.s12),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
           onTap: () => _push(context, ProfilePage(app: app)),
@@ -157,11 +157,11 @@ class HubSection extends StatelessWidget {
     return [
       for (final n in list)
         Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+          margin: const EdgeInsets.only(bottom: Ds.gap),
+          padding: const EdgeInsets.fromLTRB(Ds.s16, Ds.s8, Ds.s8, Ds.s8),
           decoration: BoxDecoration(
             color: AppColors.accent.withValues(alpha: 0.16),
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(Ds.radiusCard),
             border: Border.all(color: AppColors.accent.withValues(alpha: 0.5)),
           ),
           child: Row(children: [
@@ -216,10 +216,10 @@ class HubSection extends StatelessWidget {
 
     final bg = urgent ? AppColors.accent.withValues(alpha: 0.24) : AppColors.accent.withValues(alpha: 0.14);
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      padding: const EdgeInsets.all(Ds.s20),
       decoration: BoxDecoration(
         color: bg,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(Ds.radiusCard),
         border: Border.all(color: AppColors.accent.withValues(alpha: urgent ? 0.8 : 0.4), width: urgent ? 1.6 : 1),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -232,16 +232,16 @@ class HubSection extends StatelessWidget {
             child: Text(h.kicker, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.accent)),
           ),
         ]),
-        const SizedBox(height: 4),
+        const SizedBox(height: Ds.s8),
         Text(h.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, height: 1.15)),
-        const SizedBox(height: 4),
-        Text(h.subtitle, style: TextStyle(fontSize: 13.5, color: AppColors.textDim, height: 1.3)),
-        const SizedBox(height: 12),
-        Wrap(spacing: 8, runSpacing: 8, children: buttons),
+        const SizedBox(height: Ds.s4),
+        Text(h.subtitle, style: TextStyle(fontSize: Ds.fontSupport, color: AppColors.textDim, height: 1.3)),
+        const SizedBox(height: Ds.s16),
+        Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: buttons),
         if (extra != null) ...[
-          const SizedBox(height: Ds.s16),
+          const SizedBox(height: Ds.s20),
           Divider(height: 1, color: AppColors.accent.withValues(alpha: 0.35)),
-          const SizedBox(height: Ds.s12),
+          const SizedBox(height: Ds.s16),
           extra,
         ],
       ]),
@@ -293,10 +293,10 @@ class HubSection extends StatelessWidget {
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       if (later.isNotEmpty) ...[
         Text(tr('Depois'), style: Ds.section()),
-        const SizedBox(height: Ds.s8),
+        const SizedBox(height: Ds.s12),
         for (final o in later)
           Padding(
-            padding: const EdgeInsets.only(bottom: Ds.s8),
+            padding: const EdgeInsets.only(bottom: Ds.s12),
             child: Row(children: [
               const DsIconBadge(Icons.event_rounded, size: 30),
               const SizedBox(width: Ds.s12),
@@ -308,7 +308,7 @@ class HubSection extends StatelessWidget {
               ),
             ]),
           ),
-        const SizedBox(height: Ds.s4),
+        const SizedBox(height: Ds.s8),
       ],
       if (actions.isNotEmpty)
         Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -321,7 +321,7 @@ class HubSection extends StatelessWidget {
   Widget _pair(Widget a, Widget b) => IntrinsicHeight(
         child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Expanded(child: a),
-          const SizedBox(width: 10),
+          const SizedBox(width: Ds.gap),
           Expanded(child: b),
         ]),
       );
@@ -329,31 +329,31 @@ class HubSection extends StatelessWidget {
   Widget _tile(BuildContext context, HubTile t, IconData icon, VoidCallback? onTap) {
     final alert = t.needsAction;
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(Ds.radiusCard),
       onTap: onTap ?? () => _push(context, TeacherPage(app: app)),
       child: Container(
-        constraints: const BoxConstraints(minHeight: 112),
-        padding: const EdgeInsets.all(12),
+        constraints: const BoxConstraints(minHeight: 128),
+        padding: const EdgeInsets.all(Ds.s16),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(Ds.radiusCard),
           border: Border.all(color: alert ? AppColors.flat.withValues(alpha: 0.6) : AppColors.outline),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
-            DsIconBadge(icon, size: 34),
-            const SizedBox(width: 10),
+            DsIconBadge(icon, size: 36),
+            const SizedBox(width: Ds.s12),
             Expanded(child: Text(t.title, style: TextStyle(fontSize: Ds.fontLabel, color: AppColors.textDim, fontWeight: FontWeight.w700))),
           ]),
-          const SizedBox(height: 6),
+          const SizedBox(height: Ds.s12),
           Text(t.headline,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: alert ? AppColors.flat : AppColors.text, height: 1.2)),
-          const SizedBox(height: 2),
+          const SizedBox(height: Ds.s4),
           Text(t.caption, maxLines: 3, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: AppColors.textDim, height: 1.25)),
           if (t.progress != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: Ds.s12),
             ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
@@ -391,6 +391,49 @@ Future<void> shareTeacherInvite(AppState app) async {
     await Clipboard.setData(ClipboardData(text: text));
     app.say(tr('Convite copiado. Cole numa conversa para enviar.'));
   }
+}
+
+/// Deixa o Meu espaço do aluno atento ao professor SÓ perto da hora da aula: quando o professor encerra a aula, as tarefas
+/// aparecem aqui sem o aluno fazer nada. Fora desse período não consulta sozinho (custo zero); ao abrir, ao voltar ao app
+/// e ao puxar a tela para baixo a atualização continua valendo. Ver [lessonLiveMode].
+class _LiveWatch extends StatefulWidget {
+  final AppState app;
+  final Widget child;
+  const _LiveWatch({required this.app, required this.child});
+
+  @override
+  State<_LiveWatch> createState() => _LiveWatchState();
+}
+
+class _LiveWatchState extends State<_LiveWatch> {
+  Timer? _t;
+  int _mode = 0; // 0 parado, 1 consulta normal, 2 consulta rápida
+
+  @override
+  void initState() {
+    super.initState();
+    _apply();
+    _t = Timer.periodic(const Duration(seconds: 30), (_) => _apply());
+  }
+
+  void _apply() {
+    final app = widget.app;
+    final m = app.myTeachers.isEmpty ? 0 : lessonLiveMode(app.myAgenda, DateTime.now().millisecondsSinceEpoch);
+    if (m == _mode) return;
+    if (_mode > 0) app.unwatchLinks(fast: _mode == 2);
+    _mode = m;
+    if (m > 0) app.watchLinks(fast: m == 2);
+  }
+
+  @override
+  void dispose() {
+    _t?.cancel();
+    if (_mode > 0) widget.app.unwatchLinks(fast: _mode == 2);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 /// Refaz a tela a cada 30 s para o "começa em N min" andar sozinho.

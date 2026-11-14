@@ -2,6 +2,9 @@
 library;
 
 const Map<String, String> kEnB14 = {
+  'Tarefas novas': 'New tasks',
+  'Aula encerrada': 'Lesson finished',
+  'Ver o Diário de aula': 'Open the lesson diary',
   'Diário de aula': 'Lesson diary',
   '{0} para estudar': '{0} to practice',
   'Aulas anteriores': 'Past lessons',
@@ -10,7 +13,6 @@ const Map<String, String> kEnB14 = {
   '{0} tarefas': '{0} tasks',
   'levada para a próxima aula': 'carried to the next lesson',
   'Levar tarefa para a próxima aula': 'Carry task to the next lesson',
-  'Avaliar tarefa': 'Review task',
   'Como foi esta tarefa?': 'How did this task go?',
   'Está boa': 'It\'s good',
   'Finaliza a tarefa e avisa o aluno.': 'Completes the task and lets the student know.',

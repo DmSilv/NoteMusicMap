@@ -870,19 +870,19 @@ class StudentPage extends StatelessWidget {
           ),
           body: SafeArea(
             child: ListView(
-              padding: const EdgeInsets.fromLTRB(14, 8, 14, 24),
+              padding: Ds.screen,
               children: [
                 AppCard(child: StudentIdentity(app: app, student: s, large: true)),
-                const SizedBox(height: 10),
+                const SizedBox(height: Ds.gap),
                 _summary(sum, s),
-                const SizedBox(height: 10),
+                const SizedBox(height: Ds.gap),
                 _LessonCard(
                   app: app,
                   student: s,
                   onNewTask: () => _taskDialog(context, s),
                   onNewNote: () => _newNote(context, s),
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: Ds.gap),
                 ValidationCard(app: app, student: s),
                 _deliveryCard(context, s),
                 if (tips.isNotEmpty) ...[
@@ -890,21 +890,21 @@ class StudentPage extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(tr('Orientações do treinador'), style: TextStyle(fontWeight: FontWeight.w800)),
-                        const SizedBox(height: 4),
+                        DsCardTitle(Icons.tips_and_updates_outlined, tr('Orientações do treinador')),
+                        const SizedBox(height: Ds.s8),
                         for (final t in tips) InsightTile(insight: t),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: Ds.gap),
                 ],
                 _tasks(context, s),
-                const SizedBox(height: 10),
+                const SizedBox(height: Ds.gap),
                 _sessions(s),
-                const SizedBox(height: 10),
+                const SizedBox(height: Ds.gap),
                 _notes(context, s),
                 if (s.lessons.isNotEmpty) ...[
-                  const SizedBox(height: 10),
+                  const SizedBox(height: Ds.gap),
                   _lessonHistory(s),
                 ],
               ],
@@ -945,7 +945,7 @@ class StudentPage extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: Ds.gap),
       child: AppCard(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
@@ -955,7 +955,7 @@ class StudentPage extends StatelessWidget {
           ]),
           const SizedBox(height: 4),
           Text(text, style: TextStyle(color: AppColors.textDim, fontSize: 13, height: 1.3)),
-          const SizedBox(height: 10),
+          const SizedBox(height: Ds.gap),
           Wrap(spacing: 8, runSpacing: 8, children: [
             if (showTurnOn)
               FilledButton.icon(
@@ -1036,7 +1036,7 @@ class StudentPage extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
               children: [
                 Text(tr('Relatório de {0}', [s.name]), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 10),
+                const SizedBox(height: Ds.gap),
                 if (ai.phase == AiPhase.sending)
                   Row(children: [
                     SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
@@ -1054,7 +1054,7 @@ class StudentPage extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(tr('Gerado por IA: pode errar. Revise antes de enviar.'),
                       style: TextStyle(color: AppColors.textDim, fontSize: 12)),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: Ds.gap),
                   OutlinedButton.icon(
                     onPressed: () async {
                       await Clipboard.setData(ClipboardData(text: ai.lastResult!));
@@ -1098,61 +1098,57 @@ class StudentPage extends StatelessWidget {
     );
   }
 
+  /// A situação da tarefa para o professor (mesmas cores e palavras do app do aluno).
+  DsStatus? _statusFor(Student s, Assignment t) {
+    if (t.done) return DsStatus(tr('validada'), Icons.verified_rounded, AppColors.inTune);
+    if (t.reviewed) return DsStatus(tr('refazer'), Icons.replay_rounded, AppColors.sharp);
+    if (t.awaitsValidation) return DsStatus(tr('Aluno marcou como feita'), Icons.fact_check_outlined, AppColors.accent);
+    final canReceive = s.code != null && s.linkState != 'ended';
+    if (canReceive && t.sent == false) return DsStatus(tr('A enviar'), Icons.schedule_send_outlined, AppColors.flat);
+    if (canReceive && t.sent == true && s.lessons.any((r) => r.sent == false && taskIdsOf(r).contains(t.id))) {
+      return DsStatus(tr('Na fila de envio'), Icons.schedule_send_outlined, AppColors.flat);
+    }
+    return null;
+  }
+
   Widget _tasks(BuildContext context, Student s) {
     return AppCard(
+      padding: EdgeInsets.zero,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            Expanded(child: Text(tr('Tarefas'), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
-            TextButton.icon(
-              onPressed: () => _taskDialog(context, s),
-              icon: const Icon(Icons.add),
-              label: Text(tr('Nova tarefa')),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Ds.s16, Ds.s16, Ds.s8, Ds.s8),
+            child: DsCardTitle(
+              Icons.checklist_rounded,
+              tr('Tarefas'),
+              trailing: TextButton.icon(
+                onPressed: () => _taskDialog(context, s),
+                icon: const Icon(Icons.add),
+                label: Text(tr('Nova tarefa')),
+              ),
             ),
-          ]),
+          ),
           if (s.tasks.isEmpty)
-            Text(
-                tr('Nenhuma tarefa. Toque em "Nova tarefa" para passar escala, lição, repertório ou atividade.'),
-                style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-          _pendingBanner(s),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(Ds.s16, 0, Ds.s16, Ds.s16),
+              child: Text(tr('Nenhuma tarefa. Toque em "Nova tarefa" para passar escala, lição, repertório ou atividade.'), style: Ds.support()),
+            ),
+          Padding(padding: const EdgeInsets.symmetric(horizontal: Ds.s16), child: _pendingBanner(s)),
           for (final t in s.tasks)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              onTap: () => _taskDialog(context, s, edit: t),
-              // O aluno não precisa marcar nada: o professor decide (boa, refazer ou levar para a próxima aula).
-              leading: IconButton(
-                tooltip: tr('Avaliar tarefa'),
-                onPressed: () => showReviewSheet(context, app, s, t),
-                icon: Icon(t.done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, color: t.done ? AppColors.inTune : AppColors.textDim),
-              ),
-              title: Row(children: [
-                Icon(_kindIcon(t.kind), size: 16, color: AppColors.textDim),
-                const SizedBox(width: 6),
-                Expanded(
-                  child: Text(t.title,
-                      style: TextStyle(decoration: t.done ? TextDecoration.lineThrough : null)),
-                ),
-              ]),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(t.isScale ? tr('Meta {0}% de acerto', [(t.goal * 100).round()]) : t.kind.label),
-                  _sentChip(s, t),
-                  _claimChip(t),
-                  if (t.note.isNotEmpty)
-                    Text(t.note,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: AppColors.textDim, fontStyle: FontStyle.italic)),
-                ],
-              ),
+            DsTaskRow(
+              icon: _kindIcon(t.kind),
+              title: t.title,
+              support: t.isScale ? tr('Meta {0}% de acerto', [(t.goal * 100).round()]) : t.kind.label,
+              status: _statusFor(s, t),
+              onTap: () => showReviewSheet(context, app, s, t),
               trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                 if (t.isScale && !t.done)
-                  FilledButton.tonalIcon(
+                  IconButton.filledTonal(
+                    tooltip: tr('Iniciar'),
+                    style: IconButton.styleFrom(minimumSize: const Size(Ds.tap, Ds.tap)),
                     onPressed: () => _startTask(context, s, t),
-                    icon: const Icon(Icons.play_arrow, size: 18), label: Text(tr('Iniciar')),
+                    icon: const Icon(Icons.play_arrow_rounded),
                   ),
                 PopupMenuButton<String>(
                   tooltip: tr('Opções da tarefa'),
@@ -1167,41 +1163,9 @@ class StudentPage extends StatelessWidget {
                 ),
               ]),
             ),
+          const SizedBox(height: Ds.s8),
         ],
       ),
-    );
-  }
-
-  /// Se [s] pode receber (tem código e não encerrou o vínculo), mostra se a tarefa já foi enviada.
-  Widget _sentChip(Student s, Assignment t) {
-    final canReceive = s.code != null && s.linkState != 'ended';
-    if (!canReceive || t.sent == null) return const SizedBox.shrink();
-    // "Na fila": já empacotada, mas o servidor ainda não aceitou (sem conexão, aluno por vincular…).
-    final queued = t.sent == true && s.lessons.any((r) => r.sent == false && taskIdsOf(r).contains(t.id));
-    final sent = t.sent == true && !queued;
-    final color = sent ? AppColors.inTune : AppColors.flat;
-    return Padding(
-      padding: const EdgeInsets.only(top: 2),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(sent ? Icons.mark_email_read_outlined : Icons.schedule_send_outlined, size: 13, color: color),
-        const SizedBox(width: 4),
-        Text(sent ? tr('Enviada ao aluno') : (queued ? tr('Na fila de envio') : tr('A enviar')),
-            style: TextStyle(color: color, fontSize: 11.5, fontWeight: FontWeight.w700)),
-      ]),
-    );
-  }
-
-  /// "O aluno marcou como feita": aguarda a validação do professor.
-  Widget _claimChip(Assignment t) {
-    if (!t.awaitsValidation) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(top: 2),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.fact_check_outlined, size: 13, color: AppColors.accent),
-        const SizedBox(width: 4),
-        Text(tr('Aluno marcou como feita'),
-            style: TextStyle(color: AppColors.accent, fontSize: 11.5, fontWeight: FontWeight.w700)),
-      ]),
     );
   }
 

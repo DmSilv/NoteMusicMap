@@ -14,6 +14,7 @@ import 'ui/app_logo.dart';
 import 'ui/exit_sheet.dart';
 import 'ui/hello_bar.dart';
 import 'ui/metro_section.dart';
+import 'ui/my_lessons_page.dart' show openMyLessons;
 import 'ui/home_tabs.dart';
 import 'ui/link_bar.dart';
 import 'ui/error_ui.dart';
@@ -328,14 +329,41 @@ class _HomeShellState extends State<HomeShell> {
     super.initState();
     // O hub (Meu espaço) usa isto para levar a outras abas (ex.: Metrônomo).
     widget.app.goTab = _go;
+    // Chegou aula nova do professor (ele encerrou a aula): se o aluno está no Meu espaço, um modal leva ao Diário.
+    widget.app.onLessonsArrived = _lessonArrived;
     // O navegador libera a instalação um pouco depois de abrir a página: atualiza o sino.
     webOnInstallEvents(() {
       if (mounted) setState(() {});
     });
   }
 
+  void _lessonArrived(List<SharedLesson> fresh) {
+    if (!mounted || _index != kHomeTab || fresh.isEmpty) return;
+    final onlyTasks = fresh.every((l) => l.tasksOnly);
+    showDsSheet(
+      context,
+      title: onlyTasks ? tr('Tarefas novas') : tr('Aula encerrada'),
+      listenable: widget.app,
+      children: (c) => [
+        Text(newLessonsMessage(fresh), style: const TextStyle(fontSize: Ds.fontBody, height: 1.4)),
+        const SizedBox(height: Ds.s20),
+        DsPrimaryButton(
+          icon: Icons.menu_book_rounded,
+          label: tr('Ver o Diário de aula'),
+          onPressed: () {
+            Navigator.of(c).pop();
+            openMyLessons(context, widget.app);
+          },
+        ),
+        const SizedBox(height: Ds.s8),
+        Center(child: TextButton(onPressed: () => Navigator.of(c).pop(), child: Text(tr('Depois')))),
+      ],
+    );
+  }
+
   @override
   void dispose() {
+    widget.app.onLessonsArrived = null;
     widget.app.goTab = null;
     super.dispose();
   }

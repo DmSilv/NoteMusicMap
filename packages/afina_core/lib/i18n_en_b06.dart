@@ -217,7 +217,6 @@ const Map<String, String> kEnB06 = {
   ' · {0}{1} pts nas últimas 3': ' · {0}{1} pts over the last 3',
   'Nenhuma tarefa. Toque em "Nova tarefa" para passar escala, lição, repertório ou atividade.': 'No tasks. Tap "New task" to assign a scale, lesson, repertoire or activity.',
   'Opções da tarefa': 'Task options',
-  'Enviada ao aluno': 'Sent to the student',
   'Na fila de envio': 'In the send queue',
   'A enviar': 'To send',
   'Aluno marcou como feita': 'Student marked it as done',
