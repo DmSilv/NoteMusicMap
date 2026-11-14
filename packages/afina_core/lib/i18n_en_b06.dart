@@ -240,7 +240,6 @@ const Map<String, String> kEnB06 = {
   'Observações': 'Notes',
   'Anotar': 'Add note',
   'Anote pontos de atenção, elogios e combinados.': 'Write down points of attention, praise and agreements.',
-  'Este aluno não tem código: a aula fica só neste aparelho. Para enviar, informe o código dele (menu ⋮ › Código do aluno).': 'This student has no code: the lesson stays only on this device. To send it, enter their code (⋮ menu › Student\'s code).',
   'O vínculo online está desligado: a aula fica guardada e é enviada quando você ligá-lo (Minha conta).': 'The online link is off: the lesson stays saved and is sent when you turn it on (My account).',
   'O servidor ainda não recebe aulas: ela fica guardada e vai quando ficar disponível.': 'The server doesn\'t receive lessons yet: it stays saved and goes when available.',
   'O aluno ainda não está vinculado: a aula fica guardada e vai quando ele se vincular.': 'The student isn\'t linked yet: the lesson stays saved and goes when they link.',

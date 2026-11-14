@@ -2,6 +2,8 @@
 library;
 
 const Map<String, String> kEnB14 = {
+  'Sem o código do aluno, a aula fica só neste aparelho.': 'Without the student\'s code, the lesson stays only on this device.',
+  'Informar o código do aluno': 'Enter the student\'s code',
   'Adicionar aluno': 'Add student',
   'Cadastre um aluno com código para marcar aulas (Meu espaço › Alunos › Adicionar aluno).': 'Add a student with a code to schedule lessons (My space › Students › Add student).',
   'Cadastrar pelo nome': 'Add by name',

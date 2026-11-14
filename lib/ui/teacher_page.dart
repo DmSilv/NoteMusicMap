@@ -1498,7 +1498,7 @@ class _LessonCardState extends State<_LessonCard> {
   /// Se algo impede o envio ao aluno (sem código, vínculo desligado…), o texto que explica; no normal, null.
   String? _destinationIssue() {
     if (s.code == null) {
-      return tr('Este aluno não tem código: a aula fica só neste aparelho. Para enviar, informe o código dele (menu ⋮ › Código do aluno).');
+      return tr('Sem o código do aluno, a aula fica só neste aparelho.');
     }
     if (!app.linkEnabled) {
       return tr('O vínculo online está desligado: a aula fica guardada e é enviada quando você ligá-lo (Minha conta).');
@@ -1598,6 +1598,17 @@ class _LessonCardState extends State<_LessonCard> {
                     other != null ? tr('Há uma aula em andamento com {0}. Encerre-a para começar outra.', [other.name]) : _destinationIssue()!,
                     style: Ds.support(),
                   ),
+                  // Sem código o aluno não recebe nada: o caminho para resolver fica ali mesmo, sem procurar no menu.
+                  if (other == null && s.code == null)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        style: TextButton.styleFrom(minimumSize: const Size(0, Ds.tap), padding: EdgeInsets.zero),
+                        onPressed: () => _editStudentCode(context, app, s),
+                        icon: const Icon(Icons.pin_outlined, size: 18),
+                        label: Text(tr('Informar o código do aluno')),
+                      ),
+                    ),
                 ],
                 const SizedBox(height: Ds.s16),
                 if (other != null)
