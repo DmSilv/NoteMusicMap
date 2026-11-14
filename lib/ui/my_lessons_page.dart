@@ -82,8 +82,12 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
   AppState get app => widget.app;
   bool _loading = false;
 
-  /// Fichas abertas (as outras ficam recolhidas, para caber muitas tarefas na tela).
+  /// 0 = Esta semana (o que estudar agora), 1 = Aulas anteriores (histórico).
+  int _tab = 0;
+
+  /// Fichas abertas e recados abertos (o resto fica recolhido: a tela mostra só o essencial).
   final Set<String> _expanded = {};
+  final Set<String> _notesOpen = {};
 
   @override
   void initState() {
@@ -119,10 +123,28 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
       builder: (context, _) {
         final lessons = app.myLessons;
         final plan = buildWeekPlan(lessons, app.lessonTasksDone, DateTime.now());
+        final weekIds = {for (final g in plan.week) g.lesson.id};
+        final older = [for (final l in lessons) if (!weekIds.contains(l.id)) l];
+        final lateCount = plan.late.fold<int>(0, (a, g) => a + g.tasks.where((t) => !t.done).length);
+        final status = _status();
         return Scaffold(
           appBar: AppBar(
             title: Text(tr('Diário de aula')),
             actions: [
+              // O aviso de conexão não ocupa a tela: vira um ícone (toque para ler).
+              if (status != null)
+                IconButton(
+                  tooltip: status.$1,
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (c) => AlertDialog(
+                      icon: Icon(status.$2, color: status.$3),
+                      content: Text(status.$1),
+                      actions: [TextButton(onPressed: () => Navigator.pop(c), child: Text(tr('Fechar')))],
+                    ),
+                  ),
+                  icon: Icon(status.$2, color: status.$3),
+                ),
               IconButton(
                 tooltip: tr('Buscar aulas novas'),
                 onPressed: _loading ? null : _pull,
@@ -139,7 +161,6 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: Ds.screen,
                 children: [
-                  _statusBanner(),
                   if (lessons.isEmpty)
                     AppCard(
                       child: Text(
@@ -151,16 +172,24 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
                     )
                   else ...[
                     _summary(plan),
-                    if (plan.week.isNotEmpty) ...[
-                      _section(tr('Esta semana'), trailing: tr('até a próxima aula')),
+                    const SizedBox(height: Ds.s16),
+                    _tabs(lateCount),
+                    const SizedBox(height: Ds.s16),
+                    if (_tab == 0) ...[
+                      if (plan.week.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: Ds.s24),
+                          child: Center(child: Text(tr('Nenhuma tarefa'), style: Ds.support())),
+                        ),
                       for (final g in plan.week) _group(g),
+                    ] else ...[
+                      if (older.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: Ds.s24),
+                          child: Center(child: Text(tr('Nenhuma aula anterior ainda.'), style: Ds.support())),
+                        ),
+                      for (final l in older) _lessonTile(l),
                     ],
-                    if (plan.late.isNotEmpty) ...[
-                      _section(tr('Em atraso · aulas anteriores'), color: AppColors.sharp),
-                      for (final g in plan.late) _group(g),
-                    ],
-                    _section(tr('Todas as aulas')),
-                    for (final l in lessons) _lessonTile(l),
                   ],
                 ],
               ),
@@ -171,69 +200,70 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
     );
   }
 
-  /// Avisos de conexão (desligado, servidor indisponível, sem internet).
-  Widget _statusBanner() {
-    String? msg;
-    IconData icon = Icons.cloud_off_outlined;
-    Color color = AppColors.textDim;
+  /// Aviso de conexão (desligado, servidor indisponível, sem internet): texto, ícone e cor; null se está tudo bem.
+  (String, IconData, Color)? _status() {
     if (!app.linkEnabled) {
-      msg = tr('O vínculo online está desligado: ligue em Minha conta › Vínculo online para receber as aulas.');
-    } else if (app.linkUnavailable) {
-      msg = tr('O servidor ainda não está recebendo aulas. Quando ficar disponível, elas chegam aqui.');
-      color = AppColors.flat;
-    } else if (app.linkOnline == false) {
-      msg = tr('Sem conexão agora. O que você já recebeu continua aqui.');
-      icon = Icons.sync_problem;
-      color = AppColors.flat;
+      return (tr('O vínculo online está desligado: ligue em Minha conta › Vínculo online para receber as aulas.'), Icons.cloud_off_outlined, AppColors.textDim);
     }
-    if (msg == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: AppCard(
-        child: Row(children: [
-          Icon(icon, color: color),
-          const SizedBox(width: 10),
-          Expanded(child: Text(msg)),
-        ]),
-      ),
-    );
+    if (app.linkUnavailable) {
+      return (tr('O servidor ainda não está recebendo aulas. Quando ficar disponível, elas chegam aqui.'), Icons.cloud_off_outlined, AppColors.flat);
+    }
+    if (app.linkOnline == false) {
+      return (tr('Sem conexão agora. O que você já recebeu continua aqui.'), Icons.sync_problem, AppColors.flat);
+    }
+    return null;
   }
 
-  /// Título de seção ("Esta semana", "Em atraso"…), com a quantidade à direita.
-  Widget _section(String title, {Color? color, String? trailing}) => Padding(
-        padding: const EdgeInsets.fromLTRB(2, Ds.s16, 2, Ds.s8),
-        child: Row(children: [
-          Expanded(child: Text(title, style: Ds.section().copyWith(color: color ?? AppColors.textDim))),
-          if (trailing != null) Text(trailing, style: Ds.support()),
-        ]),
+  /// Duas abas: o que estudar agora e o histórico. Um ponto laranja avisa que há tarefa atrasada.
+  Widget _tabs(int lateCount) => SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<int>(
+          showSelectedIcon: false,
+          style: SegmentedButton.styleFrom(minimumSize: const Size(0, Ds.tap)),
+          segments: [
+            ButtonSegment(value: 0, label: Text(tr('Esta semana'))),
+            ButtonSegment(
+              value: 1,
+              label: Row(mainAxisSize: MainAxisSize.min, children: [
+                Flexible(child: Text(tr('Aulas anteriores'), overflow: TextOverflow.ellipsis)),
+                if (lateCount > 0) ...[
+                  const SizedBox(width: 6),
+                  Container(width: 9, height: 9, decoration: BoxDecoration(color: AppColors.sharp, shape: BoxShape.circle)),
+                ],
+              ]),
+            ),
+          ],
+          selected: {_tab},
+          onSelectionChanged: (s) => setState(() => _tab = s.first),
+        ),
       );
 
-  /// Resumo no topo: o estudo de HOJE e a sequência de dias. A marca é por dia e zera no dia seguinte.
+  /// Resumo curto no topo: o estudo de HOJE e a sequência de dias.
   Widget _summary(WeekPlan plan) {
     final now = DateTime.now();
     final (todayDone, todayTotal) = app.practiceToday(plan, now);
     final streak = app.practice.streak(now);
-    final lateCount = plan.late.fold<int>(0, (a, g) => a + g.tasks.where((t) => !t.done).length);
     final allToday = todayTotal > 0 && todayDone >= todayTotal;
     final value = plan.isEmpty ? 1.0 : (todayTotal == 0 ? 0.0 : todayDone / todayTotal);
     return AppCard(
+      padding: const EdgeInsets.all(Ds.s16),
       child: Row(children: [
         SizedBox(
-          width: 76,
-          height: 76,
+          width: 64,
+          height: 64,
           child: Stack(alignment: Alignment.center, children: [
             SizedBox.expand(
               child: CircularProgressIndicator(
                 value: value,
-                strokeWidth: 8,
+                strokeWidth: 7,
                 strokeCap: StrokeCap.round,
                 backgroundColor: AppColors.surface2,
                 color: AppColors.inTune,
               ),
             ),
             plan.isEmpty || allToday
-                ? Icon(Icons.check_rounded, color: AppColors.inTune, size: 34)
-                : Text('$todayDone/$todayTotal', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                ? Icon(Icons.check_rounded, color: AppColors.inTune, size: 30)
+                : Text('$todayDone/$todayTotal', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
           ]),
         ),
         const SizedBox(width: Ds.s16),
@@ -251,11 +281,6 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
                 streak >= 2 ? tr('{0} dias seguidos', [streak]) : (streak == 1 ? tr('1 dia seguido') : tr('Estude hoje para começar sua sequência')),
                 style: TextStyle(fontSize: Ds.fontSupport, height: 1.3, color: streak > 0 ? AppColors.inTune : AppColors.textDim, fontWeight: streak > 0 ? FontWeight.w700 : FontWeight.w400),
               ),
-              Text(tr('{0} de {1} prontas para a aula', [plan.done, plan.total]), style: Ds.support()),
-            ],
-            if (lateCount > 0) ...[
-              const SizedBox(height: Ds.s8),
-              Align(alignment: Alignment.centerLeft, child: _tag(tr('{0} em atraso', [lateCount]), AppColors.sharp, icon: Icons.schedule_rounded)),
             ],
           ]),
         ),
@@ -263,62 +288,68 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
     );
   }
 
-  /// Uma aula do plano: cabeçalho (dia, quem, quanto foi feito) e uma ficha para cada tarefa.
+  /// Uma aula da semana: uma linha de cabeçalho, as tarefas e (se houver) o recado do professor, recolhido.
   Widget _group(WeekGroup g) {
     final l = g.lesson;
-    final who = l.teacherLabel;
-    final dur = l.durationSec > 0 ? ' · ${fmtLessonDuration(l.durationSec)}' : '';
+    final who = l.teacherName.trim().isNotEmpty ? l.teacherName.trim() : l.teacherLabel;
     return Padding(
       padding: const EdgeInsets.only(bottom: Ds.s16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(2, 0, 2, Ds.s8),
-          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(l.label, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, height: 1.2)),
-                Text('$who$dur', style: Ds.support()),
-              ]),
-            ),
-            const SizedBox(width: Ds.s8),
-            Padding(
-              padding: const EdgeInsets.only(top: 2),
-              child: _tag(tr('{0} de {1} prontas', [g.doneCount, g.tasks.length]), g.doneCount == g.tasks.length ? AppColors.inTune : AppColors.textDim),
-            ),
-          ]),
+          child: Text.rich(TextSpan(children: [
+            TextSpan(text: l.label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+            TextSpan(text: '  ·  $who', style: Ds.support()),
+          ])),
         ),
-        for (final t in g.tasks) _taskCard(l, t.task, today: t.today, overdue: t.overdue),
+        for (final t in g.tasks) _taskCard(l, t.task, overdue: t.overdue),
         if (l.notes.isNotEmpty) _notes(l),
       ]),
     );
   }
 
-  /// Recado do professor: um balão com as observações da aula.
-  Widget _notes(SharedLesson l) => Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(top: 2),
-        padding: const EdgeInsets.fromLTRB(Ds.s12, Ds.s12, Ds.s12, Ds.s8),
-        decoration: BoxDecoration(
-          color: AppColors.accent.withValues(alpha: 0.08),
+  /// Recado do professor: uma linha que abre o texto (não ocupa a tela até a pessoa querer ler).
+  Widget _notes(SharedLesson l) {
+    final open = _notesOpen.contains(l.id);
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.accent.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        InkWell(
           borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
-          border: Border(left: BorderSide(color: AppColors.accent, width: 4)),
+          onTap: () => setState(() => open ? _notesOpen.remove(l.id) : _notesOpen.add(l.id)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: Ds.tap),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: Ds.s12),
+              child: Row(children: [
+                Icon(Icons.chat_bubble_outline_rounded, size: 18, color: AppColors.accent),
+                const SizedBox(width: Ds.s8),
+                Expanded(child: Text(tr('Observações do professor'), style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.accent))),
+                Icon(open ? Icons.expand_less_rounded : Icons.expand_more_rounded, color: AppColors.accent),
+              ]),
+            ),
+          ),
         ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Icon(Icons.chat_bubble_outline_rounded, size: 16, color: AppColors.accent),
-            const SizedBox(width: 6),
-            Text(tr('Observações do professor'), style: TextStyle(fontSize: Ds.fontLabel, fontWeight: FontWeight.w700, color: AppColors.accent)),
-          ]),
-          const SizedBox(height: 6),
-          for (final n in l.notes)
-            Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(n, style: const TextStyle(fontSize: Ds.fontSupport + 1, height: 1.35))),
-        ]),
-      );
+        if (open)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(Ds.s12, 0, Ds.s12, Ds.s8),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              for (final n in l.notes)
+                Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(n, style: const TextStyle(fontSize: Ds.fontSupport + 1, height: 1.35))),
+            ]),
+          ),
+      ]),
+    );
+  }
 
-  /// Uma aula na lista completa: recolhida; ao abrir mostra as tarefas e as observações.
+  /// Uma aula do histórico: recolhida; ao abrir mostra as tarefas e as observações.
   Widget _lessonTile(SharedLesson l) {
     final done = l.tasks.where((t) => app.lessonTaskDone(l, t)).length;
-    final who = l.teacherLabel;
+    final who = l.teacherName.trim().isNotEmpty ? l.teacherName.trim() : l.teacherLabel;
     return Padding(
       padding: const EdgeInsets.only(bottom: Ds.s8),
       child: AppCard(
@@ -331,12 +362,11 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
             expandedCrossAxisAlignment: CrossAxisAlignment.start,
             title: Text(l.label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
             subtitle: Text(
-              '$who${l.durationSec > 0 ? ' · ${fmtLessonDuration(l.durationSec)}' : ''} · '
-              '${l.tasks.isEmpty ? tr('sem tarefas') : tr('{0} de {1} prontas', [done, l.tasks.length])}',
+              '$who · ${l.tasks.isEmpty ? tr('sem tarefas') : tr('{0} de {1} prontas', [done, l.tasks.length])}',
               style: Ds.support(),
             ),
             children: [
-              for (final t in l.tasks) _taskCard(l, t),
+              for (final t in l.tasks) _taskCard(l, t, overdue: !app.lessonTaskDone(l, t)),
               if (l.notes.isNotEmpty) _notes(l),
             ],
           ),
@@ -362,9 +392,9 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
           onTap: () => app.togglePractice(l, t, DateTime.now()),
           radius: 30,
           child: SizedBox(
-            width: 52,
+            width: 56,
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 width: 36,
@@ -427,29 +457,9 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
     );
   }
 
-  /// Mini fileira dos 7 dias (só para ver): aparece na ficha recolhida, para a pessoa ver a semana de relance.
-  Widget _miniDots(SharedLesson l, Assignment t) {
-    final days = practiceStrip(DateTime.now(), l.date);
-    return Row(mainAxisSize: MainAxisSize.min, children: [
-      for (final d in days)
-        Container(
-          width: 9,
-          height: 9,
-          margin: const EdgeInsets.only(right: 4),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: !d.enabled
-                ? AppColors.surface2.withValues(alpha: 0.5)
-                : (app.practicedOn(l, t, d.date) ? AppColors.inTune : Colors.transparent),
-            border: d.enabled && !app.practicedOn(l, t, d.date) ? Border.all(color: d.isToday ? AppColors.accent : AppColors.outline, width: 1.5) : null,
-          ),
-        ),
-    ]);
-  }
-
-  /// Ficha de uma tarefa do diário. Recolhida: a marca de hoje, o título, a semana em pontinhos e a situação
-  /// (cabem muitas tarefas na tela). Aberta: recado, os 7 dias para marcar e as ações (Treinar/Abrir e "pronta para a aula").
-  Widget _taskCard(SharedLesson l, Assignment t, {bool today = false, bool overdue = false}) {
+  /// Ficha de uma tarefa. Recolhida (o que se vê): a marca de hoje, o título, "3/7" e UMA linha de situação.
+  /// Aberta (um toque): recado da tarefa, os 7 dias para marcar e as ações (Treinar/Abrir e "pronta para a aula").
+  Widget _taskCard(SharedLesson l, Assignment t, {bool overdue = false}) {
     final key = PracticeLog.taskKey(l.id, t.id);
     final open = _expanded.contains(key);
     final ready = app.lessonTaskDone(l, t);
@@ -458,12 +468,13 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
     final doneToday = app.practicedOn(l, t, now);
     final days7 = app.practice.countLast7(key, now);
     final meta = t.isScale ? tr('Meta {0}% de acerto', [(t.goal * 100).round()]) : t.kind.label;
-    final tags = <Widget>[
-      if (!ready && overdue) _tag(tr('atrasada'), AppColors.sharp, icon: Icons.schedule_rounded),
-      if (st == StudentTaskState.validated) _tag(tr('validada'), AppColors.inTune, icon: Icons.verified_rounded),
-      if (st == StudentTaskState.claimed) _tag(tr('aguardando o professor'), AppColors.accent, icon: Icons.hourglass_top_rounded),
-      if (st == StudentTaskState.returned) _tag(tr('refazer'), AppColors.sharp, icon: Icons.replay_rounded),
-    ];
+    // Uma linha só: a situação mais importante; sem situação, o tipo da tarefa.
+    final (String line, IconData lineIcon, Color lineColor) = switch (st) {
+      StudentTaskState.returned => (tr('refazer'), Icons.replay_rounded, AppColors.sharp),
+      StudentTaskState.claimed => (tr('aguardando o professor'), Icons.hourglass_top_rounded, AppColors.accent),
+      StudentTaskState.validated => (tr('validada'), Icons.verified_rounded, AppColors.inTune),
+      _ => overdue && !ready ? (tr('atrasada'), Icons.schedule_rounded, AppColors.sharp) : (meta, taskKindIcon(t.kind), AppColors.textDim),
+    };
     final practiceBtn = t.isScale
         ? FilledButton.tonalIcon(
             style: FilledButton.styleFrom(minimumSize: const Size(0, Ds.tap)),
@@ -495,7 +506,7 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
-          border: Border.all(color: !ready && overdue ? AppColors.sharp.withValues(alpha: 0.5) : AppColors.outline),
+          border: Border.all(color: AppColors.outline),
         ),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           _todayCheck(l, t, doneToday),
@@ -513,45 +524,39 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
                       Expanded(
                         child: Text(t.title, maxLines: open ? 4 : 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 16, height: 1.25, fontWeight: FontWeight.w700)),
                       ),
+                      const SizedBox(width: Ds.s8),
+                      Text('$days7/7', style: Ds.support().copyWith(fontWeight: FontWeight.w700)),
                       Icon(open ? Icons.expand_less_rounded : Icons.expand_more_rounded, color: AppColors.textDim),
                     ]),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Row(children: [
-                      Icon(taskKindIcon(t.kind), size: 16, color: AppColors.textDim),
+                      Icon(lineIcon, size: 16, color: lineColor),
                       const SizedBox(width: 6),
-                      Expanded(child: Text(meta, maxLines: 1, overflow: TextOverflow.ellipsis, style: Ds.support())),
+                      Expanded(child: Text(line, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: Ds.fontSupport, color: lineColor, fontWeight: lineColor == AppColors.textDim ? FontWeight.w400 : FontWeight.w700))),
                     ]),
-                    if (!open) ...[
-                      const SizedBox(height: 8),
-                      Row(children: [
-                        _miniDots(l, t),
-                        const SizedBox(width: 4),
-                        Text('$days7/7', style: Ds.support().copyWith(fontWeight: FontWeight.w700)),
-                      ]),
-                      if (t.note.isNotEmpty) ...[
-                        const SizedBox(height: 6),
-                        Text(t.note, maxLines: 1, overflow: TextOverflow.ellipsis, style: Ds.support()),
-                      ],
-                    ],
-                    if (tags.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Wrap(spacing: 6, runSpacing: 6, children: tags),
-                    ],
                     AnimatedSize(
                       duration: const Duration(milliseconds: 180),
                       alignment: Alignment.topCenter,
                       child: !open
                           ? const SizedBox(width: double.infinity)
                           : Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              if (line != meta) ...[
+                                const SizedBox(height: 6),
+                                Row(children: [
+                                  Icon(taskKindIcon(t.kind), size: 16, color: AppColors.textDim),
+                                  const SizedBox(width: 6),
+                                  Expanded(child: Text(meta, style: Ds.support())),
+                                ]),
+                              ],
                               if (t.note.isNotEmpty) ...[
                                 const SizedBox(height: 8),
                                 Text(t.note, style: const TextStyle(fontSize: Ds.fontSupport + 1, height: 1.35)),
                               ],
                               const SizedBox(height: Ds.s8),
                               _strip(l, t),
-                              Text(tr('{0} de 7 dias', [days7]), style: Ds.support()),
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 6),
                               Wrap(spacing: 8, runSpacing: 8, children: [?practiceBtn, readyBtn]),
+                              const SizedBox(height: 4),
                             ]),
                     ),
                   ]),
@@ -563,13 +568,4 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
       ),
     );
   }
-
-  Widget _tag(String text, Color color, {IconData? icon}) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(8)),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          if (icon != null) ...[Icon(icon, size: 14, color: color), const SizedBox(width: 4)],
-          Flexible(child: Text(text, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: color))),
-        ]),
-      );
 }

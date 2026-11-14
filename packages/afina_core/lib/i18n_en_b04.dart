@@ -95,8 +95,6 @@ const Map<String, String> kEnB04 = {
   'Sem conexão agora. O que você já recebeu continua aqui.': 'No connection right now. What you\'ve already received stays here.',
   'Tudo em dia. Nenhuma tarefa em aberto.': 'All caught up. No open tasks.',
   'Esta semana': 'This week',
-  'até a próxima aula': 'until the next lesson',
-  'Em atraso · aulas anteriores': 'Overdue · earlier lessons',
   '{0} de {1}@@dia': '{0} on {1}',
   'Tarefas': 'Tasks',
   'sem tarefas': 'no tasks',
