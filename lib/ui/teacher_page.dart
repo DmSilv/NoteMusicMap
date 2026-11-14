@@ -874,8 +874,6 @@ class StudentPage extends StatelessWidget {
               children: [
                 AppCard(child: StudentIdentity(app: app, student: s, large: true)),
                 const SizedBox(height: Ds.gap),
-                _summary(sum, s),
-                const SizedBox(height: Ds.gap),
                 _LessonCard(
                   app: app,
                   student: s,
@@ -885,33 +883,75 @@ class StudentPage extends StatelessWidget {
                 const SizedBox(height: Ds.gap),
                 ValidationCard(app: app, student: s),
                 _deliveryCard(context, s),
-                if (tips.isNotEmpty) ...[
-                  AppCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        DsCardTitle(Icons.tips_and_updates_outlined, tr('Orientações do treinador')),
-                        const SizedBox(height: Ds.s8),
-                        for (final t in tips) InsightTile(insight: t),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: Ds.gap),
-                ],
                 _tasks(context, s),
                 const SizedBox(height: Ds.gap),
-                _sessions(s),
-                const SizedBox(height: Ds.gap),
-                _notes(context, s),
-                if (s.lessons.isNotEmpty) ...[
-                  const SizedBox(height: Ds.gap),
-                  _lessonHistory(s),
-                ],
+                _more(context, s, sum, tips),
               ],
             ),
           ),
         );
       },
+    );
+  }
+
+  /// O que não é urgente fica em linhas que abrem num modal: desempenho, observações e aulas dadas.
+  Widget _more(BuildContext context, Student s, StudentSummary sum, List<Insight> tips) {
+    final notePreview = s.notes.isEmpty ? tr('Anote pontos de atenção, elogios e combinados.') : s.notes.first.text;
+    final n = s.lessons.length;
+    Widget sheetBody(List<Widget> kids) => FramelessScope(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: kids));
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(children: [
+        DsNavRow(
+          Icons.insights_rounded,
+          tr('Desempenho'),
+          sum.sessions == 0 ? tr('Ainda sem exercícios') : tr('{0} sessões · média {1}%', [sum.sessions, (sum.recentAverage! * 100).round()]),
+          () => showDsSheet(context, title: tr('Desempenho'), listenable: app, children: (c) => [
+                sheetBody([
+                  _summary(sum, s),
+                  if (tips.isNotEmpty) ...[
+                    const SizedBox(height: Ds.s20),
+                    Text(tr('Orientações do treinador'), style: Ds.section()),
+                    const SizedBox(height: Ds.s8),
+                    for (final t in tips) InsightTile(insight: t),
+                  ],
+                  const SizedBox(height: Ds.s20),
+                  Text(tr('Últimos exercícios'), style: Ds.section()),
+                  const SizedBox(height: Ds.s8),
+                  _sessionsBody(s),
+                ]),
+              ]),
+        ),
+        const Divider(height: 1),
+        DsNavRow(
+          Icons.edit_note_rounded,
+          tr('Observações'),
+          notePreview,
+          () => showDsSheet(context, title: tr('Observações'), listenable: app, children: (c) => [
+                DsPrimaryButton(onPressed: () => _newNote(context, s), icon: Icons.edit_note, label: tr('Anotar')),
+                const SizedBox(height: Ds.s20),
+                if (s.notes.isEmpty) Text(tr('Anote pontos de atenção, elogios e combinados.'), style: Ds.support()),
+                for (final note in s.notes.take(10))
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: Ds.s12),
+                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      SizedBox(width: 48, child: Text(_day(note.date), style: Ds.support())),
+                      Expanded(child: Text(note.text, style: const TextStyle(fontSize: Ds.fontBody, height: 1.35))),
+                    ]),
+                  ),
+              ]),
+        ),
+        if (n > 0) ...[
+          const Divider(height: 1),
+          DsNavRow(
+            Icons.history_rounded,
+            tr('Aulas dadas'),
+            n == 1 ? tr('1 aula') : tr('{0} aulas', [n]),
+            () => showDsSheet(context, title: tr('Aulas dadas'), listenable: app, children: (c) => [sheetBody([_lessonHistoryBody(s)])]),
+            alert: s.lessons.any((l) => l.sent == false),
+          ),
+        ],
+      ]),
     );
   }
 
@@ -1112,6 +1152,7 @@ class StudentPage extends StatelessWidget {
   }
 
   Widget _tasks(BuildContext context, Student s) {
+    final reviewIds = {for (final t in app.awaitingOf(s)) t.id}; // já aparecem em "para avaliar"
     return AppCard(
       padding: EdgeInsets.zero,
       child: Column(
@@ -1135,7 +1176,7 @@ class StudentPage extends StatelessWidget {
               child: Text(tr('Nenhuma tarefa. Toque em "Nova tarefa" para passar escala, lição, repertório ou atividade.'), style: Ds.support()),
             ),
           Padding(padding: const EdgeInsets.symmetric(horizontal: Ds.s16), child: _pendingBanner(s)),
-          for (final t in s.tasks)
+          for (final t in s.tasks.where((x) => !reviewIds.contains(x.id)))
             DsTaskRow(
               icon: _kindIcon(t.kind),
               title: t.title,
@@ -1263,101 +1304,58 @@ class StudentPage extends StatelessWidget {
   }
 
   /// Aulas já dadas a este aluno e se foram enviadas.
-  Widget _lessonHistory(Student s) {
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(tr('Aulas dadas'), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-          const SizedBox(height: 4),
-          for (final l in s.lessons.take(8))
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              dense: true,
-              leading: Icon(
-                l.sent == true ? Icons.mark_email_read_outlined : (l.sent == false ? Icons.schedule_send_outlined : Icons.phone_android),
-                color: l.sent == true ? AppColors.inTune : (l.sent == false ? AppColors.flat : AppColors.textDim),
-              ),
-              title: Text(l.durationSec == 0
-                  ? tr('{0} · tarefas enviadas fora de aula', [_day(l.endedAt)])
-                  : tr('{0} · aula de {1}', [_day(l.endedAt), fmtLessonDuration(l.durationSec)])),
-              subtitle: Text(
-                tr('{0} tarefa{1}{2} · {3}', [l.taskCount, l.taskCount == 1 ? '' : 's', l.noteCount > 0 ? tr(', {0} observaç{1}', [l.noteCount, l.noteCount == 1 ? tr('ão') : tr('ões')]) : '', l.sent == true ? tr('enviada ao aluno') : (l.sent == false ? tr('aguardando envio') : tr('só neste aparelho'))]),
-                style: const TextStyle(fontSize: 12.5),
-              ),
-              trailing: l.sent == false
-                  ? TextButton(onPressed: app.flushLessons, child: Text(tr('Enviar')))
-                  : null,
+  Widget _lessonHistoryBody(Student s) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final l in s.lessons.take(8))
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              l.sent == true ? Icons.mark_email_read_outlined : (l.sent == false ? Icons.schedule_send_outlined : Icons.phone_android),
+              color: l.sent == true ? AppColors.inTune : (l.sent == false ? AppColors.flat : AppColors.textDim),
             ),
-        ],
-      ),
+            title: Text(l.durationSec == 0
+                ? tr('{0} · tarefas enviadas fora de aula', [_day(l.endedAt)])
+                : tr('{0} · aula de {1}', [_day(l.endedAt), fmtLessonDuration(l.durationSec)])),
+            subtitle: Text(
+              tr('{0} tarefa{1}{2} · {3}', [l.taskCount, l.taskCount == 1 ? '' : 's', l.noteCount > 0 ? tr(', {0} observaç{1}', [l.noteCount, l.noteCount == 1 ? tr('ão') : tr('ões')]) : '', l.sent == true ? tr('enviada ao aluno') : (l.sent == false ? tr('aguardando envio') : tr('só neste aparelho'))]),
+              style: Ds.support(),
+            ),
+            trailing: l.sent == false ? TextButton(onPressed: app.flushLessons, child: Text(tr('Enviar'))) : null,
+          ),
+      ],
     );
   }
 
-  Widget _sessions(Student s) {
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(tr('Últimos exercícios'), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-          const SizedBox(height: 6),
-          if (s.sessions.isEmpty)
-            Text(tr('Quando este aluno estiver "em aula", os resultados aparecem aqui.'),
-                style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-          for (final r in s.sessions.take(8))
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(children: [
-                SizedBox(width: 44, child: Text(_day(r.date), style: TextStyle(color: AppColors.textDim))),
-                Expanded(child: Text(r.title, style: const TextStyle(fontWeight: FontWeight.w600))),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: (r.accuracy >= 0.8 ? AppColors.inTune : (r.accuracy >= 0.5 ? AppColors.flat : AppColors.sharp))
-                        .withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text('${(r.accuracy * 100).round()}%', style: const TextStyle(fontWeight: FontWeight.w800)),
+  Widget _sessionsBody(Student s) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (s.sessions.isEmpty) Text(tr('Quando este aluno estiver "em aula", os resultados aparecem aqui.'), style: Ds.support()),
+        for (final r in s.sessions.take(8))
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: Ds.s8),
+            child: Row(children: [
+              SizedBox(width: 48, child: Text(_day(r.date), style: Ds.support())),
+              Expanded(child: Text(r.title, style: const TextStyle(fontWeight: FontWeight.w600))),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(
+                  color: (r.accuracy >= 0.8 ? AppColors.inTune : (r.accuracy >= 0.5 ? AppColors.flat : AppColors.sharp)).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-              ]),
-            ),
-        ],
-      ),
+                child: Text('${(r.accuracy * 100).round()}%', style: const TextStyle(fontWeight: FontWeight.w800)),
+              ),
+            ]),
+          ),
+      ],
     );
   }
 
   Future<void> _newNote(BuildContext context, Student s) async {
     final t = await _askText(context, tr('Nova observação'), tr('O que anotar?'), multiline: true, voice: app);
     if (t != null) app.addTeacherNote(s, t);
-  }
-
-  Widget _notes(BuildContext context, Student s) {
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            Expanded(child: Text(tr('Observações'), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
-            TextButton.icon(
-              onPressed: () => _newNote(context, s),
-              icon: const Icon(Icons.edit_note),
-              label: Text(tr('Anotar')),
-            ),
-          ]),
-          if (s.notes.isEmpty)
-            Text(tr('Anote pontos de atenção, elogios e combinados.'),
-                style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-          for (final n in s.notes.take(10))
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                SizedBox(width: 44, child: Text(_day(n.date), style: TextStyle(color: AppColors.textDim))),
-                Expanded(child: Text(n.text)),
-              ]),
-            ),
-        ],
-      ),
-    );
   }
 }
 
@@ -1402,8 +1400,8 @@ class _LessonCardState extends State<_LessonCard> {
     return h > 0 ? '$h:$mm:$ss' : '$mm:$ss';
   }
 
-  /// Para onde a aula vai ao encerrar.
-  String _destination() {
+  /// Se algo impede o envio ao aluno (sem código, vínculo desligado…), o texto que explica; no normal, null.
+  String? _destinationIssue() {
     if (s.code == null) {
       return tr('Este aluno não tem código: a aula fica só neste aparelho. Para enviar, informe o código dele (menu ⋮ › Código do aluno).');
     }
@@ -1417,8 +1415,12 @@ class _LessonCardState extends State<_LessonCard> {
     if (app.deliveryIssue[s.code] == 'not_ready') {
       return tr('O app de {0} ainda não ligou o "Vínculo online": a aula fica na fila e chega assim que ele ligar. Você pode mandar um convite pela ficha.', [s.name]);
     }
-    return tr('Ao encerrar, as tarefas e observações desta aula vão para {0}, em Estudo › Tarefas do professor.', [s.name]);
+    return null;
   }
+
+  /// Para onde a aula vai ao encerrar (usado na confirmação de encerrar).
+  String _destination() =>
+      _destinationIssue() ?? tr('Ao encerrar, as tarefas e observações desta aula vão para {0}, em Estudo › Tarefas do professor.', [s.name]);
 
   Future<void> _end() async {
     final tally = app.lessonTally();
@@ -1495,14 +1497,14 @@ class _LessonCardState extends State<_LessonCard> {
                   const SizedBox(width: 8),
                   Expanded(child: Text(tr('Aula'), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
                 ]),
-                const SizedBox(height: 4),
-                Text(
-                  other != null
-                      ? tr('Há uma aula em andamento com {0}. Encerre-a para começar outra.', [other.name])
-                      : _destination(),
-                  style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
-                ),
-                const SizedBox(height: 8),
+                if (other != null || _destinationIssue() != null) ...[
+                  const SizedBox(height: Ds.s8),
+                  Text(
+                    other != null ? tr('Há uma aula em andamento com {0}. Encerre-a para começar outra.', [other.name]) : _destinationIssue()!,
+                    style: Ds.support(),
+                  ),
+                ],
+                const SizedBox(height: Ds.s16),
                 if (other != null)
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
@@ -1516,7 +1518,7 @@ class _LessonCardState extends State<_LessonCard> {
                   // Duas rotas claras para quando o aluno chega ou não: começar a aula ou registrar que não veio.
                   if (_momentLesson() != null)
                     Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
+                      padding: const EdgeInsets.only(bottom: Ds.s12),
                       child: Row(children: [
                         Icon(Icons.schedule, size: 16, color: AppColors.accent),
                         const SizedBox(width: 6),
@@ -1634,8 +1636,10 @@ class _LessonCardState extends State<_LessonCard> {
                   ),
                 ),
               ]),
-              const SizedBox(height: 6),
-              Text(_destination(), style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+              if (_destinationIssue() != null) ...[
+                const SizedBox(height: Ds.s8),
+                Text(_destinationIssue()!, style: Ds.support()),
+              ],
               Align(
                 alignment: Alignment.centerLeft,
                 child: TextButton.icon(

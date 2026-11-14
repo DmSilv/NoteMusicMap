@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import 'meeting_link.dart';
 import 'remind_field.dart';
+import 'design_system.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -264,8 +265,8 @@ class _PickSlotPageState extends State<PickSlotPage> {
         title: Text(tr('Pegar este horário?')),
         content: Text(tr('{0}\n\nA aula entra na sua agenda e seu professor é avisado.', [describeOpenSlot(s)])),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
-          FilledButton.icon(onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.event_available_outlined, size: 18), label: Text(tr('Pegar'))),
+          TextButton(style: TextButton.styleFrom(minimumSize: const Size(0, Ds.tap)), onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
+          FilledButton.icon(style: FilledButton.styleFrom(minimumSize: const Size(0, Ds.tap)), onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.event_available_outlined, size: 18), label: Text(tr('Pegar'))),
         ],
       ),
     );
@@ -283,21 +284,59 @@ class _PickSlotPageState extends State<PickSlotPage> {
     }
   }
 
+  /// Um horário livre: dia e hora em destaque, a duração embaixo e um botão grande para pegar.
+  Widget _slotCard(ClassSlot s) {
+    final d = DateTime.fromMillisecondsSinceEpoch(s.startMs);
+    final days = [tr('segunda'), tr('terça'), tr('quarta'), tr('quinta'), tr('sexta'), tr('sábado'), tr('domingo')];
+    final dayName = days[d.weekday - 1][0].toUpperCase() + days[d.weekday - 1].substring(1);
+    final hm = '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+    // Dia e hora em cima, curtos (cabem numa linha); embaixo, se repete, quanto dura e se é online.
+    final title = s.weekly ? '$dayName · $hm' : '${dayName.substring(0, 3)} ${fmtDayMonth(d)} · $hm';
+    final support = [s.weekly ? tr('Toda semana') : tr('Só neste dia'), tr('{0} min', [s.durationMin]), if (s.online) tr('online')].join(' · ');
+    return Padding(
+      padding: const EdgeInsets.only(bottom: Ds.s12),
+      child: AppCard(
+        padding: const EdgeInsets.all(Ds.s16),
+        child: Row(children: [
+          DsIconBadge(s.weekly ? Icons.repeat_rounded : Icons.event_available_outlined, size: 44),
+          const SizedBox(width: Ds.s16),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, height: 1.2)),
+              Padding(padding: const EdgeInsets.only(top: Ds.s4), child: Text(support, style: Ds.support())),
+            ]),
+          ),
+          const SizedBox(width: Ds.s12),
+          FilledButton(
+            style: FilledButton.styleFrom(minimumSize: const Size(88, Ds.tap)),
+            onPressed: taking ? null : () => _take(s),
+            child: Text(tr('Pegar'), style: const TextStyle(fontWeight: FontWeight.w800)),
+          ),
+        ]),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final teachers = app.myTeachers;
+    final who = teachers.where((t) => t.code == teacher).firstOrNull;
     return Scaffold(
       appBar: AppBar(title: Text(tr('Pegar horário'))),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: Ds.screen,
         children: [
           if (teachers.isEmpty)
             AppCard(child: Text(tr('Você ainda não tem um professor vinculado. Peça o convite a ele.')))
           else ...[
+            Text(tr('Escolha um horário'), style: Ds.title()),
+            const SizedBox(height: Ds.s4),
+            Text(tr('A aula entra na sua agenda e {0} é avisado.', [(who?.name ?? '').isEmpty ? tr('seu professor') : who!.name]), style: Ds.support()),
+            const SizedBox(height: Ds.s16),
             if (teachers.length > 1)
               Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Wrap(spacing: 8, children: [
+                padding: const EdgeInsets.only(bottom: Ds.s16),
+                child: Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
                   for (final t in teachers)
                     ChoiceChip(
                       label: Text(t.name.isEmpty ? t.code : t.name),
@@ -310,30 +349,31 @@ class _PickSlotPageState extends State<PickSlotPage> {
                 ]),
               ),
             if (loading)
-              const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator()))
+              const Padding(padding: EdgeInsets.all(Ds.s32), child: Center(child: CircularProgressIndicator()))
             else if (failed)
               AppCard(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(tr('Não foi possível ver os horários agora.')),
-                  const SizedBox(height: 8),
-                  OutlinedButton.icon(onPressed: _load, icon: const Icon(Icons.refresh, size: 18), label: Text(tr('Tentar de novo'))),
+                  const SizedBox(height: Ds.s12),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(minimumSize: const Size(0, Ds.tap)),
+                    onPressed: _load,
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: Text(tr('Tentar de novo')),
+                  ),
                 ]),
               )
             else if ((slots ?? const []).isEmpty)
-              AppCard(child: Text(tr('Seu professor não deixou horários livres no momento.')))
+              AppCard(
+                padding: const EdgeInsets.all(Ds.s24),
+                child: Column(children: [
+                  Icon(Icons.event_busy_outlined, size: 36, color: AppColors.textDim),
+                  const SizedBox(height: Ds.s12),
+                  Text(tr('Seu professor não deixou horários livres no momento.'), textAlign: TextAlign.center, style: Ds.support()),
+                ]),
+              )
             else
-              for (final s in slots!)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: AppCard(
-                    child: Row(children: [
-                      Icon(s.weekly ? Icons.repeat : Icons.event_available_outlined, color: AppColors.accent),
-                      const SizedBox(width: 12),
-                      Expanded(child: Text(describeOpenSlot(s), style: const TextStyle(fontWeight: FontWeight.w700))),
-                      FilledButton.icon(onPressed: taking ? null : () => _take(s), icon: const Icon(Icons.event_available_outlined, size: 18), label: Text(taking ? tr('Enviando…') : tr('Pegar'))),
-                    ]),
-                  ),
-                ),
+              for (final s in slots!) _slotCard(s),
           ],
         ],
       ),

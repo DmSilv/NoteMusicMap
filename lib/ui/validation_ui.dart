@@ -66,14 +66,14 @@ Future<void> showReviewSheet(BuildContext context, AppState app, Student student
         option(
           icon: Icons.replay_rounded,
           label: tr('Refazer'),
-          hint: tr('O aluno vê "refazer" e continua com ela.'),
+          hint: tr('O aluno vê "refazer" e continua estudando esta tarefa.'),
           onTap: () => pick(TaskReview.back, tr('Devolvida para refazer.')),
         ),
         option(
           icon: Icons.redo_rounded,
-          label: tr('Levar para a próxima aula'),
-          hint: tr('Vai de novo com a próxima aula do aluno.'),
-          onTap: () => pick(TaskReview.next, tr('Vai com a próxima aula.')),
+          label: tr('Passar para a próxima aula'),
+          hint: tr('A tarefa volta como pendente e é enviada de novo ao aluno na próxima aula.'),
+          onTap: () => pick(TaskReview.next, tr('A tarefa vai de novo ao aluno na próxima aula.')),
         ),
       ];
     },
@@ -101,7 +101,7 @@ class ValidationCard extends StatelessWidget {
             child: DsCardTitle(
               Icons.fact_check_outlined,
               list.length == 1 ? tr('1 tarefa para avaliar') : tr('{0} tarefas para avaliar', [list.length]),
-              subtitle: tr('Como foi a semana de {0}? Valide, mande refazer ou leve para a próxima aula.', [student.name]),
+              subtitle: tr('Como foi a semana de {0}? Valide, mande refazer ou passe para a próxima aula.', [student.name]),
             ),
           ),
           for (final t in list)
@@ -158,15 +158,34 @@ Future<void> showValidationDialog(BuildContext context, AppState app, Student s)
             child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(tr('Escolha o que fazer com cada tarefa. O que você não escolher fica como está.'), style: Ds.support()),
               const SizedBox(height: Ds.s12),
+              for (final (_, icon, label, hint) in [
+                (TaskReview.ok, Icons.check_rounded, tr('Está boa'), tr('finaliza a tarefa')),
+                (TaskReview.back, Icons.replay_rounded, tr('Refazer'), tr('o aluno continua com ela')),
+                (TaskReview.next, Icons.redo_rounded, tr('Próxima aula'), tr('volta como pendente e é enviada de novo na próxima aula')),
+              ])
+                Padding(
+                  padding: const EdgeInsets.only(bottom: Ds.s4),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Icon(icon, size: 16, color: AppColors.textDim),
+                    const SizedBox(width: Ds.s8),
+                    Expanded(child: Text.rich(TextSpan(children: [TextSpan(text: label, style: const TextStyle(fontWeight: FontWeight.w800)), TextSpan(text: ': $hint')]), style: Ds.support())),
+                  ]),
+                ),
+              const SizedBox(height: Ds.s16),
               for (final t in list)
                 Padding(
                   padding: const EdgeInsets.only(bottom: Ds.s16),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Text(t.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody)),
                     const SizedBox(height: Ds.s8),
-                    Wrap(spacing: 8, runSpacing: 8, children: [
-                      for (final (r, label) in [(TaskReview.ok, tr('Boa')), (TaskReview.back, tr('Refazer')), (TaskReview.next, tr('Levar'))])
+                    Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
+                      for (final (r, icon, label) in [
+                        (TaskReview.ok, Icons.check_rounded, tr('Está boa')),
+                        (TaskReview.back, Icons.replay_rounded, tr('Refazer')),
+                        (TaskReview.next, Icons.redo_rounded, tr('Próxima aula')),
+                      ])
                         ChoiceChip(
+                          avatar: Icon(icon, size: 18),
                           label: Text(label),
                           selected: pick[t.id] == r,
                           onSelected: (v) => setS(() => pick[t.id] = v ? r : null),
