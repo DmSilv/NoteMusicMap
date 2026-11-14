@@ -74,6 +74,19 @@ dois temas. A tela 5 existe porque o primeiro "aha" precisa de **reforço e de u
 Depois da tela 4 a pessoa cai no **Afinador já ouvindo**, com a agulha pronta. Quando acertar a primeira nota, o app comemora (já
 existe o "momento de sucesso") e mostra o cartão de **próximo passo** (tocar a primeira escala).
 
+### 4.1 Variante para o visitante curioso (vem de anúncio, não sabe o que é)
+
+Protótipo: [prototipo_apresentacao/curioso.html](prototipo_apresentacao/curioso.html). **Não pede nada** (sem pergunta, sem microfone, sem campo); só mostra, em tom leve, e termina deixando a pessoa **escolher o lado**.
+
+| # | Tela | Ideia | Como funciona |
+|---|---|---|---|
+| 1 | **Tocou a nota e ficou na dúvida?** | Começa pela dúvida que todo músico já teve, em formato de conversa | Balão de pergunta, afinador de verdade respondendo (baixa, quase, afinada) e balão de resposta |
+| 2 | **Uma caixa de ferramentas, zero bagunça** | Responde "o que é isso?" em 4 cartões com uma frase bem-humorada cada | Afinador, Escalas, Metrônomo, Agenda |
+| 3 | **Seu professor passa a tarefa, você estuda** ou **Veja quem estudou, sem planilha** | A pessoa **escolhe o lado que quer ver** (Sou aluno / Sou professor) e vê o que o app faz por ela | Aluno: a tarefa da professora vira ✓ e soma um dia seguido. Professor: lista de alunos com "em dia", "dar um toque", "corrigir" |
+| 4 | **Gostou? Escolha por onde começar** | Três portas sem formulário: **Quero estudar**, **Sou professor**, **Só quero olhar** | "Nada de formulário agora": a conta só nasce quando a pessoa quiser guardar o progresso ou ligar com o professor |
+
+Por que assim: quem chega curioso precisa primeiro **entender** (telas 1 e 2), depois **se ver dentro** (tela 3: o lado escolhido já é o primeiro sinal de papel) e só então **escolher** (tela 4). O cadastro do professor vira "um passo" na hora em que ele toca em "Sou professor" (abre o Meu espaço com o código para os alunos); o aluno só cria conta quando for vincular. Medir: toques em cada porta da tela 4 e em "Sou aluno / Sou professor" da tela 3 (um contador agregado cada), para saber o que o público de cada publicação quer.
+
 ## 5. Plano em fases
 
 | Fase | O que entra | Esforço | Como saber que deu certo |
