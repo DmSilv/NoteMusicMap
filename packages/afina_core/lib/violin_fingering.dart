@@ -207,6 +207,20 @@ const List<_Entry> _violin = [
   // Seção de Mi♭: sob o 8va faltam os números das notas 12 a 15; no começo da diminuta o livro não escreve nada nas notas 0 a 3.
   _Entry(3, false, ScaleType.diminishedSeventh, 3, {4: '1', 5: '1', 6: '3', 7: '4', 8: '2', 9: '1', 10: '2', 11: '3', 16: '4', 17: '2', 18: '4', 19: '3', 20: '1', 22: '1', 23: '4'}),
   _Entry(3, false, ScaleType.dominantSeventh, 3, {0: '2', 5: '1', 9: '1', 10: '2', 11: '3', 16: '4'}),
+  // Seção de Lá♭ (corda Sol baixa), só a 7ª diminuta: cordas soltas Ré4 nas notas 2 e 22 (as duas conferem com o teste); a dominante ficou sem leitura segura.
+  _Entry(8, false, ScaleType.diminishedSeventh, 3, {2: '0', 6: '1', 8: '4', 9: '2', 10: '1', 11: '3', 15: '2', 16: '4', 17: '3', 19: '1', 21: '2', 22: '0', 23: '3'}),
+  // Seção de Ré♭: a nota 11 (3) fica no corte do alto da página e foi posta por analogia com as outras seções; na diminuta o livro não escreve o 2 da nota 17.
+  _Entry(1, false, ScaleType.diminishedSeventh, 3, {1: '4', 2: '1', 4: '1', 5: '1', 6: '3', 7: '4', 8: '2', 9: '1', 10: '2', 11: '3', 16: '4', 18: '4', 19: '3', 20: '1', 23: '4'}),
+  _Entry(1, false, ScaleType.dominantSeventh, 3, {5: '1', 9: '1', 10: '2', 11: '3', 16: '4'}),
+  // Seção de Sol♭ (8va no alto): diminuta como a de Ré♭, sem números nas notas 0 a 3.
+  _Entry(6, false, ScaleType.diminishedSeventh, 3, {4: '1', 5: '1', 6: '3', 7: '4', 8: '2', 9: '1', 10: '2', 11: '3', 16: '4', 18: '4', 19: '3', 20: '1', 23: '4'}),
+  _Entry(6, false, ScaleType.dominantSeventh, 3, {5: '1', 9: '1', 10: '2', 11: '3', 16: '4'}),
+  // Seção de Si (começa na corda Sol baixa): cordas soltas Ré4 nas notas 1 e 23 (diminuta) e Lá4 nas notas 3 e 21 (dominante), todas conferidas pelo teste. A nota 11 da dominante fica no corte da página (3 por analogia).
+  _Entry(11, false, ScaleType.diminishedSeventh, 3, {1: '0', 2: '1', 3: '3', 5: '1', 6: '3', 7: '4', 9: '1', 10: '2', 11: '3', 16: '4', 18: '4', 22: '1', 23: '0'}),
+  _Entry(11, false, ScaleType.dominantSeventh, 3, {2: '4', 3: '0', 5: '1', 9: '1', 10: '2', 11: '3', 16: '4', 21: '0'}),
+  // Seção de Mi: diminuta sem números nas notas 0 a 3 e 4; dominante com 2 na 1ª nota.
+  _Entry(4, false, ScaleType.diminishedSeventh, 3, {5: '1', 9: '1', 10: '2', 11: '3', 16: '4', 17: '2', 19: '3', 20: '1', 22: '1', 23: '4'}),
+  _Entry(4, false, ScaleType.dominantSeventh, 3, {0: '2', 5: '1', 9: '1', 10: '2', 11: '3', 16: '4'}),
 ];
 
 /// Escalas que o administrador corrigiu ou incluiu no painel (vêm do servidor); valem no lugar das do app.
