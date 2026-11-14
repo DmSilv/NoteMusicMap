@@ -13,6 +13,8 @@ import 'share_sheet.dart' show shareLink, showShareSheet;
 import 'teacher_page.dart';
 import 'hello_bar.dart';
 import 'link_bar.dart';
+import 'design_system.dart';
+import 'hub_section.dart' show shareStudentLink;
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -334,6 +336,19 @@ class _ProfilePageState extends State<ProfilePage> {
                 onPressed: () => app.setLinkEnabled(true),
                 icon: const Icon(Icons.cloud_outlined),
                 label: Text(tr('Ligar o vínculo online')),
+              ),
+            ),
+          ],
+          if (mode == 0) ...[
+            const SizedBox(height: 12),
+            // O professor não está ao lado? Manda o link por mensagem: ao abrir, o cadastro dele já vem com o seu código.
+            SizedBox(
+              width: double.infinity,
+              height: Ds.primaryHeight,
+              child: FilledButton.icon(
+                onPressed: () => shareStudentLink(app),
+                icon: const Icon(Icons.ios_share),
+                label: Text(tr('Enviar link ao professor')),
               ),
             ),
           ],

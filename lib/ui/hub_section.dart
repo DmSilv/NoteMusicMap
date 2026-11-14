@@ -410,6 +410,22 @@ Future<void> shareTeacherInvite(AppState app) async {
   }
 }
 
+/// Aluno → professor: envia (ou copia) o link que abre o app do professor já no cadastro, com o código do aluno preenchido.
+/// É o mesmo link do QR do perfil (`?aluno=`), para quando o professor não está ao lado.
+Future<void> shareStudentLink(AppState app) async {
+  final link = '${shareLink()}/?aluno=${app.profile.shareCode}';
+  final name = (app.profile.name ?? '').trim();
+  final text = name.isEmpty
+      ? tr('Quero ser seu aluno no {0}. Abra este link para me adicionar: {1}', [kAppName, link])
+      : tr('Sou {0}, quero ser seu aluno no {1}. Abra este link para me adicionar: {2}', [name, kAppName, link]);
+  try {
+    await SharePlus.instance.share(ShareParams(text: text, title: kAppName));
+  } catch (_) {
+    await Clipboard.setData(ClipboardData(text: text));
+    app.say(tr('Link copiado. Cole numa conversa para enviar.'));
+  }
+}
+
 /// Deixa o Meu espaço do aluno atento ao professor SÓ perto da hora da aula: quando o professor encerra a aula, as tarefas
 /// aparecem aqui sem o aluno fazer nada. Fora desse período não consulta sozinho (custo zero); ao abrir, ao voltar ao app
 /// e ao puxar a tela para baixo a atualização continua valendo. Ver [lessonLiveMode].

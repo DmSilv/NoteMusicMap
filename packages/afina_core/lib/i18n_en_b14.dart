@@ -2,6 +2,10 @@
 library;
 
 const Map<String, String> kEnB14 = {
+  'Enviar link ao professor': 'Send link to teacher',
+  'Quero ser seu aluno no {0}. Abra este link para me adicionar: {1}': 'I\'d like to be your student on {0}. Open this link to add me: {1}',
+  'Sou {0}, quero ser seu aluno no {1}. Abra este link para me adicionar: {2}': 'I\'m {0}, I\'d like to be your student on {1}. Open this link to add me: {2}',
+  'Link copiado. Cole numa conversa para enviar.': 'Link copied. Paste it into a chat to send it.',
   'Sem o código do aluno, a aula fica só neste aparelho.': 'Without the student\'s code, the lesson stays only on this device.',
   'Informar o código do aluno': 'Enter the student\'s code',
   'Adicionar aluno': 'Add student',
