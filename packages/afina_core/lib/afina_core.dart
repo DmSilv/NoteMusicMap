@@ -15,6 +15,7 @@ export 'input_guard.dart';
 export 'lesson.dart';
 export 'link_status.dart';
 export 'lesson_week.dart';
+export 'practice_log.dart';
 export 'task_status.dart';
 export 'open_slots.dart';
 export 'class_rules.dart';

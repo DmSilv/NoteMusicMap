@@ -75,6 +75,19 @@ void main() {
       expect(tasksTile(open: 1, total: 1).headline, '1 pendente');
     });
 
+    test('diário de aula: mostra o estudo de hoje e a sequência de dias', () {
+      final meio = tasksTile(open: 3, total: 4, todayDone: 1, todayTotal: 4, streak: 3);
+      expect(meio.title, 'Diário de aula');
+      expect(meio.headline, '1 de 4 hoje');
+      expect(meio.caption, '3 dias seguidos');
+      expect(meio.progress, closeTo(0.25, 1e-9));
+      expect(meio.needsAction, isTrue);
+      final tudo = tasksTile(open: 0, total: 4, todayDone: 4, todayTotal: 4, streak: 1);
+      expect(tudo.needsAction, isFalse);
+      expect(tudo.caption, 'Tudo estudado hoje');
+      expect(tasksTile(open: 1, total: 1, todayDone: 0, todayTotal: 1).caption, 'tarefas estudadas hoje');
+    });
+
     test('para validar e alunos: números só quando há ação ou conteúdo', () {
       expect(validateTile(0).needsAction, isFalse);
       expect(validateTile(0).headline, 'Nada a validar');

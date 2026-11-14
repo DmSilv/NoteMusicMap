@@ -143,6 +143,7 @@
 | `packages/afina_core/lib/i18n_en_b11.dart` | Dicionário português → inglês, parte b11 (ver i18n_en.dart). |
 | `packages/afina_core/lib/i18n_en_b12.dart` | Dicionário português → inglês, parte b12 (ver i18n_en.dart). |
 | `packages/afina_core/lib/i18n_en_b13.dart` | Dicionário português → inglês, parte b13 (ver i18n_en.dart): apresentação do primeiro acesso. |
+| `packages/afina_core/lib/i18n_en_b14.dart` | Dicionário português → inglês, parte b14 (ver i18n_en.dart): diário de aula do aluno. |
 | `packages/afina_core/lib/i18n_en_srv.dart` | Dicionário português → inglês, parte srv (ver i18n_en.dart). |
 | `packages/afina_core/lib/identity.dart` | Identidade do perfil (Fase 1): quem é a pessoa, sem cadastro e sem servidor. - [Profile.id]: UUID do perfil. Todos os dados pertencem a ele, não ao aparelho. - [Profile.secret]: 256 bits aleatórios que provam que… |
 | `packages/afina_core/lib/input_guard.dart` | Limpeza e limites de tudo que a pessoa digita, cola ou lê de um QR. Dart puro. O app não monta HTML nem consulta banco com esses textos, mas eles aparecem na tela, vão para backups colados e (em resumo) para a IA.… |
@@ -163,6 +164,7 @@
 | `packages/afina_core/lib/pitch_grid.dart` | Estabilizador de notas + grade de entonação + relatório de escala. A grade guarda, para cada nota (número MIDI), a MÉDIA PONDERADA do desvio em cents em relação ao alvo do sistema escolhido. Ponderação por clareza e… |
 | `packages/afina_core/lib/pomodoro.dart` | Temporizador de estudo no estilo Pomodoro: foco, pausa curta e pausa longa. Lógica pura (sem relógio próprio): quem usa passa o instante atual em milissegundos. Isso deixa tudo testável e permite retomar depois de o… |
 | `packages/afina_core/lib/practice_coach.dart` | Treinador: analisa o histórico de escalas e devolve orientações em português, como "Suas notas Mi estão ficando baixas: tente colocá-las um pouco mais altas". É uma análise por regras (estatística sobre as suas… |
+| `packages/afina_core/lib/practice_log.dart` | Diário de prática do aluno: em quais dias ele estudou cada tarefa da aula. Quem estuda música pratica a semana toda e só entrega na próxima aula. Por isso a marca de "estudei" é POR DIA (zera sozinha no dia seguinte,… |
 | `packages/afina_core/lib/rhythm_challenge.dart` | Modo desafio do metrônomo ("sabotagem"): de vez em quando, de surpresa, o andamento muda por alguns compassos ou o metrônomo fica mudo, e depois volta sempre ao andamento que a pessoa configurou. Serve para treinar a… |
 | `packages/afina_core/lib/scale_exercise.dart` | Exercício de escalas guiado (estilo "sistema de escalas" de Carl Flesch): o músico toca a escala subindo e descendo, em 1, 2 ou 3 oitavas, e o app acompanha nota por nota, medindo a afinação de cada uma. Dois jeitos… |
 | `packages/afina_core/lib/scale_spelling.dart` | Grafia das notas de uma escala ou arpejo: cada grau ganha a sua LETRA (Dó, Ré, Mi... em sequência), como está escrito na partitura. É o que faz a Dó menor melódica subir com Lá e Si naturais e descer com Si♭ e Lá♭, e… |
@@ -215,6 +217,7 @@
 | `packages/afina_core/test/pitch_detector_test.dart` | Gera um tom com harmônicos [amps] (índice 0 = fundamental). |
 | `packages/afina_core/test/pitch_grid_test.dart` | Sobe devagar até +52 cents. |
 | `packages/afina_core/test/pomodoro_test.dart` | Testes do módulo `pomodoro`. |
+| `packages/afina_core/test/practice_log_test.dart` | Testes do módulo `practice_log`. |
 | `packages/afina_core/test/remind_test.dart` | Testes do módulo `remind`. |
 | `packages/afina_core/test/rhythm_challenge_test.dart` | Sorteia [n] compassos e devolve a decisão de cada um. |
 | `packages/afina_core/test/scale_coach_test.dart` | Passos de uma escala em que cada nota (pitch class) tem um viés fixo. |
@@ -330,4 +333,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **287** arquivos mapeados.
+Total: **290** arquivos mapeados.

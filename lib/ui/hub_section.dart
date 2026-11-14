@@ -95,7 +95,12 @@ class HubSection extends StatelessWidget {
             child: _tile(context, studentsTile(app.students.length), Icons.groups_rounded, () => _push(context, TeacherPage(app: app))));
       case HubDest.myTasks:
         final plan = buildWeekPlan(app.myLessons, app.lessonTasksDone, now);
-        return _tile(context, tasksTile(open: plan.open, total: plan.total), Icons.checklist_rounded, () => openMyLessons(context, app));
+        final (todayDone, todayTotal) = app.practiceToday(plan, now);
+        return _tile(
+            context,
+            tasksTile(open: plan.open, total: plan.total, todayDone: todayDone, todayTotal: todayTotal, streak: app.practice.streak(now)),
+            Icons.menu_book_rounded,
+            () => openMyLessons(context, app));
       case HubDest.agendaStudent:
         final next = nextOccurrence(app.myAgenda, now.millisecondsSinceEpoch);
         return _tile(context, agendaTile(nextText: next == null ? null : fmtSlotWhen(next.start, now)), Icons.event_rounded,

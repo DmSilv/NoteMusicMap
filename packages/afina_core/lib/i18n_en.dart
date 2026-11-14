@@ -18,6 +18,7 @@ import 'i18n_en_b10.dart';
 import 'i18n_en_b11.dart';
 import 'i18n_en_b12.dart';
 import 'i18n_en_b13.dart';
+import 'i18n_en_b14.dart';
 import 'i18n_en_srv.dart';
 
 const Map<String, String> kEn = {
@@ -36,5 +37,6 @@ const Map<String, String> kEn = {
   ...kEnB11,
   ...kEnB12,
   ...kEnB13,
+  ...kEnB14,
   ...kEnSrv,
 };
