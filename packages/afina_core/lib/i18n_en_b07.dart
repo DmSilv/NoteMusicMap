@@ -276,5 +276,4 @@ const Map<String, String> kEnB07 = {
   'Você fez as {0} da semana.': 'You did the {0} of the week.',
   'tarefa': 'task',
   'tarefas': 'tasks',
-  'pendente': 'pending',
 };

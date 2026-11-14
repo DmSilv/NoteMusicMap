@@ -114,27 +114,15 @@ class HubTile {
 
 String _n(int n, String one, String many) => '$n ${n == 1 ? one : many}';
 
-/// Bloco do diário de aula do aluno. [open] tarefas ainda não entregues e [total] da semana.
-/// Com [todayTotal] > 0 mostra o estudo DE HOJE ([todayDone] de [todayTotal]) e a sequência de dias ([streak]):
-/// quem estuda música pratica a semana toda, então o que importa na tela inicial é o dia de hoje.
-HubTile tasksTile({required int open, required int total, int todayDone = 0, int todayTotal = 0, int streak = 0}) {
-  if (todayTotal > 0) {
-    final all = todayDone >= todayTotal;
-    return HubTile(
-      tr('Diário de aula'),
-      tr('{0} de {1} hoje', [todayDone, todayTotal]),
-      streak > 1 ? tr('{0} dias seguidos', [streak]) : (all ? tr('Tudo estudado hoje') : tr('tarefas estudadas hoje')),
-      progress: todayDone / todayTotal,
-      needsAction: !all,
-    );
-  }
+/// Bloco de tarefas do aluno. [open] pendentes e [total] da semana.
+HubTile tasksTile({required int open, required int total}) {
   if (total == 0) {
-    return HubTile(tr('Tarefas'), tr('Nenhuma tarefa'), tr('Quando seu professor passar, aparece aqui.'));
+    return HubTile(tr('Diário de aula'), tr('Nenhuma tarefa'), tr('Quando seu professor passar, aparece aqui.'));
   }
   if (open == 0) {
-    return HubTile(tr('Tarefas'), tr('Tudo em dia'), tr('Você fez as {0} da semana.', [_n(total, tr('tarefa'), tr('tarefas'))]), progress: 1);
+    return HubTile(tr('Diário de aula'), tr('Tudo em dia'), tr('Você fez as {0} da semana.', [_n(total, tr('tarefa'), tr('tarefas'))]), progress: 1);
   }
-  return HubTile(tr('Tarefas'), _n(open, tr('pendente'), tr('pendentes')), tr('de {0} esta semana', [total]), progress: (total - open) / total, needsAction: true);
+  return HubTile(tr('Diário de aula'), tr('{0} para estudar', [open]), tr('de {0} esta semana', [total]), progress: (total - open) / total, needsAction: true);
 }
 
 /// Bloco "para validar" do professor.

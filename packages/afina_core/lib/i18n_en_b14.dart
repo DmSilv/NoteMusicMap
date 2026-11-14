@@ -2,17 +2,10 @@
 library;
 
 const Map<String, String> kEnB14 = {
-  'Aulas anteriores': 'Past lessons',
-  'Nenhuma aula anterior ainda.': 'No past lessons yet.',
   'Diário de aula': 'Lesson diary',
-  '{0} de {1} hoje': '{0} of {1} today',
-  '{0} dias seguidos': '{0} days in a row',
-  '1 dia seguido': '1 day in a row',
-  'Estude hoje para começar sua sequência': 'Practice today to start your streak',
-  '{0} de {1} prontas': '{0} of {1} ready',
-  'Desmarcar estudo de hoje': 'Unmark today\'s practice',
-  'Estudei hoje': 'I practiced today',
+  '{0} para estudar': '{0} to practice',
   'Pronta para a aula': 'Ready for the lesson',
-  'Tudo estudado hoje': 'Everything practiced today',
-  'tarefas estudadas hoje': 'tasks practiced today',
+  'Aulas anteriores': 'Past lessons',
+  '{0} de {1} prontas': '{0} of {1} ready',
+  'Nenhuma aula anterior ainda.': 'No past lessons yet.',
 };

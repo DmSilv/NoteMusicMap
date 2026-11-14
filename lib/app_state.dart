@@ -1747,31 +1747,6 @@ class AppState extends ChangeNotifier {
   /// ALUNO: tarefas de aula marcadas como feitas ("idAula:idTarefa").
   final Set<String> lessonTasksDone = {};
 
-  /// ALUNO: diário de prática (em quais dias estudou cada tarefa da aula). Só neste aparelho:
-  /// a marca é por dia (zera sozinha no dia seguinte) e a entrega para o professor é outro passo
-  /// ([toggleLessonTask], "pronta para a aula").
-  PracticeLog practice = PracticeLog();
-
-  bool practicedOn(SharedLesson l, Assignment t, DateTime day) => practice.has(PracticeLog.taskKey(l.id, t.id), day);
-
-  void togglePractice(SharedLesson l, Assignment t, DateTime day) {
-    practice.toggle(PracticeLog.taskKey(l.id, t.id), day);
-    _prefs?.setStringList('lessons_practice', practice.encode());
-    notifyListeners();
-  }
-
-  /// Quantas tarefas da semana já foram estudadas hoje, de quantas.
-  (int done, int total) practiceToday(WeekPlan plan, DateTime now) {
-    var done = 0, total = 0;
-    for (final g in plan.week) {
-      for (final w in g.tasks) {
-        total++;
-        if (practice.has(PracticeLog.taskKey(g.lesson.id, w.task.id), now)) done++;
-      }
-    }
-    return (done, total);
-  }
-
   bool _lessonSending = false;
   bool _lessonsPulling = false;
 
@@ -1816,7 +1791,6 @@ class AppState extends ChangeNotifier {
     lessonTasksDone
       ..clear()
       ..addAll((p.getStringList('lessons_done') ?? const []).take(2000));
-    practice = PracticeLog.decode(p.getStringList('lessons_practice') ?? const []);
   }
 
   void _saveLessons() {

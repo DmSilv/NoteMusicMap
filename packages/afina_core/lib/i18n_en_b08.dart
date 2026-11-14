@@ -2,7 +2,6 @@
 library;
 
 const Map<String, String> kEnB08 = {
-  'pendentes': 'pending',
   'de {0} esta semana': 'of {0} this week',
   'Nada a validar': 'Nothing to validate',
   'As tarefas que seus alunos marcarem aparecem aqui.': 'The tasks your students mark appear here.',

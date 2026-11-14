@@ -47,7 +47,7 @@ Nada de Flutter nem `dart:io` (assim roda no navegador e nos testes de linha de 
 | Grade e exercícios | `pitch_grid`, `scale_exercise`, `practice_coach`, `rhythm_challenge`, `system_guide` | Grade de entonação, escalas guiadas, orientações, modo desafio |
 | Estudo | `pomodoro`, `study_clock` | Temporizadores |
 | Identidade e entrada | `identity`, `input_guard` | Perfil, código com dígito verificador, limpeza de tudo que se digita/cola/lê de QR |
-| Professor/aluno | `teacher`, `lesson`, `lesson_week`, `practice_log`, `methods`, `task_status` | Alunos, tarefas, aulas, "esta semana", **diário de prática por dia** (`practice_log`), métodos, **status oficial** (resumo, decisão, `VerdictEntry`) |
+| Professor/aluno | `teacher`, `lesson`, `lesson_week`, `methods`, `task_status` | Alunos, tarefas, aulas, "esta semana", métodos, **status oficial** (resumo, decisão, `VerdictEntry`) |
 | Agenda e horários | `agenda`, `class_rules`, `open_slots` | `ClassSlot`, ocorrências, conflito, **fase e permissões da aula**, regras do horário livre |
 | Faltas do aluno | `absence` | `Absence`, `addAbsence`, `lessonForAbsence` (a aula que o aluno está perdendo agora) |
 | Hub | `hub`, `hub_view` | Destaque e blocos do Meu espaço; **visões Aluno/Professor** sem destino repetido |
