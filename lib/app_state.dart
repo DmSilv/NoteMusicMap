@@ -1541,11 +1541,32 @@ class AppState extends ChangeNotifier {
   }
 
   // ---------------- PROFESSOR: ver e validar o que o aluno marcou ----------------
-  /// Tarefas que [s] marcou como feitas e esperam a validação do professor.
-  List<Assignment> awaitingOf(Student s) => awaitingValidation(s);
+  /// Tarefas de [s] que esperam a decisão do professor: já foram enviadas, não estão validadas e são recentes.
+  /// O aluno NÃO precisa marcar nada: quem confere é o professor (validar, refazer ou levar para a próxima aula).
+  List<Assignment> awaitingOf(Student s) => toReview(s, DateTime.now());
 
-  /// Total de tarefas esperando validação (todos os alunos).
-  int get awaitingTotal => students.fold<int>(0, (a, s) => a + awaitingValidation(s).length);
+  /// Total de tarefas esperando decisão (todos os alunos).
+  int get awaitingTotal => students.fold<int>(0, (a, s) => a + awaitingOf(s).length);
+
+  /// O professor decide sobre uma tarefa: [TaskReview.ok] valida, [TaskReview.back] manda refazer (o aluno vê
+  /// "refazer") e [TaskReview.next] leva para a próxima aula (volta a "a enviar" e vai no próximo pacote).
+  void reviewAssignment(Student s, String taskId, TaskReview r) {
+    crumb(switch (r) {
+      TaskReview.ok => tr('Validar tarefa'),
+      TaskReview.back => tr('Devolver tarefa'),
+      TaskReview.next => tr('Levar tarefa para a próxima aula'),
+    });
+    if (!reviewTask(s, taskId, r)) return;
+    _saveTeacher();
+    // O aluno vê a decisão oficial (vai pela fila e reenvia sozinha se estiver sem conexão).
+    // "Levar" não manda decisão: a tarefa volta no próximo pacote e o aluno vê que foi levada.
+    final lesson = _claimLesson[taskId];
+    if (r != TaskReview.next && lesson != null && s.code != null && linkEnabled) {
+      _queueVerdict(s.code!, lesson, taskId, r == TaskReview.ok ? Verdict.ok : Verdict.back);
+      unawaited(flushVerdicts());
+    }
+    notifyListeners();
+  }
 
   /// Traz o que os alunos marcaram e aplica nas fichas. Avisa o professor se houver novidade.
   Future<void> pullDones() async {
@@ -1602,18 +1623,8 @@ class AppState extends ChangeNotifier {
   bool _donesPulling = false;
 
   /// Confirma (finaliza) ou devolve (volta a pendente) uma tarefa que o aluno marcou.
-  void validateAssignment(Student s, String taskId, {required bool ok}) {
-    crumb(ok ? tr('Validar tarefa') : tr('Devolver tarefa'));
-    if (!validateTask(s, taskId, ok: ok)) return;
-    _saveTeacher();
-    // O aluno passa a ver a decisão oficial (vai pela fila e reenvia sozinha se estiver sem conexão).
-    final lesson = _claimLesson[taskId];
-    if (lesson != null && s.code != null && linkEnabled) {
-      _queueVerdict(s.code!, lesson, taskId, ok ? Verdict.ok : Verdict.back);
-      unawaited(flushVerdicts());
-    }
-    notifyListeners();
-  }
+  void validateAssignment(Student s, String taskId, {required bool ok}) =>
+      reviewAssignment(s, taskId, ok ? TaskReview.ok : TaskReview.back);
 
   /// Decisões a enviar ("aluno|aula|tarefa|ok ou back"), guardadas até o servidor aceitar.
   final List<String> verdictOutbox = [];
@@ -1890,11 +1901,28 @@ class AppState extends ChangeNotifier {
       s.lessons.removeAt(i < 0 ? s.lessons.length - 1 : i);
     }
     // As tarefas que foram no pacote deixam de estar "a enviar" (já estão na fila de envio).
-    if (rec.sent == false) _markTasksSent(s, taskIdsOf(rec));
+    if (rec.sent == false) _afterPackage(s, rec);
     _saveTeacher();
     notifyListeners();
     if (rec.sent == false) unawaited(flushLessons());
     return rec;
+  }
+
+  /// Saiu um pacote (aula ou tarefas) para [s]: as tarefas viram "enviadas", guardamos em qual aula cada uma foi
+  /// (é com isso que a decisão do professor chega ao aluno) e o que tinha sido devolvido volta a pedir decisão.
+  void _afterPackage(Student s, LessonRecord rec) {
+    final ids = taskIdsOf(rec);
+    _markTasksSent(s, ids);
+    reopenReviews(s);
+    for (final id in ids) {
+      _claimLesson[id] = rec.id;
+    }
+    if (_claimLesson.length > 3000) {
+      for (final k in _claimLesson.keys.take(_claimLesson.length - 3000).toList()) {
+        _claimLesson.remove(k);
+      }
+    }
+    _prefs?.setString('claim_lessons', jsonEncode(_claimLesson));
   }
 
   void _markTasksSent(Student s, Set<String> ids) {
@@ -1933,7 +1961,7 @@ class AppState extends ChangeNotifier {
       final i = s.lessons.lastIndexWhere((x) => x.sent != false);
       s.lessons.removeAt(i < 0 ? s.lessons.length - 1 : i);
     }
-    _markTasksSent(s, taskIdsOf(rec));
+    _afterPackage(s, rec);
     _saveTeacher();
     notifyListeners();
     unawaited(flushLessons());

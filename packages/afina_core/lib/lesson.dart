@@ -106,7 +106,7 @@ class SharedLesson {
         't': atMs,
         'd': durationSec,
         // 'snt' (enviada) e 'cl' (marcada pelo aluno) são controle do professor: não saem do aparelho.
-        'tasks': [for (final t in tasks) (t.toJson()..remove('snt')..remove('cl'))],
+        'tasks': [for (final t in tasks) (t.toJson()..remove('snt')..remove('cl')..remove('rv'))],
         'notes': notes,
       };
 
@@ -425,6 +425,56 @@ List<Assignment> awaitingValidation(Student s) {
   final l = [for (final t in s.tasks) if (t.awaitsValidation) t];
   l.sort((a, b) => a.claimedAt!.compareTo(b.claimedAt!));
   return l;
+}
+
+/// Quanto tempo uma tarefa enviada e não validada continua pedindo uma decisão do professor.
+/// Passado isso ela deixa de contar como "para avaliar" (dado antigo não vira um aviso enorme).
+const int kReviewWindowDays = 28;
+
+/// O que o professor decide sobre uma tarefa que passou ao aluno.
+enum TaskReview {
+  /// Está boa: finaliza como feita.
+  ok,
+
+  /// Refazer: o aluno vê "refazer" e a tarefa continua pendente.
+  back,
+
+  /// Levar para a próxima aula: a tarefa volta a "a enviar" e vai de novo no próximo pacote.
+  next,
+}
+
+/// Tarefas de [s] que esperam uma decisão do professor: já enviadas ao aluno, ainda não validadas,
+/// sem decisão nesta rodada e recentes (mais antigas primeiro). Quem não usa o app do aluno também entra:
+/// o aluno não precisa "assinar" nada, o professor é quem confere.
+List<Assignment> toReview(Student s, DateTime now) {
+  final from = now.subtract(const Duration(days: kReviewWindowDays));
+  final l = [
+    for (final t in s.tasks)
+      if (t.sent == true && !t.done && !t.reviewed && t.created.isAfter(from)) t
+  ];
+  l.sort((a, b) => a.created.compareTo(b.created));
+  return l;
+}
+
+/// Aplica a decisão [r] do professor à tarefa [taskId]. Devolve false se ela não existe.
+bool reviewTask(Student s, String taskId, TaskReview r, {DateTime? now}) {
+  final i = s.tasks.indexWhere((t) => t.id == taskId);
+  if (i < 0) return false;
+  final t = s.tasks[i];
+  s.tasks[i] = switch (r) {
+    TaskReview.ok => t.withClaim(null).copyWith(done: true, reviewed: false),
+    TaskReview.back => t.withClaim(null).copyWith(done: false, reviewed: true),
+    // Volta a "a enviar" com a data de agora: vai no próximo pacote e conta de novo a partir dele.
+    TaskReview.next => t.withClaim(null).copyWith(done: false, reviewed: false, sent: false, created: now ?? DateTime.now()),
+  };
+  return true;
+}
+
+/// Novo pacote (aula ou tarefas) saiu para [s]: o que tinha sido devolvido volta a pedir decisão.
+void reopenReviews(Student s) {
+  for (var i = 0; i < s.tasks.length; i++) {
+    if (s.tasks[i].reviewed) s.tasks[i] = s.tasks[i].copyWith(reviewed: false);
+  }
 }
 
 /// Valida ([ok] = true: finaliza como feita) ou devolve ([ok] = false: tira a marca e ela volta a ser

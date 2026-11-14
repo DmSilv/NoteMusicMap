@@ -2,23 +2,82 @@ import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import 'design_system.dart';
 import 'my_lessons_page.dart' show taskKindIcon;
 import 'theme.dart';
 import 'widgets.dart';
 
-String _when(DateTime at) {
-  final d = at.toLocal();
-  final now = DateTime.now();
-  final today = DateTime(now.year, now.month, now.day);
-  final day = DateTime(d.year, d.month, d.day);
-  final hh = '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
-  if (day == today) return tr('hoje, {0}', [hh]);
-  if (day == today.subtract(const Duration(days: 1))) return tr('ontem, {0}', [hh]);
-  return '${fmtDayMonth(d)}, $hh';
+/// Modal "Como foi esta tarefa?": o professor decide sozinho (o aluno não precisa marcar nada).
+/// Três saídas: está boa (valida), refazer (o aluno vê "refazer") ou levar para a próxima aula.
+Future<void> showReviewSheet(BuildContext context, AppState app, Student student, Assignment task) {
+  return showDsSheet(
+    context,
+    title: tr('Como foi esta tarefa?'),
+    listenable: app,
+    children: (c) {
+      final t = student.tasks.where((x) => x.id == task.id).firstOrNull ?? task;
+      void pick(TaskReview r, String msg) {
+        app.reviewAssignment(student, t.id, r);
+        Navigator.of(c).pop();
+        app.say(msg);
+      }
+
+      Widget option({required IconData icon, required String label, required String hint, required VoidCallback onTap, bool primary = false}) => Padding(
+            padding: const EdgeInsets.only(bottom: Ds.s16),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              SizedBox(
+                height: Ds.primaryHeight,
+                child: primary
+                    ? FilledButton.icon(onPressed: onTap, icon: Icon(icon), label: Text(label, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)))
+                    : OutlinedButton.icon(onPressed: onTap, icon: Icon(icon), label: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
+              ),
+              const SizedBox(height: Ds.s4),
+              Text(hint, textAlign: TextAlign.center, style: Ds.support()),
+            ]),
+          );
+
+      return [
+        Row(children: [
+          DsIconBadge(taskKindIcon(t.kind), size: 40),
+          const SizedBox(width: Ds.s12),
+          Expanded(child: Text(t.title, style: const TextStyle(fontSize: Ds.fontBody, fontWeight: FontWeight.w700))),
+        ]),
+        if (t.awaitsValidation) ...[
+          const SizedBox(height: Ds.s8),
+          Row(children: [
+            Icon(Icons.fact_check_outlined, size: 16, color: AppColors.accent),
+            const SizedBox(width: 6),
+            Text(tr('Aluno marcou como feita'), style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700, fontSize: Ds.fontLabel)),
+          ]),
+        ],
+        const SizedBox(height: Ds.s20),
+        if (!t.done)
+          option(
+            primary: true,
+            icon: Icons.check_rounded,
+            label: tr('Está boa'),
+            hint: tr('Finaliza a tarefa e avisa o aluno.'),
+            onTap: () => pick(TaskReview.ok, tr('Tarefa validada.')),
+          ),
+        option(
+          icon: Icons.replay_rounded,
+          label: tr('Refazer'),
+          hint: tr('O aluno vê "refazer" e continua com ela.'),
+          onTap: () => pick(TaskReview.back, tr('Devolvida para refazer.')),
+        ),
+        option(
+          icon: Icons.redo_rounded,
+          label: tr('Levar para a próxima aula'),
+          hint: tr('Vai de novo com a próxima aula do aluno.'),
+          onTap: () => pick(TaskReview.next, tr('Vai com a próxima aula.')),
+        ),
+      ];
+    },
+  );
 }
 
-/// Na ficha do aluno: as tarefas que ELE marcou como feitas e que esperam a validação do
-/// professor. Só viram "feitas" (finalizadas) quando o professor confirma; se não, voltam a pendente.
+/// Na ficha do aluno: as tarefas que esperam a decisão do professor. O aluno não precisa assinar nada;
+/// quem confere é o professor (um toque no ✓ valida; tocar na linha abre as três saídas).
 class ValidationCard extends StatelessWidget {
   final AppState app;
   final Student student;
@@ -31,52 +90,56 @@ class ValidationCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: AppCard(
+        padding: const EdgeInsets.fromLTRB(Ds.s16, Ds.s16, Ds.s8, Ds.s8),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
             Icon(Icons.fact_check_outlined, color: AppColors.accent),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                list.length == 1 ? tr('1 tarefa para validar') : tr('{0} tarefas para validar', [list.length]),
+                list.length == 1 ? tr('1 tarefa para avaliar') : tr('{0} tarefas para avaliar', [list.length]),
                 style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
               ),
             ),
           ]),
-          const SizedBox(height: 4),
-          Text(
-            tr('{0} marcou como feita. Confirme para finalizar ou devolva para ficar pendente.', [student.name]),
-            style: TextStyle(color: AppColors.textDim, fontSize: 12.5, height: 1.3),
+          const SizedBox(height: 2),
+          Padding(
+            padding: const EdgeInsets.only(right: Ds.s8),
+            child: Text(tr('Como foi a semana de {0}? Valide, mande refazer ou leve para a próxima aula.', [student.name]), style: Ds.support()),
           ),
+          const SizedBox(height: Ds.s4),
           for (final t in list)
-            Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Row(children: [
-                Icon(taskKindIcon(t.kind), size: 18, color: AppColors.textDim),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(t.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
-                    Text(tr('Marcada {0}', [_when(t.claimedAt!)]), style: TextStyle(color: AppColors.textDim, fontSize: 12)),
-                  ]),
-                ),
-                TextButton.icon(
-                  onPressed: () => app.validateAssignment(student, t.id, ok: false),
-                  icon: const Icon(Icons.undo, size: 18), label: Text(tr('Devolver')),
-                ),
-                FilledButton.tonalIcon(
-                  onPressed: () => app.validateAssignment(student, t.id, ok: true),
-                  icon: const Icon(Icons.check, size: 18), label: Text(tr('Confirmar')),
-                ),
-              ]),
+            InkWell(
+              borderRadius: BorderRadius.circular(Ds.radiusControl),
+              onTap: () => showReviewSheet(context, app, student, t),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 60),
+                child: Row(children: [
+                  Icon(taskKindIcon(t.kind), size: 20, color: AppColors.textDim),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                      Text(t.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody)),
+                      if (t.awaitsValidation) Text(tr('Aluno marcou como feita'), style: TextStyle(color: AppColors.accent, fontSize: Ds.fontLabel, fontWeight: FontWeight.w700)),
+                    ]),
+                  ),
+                  IconButton.filledTonal(
+                    tooltip: tr('Está boa'),
+                    style: IconButton.styleFrom(minimumSize: const Size(Ds.tap, Ds.tap)),
+                    onPressed: () => app.reviewAssignment(student, t.id, TaskReview.ok),
+                    icon: const Icon(Icons.check_rounded),
+                  ),
+                  Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
+                ]),
+              ),
             ),
-          if (list.length > 1) ...[
-            const SizedBox(height: 8),
+          if (list.length > 1)
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
                 onPressed: () {
                   for (final t in list) {
-                    app.validateAssignment(student, t.id, ok: true);
+                    app.reviewAssignment(student, t.id, TaskReview.ok);
                   }
                   app.say(tr('{0} tarefas confirmadas.', [list.length]));
                 },
@@ -84,62 +147,47 @@ class ValidationCard extends StatelessWidget {
                 label: Text(tr('Confirmar todas')),
               ),
             ),
-          ],
         ]),
       ),
     );
   }
 }
 
-/// Ao começar a próxima aula: o professor confere o que o aluno marcou como feito desde a
-/// última vez. Marcadas = confirmar (finaliza); desmarcadas = devolver (volta a pendente).
-/// "Decidir depois" não muda nada. Não bloqueia a aula.
+/// Ao começar a aula: o professor confere as tarefas da semana de uma vez. Para cada uma escolhe "Boa",
+/// "Refazer" ou "Levar" (para a próxima aula); sem escolha, nada muda. Não bloqueia a aula.
 Future<void> showValidationDialog(BuildContext context, AppState app, Student s) async {
-  final sum = summarizeTasks(s);
-  final list = sum.toValidate;
-  if (list.isEmpty) {
-    // Nada a validar: se há tarefas pendentes, mostra só o resumo (não bloqueia; um toque e segue).
-    if (sum.pending.isEmpty) return;
-    await showDialog<void>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: Text(tr('Resumo de {0}', [s.name])),
-        content: SingleChildScrollView(child: _summaryBody(sum, showValidateHint: false)),
-        actions: [FilledButton.icon(onPressed: () => Navigator.pop(c), icon: const Icon(Icons.play_arrow, size: 18), label: Text(tr('Começar a aula')))],
-      ),
-    );
-    return;
-  }
-  final keep = {for (final t in list) t.id: true};
+  final list = app.awaitingOf(s);
+  if (list.isEmpty) return;
+  final pick = <String, TaskReview?>{};
   final ok = await showDialog<bool>(
     context: context,
     builder: (c) => StatefulBuilder(
       builder: (c, setS) => AlertDialog(
-        title: Text(tr('{0} fez {1}?', [s.name, list.length == 1 ? tr('esta tarefa') : tr('estas tarefas')])),
-        content: SingleChildScrollView(
-          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(
-              tr('Ele marcou como feita. Deixe marcada a que está boa e desmarque a que precisa refazer.'),
-              style: TextStyle(color: AppColors.textDim, fontSize: 13, height: 1.3),
-            ),
-            const SizedBox(height: 6),
-            Text(sum.line, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-            const SizedBox(height: 8),
-            for (final t in list)
-              CheckboxListTile(
-                contentPadding: EdgeInsets.zero,
-                dense: true,
-                controlAffinity: ListTileControlAffinity.leading,
-                value: keep[t.id],
-                onChanged: (v) => setS(() => keep[t.id] = v ?? false),
-                title: Text(t.title, style: const TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: Text(tr('Marcada {0}', [_when(t.claimedAt!)]), style: const TextStyle(fontSize: 12)),
-              ),
-            if (sum.pending.isNotEmpty) ...[
-              const Divider(height: 18),
-              _pendingList(sum),
-            ],
-          ]),
+        title: Text(tr('Como foi a semana de {0}?', [s.name])),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(tr('Escolha o que fazer com cada tarefa. O que você não escolher fica como está.'), style: Ds.support()),
+              const SizedBox(height: Ds.s12),
+              for (final t in list)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: Ds.s16),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(t.title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody)),
+                    const SizedBox(height: Ds.s8),
+                    Wrap(spacing: 8, runSpacing: 8, children: [
+                      for (final (r, label) in [(TaskReview.ok, tr('Boa')), (TaskReview.back, tr('Refazer')), (TaskReview.next, tr('Levar'))])
+                        ChoiceChip(
+                          label: Text(label),
+                          selected: pick[t.id] == r,
+                          onSelected: (v) => setS(() => pick[t.id] = v ? r : null),
+                        ),
+                    ]),
+                  ]),
+                ),
+            ]),
+          ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Decidir depois'))),
@@ -149,41 +197,21 @@ Future<void> showValidationDialog(BuildContext context, AppState app, Student s)
     ),
   );
   if (ok != true) return;
-  var done = 0, back = 0;
+  var good = 0, back = 0, next = 0;
   for (final t in list) {
-    final yes = keep[t.id] == true;
-    app.validateAssignment(s, t.id, ok: yes);
-    yes ? done++ : back++;
+    final r = pick[t.id];
+    if (r == null) continue;
+    app.reviewAssignment(s, t.id, r);
+    switch (r) {
+      case TaskReview.ok:
+        good++;
+      case TaskReview.back:
+        back++;
+      case TaskReview.next:
+        next++;
+    }
   }
-  app.say(tr('{0} confirmada{1}{2}.', [done, done == 1 ? '' : 's', back > 0 ? tr(', {0} devolvida{1}', [back, back == 1 ? '' : 's']) : '']));
-}
-
-Widget _summaryBody(TaskSummary sum, {required bool showValidateHint}) => Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(sum.line, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-        const SizedBox(height: 8),
-        _pendingList(sum),
-      ],
-    );
-
-/// Tarefas ainda pendentes (até 5; o resto vira "e mais N").
-Widget _pendingList(TaskSummary sum) {
-  final shown = sum.pending.take(5).toList();
-  final more = sum.pending.length - shown.length;
-  return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-    Text(tr('Ainda pendentes'), style: TextStyle(color: AppColors.textDim, fontSize: 12.5, fontWeight: FontWeight.w700)),
-    const SizedBox(height: 4),
-    for (final t in shown)
-      Padding(
-        padding: const EdgeInsets.only(bottom: 3),
-        child: Row(children: [
-          Icon(taskKindIcon(t.kind), size: 15, color: AppColors.textDim),
-          const SizedBox(width: 6),
-          Expanded(child: Text(t.title, style: const TextStyle(height: 1.25))),
-        ]),
-      ),
-    if (more > 0) Text(tr('e mais {0}', [more]), style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
-  ]);
+  if (good + back + next > 0) {
+    app.say(tr('{0} validada(s), {1} para refazer, {2} para a próxima aula.', [good, back, next]));
+  }
 }

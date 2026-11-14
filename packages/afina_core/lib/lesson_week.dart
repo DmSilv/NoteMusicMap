@@ -51,6 +51,24 @@ DateTime _day(DateTime d) => DateTime(d.year, d.month, d.day);
 /// Monta o plano. [doneKeys] são as tarefas feitas, no formato "idAula:idTarefa".
 /// "Últimos 7 dias" conta de [now] para trás (hoje e os 6 dias anteriores... mais o
 /// dia de 7 dias atrás, para a aula "da semana passada, no mesmo dia" ainda aparecer).
+/// Tarefas "levadas para a próxima aula": o professor reenviou a mesma tarefa (mesmo id) numa aula mais nova.
+/// A cópia mais antiga some do plano (a nova é a que vale) e aparece como "levada" no histórico.
+/// Chaves "idAula:idTarefa".
+Set<String> carriedTaskKeys(List<SharedLesson> lessons) {
+  final sorted = [...lessons]..sort((a, b) => b.atMs.compareTo(a.atMs));
+  final newer = <String>{}; // "professor|idTarefa" das aulas mais novas
+  final out = <String>{};
+  for (final l in sorted) {
+    for (final t in l.tasks) {
+      if (newer.contains('${l.teacherCode}|${t.id}')) out.add('${l.id}:${t.id}');
+    }
+    for (final t in l.tasks) {
+      newer.add('${l.teacherCode}|${t.id}');
+    }
+  }
+  return out;
+}
+
 WeekPlan buildWeekPlan(List<SharedLesson> lessons, Set<String> doneKeys, DateTime now) {
   final today = _day(now);
   final from = today.subtract(const Duration(days: 7));
@@ -59,6 +77,7 @@ WeekPlan buildWeekPlan(List<SharedLesson> lessons, Set<String> doneKeys, DateTim
   // aula) não fazem as da aula anterior virarem atraso, mas ficam em atraso quando uma aula nova vem depois.
   final latestLessonAt = sorted.where((l) => !l.tasksOnly).map((l) => l.atMs).firstOrNull;
   bool isDone(SharedLesson l, Assignment t) => doneKeys.contains('${l.id}:${t.id}');
+  final carried = carriedTaskKeys(lessons);
 
   final week = <WeekGroup>[];
   final late = <WeekGroup>[];
@@ -69,6 +88,7 @@ WeekPlan buildWeekPlan(List<SharedLesson> lessons, Set<String> doneKeys, DateTim
     final isToday = d == today;
     final tasks = <WeekTask>[];
     for (final t in l.tasks) {
+      if (carried.contains('${l.id}:${t.id}')) continue; // foi levada para uma aula mais nova
       final done = isDone(l, t);
       // Fora da semana só interessa o que ficou em aberto.
       if (!inWeek && done) continue;

@@ -1121,7 +1121,12 @@ class StudentPage extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
               dense: true,
               onTap: () => _taskDialog(context, s, edit: t),
-              leading: Checkbox(value: t.done, onChanged: (_) => app.toggleAssignment(s, t.id)),
+              // O aluno não precisa marcar nada: o professor decide (boa, refazer ou levar para a próxima aula).
+              leading: IconButton(
+                tooltip: tr('Avaliar tarefa'),
+                onPressed: () => showReviewSheet(context, app, s, t),
+                icon: Icon(t.done ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, color: t.done ? AppColors.inTune : AppColors.textDim),
+              ),
               title: Row(children: [
                 Icon(_kindIcon(t.kind), size: 16, color: AppColors.textDim),
                 const SizedBox(width: 6),

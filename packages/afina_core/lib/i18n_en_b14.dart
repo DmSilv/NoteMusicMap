@@ -1,13 +1,34 @@
-/// Dicionário português → inglês, parte b14 (ver i18n_en.dart): diário de aula do aluno.
+/// Dicionário português → inglês, parte b14 (ver i18n_en.dart): diário de aula do aluno e avaliação do professor.
 library;
 
 const Map<String, String> kEnB14 = {
   'Diário de aula': 'Lesson diary',
   '{0} para estudar': '{0} to practice',
-  'Pronta para a aula': 'Ready for the lesson',
   'Aulas anteriores': 'Past lessons',
   'Nenhuma aula anterior ainda.': 'No past lessons yet.',
   '1 tarefa': '1 task',
   '{0} tarefas': '{0} tasks',
-  'Avisa seu professor que esta tarefa está pronta.': 'Lets your teacher know this task is ready.',
+  'levada para a próxima aula': 'carried to the next lesson',
+  'Levar tarefa para a próxima aula': 'Carry task to the next lesson',
+  'Avaliar tarefa': 'Review task',
+  'Como foi esta tarefa?': 'How did this task go?',
+  'Está boa': 'It\'s good',
+  'Finaliza a tarefa e avisa o aluno.': 'Completes the task and lets the student know.',
+  'Tarefa validada.': 'Task approved.',
+  'Refazer': 'Redo',
+  'O aluno vê "refazer" e continua com ela.': 'The student sees "redo" and keeps working on it.',
+  'Devolvida para refazer.': 'Sent back to redo.',
+  'Levar para a próxima aula': 'Carry to the next lesson',
+  'Vai de novo com a próxima aula do aluno.': 'Goes again with the student\'s next lesson.',
+  'Vai com a próxima aula.': 'Goes with the next lesson.',
+  '1 tarefa para avaliar': '1 task to review',
+  '{0} tarefas para avaliar': '{0} tasks to review',
+  'Como foi a semana de {0}? Valide, mande refazer ou leve para a próxima aula.': 'How was {0}\'s week? Approve, send back to redo or carry to the next lesson.',
+  'Como foi a semana de {0}?': 'How was {0}\'s week?',
+  'Escolha o que fazer com cada tarefa. O que você não escolher fica como está.': 'Choose what to do with each task. Anything you do not choose stays as it is.',
+  'Boa': 'Good',
+  'Levar': 'Carry',
+  '{0} validada(s), {1} para refazer, {2} para a próxima aula.': '{0} approved, {1} to redo, {2} for the next lesson.',
+  'As tarefas que você passar aparecem aqui para você avaliar.': 'Tasks you assign show up here for you to review.',
+  'esperando a sua decisão': 'waiting for your decision',
 };

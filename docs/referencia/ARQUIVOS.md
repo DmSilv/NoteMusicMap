@@ -107,7 +107,7 @@
 | `lib/ui/tuning_guide.dart` | Explicação didática do sistema de afinação escolhido, com a tabela de alvos da tônica (em Hz, contra a afinação igual) e botões para OUVIR cada nota. Aparece no Afinador (modo Cromático) e nas Configurações. |
 | `lib/ui/tuning_pick.dart` | Nome curto do sistema de afinação em uso ("Pitagórico"). |
 | `lib/ui/undo_snack.dart` | Aviso de baixo com o botão "Desfazer": serve para toda ação que some com algo da tela (esconder um cartão, tirar um item). Fica 8 segundos (tempo de ler e decidir), é flutuante e o botão tem alvo de toque grande.… |
-| `lib/ui/validation_ui.dart` | Na ficha do aluno: as tarefas que ELE marcou como feitas e que esperam a validação do professor. Só viram "feitas" (finalizadas) quando o professor confirma; se não, voltam a pendente. |
+| `lib/ui/validation_ui.dart` | Modal "Como foi esta tarefa?": o professor decide sozinho (o aluno não precisa marcar nada). Três saídas: está boa (valida), refazer (o aluno vê "refazer") ou levar para a próxima aula. |
 | `lib/ui/welcome_tour.dart` | Para onde a pessoa quer ir depois da apresentação. |
 | `lib/ui/widgets.dart` | Peças comuns de interface: cartões, seleção de opções, folha de ajuda ("?") e textos de ajuda em um lugar só. |
 | `lib/voice/dictation.dart` | Escrita por voz: toca no microfone de um campo, fala, e o texto aparece. Usa o reconhecimento de fala do próprio aparelho (Android/iOS) ou do navegador (Chrome, Edge, Safari). O app não grava nem envia áudio: quem… |
@@ -143,7 +143,7 @@
 | `packages/afina_core/lib/i18n_en_b11.dart` | Dicionário português → inglês, parte b11 (ver i18n_en.dart). |
 | `packages/afina_core/lib/i18n_en_b12.dart` | Dicionário português → inglês, parte b12 (ver i18n_en.dart). |
 | `packages/afina_core/lib/i18n_en_b13.dart` | Dicionário português → inglês, parte b13 (ver i18n_en.dart): apresentação do primeiro acesso. |
-| `packages/afina_core/lib/i18n_en_b14.dart` | Dicionário português → inglês, parte b14 (ver i18n_en.dart): diário de aula do aluno. |
+| `packages/afina_core/lib/i18n_en_b14.dart` | Dicionário português → inglês, parte b14 (ver i18n_en.dart): diário de aula do aluno e avaliação do professor. |
 | `packages/afina_core/lib/i18n_en_srv.dart` | Dicionário português → inglês, parte srv (ver i18n_en.dart). |
 | `packages/afina_core/lib/identity.dart` | Identidade do perfil (Fase 1): quem é a pessoa, sem cadastro e sem servidor. - [Profile.id]: UUID do perfil. Todos os dados pertencem a ele, não ao aparelho. - [Profile.secret]: 256 bits aleatórios que provam que… |
 | `packages/afina_core/lib/input_guard.dart` | Limpeza e limites de tudo que a pessoa digita, cola ou lê de um QR. Dart puro. O app não monta HTML nem consulta banco com esses textos, mas eles aparecem na tela, vão para backups colados e (em resumo) para a IA.… |
@@ -228,6 +228,7 @@
 | `packages/afina_core/test/start_checklist_test.dart` | Testes do módulo `start_checklist`. |
 | `packages/afina_core/test/study_clock_test.dart` | Testes do módulo `study_clock`. |
 | `packages/afina_core/test/system_guide_test.dart` | em Hz, na oitava 4: Mi justo (5/4 de 261,626) = 327,03 Hz contra 329,63 do igual |
+| `packages/afina_core/test/task_review_test.dart` | Testes do módulo `task_review`. |
 | `packages/afina_core/test/task_status_test.dart` | Testes do módulo `task_status`. |
 | `packages/afina_core/test/teacher_test.dart` | Código com verificação correta, gerado na hora. |
 | `packages/afina_core/test/tone_synth_test.dart` | Do contrabaixo ao violino agudo, e referências de orquestra. |
@@ -331,4 +332,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **288** arquivos mapeados.
+Total: **289** arquivos mapeados.

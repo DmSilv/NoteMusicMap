@@ -86,6 +86,9 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
   /// 0 = Esta semana (o que estudar agora), 1 = Aulas anteriores (histórico).
   int _tab = 0;
 
+  /// Tarefas que o professor levou para uma aula mais nova ("idAula:idTarefa"); atualizado a cada desenho.
+  Set<String> _carried = {};
+
   @override
   void initState() {
     super.initState();
@@ -128,14 +131,15 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
   }
 
   /// A situação mais importante da tarefa (texto, ícone, cor) ou null.
+  /// Quem decide é o professor: o aluno não marca nada. Situações: validada, refazer, levada para a próxima aula
+  /// (o professor mandou a mesma tarefa de novo, numa aula mais nova) ou atrasada.
   (String, IconData, Color)? _statusOf(SharedLesson l, Assignment t, bool overdue) {
-    final ready = app.lessonTaskDone(l, t);
-    return switch (app.taskStateOf(l, t)) {
-      StudentTaskState.returned => (tr('refazer'), Icons.replay_rounded, AppColors.sharp),
-      StudentTaskState.claimed => (tr('aguardando o professor'), Icons.hourglass_top_rounded, AppColors.accent),
-      StudentTaskState.validated => (tr('validada'), Icons.verified_rounded, AppColors.inTune),
-      _ => overdue && !ready ? (tr('atrasada'), Icons.schedule_rounded, AppColors.sharp) : null,
-    };
+    final state = app.taskStateOf(l, t);
+    if (state == StudentTaskState.validated) return (tr('validada'), Icons.verified_rounded, AppColors.inTune);
+    if (state == StudentTaskState.returned) return (tr('refazer'), Icons.replay_rounded, AppColors.sharp);
+    if (_carried.contains('${l.id}:${t.id}')) return (tr('levada para a próxima aula'), Icons.redo_rounded, AppColors.flat);
+    if (state == StudentTaskState.claimed) return (tr('aguardando o professor'), Icons.hourglass_top_rounded, AppColors.accent);
+    return overdue ? (tr('atrasada'), Icons.schedule_rounded, AppColors.sharp) : null;
   }
 
   @override
@@ -144,6 +148,7 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
       listenable: app,
       builder: (context, _) {
         final lessons = app.myLessons;
+        _carried = carriedTaskKeys(lessons);
         final plan = buildWeekPlan(lessons, app.lessonTasksDone, DateTime.now());
         final weekIds = {for (final g in plan.week) g.lesson.id};
         final older = [for (final l in lessons) if (!weekIds.contains(l.id)) l];
@@ -211,7 +216,7 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
                           padding: const EdgeInsets.symmetric(vertical: Ds.s24),
                           child: Center(child: Text(tr('Nenhuma aula anterior ainda.'), style: Ds.support())),
                         ),
-                      for (final l in older) _lessonSection(l, [for (final t in l.tasks) (t, !app.lessonTaskDone(l, t))], expanded: false),
+                      for (final l in older) _lessonSection(l, [for (final t in l.tasks) (t, !app.lessonTaskDone(l, t) && !_carried.contains('${l.id}:${t.id}'))], expanded: false),
                     ],
                   ],
                 ],
@@ -331,7 +336,7 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
   /// Uma tarefa em linha: ícone do tipo, título, UMA linha de apoio (situação ou meta) e o atalho de estudo.
   /// Tocar na linha abre os detalhes num modal.
   Widget _taskRow(SharedLesson l, Assignment t, bool overdue) {
-    final ready = app.lessonTaskDone(l, t);
+    final validated = app.taskStateOf(l, t) == StudentTaskState.validated;
     final status = _statusOf(l, t, overdue);
     final meta = t.isScale ? tr('Meta {0}% de acerto', [(t.goal * 100).round()]) : t.kind.label;
     final action = _actionOf(l, t);
@@ -357,14 +362,14 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
                   Text(meta, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: Ds.fontLabel, color: AppColors.textDim)),
               ]),
             ),
-            if (action != null)
+            if (action != null && !validated)
               IconButton.filledTonal(
                 tooltip: action.label,
                 style: IconButton.styleFrom(minimumSize: const Size(Ds.tap, Ds.tap)),
                 onPressed: action.run,
                 icon: Icon(action.icon),
               )
-            else if (ready)
+            else if (validated)
               Padding(padding: const EdgeInsets.symmetric(horizontal: Ds.s12), child: Icon(Icons.check_circle_rounded, color: AppColors.inTune))
             else
               Padding(padding: const EdgeInsets.symmetric(horizontal: Ds.s12), child: Icon(Icons.chevron_right_rounded, color: AppColors.textDim)),
@@ -382,7 +387,6 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
       title: t.title,
       listenable: app,
       children: (c) {
-        final ready = app.lessonTaskDone(l, t);
         final status = _statusOf(l, t, overdue);
         final action = _actionOf(l, t);
         return [
@@ -428,25 +432,6 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
               },
             ),
           ],
-          const SizedBox(height: Ds.s16),
-          SizedBox(
-            width: double.infinity,
-            height: Ds.tap,
-            child: ready
-                ? FilledButton.tonalIcon(
-                    style: FilledButton.styleFrom(backgroundColor: AppColors.inTune.withValues(alpha: 0.2), foregroundColor: AppColors.inTune),
-                    onPressed: () => app.toggleLessonTask(l, t),
-                    icon: const Icon(Icons.check_circle_rounded),
-                    label: Text(tr('Pronta para a aula')))
-                : OutlinedButton.icon(
-                    onPressed: () => app.toggleLessonTask(l, t),
-                    icon: const Icon(Icons.outlined_flag_rounded),
-                    label: Text(tr('Pronta para a aula'))),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(top: Ds.s8),
-            child: Text(tr('Avisa seu professor que esta tarefa está pronta.'), textAlign: TextAlign.center, style: Ds.support()),
-          ),
         ];
       },
     );

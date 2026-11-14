@@ -82,6 +82,10 @@ class Assignment {
   /// Só do lado do professor: quando o ALUNO marcou como feita (null = não marcou). A tarefa só
   /// passa a "feita" (done) quando o professor valida. Nunca vai para o servidor como parte da tarefa.
   final DateTime? claimedAt;
+
+  /// Só do lado do professor: ele já decidiu sobre esta tarefa na última revisão e devolveu para o aluno refazer.
+  /// Volta a ser "para avaliar" quando sai a próxima aula/pacote. Nunca vai para o servidor.
+  final bool reviewed;
   const Assignment({
     required this.id,
     required this.title,
@@ -97,6 +101,7 @@ class Assignment {
     required this.created,
     this.sent,
     this.claimedAt,
+    this.reviewed = false,
   });
 
   bool get isScale => kind == TaskKind.scale;
@@ -108,7 +113,7 @@ class Assignment {
     return d.isEmpty ? s : '$s · $d';
   }
 
-  Assignment copyWith({bool? done, String? subject, String? detail, String? note, bool? sent}) {
+  Assignment copyWith({bool? done, String? subject, String? detail, String? note, bool? sent, bool? reviewed, DateTime? created}) {
     final sub = subject ?? this.subject;
     final det = detail ?? this.detail;
     return Assignment(
@@ -123,9 +128,10 @@ class Assignment {
         octaves: octaves,
         goal: goal,
         done: done ?? this.done,
-        created: created,
+        created: created ?? this.created,
         sent: sent ?? this.sent,
-        claimedAt: claimedAt);
+        claimedAt: claimedAt,
+        reviewed: reviewed ?? this.reviewed);
   }
 
   /// Cópia com a marca do aluno ligada ([at]) ou desligada (null).
@@ -143,7 +149,8 @@ class Assignment {
       done: done,
       created: created,
       sent: sent,
-      claimedAt: at);
+      claimedAt: at,
+      reviewed: reviewed);
 
   /// O aluno marcou como feita e o professor ainda não validou.
   bool get awaitsValidation => claimedAt != null && !done;
@@ -163,6 +170,7 @@ class Assignment {
         'c': created.toIso8601String(),
         if (sent != null) 'snt': sent,
         if (claimedAt != null) 'cl': claimedAt!.toIso8601String(),
+        if (reviewed) 'rv': true,
       };
 
   static Assignment? tryFrom(Map<String, dynamic> j) {
@@ -184,6 +192,7 @@ class Assignment {
         created: DateTime.parse(j['c'] as String),
         sent: j['snt'] as bool?,
         claimedAt: j['cl'] is String ? DateTime.tryParse(j['cl'] as String) : null,
+        reviewed: j['rv'] == true,
       );
     } catch (_) {
       return null;

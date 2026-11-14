@@ -4,8 +4,6 @@ library;
 const Map<String, String> kEnB08 = {
   'de {0} esta semana': 'of {0} this week',
   'Nada a validar': 'Nothing to validate',
-  'As tarefas que seus alunos marcarem aparecem aqui.': 'The tasks your students mark appear here.',
-  'marcadas pelos alunos': 'marked by students',
   'Convide ou cadastre o primeiro.': 'Invite or register the first one.',
   'cadastrados': 'registered',
   'Veja aqui quando seu professor marcar.': 'See here when your teacher schedules it.',

@@ -127,8 +127,8 @@ HubTile tasksTile({required int open, required int total}) {
 
 /// Bloco "para validar" do professor.
 HubTile validateTile(int n) => n <= 0
-    ? HubTile(tr('Para validar'), tr('Nada a validar'), tr('As tarefas que seus alunos marcarem aparecem aqui.'))
-    : HubTile(tr('Para validar'), _n(n, tr('tarefa'), tr('tarefas')), tr('marcadas pelos alunos'), needsAction: true);
+    ? HubTile(tr('Para validar'), tr('Nada a validar'), tr('As tarefas que você passar aparecem aqui para você avaliar.'))
+    : HubTile(tr('Para validar'), _n(n, tr('tarefa'), tr('tarefas')), tr('esperando a sua decisão'), needsAction: true);
 
 /// Bloco de alunos do professor.
 HubTile studentsTile(int n) => n <= 0
