@@ -86,9 +86,6 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
   /// 0 = Esta semana (o que estudar agora), 1 = Aulas anteriores (histórico).
   int _tab = 0;
 
-  /// Recados que a pessoa abriu ("aulaId"). Começam recolhidos: a tela mostra primeiro o que estudar.
-  final Set<String> _notesToggled = {};
-
   @override
   void initState() {
     super.initState();
@@ -115,6 +112,30 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
     app.setScale(tonicPc: t.tonicPc, type: ScaleType.values[t.scaleTypeIndex % ScaleType.values.length], octaves: t.octaves);
     Navigator.of(context).pop();
     app.goTab?.call(kTabScales);
+  }
+
+  /// Tarefa "Material do professor": abre o acervo dele já filtrado (item, pasta ou tudo).
+  void _openMaterial(SharedLesson l, Assignment t) {
+    final ref = MaterialRef.fromTask(t.subject, t.detail);
+    openLibrary(context, app, teacher: l.teacherCode, teacherName: l.teacherName, focusTitle: ref.title.isEmpty ? null : ref.title, folder: ref.folder.isEmpty ? null : ref.folder);
+  }
+
+  /// O que o botão principal da tarefa faz (null = a tarefa não tem atalho no app).
+  ({IconData icon, String label, VoidCallback run})? _actionOf(SharedLesson l, Assignment t) {
+    if (t.isScale) return (icon: Icons.play_arrow_rounded, label: tr('Treinar'), run: () => _train(t));
+    if (t.kind == TaskKind.material) return (icon: Icons.open_in_new_rounded, label: tr('Abrir'), run: () => _openMaterial(l, t));
+    return null;
+  }
+
+  /// A situação mais importante da tarefa (texto, ícone, cor) ou null.
+  (String, IconData, Color)? _statusOf(SharedLesson l, Assignment t, bool overdue) {
+    final ready = app.lessonTaskDone(l, t);
+    return switch (app.taskStateOf(l, t)) {
+      StudentTaskState.returned => (tr('refazer'), Icons.replay_rounded, AppColors.sharp),
+      StudentTaskState.claimed => (tr('aguardando o professor'), Icons.hourglass_top_rounded, AppColors.accent),
+      StudentTaskState.validated => (tr('validada'), Icons.verified_rounded, AppColors.inTune),
+      _ => overdue && !ready ? (tr('atrasada'), Icons.schedule_rounded, AppColors.sharp) : null,
+    };
   }
 
   @override
@@ -182,14 +203,15 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
                           padding: const EdgeInsets.symmetric(vertical: Ds.s24),
                           child: Center(child: Text(tr('Nenhuma tarefa'), style: Ds.support())),
                         ),
-                      for (final g in plan.week) _group(g),
+                      for (var i = 0; i < plan.week.length; i++)
+                        _lessonSection(plan.week[i].lesson, [for (final w in plan.week[i].tasks) (w.task, w.overdue)], expanded: i == 0),
                     ] else ...[
                       if (older.isEmpty)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: Ds.s24),
                           child: Center(child: Text(tr('Nenhuma aula anterior ainda.'), style: Ds.support())),
                         ),
-                      for (final l in older) _lessonTile(l),
+                      for (final l in older) _lessonSection(l, [for (final t in l.tasks) (t, !app.lessonTaskDone(l, t))], expanded: false),
                     ],
                   ],
                 ],
@@ -251,88 +273,28 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
         ),
       );
 
-  /// Uma aula da semana: uma linha de cabeçalho, o recado do professor (aberto) e as tarefas.
-  Widget _group(WeekGroup g) {
-    final l = g.lesson;
+  /// Uma aula como lista que abre e fecha: fechada mostra só o dia, o professor e quantas tarefas tem;
+  /// aberta mostra as tarefas em linhas simples (e o recado do professor, se houver).
+  Widget _lessonSection(SharedLesson l, List<(Assignment, bool)> tasks, {required bool expanded}) {
     final who = l.teacherName.trim().isNotEmpty ? l.teacherName.trim() : l.teacherLabel;
+    final n = tasks.length;
     return Padding(
-      padding: const EdgeInsets.only(bottom: Ds.s24),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(2, 0, 2, Ds.s8),
-          child: Text.rich(TextSpan(children: [
-            TextSpan(text: l.label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-            TextSpan(text: '  ·  $who', style: Ds.support()),
-          ])),
-        ),
-        if (l.notes.isNotEmpty) ...[_notes(l, openByDefault: false), const SizedBox(height: Ds.s8)],
-        for (final t in g.tasks) _taskCard(l, t.task, overdue: t.overdue),
-      ]),
-    );
-  }
-
-  /// Recado do professor: uma linha que abre/fecha o texto.
-  Widget _notes(SharedLesson l, {required bool openByDefault}) {
-    final toggled = _notesToggled.contains(l.id);
-    final open = openByDefault ? !toggled : toggled;
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.only(bottom: 2),
-      decoration: BoxDecoration(
-        color: AppColors.accent.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        InkWell(
-          borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
-          onTap: () => setState(() => toggled ? _notesToggled.remove(l.id) : _notesToggled.add(l.id)),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: Ds.tap),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: Ds.s12),
-              child: Row(children: [
-                Icon(Icons.chat_bubble_outline_rounded, size: 18, color: AppColors.accent),
-                const SizedBox(width: Ds.s8),
-                Expanded(child: Text(tr('Observações do professor'), style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.accent))),
-                Icon(open ? Icons.expand_less_rounded : Icons.expand_more_rounded, color: AppColors.accent),
-              ]),
-            ),
-          ),
-        ),
-        if (open)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(Ds.s12, 0, Ds.s12, Ds.s8),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              for (final n in l.notes)
-                Padding(padding: const EdgeInsets.only(bottom: 6), child: Text(n, style: const TextStyle(fontSize: Ds.fontSupport + 1, height: 1.35))),
-            ]),
-          ),
-      ]),
-    );
-  }
-
-  /// Uma aula do histórico: recolhida; ao abrir mostra as tarefas e as observações.
-  Widget _lessonTile(SharedLesson l) {
-    final done = l.tasks.where((t) => app.lessonTaskDone(l, t)).length;
-    final who = l.teacherName.trim().isNotEmpty ? l.teacherName.trim() : l.teacherLabel;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Ds.s8),
+      padding: const EdgeInsets.only(bottom: Ds.s12),
       child: AppCard(
         padding: EdgeInsets.zero,
         child: Theme(
           data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
+            key: PageStorageKey('lesson-$_tab-${l.id}'),
+            initiallyExpanded: expanded,
             tilePadding: const EdgeInsets.symmetric(horizontal: Ds.s16, vertical: 2),
-            childrenPadding: const EdgeInsets.fromLTRB(Ds.s12, 0, Ds.s12, Ds.s12),
-            expandedCrossAxisAlignment: CrossAxisAlignment.start,
+            childrenPadding: const EdgeInsets.only(bottom: Ds.s8),
+            expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
             title: Text(l.label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            subtitle: Text(
-              '$who · ${l.tasks.isEmpty ? tr('sem tarefas') : tr('{0} de {1} prontas', [done, l.tasks.length])}',
-              style: Ds.support(),
-            ),
+            subtitle: Text('$who · ${n == 0 ? tr('sem tarefas') : (n == 1 ? tr('1 tarefa') : tr('{0} tarefas', [n]))}', style: Ds.support()),
             children: [
-              if (l.notes.isNotEmpty) ...[_notes(l, openByDefault: false), const SizedBox(height: Ds.s8)],
-              for (final t in l.tasks) _taskCard(l, t, overdue: !app.lessonTaskDone(l, t)),
+              if (l.notes.isNotEmpty) _notesRow(l),
+              for (final (t, overdue) in tasks) _taskRow(l, t, overdue),
             ],
           ),
         ),
@@ -340,81 +302,153 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
     );
   }
 
-  /// Tarefa "Material do professor": abre o acervo dele já filtrado (item, pasta ou tudo).
-  void _openMaterial(SharedLesson l, Assignment t) {
-    final ref = MaterialRef.fromTask(t.subject, t.detail);
-    openLibrary(context, app, teacher: l.teacherCode, teacherName: l.teacherName, focusTitle: ref.title.isEmpty ? null : ref.title, folder: ref.folder.isEmpty ? null : ref.folder);
+  /// "Observações do professor": uma linha que abre o texto num modal.
+  Widget _notesRow(SharedLesson l) => InkWell(
+        onTap: () => showDsSheet(
+          context,
+          title: tr('Observações do professor'),
+          listenable: app,
+          children: (c) => [
+            Text(l.label, style: Ds.section()),
+            const SizedBox(height: Ds.s12),
+            for (final n in l.notes) Padding(padding: const EdgeInsets.only(bottom: Ds.s12), child: Text(n, style: const TextStyle(fontSize: Ds.fontBody, height: 1.4))),
+          ],
+        ),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 56),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: Ds.s16),
+            child: Row(children: [
+              DsIconBadge(Icons.chat_bubble_outline_rounded, size: 40),
+              const SizedBox(width: Ds.s12),
+              Expanded(child: Text(tr('Observações do professor'), style: const TextStyle(fontSize: Ds.fontBody, fontWeight: FontWeight.w700))),
+              Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
+            ]),
+          ),
+        ),
+      );
+
+  /// Uma tarefa em linha: ícone do tipo, título, UMA linha de apoio (situação ou meta) e o atalho de estudo.
+  /// Tocar na linha abre os detalhes num modal.
+  Widget _taskRow(SharedLesson l, Assignment t, bool overdue) {
+    final ready = app.lessonTaskDone(l, t);
+    final status = _statusOf(l, t, overdue);
+    final meta = t.isScale ? tr('Meta {0}% de acerto', [(t.goal * 100).round()]) : t.kind.label;
+    final action = _actionOf(l, t);
+    return InkWell(
+      onTap: () => _openTask(l, t, overdue),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 64),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(Ds.s16, Ds.s8, Ds.s12, Ds.s8),
+          child: Row(children: [
+            DsIconBadge(taskKindIcon(t.kind), size: 40),
+            const SizedBox(width: Ds.s12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+                Text(t.title, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: Ds.fontBody, height: 1.25, fontWeight: FontWeight.w700)),
+                if (status != null)
+                  Row(children: [
+                    Icon(status.$2, size: 14, color: status.$3),
+                    const SizedBox(width: 4),
+                    Flexible(child: Text(status.$1, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: Ds.fontLabel, fontWeight: FontWeight.w700, color: status.$3))),
+                  ])
+                else
+                  Text(meta, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: Ds.fontLabel, color: AppColors.textDim)),
+              ]),
+            ),
+            if (action != null)
+              IconButton.filledTonal(
+                tooltip: action.label,
+                style: IconButton.styleFrom(minimumSize: const Size(Ds.tap, Ds.tap)),
+                onPressed: action.run,
+                icon: Icon(action.icon),
+              )
+            else if (ready)
+              Padding(padding: const EdgeInsets.symmetric(horizontal: Ds.s12), child: Icon(Icons.check_circle_rounded, color: AppColors.inTune))
+            else
+              Padding(padding: const EdgeInsets.symmetric(horizontal: Ds.s12), child: Icon(Icons.chevron_right_rounded, color: AppColors.textDim)),
+          ]),
+        ),
+      ),
+    );
   }
 
-  /// Ficha de leitura de uma tarefa: o que é (ícone, título, meta), o que o professor pediu (recado) e UM botão
-  /// que leva direto ao estudo (escala → aba Escalas; material → acervo). "Pronta para a aula" é só um aviso
-  /// opcional ao professor, discreto no canto: ninguém precisa marcar nada todo dia.
-  Widget _taskCard(SharedLesson l, Assignment t, {bool overdue = false}) {
-    final ready = app.lessonTaskDone(l, t);
-    final st = app.taskStateOf(l, t);
+  /// Detalhes da tarefa num modal: o que o professor pediu, o botão que leva ao estudo e o aviso opcional "pronta para a aula".
+  void _openTask(SharedLesson l, Assignment t, bool overdue) {
     final meta = t.isScale ? tr('Meta {0}% de acerto', [(t.goal * 100).round()]) : t.kind.label;
-    final (String, IconData, Color)? status = switch (st) {
-      StudentTaskState.returned => (tr('refazer'), Icons.replay_rounded, AppColors.sharp),
-      StudentTaskState.claimed => (tr('aguardando o professor'), Icons.hourglass_top_rounded, AppColors.accent),
-      StudentTaskState.validated => (tr('validada'), Icons.verified_rounded, AppColors.inTune),
-      _ => overdue && !ready ? (tr('atrasada'), Icons.schedule_rounded, AppColors.sharp) : null,
-    };
-    final action = t.isScale
-        ? FilledButton.icon(
-            style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, Ds.tap)),
-            onPressed: () => _train(t),
-            icon: const Icon(Icons.play_arrow_rounded, size: 22),
-            label: Text(tr('Treinar')))
-        : (t.kind == TaskKind.material
-            ? FilledButton.tonalIcon(
-                style: FilledButton.styleFrom(minimumSize: const Size(double.infinity, Ds.tap)),
-                onPressed: () => _openMaterial(l, t),
-                icon: const Icon(Icons.open_in_new_rounded, size: 20),
-                label: Text(tr('Abrir')))
-            : null);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: Ds.s12),
-      child: Container(
-        padding: const EdgeInsets.all(Ds.s12),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
-          border: Border.all(color: AppColors.outline),
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            DsIconBadge(taskKindIcon(t.kind), size: 44),
+    showDsSheet(
+      context,
+      title: t.title,
+      listenable: app,
+      children: (c) {
+        final ready = app.lessonTaskDone(l, t);
+        final status = _statusOf(l, t, overdue);
+        final action = _actionOf(l, t);
+        return [
+          Row(children: [
+            DsIconBadge(taskKindIcon(t.kind), size: 40),
             const SizedBox(width: Ds.s12),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(t.title, style: const TextStyle(fontSize: 17, height: 1.25, fontWeight: FontWeight.w800)),
-                const SizedBox(height: 2),
-                Text(meta, style: Ds.support()),
-                if (t.note.isNotEmpty) ...[
-                  const SizedBox(height: Ds.s8),
-                  Text(t.note, style: const TextStyle(fontSize: Ds.fontBody, height: 1.35)),
-                ],
+                Text(meta, style: const TextStyle(fontSize: Ds.fontBody, fontWeight: FontWeight.w700)),
+                Text(l.label, style: Ds.support()),
               ]),
             ),
           ]),
-          if (action != null) ...[const SizedBox(height: Ds.s12), action],
-          const SizedBox(height: Ds.s4),
-          Row(children: [
-            if (status != null) ...[
-              Icon(status.$2, size: 16, color: status.$3),
-              const SizedBox(width: 6),
-              Flexible(child: Text(status.$1, style: TextStyle(fontSize: Ds.fontSupport, fontWeight: FontWeight.w700, color: status.$3))),
-            ],
-            const Spacer(),
-            TextButton.icon(
-              style: TextButton.styleFrom(minimumSize: const Size(0, Ds.tap), foregroundColor: ready ? AppColors.inTune : AppColors.textDim),
-              onPressed: () => app.toggleLessonTask(l, t),
-              icon: Icon(ready ? Icons.check_circle_rounded : Icons.outlined_flag_rounded, size: 20),
-              label: Text(tr('Pronta para a aula')),
+          if (t.note.isNotEmpty) ...[
+            const SizedBox(height: Ds.s16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(Ds.s12),
+              decoration: BoxDecoration(
+                color: AppColors.accent.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
+                border: Border(left: BorderSide(color: AppColors.accent, width: 4)),
+              ),
+              child: Text(t.note, style: const TextStyle(fontSize: Ds.fontBody, height: 1.4)),
             ),
-          ]),
-        ]),
-      ),
+          ],
+          if (status != null) ...[
+            const SizedBox(height: Ds.s12),
+            Row(children: [
+              Icon(status.$2, size: 18, color: status.$3),
+              const SizedBox(width: 6),
+              Text(status.$1, style: TextStyle(fontSize: Ds.fontSupport, fontWeight: FontWeight.w700, color: status.$3)),
+            ]),
+          ],
+          if (action != null) ...[
+            const SizedBox(height: Ds.s20),
+            DsPrimaryButton(
+              icon: action.icon,
+              label: action.label,
+              onPressed: () {
+                Navigator.of(c).pop();
+                action.run();
+              },
+            ),
+          ],
+          const SizedBox(height: Ds.s16),
+          SizedBox(
+            width: double.infinity,
+            height: Ds.tap,
+            child: ready
+                ? FilledButton.tonalIcon(
+                    style: FilledButton.styleFrom(backgroundColor: AppColors.inTune.withValues(alpha: 0.2), foregroundColor: AppColors.inTune),
+                    onPressed: () => app.toggleLessonTask(l, t),
+                    icon: const Icon(Icons.check_circle_rounded),
+                    label: Text(tr('Pronta para a aula')))
+                : OutlinedButton.icon(
+                    onPressed: () => app.toggleLessonTask(l, t),
+                    icon: const Icon(Icons.outlined_flag_rounded),
+                    label: Text(tr('Pronta para a aula'))),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: Ds.s8),
+            child: Text(tr('Avisa seu professor que esta tarefa está pronta.'), textAlign: TextAlign.center, style: Ds.support()),
+          ),
+        ];
+      },
     );
   }
 }

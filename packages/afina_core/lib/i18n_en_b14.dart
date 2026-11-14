@@ -6,6 +6,8 @@ const Map<String, String> kEnB14 = {
   '{0} para estudar': '{0} to practice',
   'Pronta para a aula': 'Ready for the lesson',
   'Aulas anteriores': 'Past lessons',
-  '{0} de {1} prontas': '{0} of {1} ready',
   'Nenhuma aula anterior ainda.': 'No past lessons yet.',
+  '1 tarefa': '1 task',
+  '{0} tarefas': '{0} tasks',
+  'Avisa seu professor que esta tarefa está pronta.': 'Lets your teacher know this task is ready.',
 };
