@@ -84,7 +84,6 @@ const Map<String, String> kEnB03 = {
   'Dispensar': 'Dismiss',
   'Abrir ficha': 'Open profile',
   'Ficha de {0}': '{0}\'s profile',
-  'Convidar aluno': 'Invite student',
   'Ler QR do professor': 'Scan the teacher\'s QR',
   'Sou professor': 'I\'m a teacher',
   'Seg': 'Mon',

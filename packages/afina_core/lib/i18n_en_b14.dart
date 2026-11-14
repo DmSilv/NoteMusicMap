@@ -2,6 +2,17 @@
 library;
 
 const Map<String, String> kEnB14 = {
+  'Adicionar aluno': 'Add student',
+  'Cadastre um aluno com código para marcar aulas (Meu espaço › Alunos › Adicionar aluno).': 'Add a student with a code to schedule lessons (My space › Students › Add student).',
+  'Cadastrar pelo nome': 'Add by name',
+  'Tenho o código do aluno': 'I have the student\'s code',
+  'Digite o código ou leia o QR do aluno.': 'Type the code or scan the student\'s QR.',
+  'Mande o link por mensagem. Quando o aluno abrir, ele aparece aqui sozinho.': 'Send the link in a message. When the student opens it, they show up here on their own.',
+  'Ler o QR do aluno': 'Scan the student\'s QR',
+  'O aluno está com você: aponte a câmera para o QR do perfil dele.': 'The student is with you: point the camera at the QR on their profile.',
+  'Só o nome. O código e o vínculo você coloca depois.': 'Just the name. You add the code and the link later.',
+  'Mais rápido: peça ao aluno para abrir o perfil dele (ícone no topo do app) e aponte a câmera do seu celular para o QR. O Notemusic abre já com o código e você só confirma o nome. Também dá para digitar o código (algo como K7QM-4TXD) em "Adicionar aluno", ou cadastrar só pelo nome e colocar o código depois, no menu do aluno. Não precisa de e-mail nem de cadastro completo.': 'Fastest: ask the student to open their profile (icon at the top of the app) and point your phone\'s camera at the QR. Notemusic opens with the code already filled in and you only confirm the name. You can also type the code (something like K7QM-4TXD) in "Add student", or add them by name only and put the code in later, in the student\'s menu. No email or full sign-up needed.',
+  'Nenhum aluno ainda.': 'No students yet.',
   'Toda semana': 'Every week',
   'Só neste dia': 'This day only',
   '{0} min': '{0} min',

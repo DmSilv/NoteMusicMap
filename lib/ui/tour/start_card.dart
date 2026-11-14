@@ -31,7 +31,7 @@ class StartCard extends StatelessWidget {
     final nav = Navigator.of(context);
     switch (i.id) {
       case 'link':
-        nav.push(MaterialPageRoute<void>(builder: (_) => TeacherPage(app: app)));
+        showAddStudent(context, app);
       case 'class':
         nav.push(MaterialPageRoute<void>(builder: (_) => AgendaPage(app: app)));
       default:

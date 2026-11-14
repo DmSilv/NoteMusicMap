@@ -156,7 +156,7 @@ class _SlotFormPageState extends State<SlotFormPage> {
             child: ListView(padding: const EdgeInsets.fromLTRB(Ds.screenPad, 0, Ds.screenPad, Ds.s24), children: [
               _section(tr('Aluno')),
               if (_choices.isEmpty)
-                Text(tr('Cadastre um aluno com código para marcar aulas (Meu espaço › Alunos › Novo aluno).'), style: TextStyle(color: AppColors.flat))
+                Text(tr('Cadastre um aluno com código para marcar aulas (Meu espaço › Alunos › Adicionar aluno).'), style: TextStyle(color: AppColors.flat))
               else if (isEdit && st != null && _choices.length < 2)
                 AppCard(padding: const EdgeInsets.fromLTRB(14, 12, 14, 12), child: StudentIdentity(app: app, student: st))
               else

@@ -55,17 +55,18 @@ Future<String?> _askText(BuildContext context, String title, String label,
   return v;
 }
 
-/// "Novo aluno": nome (obrigatório) e código do aluno (opcional, o que ele vê em
-/// Configurações › Meu perfil). Devolve (nome, código) ou null se cancelar.
+/// Cadastro pelo nome: só o nome é obrigatório. O código do aluno (opcional) aparece se a pessoa tocar em
+/// "Tenho o código do aluno" (ou já vem preenchido ao ler o QR). Devolve (nome, código) ou null se cancelar.
 Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app, {String? code0}) async {
   final name = TextEditingController();
   final code = TextEditingController(text: code0 ?? '');
   String? nameErr, codeErr;
+  var showCode = (code0 ?? '').isNotEmpty;
   final r = await showDialog<(String, String?)>(
     context: context,
     builder: (c) => StatefulBuilder(
       builder: (c, setS) => AlertDialog(
-        title: Text(tr('Novo aluno')),
+        title: Text(tr('Cadastrar pelo nome')),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -82,43 +83,52 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
                   suffixIcon: DictationButton(app: app, controller: name),
                 ),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: code,
-                inputFormatters: codeFormatters,
-                autocorrect: false,
-                textCapitalization: TextCapitalization.characters,
-                decoration: InputDecoration(
-                  labelText: tr('Código do aluno'),
-                  hintText: 'K7QM-4TXD',
-                  helperText: tr('Toque na câmera para ler o QR do aluno, ou digite o código (ele vê no perfil).'),
-                  helperMaxLines: 3,
-                  errorText: codeErr,
-                  errorMaxLines: 3,
-                  suffixIcon: IconButton(
-                    tooltip: tr('Ler QR do aluno'),
-                    icon: const Icon(Icons.qr_code_scanner),
-                    onPressed: () async {
-                      final s = await scanShareCode(c,
-                          title: tr('Ler QR do aluno'),
-                          want: 'aluno',
-                          check: (code) => app.checkStudent('aluno', code).code,
-                          onCamera: app.setCameraStatus);
-                      if (s == null) return;
-                      setS(() {
-                        code.text = s.code;
-                        codeErr = null;
-                      });
-                    },
+              const SizedBox(height: Ds.s12),
+              if (!showCode)
+                TextButton.icon(
+                  style: TextButton.styleFrom(minimumSize: const Size(0, Ds.tap)),
+                  onPressed: () => setS(() => showCode = true),
+                  icon: const Icon(Icons.pin_outlined, size: 18),
+                  label: Text(tr('Tenho o código do aluno')),
+                )
+              else
+                TextField(
+                  controller: code,
+                  inputFormatters: codeFormatters,
+                  autocorrect: false,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: InputDecoration(
+                    labelText: tr('Código do aluno'),
+                    hintText: 'K7QM-4TXD',
+                    helperText: tr('Digite o código ou leia o QR do aluno.'),
+                    helperMaxLines: 3,
+                    errorText: codeErr,
+                    errorMaxLines: 3,
+                    suffixIcon: IconButton(
+                      tooltip: tr('Ler QR do aluno'),
+                      icon: const Icon(Icons.qr_code_scanner),
+                      onPressed: () async {
+                        final s = await scanShareCode(c,
+                            title: tr('Ler QR do aluno'),
+                            want: 'aluno',
+                            check: (code) => app.checkStudent('aluno', code).code,
+                            onCamera: app.setCameraStatus);
+                        if (s == null) return;
+                        setS(() {
+                          code.text = s.code;
+                          codeErr = null;
+                        });
+                      },
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c), child: Text(tr('Cancelar'))),
           FilledButton.icon(
+            style: FilledButton.styleFrom(minimumSize: const Size(0, Ds.tap)),
             onPressed: () {
               final n = name.text.trim();
               // Regras: nada de aluno com o seu próprio código/nome, nem repetido.
@@ -132,7 +142,8 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
               }
               Navigator.pop(c, (n, code.text.trim().isEmpty ? null : code.text));
             },
-            icon: const Icon(Icons.add, size: 18), label: Text(tr('Adicionar')),
+            icon: const Icon(Icons.add, size: 18),
+            label: Text(tr('Adicionar')),
           ),
         ],
       ),
@@ -141,6 +152,94 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
   name.dispose();
   code.dispose();
   return r;
+}
+
+/// Cadastra pelo nome e já abre a ficha do aluno (o próximo passo é passar uma tarefa ou marcar a aula).
+Future<void> _addByName(BuildContext context, AppState app, {String? code0}) async {
+  final r = await _newStudentDialog(context, app, code0: code0);
+  if (r == null) return;
+  final s = app.addStudent(r.$1, code: r.$2);
+  app.say(tr('{0} foi adicionado à sua lista.', [s.name]));
+  if (context.mounted) Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => StudentPage(app: app, studentId: s.id)));
+}
+
+/// Lê o QR do aluno (ele mostra no perfil dele) e cadastra com o código já preenchido.
+Future<void> _scanAndAddStudent(BuildContext context, AppState app) async {
+  final s = await scanShareCode(context,
+      title: tr('Ler QR do aluno'), want: 'aluno', check: (code) => app.checkStudent('aluno', code).code, onCamera: app.setCameraStatus);
+  if (s == null || !context.mounted) return;
+  await _addByName(context, app, code0: s.code);
+}
+
+/// UM só lugar para adicionar aluno, com três caminhos claros. É o que abre em todo botão "Adicionar aluno".
+Future<void> showAddStudent(BuildContext context, AppState app) {
+  Widget option(BuildContext c, {required IconData icon, required String title, required String sub, required VoidCallback onTap, bool main = false}) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: Ds.s12),
+        child: Material(
+          color: main ? AppColors.accent.withValues(alpha: 0.14) : AppColors.surface2,
+          borderRadius: BorderRadius.circular(Ds.radiusCard),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(Ds.radiusCard),
+            onTap: onTap,
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 76),
+              padding: const EdgeInsets.all(Ds.s16),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(Ds.radiusCard), border: Border.all(color: main ? AppColors.accent : AppColors.outline, width: main ? 2 : 1)),
+              child: Row(children: [
+                DsIconBadge(icon, size: 44),
+                const SizedBox(width: Ds.s16),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, height: 1.2)),
+                    const SizedBox(height: Ds.s4),
+                    Text(sub, style: Ds.support()),
+                  ]),
+                ),
+                Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
+              ]),
+            ),
+          ),
+        ),
+      );
+  return showDsSheet(
+    context,
+    title: tr('Adicionar aluno'),
+    listenable: app,
+    children: (c) => [
+      option(
+        c,
+        main: true,
+        icon: Icons.send_rounded,
+        title: tr('Enviar convite'),
+        sub: tr('Mande o link por mensagem. Quando o aluno abrir, ele aparece aqui sozinho.'),
+        onTap: () {
+          Navigator.of(c).pop();
+          shareTeacherInvite(app);
+        },
+      ),
+      option(
+        c,
+        icon: Icons.qr_code_scanner_rounded,
+        title: tr('Ler o QR do aluno'),
+        sub: tr('O aluno está com você: aponte a câmera para o QR do perfil dele.'),
+        onTap: () {
+          Navigator.of(c).pop();
+          _scanAndAddStudent(context, app);
+        },
+      ),
+      option(
+        c,
+        icon: Icons.person_add_alt_1_rounded,
+        title: tr('Cadastrar pelo nome'),
+        sub: tr('Só o nome. O código e o vínculo você coloca depois.'),
+        onTap: () {
+          Navigator.of(c).pop();
+          _addByName(context, app);
+        },
+      ),
+    ],
+  );
 }
 
 /// Chamado ao abrir o app por um link/QR de aluno (`?aluno=K7QM-4TXD`): leva o
@@ -192,7 +291,7 @@ class _HowItWorks extends StatelessWidget {
     (
       Icons.person_add_alt_1,
       tr('1. Cadastre o aluno'),
-      tr('Mais rápido: peça ao aluno para abrir o perfil dele (ícone no topo do app) e aponte a câmera do seu celular para o QR. O Notemusic abre já com o código e você só confirma o nome. Também dá para digitar o código (algo como K7QM-4TXD) em "Novo aluno", ou cadastrar só pelo nome e colocar o código depois, no menu do aluno. Não precisa de e-mail nem de cadastro completo.')
+      tr('Mais rápido: peça ao aluno para abrir o perfil dele (ícone no topo do app) e aponte a câmera do seu celular para o QR. O Notemusic abre já com o código e você só confirma o nome. Também dá para digitar o código (algo como K7QM-4TXD) em "Adicionar aluno", ou cadastrar só pelo nome e colocar o código depois, no menu do aluno. Não precisa de e-mail nem de cadastro completo.')
     ),
     (
       Icons.play_circle_outline,
@@ -365,8 +464,6 @@ class _TeacherPageState extends State<TeacherPage> {
                     tooltip: tr('Mais opções'),
                     onSelected: (v) {
                       switch (v) {
-                        case 'qr':
-                          _scanQr(context);
                         case 'import':
                           _importStudent(context);
                         case 'methods':
@@ -376,7 +473,6 @@ class _TeacherPageState extends State<TeacherPage> {
                       }
                     },
                     itemBuilder: (c) => [
-                      PopupMenuItem(value: 'qr', child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.qr_code_scanner), title: Text(tr('Ler QR do aluno')))),
                       PopupMenuItem(value: 'import', child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.download), title: Text(tr('Importar aluno')))),
                       PopupMenuItem(
                         value: 'methods',
@@ -396,12 +492,9 @@ class _TeacherPageState extends State<TeacherPage> {
         builder: (context, _) => app.teacherLocked || _manage
             ? const SizedBox.shrink()
             : FloatingActionButton.extended(
-                onPressed: () async {
-                  final r = await _newStudentDialog(context, app);
-                  if (r != null) app.addStudent(r.$1, code: r.$2);
-                },
+                onPressed: () => showAddStudent(context, app),
                 icon: const Icon(Icons.person_add_alt_1),
-                label: Text(tr('Novo aluno'), style: TextStyle(fontWeight: FontWeight.w700)),
+                label: Text(tr('Adicionar aluno'), style: const TextStyle(fontWeight: FontWeight.w700)),
               ),
       ),
       body: SafeArea(
@@ -477,20 +570,22 @@ class _TeacherPageState extends State<TeacherPage> {
           ),
         if (app.students.isEmpty)
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 18),
-            child: Text(tr('Nenhum aluno ainda. Toque em "Novo aluno" ou no "?" para ver como funciona.'),
-                textAlign: TextAlign.center, style: TextStyle(color: AppColors.textDim)),
+            padding: const EdgeInsets.symmetric(vertical: Ds.s32),
+            child: Column(children: [
+              Icon(Icons.groups_outlined, size: 44, color: AppColors.textDim),
+              const SizedBox(height: Ds.s12),
+              Text(tr('Nenhum aluno ainda.'), style: const TextStyle(fontSize: Ds.fontBody, fontWeight: FontWeight.w700)),
+              const SizedBox(height: Ds.s16),
+              FilledButton.icon(
+                style: FilledButton.styleFrom(minimumSize: const Size(0, Ds.primaryHeight)),
+                onPressed: () => showAddStudent(context, app),
+                icon: const Icon(Icons.person_add_alt_1),
+                label: Text(tr('Adicionar aluno')),
+              ),
+            ]),
           ),
       ],
     );
-  }
-
-  Future<void> _scanQr(BuildContext context) async {
-    final s = await scanShareCode(context,
-        title: tr('Ler QR do aluno'), want: 'aluno', check: (code) => app.checkStudent('aluno', code).code, onCamera: app.setCameraStatus);
-    if (s == null || !context.mounted) return;
-    final r = await _newStudentDialog(context, app, code0: s.code);
-    if (r != null) app.addStudent(r.$1, code: r.$2);
   }
 
   Future<void> _importStudent(BuildContext context) async {

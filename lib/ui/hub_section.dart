@@ -92,7 +92,8 @@ class HubSection extends StatelessWidget {
       case HubDest.students:
         return KeyedSubtree(
             key: TourKeys.hubStudents,
-            child: _tile(context, studentsTile(app.students.length), Icons.groups_rounded, () => _push(context, TeacherPage(app: app))));
+            child: _tile(context, studentsTile(app.students.length), Icons.groups_rounded, () => _push(context, TeacherPage(app: app)),
+                action: (Icons.person_add_alt_1_rounded, tr('Adicionar aluno'), () => showAddStudent(context, app))));
       case HubDest.myTasks:
         final plan = buildWeekPlan(app.myLessons, app.lessonTasksDone, now);
         return _tile(context, tasksTile(open: plan.open, total: plan.total), Icons.checklist_rounded, () => openMyLessons(context, app));
@@ -204,7 +205,7 @@ class HubSection extends StatelessWidget {
         case HubDest.markClass:
           buttons.add(primary(tr('Marcar aula'), Icons.add, () => openSlotForm(context, app)));
         case HubDest.inviteStudent:
-          buttons.add(primary(tr('Convidar aluno'), Icons.person_add_alt_1, () => shareTeacherInvite(app)));
+          buttons.add(primary(tr('Adicionar aluno'), Icons.person_add_alt_1, () => showAddStudent(context, app)));
         case HubDest.scanTeacher:
           buttons.add(primary(tr('Ler QR do professor'), Icons.qr_code_scanner, () => _scanTeacher(context)));
           if (!app.teacherMode) {
@@ -326,7 +327,7 @@ class HubSection extends StatelessWidget {
         ]),
       );
 
-  Widget _tile(BuildContext context, HubTile t, IconData icon, VoidCallback? onTap) {
+  Widget _tile(BuildContext context, HubTile t, IconData icon, VoidCallback? onTap, {(IconData, String, VoidCallback)? action}) {
     final alert = t.needsAction;
     return InkWell(
       borderRadius: BorderRadius.circular(Ds.radiusCard),
@@ -346,12 +347,28 @@ class HubSection extends StatelessWidget {
             Expanded(child: Text(t.title, style: TextStyle(fontSize: Ds.fontLabel, color: AppColors.textDim, fontWeight: FontWeight.w700))),
           ]),
           const SizedBox(height: Ds.s12),
-          Text(t.headline,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: alert ? AppColors.flat : AppColors.text, height: 1.2)),
-          const SizedBox(height: Ds.s4),
-          Text(t.caption, maxLines: 3, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: AppColors.textDim, height: 1.25)),
+          // O atalho (ex.: "+" para adicionar aluno) fica embaixo, à direita, para não apertar o título do bloco.
+          Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(t.headline,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: alert ? AppColors.flat : AppColors.text, height: 1.2)),
+                const SizedBox(height: Ds.s4),
+                Text(t.caption, maxLines: 3, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: AppColors.textDim, height: 1.25)),
+              ]),
+            ),
+            if (action != null) ...[
+              const SizedBox(width: Ds.s8),
+              IconButton.filledTonal(
+                tooltip: action.$2,
+                style: IconButton.styleFrom(minimumSize: const Size(Ds.tap, Ds.tap), padding: EdgeInsets.zero),
+                onPressed: action.$3,
+                icon: Icon(action.$1, size: 22),
+              ),
+            ],
+          ]),
           if (t.progress != null) ...[
             const SizedBox(height: Ds.s12),
             ClipRRect(
