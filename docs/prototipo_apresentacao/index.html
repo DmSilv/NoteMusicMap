@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notemusic · apresentação do primeiro acesso (protótipo)</title>
+<style>
+  :root {
+    --bg: #0F1419; --surface: #171E26; --surface2: #202A35; --outline: #2E3B49;
+    --text: #E8EEF4; --dim: #8FA0B1; --accent: #1FE68F; --bright: #5CFFB8; --on: #062B1E;
+    --flat: #2E9BFF; --sharp: #FF9226;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: Roboto, system-ui, sans-serif; }
+  .app { max-width: 430px; height: 100vh; margin: 0 auto; display: flex; flex-direction: column; position: relative; overflow: hidden; }
+  .top { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px 0; height: 52px; }
+  .logo { display: flex; align-items: center; gap: 8px; font-weight: 800; letter-spacing: .2px; }
+  .logo i { width: 28px; height: 28px; border-radius: 8px; background: var(--surface2); display: grid; place-items: center; color: var(--accent); font-style: normal; }
+  .skip { background: none; border: 0; color: var(--dim); font-size: 15px; padding: 10px 6px; cursor: pointer; }
+  .track { flex: 1; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .track::-webkit-scrollbar { display: none; }
+  .slide { flex: 0 0 100%; scroll-snap-align: center; padding: 8px 22px 12px; display: flex; flex-direction: column; }
+  .art { flex: 1; min-height: 0; display: grid; place-items: center; }
+  h1 { font-size: 28px; line-height: 1.12; font-weight: 800; letter-spacing: -.3px; margin-top: 8px; }
+  h1 em { font-style: normal; color: var(--accent); }
+  p.sub { color: var(--dim); font-size: 16px; line-height: 1.4; margin-top: 10px; }
+  .foot { padding: 6px 22px 22px; }
+  .dots { display: flex; gap: 7px; justify-content: center; margin-bottom: 14px; }
+  .dots b { width: 7px; height: 7px; border-radius: 50%; background: var(--outline); transition: .25s; }
+  .dots b.on { width: 22px; border-radius: 6px; background: var(--accent); }
+  .cta { width: 100%; height: 56px; border: 0; border-radius: 16px; background: var(--accent); color: var(--on); font-size: 18px; font-weight: 800; cursor: pointer; }
+  .cta:active { transform: scale(.98); }
+  .ghost { width: 100%; background: none; border: 0; color: var(--dim); font-size: 14px; margin-top: 10px; padding: 8px; cursor: pointer; }
+
+  /* slide 1: agulha viva */
+  .gauge { width: 300px; }
+  .bar { height: 26px; border-radius: 13px; background: var(--surface2); position: relative; overflow: hidden; }
+  .zone { position: absolute; left: 41%; width: 18%; top: 0; bottom: 0; background: rgba(31,230,143,.28); }
+  .needle { position: absolute; top: 3px; bottom: 3px; width: 6px; border-radius: 3px; background: var(--flat); left: 20%; animation: sweep 5.2s ease-in-out infinite; }
+  @keyframes sweep { 0% { left: 14%; background: var(--flat); } 35% { left: 36%; background: var(--flat); } 58%,82% { left: 49.2%; background: var(--bright); } 100% { left: 14%; background: var(--flat); } }
+  .scale { display: flex; justify-content: space-between; color: var(--dim); font-size: 11px; margin-top: 6px; padding: 0 2px; }
+  .note { text-align: center; font-size: 72px; font-weight: 800; line-height: 1; margin-bottom: 18px; }
+  .note small { font-size: 26px; color: var(--dim); }
+  .verdict { margin-top: 18px; border-radius: 16px; padding: 12px 16px; display: flex; gap: 12px; align-items: center; border: 2px solid var(--outline); background: var(--surface); animation: ver 5.2s infinite; }
+  .verdict b { display: block; font-size: 20px; }
+  .verdict span { color: var(--dim); font-size: 13px; }
+  @keyframes ver { 0%,40% { border-color: var(--flat); } 58%,82% { border-color: var(--accent); background: #1a4a39; } 100% { border-color: var(--flat); } }
+  .tx1, .tx2 { animation: tx 5.2s infinite; }
+  .tx2 { position: absolute; opacity: 0; }
+  /* slide 2: três ferramentas */
+  .tools { width: 100%; display: grid; gap: 12px; }
+  .tool { background: var(--surface); border: 1px solid var(--outline); border-radius: 18px; padding: 16px; display: flex; gap: 14px; align-items: center; }
+  .tool .ic { width: 52px; height: 52px; border-radius: 14px; background: var(--surface2); display: grid; place-items: center; font-size: 26px; flex: none; }
+  .tool b { font-size: 17px; display: block; }
+  .tool span { color: var(--dim); font-size: 14px; line-height: 1.3; }
+  .tool.hot { border-color: var(--accent); }
+  /* slide 3: escolhas */
+  .q { margin-top: 18px; }
+  .q h3 { font-size: 15px; color: var(--dim); font-weight: 600; margin-bottom: 10px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; }
+  .chip { height: 48px; padding: 0 18px; border-radius: 14px; background: var(--surface2); border: 2px solid transparent; color: var(--text); font-size: 16px; font-weight: 600; cursor: pointer; }
+  .chip.on { border-color: var(--accent); background: #17382d; color: var(--bright); }
+  /* slide 4 */
+  .mic { width: 132px; height: 132px; border-radius: 50%; background: var(--surface); border: 2px solid var(--accent); display: grid; place-items: center; font-size: 56px; position: relative; }
+  .mic::before, .mic::after { content: ""; position: absolute; inset: -14px; border-radius: 50%; border: 2px solid var(--accent); opacity: .5; animation: pulse 2.4s infinite; }
+  .mic::after { animation-delay: 1.2s; }
+  @keyframes pulse { 0% { transform: scale(.85); opacity: .6; } 100% { transform: scale(1.35); opacity: 0; } }
+  .strings { display: flex; gap: 10px; margin-top: 26px; justify-content: center; }
+  .strings div { width: 66px; padding: 10px 0; border-radius: 14px; background: var(--surface); border: 1px solid var(--outline); text-align: center; font-weight: 800; font-size: 20px; }
+  .strings small { display: block; font-weight: 400; color: var(--dim); font-size: 11px; }
+  .priv { display: flex; gap: 8px; color: var(--dim); font-size: 13px; margin-top: 14px; justify-content: center; text-align: center; }
+  .tag { position: absolute; left: 0; right: 0; bottom: 0; background: #000a; color: #bcd; font-size: 11px; text-align: center; padding: 4px; pointer-events: none; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="top"><div class="logo"><i>♪</i> Notemusic</div><button class="skip" id="skip">Pular</button></div>
+
+  <div class="track" id="track">
+    <!-- 1 -->
+    <section class="slide">
+      <div class="art">
+        <div class="gauge">
+          <div class="note">Lá<small>4</small></div>
+          <div class="bar"><div class="zone"></div><div class="needle"></div></div>
+          <div class="scale"><span>−50</span><span>0</span><span>+50</span></div>
+          <div class="verdict"><div style="font-size:30px">🎻</div><div><b id="vt">Um pouco baixa</b><span id="vs">Suba devagar até a zona verde.</span></div></div>
+        </div>
+      </div>
+      <h1>Seu instrumento <em>afinado</em> e estudando de verdade</h1>
+      <p class="sub">O Notemusic ouve você tocar e mostra, em tempo real, se cada nota está certa. Sem cadastro, sem custo.</p>
+    </section>
+    <!-- 2 -->
+    <section class="slide">
+      <div class="art"><div class="tools">
+        <div class="tool hot"><div class="ic">🎯</div><div><b>Afinador</b><span>Cordas soltas, cromático e Lá de referência. Pronto em segundos.</span></div></div>
+        <div class="tool"><div class="ic">🎼</div><div><b>Escalas com partitura</b><span>Veja a nota, o dedo e a posição (método Flesch) e toque com feedback.</span></div></div>
+        <div class="tool"><div class="ic">⏱️</div><div><b>Metrônomo e treino</b><span>Aumente o andamento aos poucos e acompanhe sua evolução.</span></div></div>
+      </div></div>
+      <h1>Tudo para o seu estudo, <em>num só lugar</em></h1>
+      <p class="sub">Comece pelo afinador e avance no seu ritmo. Você escolhe o que usar.</p>
+    </section>
+    <!-- 3 -->
+    <section class="slide">
+      <div class="art" style="place-items:start stretch">
+        <div>
+          <h1 style="margin-top:20px">Vamos <em>personalizar</em> em 5 segundos</h1>
+          <div class="q"><h3>Qual é o seu instrumento?</h3>
+            <div class="chips" data-group="inst"><button class="chip on">Violino</button><button class="chip">Viola</button><button class="chip">Violoncelo</button><button class="chip">Violão</button><button class="chip">Outro</button></div></div>
+          <div class="q"><h3>Como você estuda?</h3>
+            <div class="chips" data-group="role"><button class="chip on">Sozinho</button><button class="chip">Tenho professor</button><button class="chip">Sou professor</button></div></div>
+        </div>
+      </div>
+      <p class="sub" style="margin-top:0">Dá para mudar depois. Sozinho abre o afinador; com professor abre o seu espaço.</p>
+    </section>
+    <!-- 4 -->
+    <section class="slide">
+      <div class="art"><div style="text-align:center"><div class="mic">🎤</div>
+        <div class="strings"><div>Sol<small>196 Hz</small></div><div>Ré<small>293 Hz</small></div><div>Lá<small>440 Hz</small></div><div>Mi<small>660 Hz</small></div></div></div></div>
+      <h1>Toque uma corda e <em>veja a mágica</em></h1>
+      <p class="sub">Vamos pedir o microfone agora, só para ouvir o seu instrumento.</p>
+      <div class="priv">🔒 <span>O som é analisado no aparelho e descartado na hora. Nada é gravado nem enviado.</span></div>
+    </section>
+  </div>
+
+  <div class="foot">
+    <div class="dots" id="dots"><b class="on"></b><b></b><b></b><b></b></div>
+    <button class="cta" id="cta">Continuar</button>
+    <button class="ghost" id="ghost" style="visibility:hidden">Agora não</button>
+  </div>
+  <div class="tag">protótipo de roteiro · não é o app</div>
+</div>
+<script>
+  const steps = [[0, 'Um pouco baixa', 'Suba devagar até a zona verde.'], [1800, 'Quase lá…', 'Mais um pouquinho.'], [3000, 'AFINADA!', 'Muito bem! Pode tocar outra nota.']];
+  const vt = document.getElementById('vt'), vs = document.getElementById('vs');
+  const cycle = () => steps.forEach(([ms, a, b]) => setTimeout(() => { vt.textContent = a; vs.textContent = b; }, ms));
+  cycle(); setInterval(cycle, 5200);
+  const track = document.getElementById('track'), dots = [...document.querySelectorAll('#dots b')], cta = document.getElementById('cta'), ghost = document.getElementById('ghost');
+  let i = 0;
+  const go = (n) => { i = Math.max(0, Math.min(3, n)); track.scrollTo({ left: i * track.clientWidth, behavior: 'smooth' }); ui(); };
+  const ui = () => { dots.forEach((d, k) => d.classList.toggle('on', k === i)); cta.textContent = ['Continuar', 'Continuar', 'Continuar', 'Permitir o microfone e afinar'][i]; ghost.style.visibility = i === 3 ? 'visible' : 'hidden'; };
+  track.addEventListener('scroll', () => { const n = Math.round(track.scrollLeft / track.clientWidth); if (n !== i) { i = n; ui(); } });
+  cta.onclick = () => { if (i < 3) go(i + 1); };
+  document.getElementById('skip').onclick = () => go(3);
+  document.querySelectorAll('.chips').forEach((g) => g.addEventListener('click', (e) => { if (e.target.classList.contains('chip')) { g.querySelectorAll('.chip').forEach((c) => c.classList.remove('on')); e.target.classList.add('on'); } }));
+</script>
+</body>
+</html>
