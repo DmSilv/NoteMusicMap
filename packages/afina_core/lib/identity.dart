@@ -280,3 +280,16 @@ Profile? profileFromRecoveryKey(String text, {DateTime? now}) {
 /// Nome automático de um aluno que ainda não se apresentou ("Aluno K7QM" / "Student K7QM"): vale nos dois idiomas, porque o nome é gravado
 /// no idioma de quando o aluno entrou na lista.
 bool isDefaultStudentName(String name, String code) => name == 'Aluno $code' || name == 'Student $code';
+
+/// "d***@gmail.com": o que o app mostra no lugar do e-mail inteiro (o mesmo formato que o servidor guarda).
+String maskEmail(String email) {
+  final i = email.indexOf('@');
+  if (i < 1) return email;
+  return '${email.substring(0, 1)}***${email.substring(i)}';
+}
+
+/// O texto parece um e-mail? (a conferência de verdade é o código que chega na caixa de entrada)
+bool looksLikeEmail(String text) {
+  final t = text.trim();
+  return t.length >= 6 && t.length <= 120 && RegExp(r'^[^\s@,;<>()\[\]\\"]+@[^\s@,;<>()\[\]\\"]+\.[^\s@.,;<>()\[\]\\"]{2,}$').hasMatch(t);
+}

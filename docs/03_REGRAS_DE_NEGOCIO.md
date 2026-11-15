@@ -7,7 +7,7 @@ Cada regra diz **onde mora no código** e **onde está o teste**. Se mudar uma r
 - **Reivindicar o código**: o primeiro `sync` com um segredo vira o dono (`HSETNX u:<código> h <hash>`); depois só quem tem o segredo passa. Segredo errado → 403 genérico (`Este código pertence a outro aparelho.`), sem revelar se o código existe.
 - **Vínculo** (`link`/`unlink` em `api/link.js`): bilateral (`ut:` do professor e `us:` do aluno); limite de 300 vínculos por perfil. Ligar o **vínculo online** é opcional e reversível (Minha conta › Vínculo online: Reconectar, Desativar, Ativar). Desativar não apaga nada local.
 - **Estado do vínculo em linguagem simples** (`link_status.dart`): `off`, `connecting`, `online`, `offline`, `serverDown`, com o texto "há quanto tempo" e o que fazer.
-- **Recuperação**: a *chave de recuperação* (derivada do perfil) leva o perfil a outro aparelho.
+- **Recuperação**: a *chave de recuperação* (derivada do perfil) leva o perfil a outro aparelho. Opcionalmente, o **e-mail da conta** (sem senha, código de 6 dígitos) faz o mesmo: quem entra por ele vira o dono da conta e o aparelho antigo perde o acesso. Os dois recuperam a identidade e os vínculos; o que ficou só no aparelho (anotações, histórico) não volta.
 - **Bloqueio** (administrador): perfil com `bl=1` recebe 403 `blocked` em todo o vínculo online.
 
 ## 2. Papéis e visões

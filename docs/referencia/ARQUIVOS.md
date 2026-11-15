@@ -14,6 +14,7 @@
 | `lib/data/repository.dart` | Onde ficam os dados que pertencem ao PERFIL (e que um dia serão sincronizados): o próprio perfil, o histórico de sessões e os alunos do professor. A interface não sabe se os dados estão no aparelho ou na nuvem. Hoje… |
 | `lib/dev/frame_meter.dart` | Medidor de fluidez, SÓ para builds de desenvolvimento (kDevDemo). Enquanto a simulação roda, mede a cada quadro: - o INTERVALO entre quadros (quanto tempo a tela leva para ser atualizada); - o CUSTO do quadro: do… |
 | `lib/feedback/feedback_service.dart` | Nota do app e pesquisa rápida (1 ou 2 perguntas por aparelho). - Só envia quando a pessoa toca em "Enviar". Vai a resposta, a versão do app e um código do aparelho que o servidor embaralha. Sem nome, e-mail ou áudio.… |
+| `lib/link/account_service.dart` | Resposta de uma chamada ao e-mail da conta. |
 | `lib/link/link_service.dart` | Cliente da API de vínculo (`/api/link`): vincular, aulas, tarefas feitas, decisões do professor, agenda, horários livres e notificações. Fala só com o servidor do app. |
 | `lib/main.dart` | Abre o app. Se algo falhar ao iniciar, mostra a tela de erro (com "Tentar de novo") em vez de ficar em branco. Erros inesperados depois disso são classificados, guardados e avisados. |
 | `lib/platform/hard_reset.dart` | Apagar tudo e recarregar o app (botão "Apagar tudo e recomeçar"): escolhe a versão da web ou a de celular (importação condicional). |
@@ -30,6 +31,7 @@
 | `lib/platform/web_vibrate_web.dart` | Vibração na web: o plugin `vibration` só funciona em Android/iOS nativos, então aqui chamamos `navigator.vibrate` direto. Funciona no Chrome, Edge e Firefox do Android (depois de a pessoa tocar na tela uma vez). O… |
 | `lib/stats/error_service.dart` | Envia um relatório de erro (anônimo e já higienizado) para o servidor. Falha em silêncio: relatar um erro nunca pode causar outro. Em teste local (localhost) não envia. |
 | `lib/stats/stats_service.dart` | Estatísticas ANÔNIMAS de uso (para o painel do administrador). Manda um aviso ao abrir o app e uma batida a cada ~5 minutos enquanto ele está à frente. Vai só: um código aleatório do aparelho (que NÃO é o código de… |
+| `lib/ui/account_email.dart` | "E-mail da conta" (Minha conta): liga um e-mail ao perfil para recuperá-lo em outro aparelho, SEM senha. O app pede um código, o servidor manda 6 dígitos para o e-mail e a pessoa digita aqui. Mesma tela para "Entrar… |
 | `lib/ui/agenda_actions.dart` | Controle da agenda do professor: remarcar só uma aula, trocar horários entre dois alunos e pausar um período. Toda mudança mostra antes o que vai acontecer e quem é avisado, e só vale se couber na agenda (sem choque). |
 | `lib/ui/agenda_calendar.dart` | Calendário do mês para as agendas (professor e aluno): a semana começa na segunda, cada dia com aula leva pontinhos (um por aula, até 3), o dia de hoje tem um anel e o dia escolhido fica preenchido. |
 | `lib/ui/agenda_page.dart` | Agenda do PROFESSOR: as aulas marcadas, por semana ou por mês. Marcar, mudar, cancelar uma aula (ou só um dia de uma aula semanal) e ligar o lembrete de 15 minutos. |
@@ -243,6 +245,7 @@
 
 | Arquivo | O que faz |
 |---|---|
+| `api/account.js` | POST /api/account: e-mail da conta, SEM senha. O e-mail serve para recuperar o perfil e entrar em outro aparelho. O perfil continua nascendo sem cadastro (código + segredo do aparelho). Aqui a pessoa pode, se quiser,… |
 | `api/admin.js` | /api/admin: painel do administrador (indicadores e gestão de perfis anônimos). POST { action, ... } com "Authorization: Bearer <chave de admin>". Ações: kpis indicadores (total, ativos x inativos, professores,… |
 | `api/ai-status.js` | GET /api/ai-status: quais serviços de IA estão ativos e quanto se espera na fila. Nunca devolve chaves; só o necessário para o app mostrar o estado. |
 | `api/coach.js` | Função da Vercel: POST /api/coach (IA com vários serviços e fila) Recebe um RESUMO de números (nunca áudio) e um tipo de pedido, escolhe o serviço de IA certo (Gemini, OpenAI, Claude, Groq, Mistral, OpenRouter),… |
@@ -266,6 +269,7 @@
 | `api/_lib/features.js` | Recursos liberados aos poucos ("chaves"): cada novidade nasce desligada, é liberada por código de perfil, depois por porcentagem e, por fim, para todos. O SERVIDOR decide; o app só esconde o que não está ligado.… |
 | `api/_lib/fingering.js` | Dedilhado do violino (método de Flesch) editado pelo administrador. O app traz as escalas já conferidas (packages/afina_core/lib/violin_fingering.dart). O administrador pode corrigir uma delas ou incluir outra pelo… |
 | `api/_lib/library.js` | Acervo e Repertório do professor (só LINKS, nenhum arquivo é guardado aqui). O professor cadastra título, autor e o endereço do material (Google Drive, IMSLP, YouTube…); o aluno vinculado abre o endereço. Liberado só… |
+| `api/_lib/mail.js` | Envio de e-mail (só os códigos de verificação da conta). Usa o serviço de e-mail por API (padrão: Resend); a chave e o remetente vêm das variáveis de ambiente da Vercel (MAIL_API_KEY ou RESEND_API_KEY, e MAIL_FROM).… |
 | `api/_lib/metrics.js` | Métricas anônimas de uso: nomes das chaves, o dia (fuso de Brasília) e o contador que o servidor soma sozinho quando algo acontece (aula enviada, vínculo criado...). Falhar aqui NUNCA pode derrubar o que o usuário… |
 | `api/_lib/profiles.js` | Índice dos perfis anônimos (código + apelido) para o painel do administrador: quando entrou, última atividade, papel (professor / aluno) e bloqueio. NÃO há cadastro nem login. Custo: 3 comandos quando o perfil nasce;… |
 | `api/_lib/prompts.js` | Instruções de cada tipo de pedido. O texto recebido é DADO, nunca instrução. |
@@ -274,7 +278,7 @@
 | `api/_lib/router.js` | REGRA DE NEGÓCIO: qual IA atende cada tipo de pedido, e quando trocar de serviço. - cada tipo de pedido tem uma ordem de preferência e um "nível" de modelo (rápido e barato para resumos; mais capaz para relatórios e… |
 | `api/_lib/store.js` | Contadores, estado de saúde e fila. Usa o Upstash Redis (REST) quando configurado, para valer entre TODAS as instâncias da Vercel; senão cai para a memória da instância. |
 | `api/_lib/store_cmd.js` | Comandos genéricos do Redis (HyperLogLog, conjuntos ordenados, contadores em hash) para as métricas, com um emulador mínimo em memória para os testes. Em produção vai tudo ao Upstash, em lote (`/pipeline`): uma ida e… |
-| `api/_lib/sweep.js` | Limpeza de perfis abandonados: um perfil SEM vínculo, SEM aluno/professor, SEM horários nem notificações e parado há 60 dias é apagado. Quem tem qualquer vínculo ou agenda, e quem foi bloqueado, nunca é apagado.… |
+| `api/_lib/sweep.js` | Limpeza de perfis abandonados: um perfil SEM vínculo, SEM aluno/professor, SEM horários nem notificações e parado há 60 dias é apagado. Quem tem qualquer vínculo ou agenda, quem ligou um e-mail e quem foi bloqueado… |
 | `api/_lib/unlink.js` | Desfaz o vínculo entre um professor e um aluno e apaga tudo o que dependia dele. Usado pelo app (ação "unlink" de /api/link) e pelo suporte do painel (/api/admin). |
 | `api/_lib/webpush.js` | Web Push (RFC 8030 + VAPID RFC 8292 + criptografia aes128gcm RFC 8291) só com o módulo `crypto` do Node: o projeto não instala pacotes npm, então nada de dependência externa. |
 
@@ -283,6 +287,7 @@
 | Arquivo | O que faz |
 |---|---|
 | `api/_lib/webpush.test.js` | Exemplo oficial da RFC 8291 (apêndice A). |
+| `api/account.test.js` | Testes do e-mail da conta (sem senha), sem rede: `node --test api/account.test.js` |
 | `api/admin.test.js` | Testes do painel do administrador (indicadores e gestão de perfis), sem rede: `node --test api/admin.test.js` |
 | `api/admin_design.test.js` | O painel segue o mesmo design system do app: `node --test api/admin_design.test.js` (cores iguais às de lib/ui/theme.dart, escala de espaço, abas com ícone, frase de apoio em todo título, movimento que se desliga). |
 | `api/admin_push.test.js` | Aviso de bug grave ao admin (Web Push), precisão dos bugs e busca por nome, sem rede: `node --test api/admin_push.test.js` |
@@ -335,4 +340,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **292** arquivos mapeados.
+Total: **297** arquivos mapeados.

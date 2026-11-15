@@ -214,4 +214,20 @@ void main() {
       expect(profileFromRecoveryKey(recoveryKeyFor(b))?.shareCode, a.shareCode);
     });
   });
+
+  group('E-mail da conta (sem senha)', () {
+    test('maskEmail mostra só a 1ª letra e o domínio', () {
+      expect(maskEmail('ana@exemplo.com'), 'a***@exemplo.com');
+      expect(maskEmail('sem-arroba'), 'sem-arroba');
+      expect(maskEmail('@x.com'), '@x.com');
+    });
+    test('looksLikeEmail aceita e-mails comuns e recusa o que claramente não é', () {
+      for (final ok in ['ana@exemplo.com', ' Ana.Silva+aula@escola.com.br ', 'a_b-c@sub.dominio.org']) {
+        expect(looksLikeEmail(ok), isTrue, reason: ok);
+      }
+      for (final bad in ['', 'sem-arroba', 'a@b', 'a b@exemplo.com', 'a@@exemplo.com', 'a@exemplo', 'a,b@exemplo.com', '<a@exemplo.com>', 'x@y.c', 'a' * 130 + '@x.com']) {
+        expect(looksLikeEmail(bad), isFalse, reason: bad);
+      }
+    });
+  });
 }

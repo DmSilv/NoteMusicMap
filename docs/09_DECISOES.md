@@ -70,3 +70,9 @@ Cada novidade nasce desligada e é liberada por código de perfil, depois por po
 
 ## D22. Tutorial nunca é obrigatório
 O guia de uso é sempre opcional (convite no cartão "Comece por aqui" e botão "?"), com "Pular" em todo passo, e só vive no aparelho. Um mecanismo único (`runTour`) serve a todos os tutoriais; cada tutorial é só uma lista de passos.
+
+## D-email. E-mail opcional e sem senha para recuperar a conta
+- *Contexto:* o perfil nasce sem cadastro (D1) e só a chave de recuperação ou o código de suporte do painel levavam a conta a outro aparelho. Para o professor, perder o celular era perder a lista de alunos.
+- *Decisão:* e-mail **opcional**, **sem senha**: código de 6 dígitos enviado ao e-mail (prova de posse), em `/api/account`. O cadastro instantâneo continua; o e-mail é uma camada de recuperação que a pessoa liga se quiser.
+- *Alternativas descartadas:* login com e-mail e senha (guardar senhas, redefinir, bloquear tentativas: mais risco e suporte para o mesmo ganho); login com Google (dependência e dados de terceiros).
+- *Consequências:* o servidor passa a guardar um dado pessoal (hash do e-mail, mascarado para exibir); precisa de um provedor de e-mail com domínio verificado (`MAIL_*`); 1 função a mais na Vercel (10 de 12). Quem controla o e-mail controla a conta, então o código é curto, de uso único e com tentativas limitadas.

@@ -6,6 +6,7 @@
 | Função | Para quê | Quem chama | Autenticação |
 |---|---|---|---|
 | `/api/link` | Vínculo, aulas, tarefas, decisões, agenda, horários livres, notificações | App | Código + segredo do perfil |
+| `/api/account` | E-mail da conta, **sem senha**: ligar um e-mail ao perfil e entrar com ele em outro aparelho | App | Código + segredo do perfil (ligar) / só o e-mail + código de 6 dígitos (entrar) |
 | `/api/stats` | Estatísticas anônimas (POST do app) e leitura (GET do painel) | App / painel | Aparelho anônimo / chave de admin |
 | `/api/errors` | Relatórios de erro do app | App | Nenhuma (anônimo, com limites) |
 | `/api/admin` | Painel: indicadores, perfis, bugs, saúde, custos | Painel | Chave de admin (cabeçalho) |
@@ -23,6 +24,8 @@ Todo pedido leva `{ code, secret, action, ... }`:
 5. A cada pedido autenticado o servidor registra atividade (no máximo 1 gravação a cada 6 h por perfil) e **presença** (`pf:on` e campo `pa`, no máximo 1 gravação de 2 comandos a cada 10 min por perfil) para o painel. A conferência usa o perfil que já foi lido, então não custa leitura.
 
 6. **Liberação pelo suporte** (`action: "claim"`, antes da conferência do dono): o aparelho novo manda o código do perfil, um segredo **novo** e o código de suporte de uso único gerado no painel. O servidor guarda só o hash do código (`u:<code>.sc`) e o prazo (`.sx`, 24 h); se conferem, troca o hash do segredo (`.h`) e apaga o código. Só a tentativa errada conta (por origem e por perfil, 10/h por perfil); o aparelho antigo passa a receber 403.
+
+7. **E-mail da conta** (`/api/account`, sem senha): `bind_start` manda um código de 6 dígitos ao e-mail e `bind_verify` o confere e liga o e-mail ao perfil; `login_start`/`login_verify`, num aparelho novo, fazem a mesma prova e então o aparelho novo manda um segredo **novo** que passa a valer (`u:<code>.h`; o aparelho antigo recebe 403, como na liberação pelo suporte), e o e-mail recebe um aviso de "novo acesso". O servidor guarda só o **hash do e-mail** (HMAC com `MAIL_PEPPER`) em `acct:em` (hash do e-mail → código do perfil) e, no perfil, `eh` (esse hash) e `em` (versão mascarada para mostrar: `a***@gmail.com`). O código de 6 dígitos vale 10 min, aceita 5 tentativas, é de uso único e só existe como hash (`acct:otp:<hash do e-mail>`). `login_start` responde igual com ou sem conta (não revela quem tem conta). Limites: 40 pedidos/h por origem, 20 tentativas erradas/h por origem, 5 códigos/h por perfil e por e-mail, 10 pedidos de entrada/h por origem. Perfil com `eh` nunca é apagado pela limpeza de abandonados. Sem `MAIL_API_KEY`/`MAIL_FROM` o recurso fica desligado (`status` devolve `enabled: false`) e o app esconde as telas.
 
 O corpo é limitado (`MAX_BODY` 2 KB; aula 40 KB). Ações de leitura contam em "consultas/h"; ações que mudam dados contam em "alterações/h".
 

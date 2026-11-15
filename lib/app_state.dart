@@ -20,6 +20,7 @@ import 'platform/web_vibrate.dart';
 import 'audio/pitch_source.dart';
 import 'data/repository.dart';
 import 'feedback/feedback_service.dart';
+import 'link/account_service.dart';
 import 'link/link_service.dart';
 import 'stats/error_service.dart';
 import 'stats/stats_service.dart';
@@ -254,10 +255,97 @@ class AppState extends ChangeNotifier {
     return null;
   }
 
+  // ---------------- E-mail da conta (sem senha) ----------------
+  final AccountService account = AccountService();
+
+  /// O servidor tem o e-mail da conta disponível (envio configurado)? Sem isso o app esconde o recurso.
+  bool emailEnabled = false;
+
+  /// E-mail ligado a este perfil, mascarado ("a***@gmail.com"), ou vazio se não ligou.
+  String emailHint = '';
+
+  void _setEmail({bool? enabled, String? hint}) {
+    if (enabled != null) emailEnabled = enabled;
+    if (hint != null) emailHint = hint;
+    _prefs?.setBool('acct_on', emailEnabled);
+    _prefs?.setString('acct_hint', emailHint);
+    notifyListeners();
+  }
+
+  /// Pergunta ao servidor se o e-mail está disponível e se este perfil já tem um. Sem internet, mantém o que já sabia.
+  Future<void> refreshEmailStatus() async {
+    final r = await account.status(profile.shareCode, profile.secret);
+    if (!r.ok) return;
+    _setEmail(enabled: r.enabled, hint: r.linked ? r.hint : '');
+  }
+
+  /// Texto do problema de uma resposta do e-mail da conta, ou null se deu certo.
+  String? _emailProblem(AccountReply r) {
+    if (r.ok) return null;
+    if (r.inUse) return tr('Este e-mail já protege outra conta. Use "Já tenho conta em outro aparelho".');
+    if (r.tooMany) return tr('Muitas tentativas. Tente mais tarde.');
+    if (r.badCode) return tr('Código inválido ou vencido. Confira ou peça outro.');
+    if (r.unavailable) return tr('O e-mail da conta ainda não está disponível. Tente mais tarde.');
+    if (r.offline) return tr('Sem conexão com o servidor. Tente de novo quando a internet voltar.');
+    if (r.rejected) return tr('Confira o e-mail digitado.');
+    return tr('Não foi possível concluir. Tente de novo.');
+  }
+
+  /// Manda o código de 6 dígitos para [email] (ligar à conta de agora). Devolve null se foi, ou o texto do problema.
+  Future<String?> emailSendCode(String email) async {
+    final e = email.trim().toLowerCase();
+    if (!looksLikeEmail(e)) return tr('Confira o e-mail digitado.');
+    // O perfil só vai ao servidor quando a pessoa pede (ligar o e-mail é esse pedido): garante o registro do código.
+    final reg = await links.rev(profile.shareCode, profile.secret);
+    if (!reg.ok) return reg.unavailable ? tr('O e-mail da conta ainda não está disponível. Tente mais tarde.') : (reg.offline ? tr('Sem conexão com o servidor. Tente de novo quando a internet voltar.') : tr('Não foi possível concluir. Tente de novo.'));
+    return _emailProblem(await account.bindStart(profile.shareCode, profile.secret, e));
+  }
+
+  /// Confere o código e liga o e-mail à conta. Devolve null se deu certo, ou o texto do problema.
+  Future<String?> emailConfirm(String email, String otp) async {
+    final r = await account.bindVerify(profile.shareCode, profile.secret, email.trim().toLowerCase(), otp.trim());
+    final p = _emailProblem(r);
+    if (p == null) _setEmail(hint: r.hint.isNotEmpty ? r.hint : maskEmail(email.trim().toLowerCase()));
+    return p;
+  }
+
+  /// Desliga o e-mail da conta (a chave de recuperação continua valendo).
+  Future<String?> emailUnlink() async {
+    final r = await account.unbind(profile.shareCode, profile.secret);
+    final p = _emailProblem(r);
+    if (p == null) _setEmail(hint: '');
+    return p;
+  }
+
+  /// Aparelho novo: manda o código para o e-mail que já protege uma conta (a resposta é a mesma com ou sem conta).
+  Future<String?> emailLoginSend(String email) async {
+    final e = email.trim().toLowerCase();
+    if (!looksLikeEmail(e)) return tr('Confira o e-mail digitado.');
+    return _emailProblem(await account.loginStart(e));
+  }
+
+  /// Aparelho novo: confere o código e passa a ser o dono da conta (o outro aparelho perde o acesso). Devolve null se deu certo.
+  Future<String?> emailLoginConfirm(String email, String otp) async {
+    final e = email.trim().toLowerCase();
+    final fresh = Profile.create(math.Random.secure()); // só para sortear um segredo novo, que o servidor passa a reconhecer
+    final r = await account.loginVerify(e, otp.trim(), fresh.secret);
+    final problem = _emailProblem(r);
+    if (problem != null) return problem;
+    if (r.code.isEmpty) return tr('Não foi possível concluir. Tente de novo.');
+    final p = Profile(id: newUuid(math.Random.secure()), secret: fresh.secret, shareCode: r.code);
+    p.name = r.name.isNotEmpty ? r.name : profile.name;
+    _adoptProfile(p);
+    _setEmail(hint: maskEmail(e));
+    if (!linkEnabled) setLinkEnabled(true); // a conta tem vínculos: liga para trazê-los de volta
+    return null;
+  }
+
   void _adoptProfile(Profile p) {
     p.teacher = profile.teacher;
     p.recoveryShownAt = DateTime.now();
     profile = p;
+    emailHint = ''; // o e-mail é do perfil: ao assumir outro, ele é perguntado de novo ao servidor
+    _prefs?.setString('acct_hint', '');
     // Os vínculos são da identidade: recomeça a lista de professores e deixa os alunos serem reavaliados.
     myTeachers = [];
     _unlinkStudents.clear();
@@ -3861,6 +3949,8 @@ class AppState extends ChangeNotifier {
     final rd = p.getInt('remind_default');
     remindDefault = rd != null && kRemindOptions.contains(rd) ? rd : kReminderMinutes;
     startCardHidden = p.getBool('start_hidden') ?? false;
+    emailEnabled = p.getBool('acct_on') ?? false;
+    emailHint = p.getString('acct_hint') ?? '';
     firstTuned = p.getBool('fs_tuned') ?? false;
     firstStepHidden = p.getBool('fs_hidden') ?? false;
     _toursSeen = (p.getStringList('tours_seen') ?? const []).toSet();

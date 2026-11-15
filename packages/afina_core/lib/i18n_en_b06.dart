@@ -3,7 +3,7 @@ library;
 
 const Map<String, String> kEnB06 = {
   'Menores de idade': 'Minors',
-  'Como não coleta dados pessoais, o app é adequado para todas as idades.': 'Since it doesn\'t collect personal data, the app is suitable for all ages.',
+  'O app não pede dados pessoais e é adequado para todas as idades. O e-mail da conta é opcional e, para menores de idade, deve ser informado só com o consentimento de um responsável.': 'The app doesn\'t ask for personal data and is suitable for all ages. The account email is optional and, for minors, should only be given with a guardian\'s consent.',
   'Compartilhar {0}': 'Share {0}',
   'Aponte a câmera do celular para o código ou envie o link.': 'Point your phone\'s camera at the code or send the link.',
   'QR code com o endereço do app': 'QR code with the app\'s address',

@@ -1,5 +1,5 @@
 // Limpeza de perfis abandonados: um perfil SEM vínculo, SEM aluno/professor, SEM horários nem notificações e
-// parado há 60 dias é apagado. Quem tem qualquer vínculo ou agenda, e quem foi bloqueado, nunca é apagado.
+// parado há 60 dias é apagado. Quem tem qualquer vínculo ou agenda, quem ligou um e-mail e quem foi bloqueado nunca é apagado.
 // Custo: 1 comando quando não há nada para limpar; ~20 por perfil apagado. Falhar aqui não derruba nada.
 'use strict';
 
@@ -15,9 +15,9 @@ const DATA_KEYS = (c) => ['ut', 'us', 'sl', 'ss', 'av', 'ps', 'ul', 'dn', 'vd', 
 
 /** Este perfil pode ser apagado? (sem papel, sem dados, sem bloqueio) */
 async function isEmpty(cmd, code) {
-  const [prof, ...lens] = await cmd.pipeline([['HMGET', `u:${code}`, 'rt', 'rs', 'bl'], ...DATA_KEYS(code).map((k) => ['HLEN', k])]);
-  const [rt, rs, bl] = prof || [];
-  if (rt === '1' || rs === '1' || bl === '1') return false;
+  const [prof, ...lens] = await cmd.pipeline([['HMGET', `u:${code}`, 'rt', 'rs', 'bl', 'eh'], ...DATA_KEYS(code).map((k) => ['HLEN', k])]);
+  const [rt, rs, bl, eh] = prof || [];
+  if (rt === '1' || rs === '1' || bl === '1' || eh) return false; // quem ligou um e-mail para recuperar a conta nunca é apagado
   return lens.every((n) => !Number(n));
 }
 

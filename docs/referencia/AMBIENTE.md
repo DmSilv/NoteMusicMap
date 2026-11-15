@@ -21,10 +21,15 @@
 | `KV_REST_API_TOKEN` | config.js |
 | `KV_REST_API_URL` | config.js |
 | `LIBRARY_TESTERS` | config.js |
+| `MAIL_API_KEY` | config.js |
+| `MAIL_API_URL` | config.js |
+| `MAIL_FROM` | config.js |
+| `MAIL_PEPPER` | config.js |
 | `QSTASH_CURRENT_SIGNING_KEY` | config.js |
 | `QSTASH_NEXT_SIGNING_KEY` | config.js |
 | `QSTASH_TOKEN` | config.js |
 | `QSTASH_URL` | config.js |
+| `RESEND_API_KEY` | config.js |
 | `UPSTASH_REDIS_REST_TOKEN` | config.js |
 | `UPSTASH_REDIS_REST_URL` | config.js |
 | `VAPID_PRIVATE_KEY` | config.js |
@@ -34,4 +39,4 @@
 | `VERCEL_GIT_COMMIT_SHA` | admin.js |
 | `VERCEL_REGION` | admin.js |
 
-Total: **28** variáveis. Para o que cada uma faz e quais são obrigatórias, veja `docs/08_OPERACAO.md`.
+Total: **33** variáveis. Para o que cada uma faz e quais são obrigatórias, veja `docs/08_OPERACAO.md`.

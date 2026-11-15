@@ -93,6 +93,14 @@ function config(env = process.env) {
       currentKey: env.QSTASH_CURRENT_SIGNING_KEY || '',
       nextKey: env.QSTASH_NEXT_SIGNING_KEY || '',
     },
+    // E-mail da conta (código de verificação, sem senha). Sem chave ou remetente, o recurso fica desligado.
+    // MAIL_PEPPER embaralha o e-mail antes de guardar o hash: defina uma vez e NUNCA mude (senão ninguém entra pelo e-mail).
+    mail: {
+      key: env.MAIL_API_KEY || env.RESEND_API_KEY || '',
+      from: env.MAIL_FROM || '',
+      url: env.MAIL_API_URL || 'https://api.resend.com/emails',
+      pepper: env.MAIL_PEPPER || 'notemusic-email-v1',
+    },
     env,
   };
 }

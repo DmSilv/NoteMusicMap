@@ -38,6 +38,7 @@
 | `LIBRARY_TESTERS` | Opcional (legado) | Códigos liberados para o acervo (ex.: `DW4A-V974`, separados por vírgula). Continua valendo como ponto de partida, mas o jeito novo é a aba **Recursos** do painel (sem redeploy). |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Para lembretes e para os avisos de bug grave do admin | Web Push (gerar com `node scripts/gen_vapid.js`; a privada nunca vai ao chat) |
 | `QSTASH_TOKEN`, `QSTASH_CURRENT_SIGNING_KEY`, `QSTASH_NEXT_SIGNING_KEY`, `QSTASH_URL` | Para lembretes | Agendamento e verificação de assinatura |
+| `MAIL_API_KEY` (ou `RESEND_API_KEY`), `MAIL_FROM`, `MAIL_API_URL`, `MAIL_PEPPER` | Para o e-mail da conta | Envio do código de 6 dígitos (padrão: Resend). `MAIL_FROM` precisa ser um remetente de **domínio verificado** no provedor (ex.: `Notemusic <nao-responda@seudominio.com>`). `MAIL_PEPPER` é um texto longo e aleatório, definido **uma vez** e nunca mudado (senão ninguém mais entra pelo e-mail). Sem as duas primeiras, o recurso fica desligado e o app esconde as telas. |
 | `APP_BASE_URL` | Opcional | Endereço público (padrão `https://notemusicmap.vercel.app`) |
 | `VERCEL_GIT_COMMIT_SHA`, `VERCEL_ENV`, `VERCEL_REGION` | Automáticas (a Vercel preenche) | A aba Sistema do painel mostra a versão publicada, o ambiente e a região |
 | `geminiAPI`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GROQ_API_KEY`, `MISTRAL_API_KEY`, `OPENROUTER_API_KEY` | Pelo menos uma para a IA | Chaves dos serviços de IA (as que existirem ficam ativas) |

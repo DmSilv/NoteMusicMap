@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../app_state.dart';
+import 'account_email.dart';
 import 'my_lessons_page.dart';
 import 'safe_input.dart';
 import '../link/link_service.dart' show LinkedPerson;
@@ -52,6 +55,7 @@ class _ProfilePageState extends State<ProfilePage> {
     _fast = app.myTeachers.isEmpty;
     app.watchLinks(fast: _fast);
     app.markTab('profile');
+    unawaited(app.refreshEmailStatus()); // o e-mail da conta só aparece se o servidor tiver o envio ligado
   }
 
   @override
@@ -240,6 +244,10 @@ class _ProfilePageState extends State<ProfilePage> {
                           '${waiting > 0 ? tr(' · {0} para validar', [waiting]) : ''}',
                   onTap: () => _push(TeacherPage(app: app))),
             _section(tr('Conta')),
+            if (app.emailEnabled)
+              _row(Icons.alternate_email, tr('E-mail da conta'),
+                  sub: app.emailHint.isEmpty ? tr('Recupere a conta em outro aparelho, sem senha') : app.emailHint,
+                  onTap: () => _open(tr('E-mail da conta'), (c) => AccountEmailBody(app: app, onSignedIn: () => Navigator.of(c).pop()))),
             _row(Icons.key, tr('Chave de recuperação'),
                 sub: p.recoveryShownAt == null ? tr('Você ainda não guardou a sua chave') : null,
                 onTap: () => _open(tr('Chave de recuperação'), (_) => _keyBody())),

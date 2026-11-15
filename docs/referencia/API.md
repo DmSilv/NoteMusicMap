@@ -3,7 +3,42 @@
 > **Gerado automaticamente** por `scripts/gen_docs.js` a partir do código. Não edite à mão: rode `node scripts/gen_docs.js`.
 > Cada endpoint é um arquivo em `api/` (uma função da Vercel). O limite do plano Hobby é **12 funções**; arquivos de teste ficam fora do deploy.
 
-Funções hoje: **9 de 12**.
+Funções hoje: **10 de 12**.
+
+## `/api/account`
+
+```text
+POST /api/account: e-mail da conta, SEM senha. O e-mail serve para recuperar o perfil e entrar em outro aparelho.
+
+O perfil continua nascendo sem cadastro (código + segredo do aparelho). Aqui a pessoa pode, se quiser, ligar um e-mail
+a ele: o servidor manda um código de 6 dígitos para o e-mail, ela digita no app e pronto. Depois, num aparelho novo,
+"Entrar com e-mail" manda outro código e, ao confirmar, este aparelho passa a ser o dono do perfil (o segredo antigo
+deixa de valer, como na liberação pelo suporte do painel).
+
+O servidor guarda só um HASH do e-mail (com pepper) e uma versão mascarada para mostrar ("d***@gmail.com"). O código
+de 6 dígitos vale 10 minutos, aceita 5 tentativas e só é guardado como hash. Nunca registra o conteúdo do e-mail.
+
+Ações (todas POST):
+  status        { code, secret }                      -> { ok, enabled, linked, hint }
+  bind_start    { code, secret, email, lang? }        -> manda o código ao e-mail
+  bind_verify   { code, secret, email, otp }          -> liga o e-mail ao perfil
+  unbind        { code, secret }                      -> desliga o e-mail do perfil
+  login_start   { email, lang? }                      -> manda o código (sempre { ok } para não revelar quem tem conta)
+  login_verify  { email, otp, secret }                -> { ok, code, name }: este aparelho (segredo novo) vira o dono
+
+Precisa do Upstash Redis e das variáveis de e-mail (MAIL_API_KEY e MAIL_FROM). Sem e-mail configurado: 503 mail_unavailable.
+Custo: ~6 comandos por pedido de código, ~8 ao confirmar; só quando a pessoa usa o recurso.
+```
+
+| Ação / tipo | Descrição (comentário do código) |
+|---|---|
+| `notice` | — |
+| `status` | status |
+| `unbind` | desligar o e-mail |
+| `bind_start` | ligar o e-mail ao perfil |
+| `bind_verify` | — |
+| `login_start` | entrar com e-mail em outro aparelho |
+| `login_verify` | — |
 
 ## `/api/admin`
 

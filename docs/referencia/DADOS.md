@@ -74,6 +74,8 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 
 | Chave | Arquivos que usam |
 |---|---|
+| `acct_hint` | app_state.dart |
+| `acct_on` | app_state.dart |
 | `activeStudent` | app_state.dart |
 | `agenda` | app_state.dart |
 | `agenda_in` | app_state.dart |
@@ -196,4 +198,4 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `verdict_rev` | app_state.dart |
 | `verdicts` | app_state.dart |
 
-Total: **121** chaves locais.
+Total: **123** chaves locais.
