@@ -69,7 +69,6 @@ const Map<String, String> kEnB05 = {
   'Ajustes do exercício': 'Exercise settings',
   'Encerrar exercício': 'End exercise',
   'Concluído': 'Done',
-  '{0} de {1} notas': '{0} of {1} notes',
   'Nota {0} de {1} · {2}': 'Note {0} of {1} · {2}',
   'subindo': 'going up',
   'descendo': 'going down',

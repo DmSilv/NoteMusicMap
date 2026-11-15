@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import 'design_system.dart';
 import 'scale_exercise_page.dart' show directionPicker;
+import 'paper_picker.dart';
 import 'staff_settings.dart';
 import 'theme.dart';
 import 'tuning_pick.dart';
@@ -352,6 +353,8 @@ List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required boo
     ],
     _section(tr('Partitura')),
     ...staffSettingRows(app),
+    // Na tela do exercício a cor da partitura mora aqui (a linha solta ocupava espaço da partitura).
+    if (exercise && app.scaleStaff && app.cfg.transpose == 0) PaperToggleRow(value: app.scalePaper, onChanged: (p) => app.setStaff(paper: p)),
     _section(tr('Afinação')),
     DsSettingRow(
       label: tr('Afinação'),

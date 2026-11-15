@@ -8,7 +8,6 @@ import 'guidance_banner.dart';
 import 'needle.dart';
 import 'note_widgets.dart';
 import 'octave_colors.dart';
-import 'paper_picker.dart';
 import 'scale_settings.dart';
 import 'staff_card.dart';
 import 'staff_view.dart';
@@ -61,11 +60,8 @@ class ScaleExercisePage extends StatelessWidget {
                 const SizedBox(height: 10),
                 _header(e),
                 const SizedBox(height: 8),
-                if (app.scaleStaff && app.cfg.transpose == 0) ...[
-                  PaperToggleRow(value: app.scalePaper, onChanged: (p) => app.setStaff(paper: p)),
-                  const SizedBox(height: 8),
-                ],
-                _notation(e, (MediaQuery.sizeOf(context).height - 620).clamp(200.0, 400.0)),
+                // A partitura usa a altura que sobra na tela (a linha "Cor da partitura" mora nos Ajustes do exercício).
+                _notation(e, (MediaQuery.sizeOf(context).height - 540).clamp(200.0, 520.0)),
                 const SizedBox(height: 10),
                 if (!e.finished) _controls(context, e),
               ],
@@ -111,7 +107,9 @@ class ScaleExercisePage extends StatelessWidget {
       current: cur,
       marks: marks,
       maxHeight: maxHeight,
-      semanticLabel: tr('Partitura do exercício'),
+      semanticLabel: (!e.flow && !e.finished && e.expected != null)
+          ? tr('Partitura do exercício. Nota de agora: {0}', [app.scaleNoteName(e.expected!, ascending: e.ascendingAt(e.index), withOctave: true)])
+          : tr('Partitura do exercício'),
       hints: !e.flow && app.scaleHints,
       ottava: app.staffOttavaAuto,
       ottavaRange: app.staffOttavaRange,
@@ -127,7 +125,7 @@ class ScaleExercisePage extends StatelessWidget {
     final status = e.finished
         ? tr('Concluído')
         : (e.flow
-            ? tr('{0} de {1} notas', [e.board.length, e.freeNotes.length])
+            ? tr('{0} de {1} notas diferentes', [e.board.length, e.freeNotes.length])
             : tr('Nota {0} de {1} · {2}', [e.index + 1, e.sequence.length, e.ascendingNow ? tr('subindo') : tr('descendo')]));
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: Ds.s4),
@@ -211,6 +209,20 @@ class ScaleExercisePage extends StatelessWidget {
     );
   }
 
+  /// Dedo (e, na 1ª nota, a corda e a posição) da nota de agora, como o livro marca. Só no violino e nas escalas com tabela;
+  /// nas notas que o livro não marca, fica vazio.
+  String? _fingerNow(ScaleExercise e) {
+    final f = app.scaleFingering;
+    if (f == null || e.flow) return null;
+    final parts = <String>[];
+    final hint = e.index == 0 ? app.scaleStartHint : null;
+    if (hint != null) parts.add(tr('corda Sol (IV), {0}ª posição', [hint.position]));
+    final mark = e.index < f.length ? f[e.index] : null;
+    final n = int.tryParse(mark ?? '');
+    if (n != null) parts.add(n == 0 ? tr('corda solta') : tr('{0}º dedo', [n]));
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+
   /// Modo guiado: uma nota por vez; a próxima só vem quando esta ficar afinada.
   Widget _guidedCard(ScaleExercise e) {
     final m = e.expected!;
@@ -230,14 +242,14 @@ class ScaleExercisePage extends StatelessWidget {
       child: Column(
         children: [
           Row(children: [
-            Text(tr('Toque agora'), style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+            // A frequência fica junto do rótulo, à esquerda: o ♭/♯ grande do nome sobe no centro e não pode encostar nela.
+            Text('${tr('Toque agora')} · ${hz.toStringAsFixed(1)} Hz', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
             const Spacer(),
-            Text('${hz.toStringAsFixed(1)} Hz', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-            const SizedBox(width: Ds.s8),
             _dirTag(asc),
           ]),
+          // Altura folgada: o ♭/♯ grande sobe e não pode encostar na frequência da linha de cima.
           SizedBox(
-            height: 76,
+            height: 88,
             child: Center(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 260),
@@ -249,6 +261,12 @@ class ScaleExercisePage extends StatelessWidget {
               ),
             ),
           ),
+          // Dedilhado do livro (altura fixa só quando esta escala tem tabela, para a tela não pular de nota em nota).
+          if (app.scaleFingering != null)
+            SizedBox(
+              height: 22,
+              child: Center(child: Text(_fingerNow(e) ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700))),
+            ),
           // Altura fixa: perto do fim a prévia tem menos notas, sem mexer na tela.
           SizedBox(
             height: 30,
@@ -304,7 +322,7 @@ class ScaleExercisePage extends StatelessWidget {
           Row(children: [
             Text(tr('Sua vez!'), style: TextStyle(color: AppColors.textDim, fontSize: 13)),
             const Spacer(),
-            Text(tr('{0} de {1} notas', [e.board.length, e.freeNotes.length]), style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+            Text(tr('{0} de {1} notas diferentes', [e.board.length, e.freeNotes.length]), style: TextStyle(color: AppColors.textDim, fontSize: 13)),
           ]),
           SizedBox(
             height: 76,

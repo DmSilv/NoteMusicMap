@@ -2,6 +2,10 @@
 library;
 
 const Map<String, String> kEnB14 = {
+  '{0} de {1} notas diferentes': '{0} of {1} different notes',
+  'Partitura do exercício. Nota de agora: {0}': 'Exercise staff. Current note: {0}',
+  'corda solta': 'open string',
+  '{0}º dedo': 'finger {0}',
   'Meta de hoje feita!': 'Today\'s goal done!',
   'Meta diária: {0} min · 1 dia de folga perdoado': 'Daily goal: {0} min · 1 day off forgiven',
   'Igual à semana passada.': 'Same as last week.',

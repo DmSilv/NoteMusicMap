@@ -4204,10 +4204,11 @@ class AppState extends ChangeNotifier {
       const offs = [1.0, -3.0, 2.0, -12.0, 4.0, 0.0, 7.0, -2.0, 1.0, 3.0, -9.0, 2.0, 0.0, -4.0, 1.0];
       return [
         for (var i = 0; i < ex.sequence.length; i++) ...[
+          // (o desvio fica dentro da zona no modo Guiado: senão a nota nunca "passa" e a simulação trava)
           // Só no teste: antes da 4ª nota vem uma errada (meio tom acima, um
           // pouco baixa) para mostrar o aviso leve "ainda não é a nota".
           if (i == 3) (f(ex.sequence[i] + 1, -20.0), 1.2),
-          (f(ex.sequence[i], offs[i % offs.length]), 1.0),
+          (f(ex.sequence[i], ex.flow ? offs[i % offs.length] : offs[i % offs.length].clamp(-4.0, 4.0)), 1.0),
         ]
       ];
     }
