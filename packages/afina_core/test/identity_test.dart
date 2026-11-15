@@ -230,4 +230,19 @@ void main() {
       }
     });
   });
+
+  group('Chave de recuperação curta (25)', () {
+    test('normaliza minúsculas, espaços e hífens para 5 grupos de 5', () {
+      expect(normalizeShortKey('abcde fghjk mnpqr stuvw xyz23'), 'ABCDE-FGHJK-MNPQR-STUVW-XYZ23');
+      expect(normalizeShortKey('ABCDEFGHJKMNPQRSTUVWXYZ23'), 'ABCDE-FGHJK-MNPQR-STUVW-XYZ23');
+    });
+    test('recusa tamanho errado e símbolos que o alfabeto não tem (0, O, 1, I)', () {
+      for (final bad in ['', 'ABCDE', 'ABCDE-FGHJK-MNPQR-STUVW-XYZ2', 'ABCDE-FGHJK-MNPQR-STUVW-XYZ234', 'OBCDE-FGHJK-MNPQR-STUVW-XYZ23', '0BCDE-FGHJK-MNPQR-STUVW-XYZ23', '1BCDE-FGHJK-MNPQR-STUVW-XYZ23', 'IBCDE-FGHJK-MNPQR-STUVW-XYZ23']) {
+        expect(normalizeShortKey(bad), isNull, reason: bad);
+      }
+    });
+    test('a chave longa antiga não é confundida com a curta', () {
+      expect(normalizeShortKey(recoveryKeyFor(Profile.create(Random(1)))), isNull);
+    });
+  });
 }

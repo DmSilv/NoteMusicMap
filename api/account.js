@@ -8,8 +8,14 @@
 // O servidor guarda só um HASH do e-mail (com pepper) e uma versão mascarada para mostrar ("d***@gmail.com"). O código
 // de 6 dígitos vale 10 minutos, aceita 5 tentativas e só é guardado como hash. Nunca registra o conteúdo do e-mail.
 //
+// CHAVE DE 25 CARACTERES (sem e-mail, funciona mesmo com o envio de e-mail desligado): o app pede uma chave aleatória
+// (XXXXX-XXXXX-XXXXX-XXXXX-XXXXX, 125 bits) que o servidor guarda só como hash; num aparelho novo, digitá-la faz o aparelho
+// virar o dono do perfil (o segredo antigo deixa de valer). Gerar outra chave cancela a anterior.
+//
 // Ações (todas POST):
-//   status        { code, secret }                      -> { ok, enabled, linked, hint }
+//   status        { code, secret }                      -> { ok, enabled, linked, hint, hasKey }
+//   rk_new        { code, secret }                      -> { ok, key }: gera a chave de 25 (a anterior deixa de valer)
+//   rk_login      { key, secret }                       -> { ok, code, name }: este aparelho (segredo novo) vira o dono
 //   bind_start    { code, secret, email, lang? }        -> manda o código ao e-mail
 //   bind_verify   { code, secret, email, otp }          -> liga o e-mail ao perfil
 //   unbind        { code, secret }                      -> desliga o e-mail do perfil
@@ -36,7 +42,27 @@ const SENDS_PER_HOUR = 5; // códigos por perfil e por e-mail
 const LOGIN_STARTS_PER_HOUR = 10; // por origem
 
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
+
+/** A chave digitada (com ou sem hífens, minúsculas) em 25 símbolos, ou null. */
+function normKey(v) {
+  if (typeof v !== 'string' || v.length > 60) return null;
+  const k = v.toUpperCase().replace(/[\s-]/g, '');
+  if (k.length !== RK_LEN) return null;
+  for (const c of k) if (!RK_ALPHABET.includes(c)) return null;
+  return k;
+}
+const keyHash = (k) => sha('rk|' + k);
+function newKey() {
+  let k = '';
+  for (let i = 0; i < RK_LEN; i++) k += RK_ALPHABET[crypto.randomInt(0, 32)];
+  return k;
+}
+const showKey = (k) => k.match(/.{5}/g).join('-');
 const EM = 'acct:em'; // hash: hash do e-mail -> código do perfil
+const RK = 'acct:rk'; // hash: hash da chave de 25 -> código do perfil
+const RK_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // 32 símbolos sem 0, O, 1 e I
+const RK_LEN = 25;
+const KEYS_PER_HOUR = 5; // chaves novas por perfil
 const U = (code) => `u:${code}`;
 const OTP = (eh) => `acct:otp:${eh}`;
 
@@ -164,14 +190,44 @@ function makeHandler(deps = {}) {
         // Perfil que ainda não foi ao servidor (vínculo online sempre desligado): só diz se o e-mail está disponível.
         const c0 = normCode(b.code);
         if (c0 && /^[0-9a-f]{64}$/.test(String(b.secret || '')) && !(await store.hget(U(c0), 'h'))) {
-          return send(200, { ok: true, enabled: mailEnabled(cfg), linked: false, hint: '' });
+          return send(200, { ok: true, enabled: mailEnabled(cfg), linked: false, hint: '', hasKey: false });
         }
         const o = await owner();
         if (!o) return;
-        return send(200, { ok: true, enabled: mailEnabled(cfg), linked: !!o.prof.eh, hint: o.prof.em || '' });
+        return send(200, { ok: true, enabled: mailEnabled(cfg), linked: !!o.prof.eh, hint: o.prof.em || '', hasKey: !!o.prof.rk });
       }
 
-      if (!['bind_start', 'bind_verify', 'unbind', 'login_start', 'login_verify'].includes(action)) return send(400, { error: 'Ação inválida.' });
+      if (!['bind_start', 'bind_verify', 'unbind', 'login_start', 'login_verify', 'rk_new', 'rk_login'].includes(action)) return send(400, { error: 'Ação inválida.' });
+
+      // ---------------- chave de recuperação de 25 caracteres (não depende de e-mail) ----------------
+      if (action === 'rk_new') {
+        const o = await owner();
+        if (!o) return;
+        const n = await store.incr(`acct:rkn:${o.code}:${hour}`, 3600);
+        if (n.n > KEYS_PER_HOUR) return send(429, { error: 'Muitas tentativas. Tente mais tarde.' });
+        const key = newKey();
+        const h = keyHash(key);
+        if (o.prof.rk && (await store.hget(RK, o.prof.rk)) === o.code) await store.hdel(RK, o.prof.rk); // a chave anterior deixa de valer
+        await store.hset(RK, h, o.code);
+        await store.hset(U(o.code), 'rk', h);
+        return send(200, { ok: true, key: showKey(key) });
+      }
+
+      if (action === 'rk_login') {
+        const key = normKey(b.key);
+        const secret = String(b.secret || '');
+        if (!key || !/^[0-9a-f]{64}$/.test(secret)) return bad(400, 'Chave inválida.');
+        const h = keyHash(key);
+        const code = await store.hget(RK, h);
+        const prof = code ? await store.hgetall(U(code)) : {};
+        if (!code || !prof.h || prof.rk !== h || prof.bl === '1') return bad(403, 'Chave inválida.');
+        // este aparelho passa a ser o dono; o segredo antigo e o código de suporte pendente deixam de valer
+        await store.hset(U(code), 'h', sha('lnk|' + secret));
+        await store.hdel(U(code), 'sc');
+        await store.hdel(U(code), 'sx');
+        await store.hset(U(code), 'kr', String(clock()));
+        return send(200, { ok: true, code, name: prof.n || '' });
+      }
 
       // ---------------- desligar o e-mail ----------------
       if (action === 'unbind') {
@@ -268,4 +324,4 @@ function makeHandler(deps = {}) {
 
 module.exports = makeHandler();
 module.exports.makeHandler = makeHandler;
-module.exports._internal = { normEmail, maskEmail };
+module.exports._internal = { normEmail, maskEmail, normKey };

@@ -18,8 +18,14 @@ deixa de valer, como na liberação pelo suporte do painel).
 O servidor guarda só um HASH do e-mail (com pepper) e uma versão mascarada para mostrar ("d***@gmail.com"). O código
 de 6 dígitos vale 10 minutos, aceita 5 tentativas e só é guardado como hash. Nunca registra o conteúdo do e-mail.
 
+CHAVE DE 25 CARACTERES (sem e-mail, funciona mesmo com o envio de e-mail desligado): o app pede uma chave aleatória
+(XXXXX-XXXXX-XXXXX-XXXXX-XXXXX, 125 bits) que o servidor guarda só como hash; num aparelho novo, digitá-la faz o aparelho
+virar o dono do perfil (o segredo antigo deixa de valer). Gerar outra chave cancela a anterior.
+
 Ações (todas POST):
-  status        { code, secret }                      -> { ok, enabled, linked, hint }
+  status        { code, secret }                      -> { ok, enabled, linked, hint, hasKey }
+  rk_new        { code, secret }                      -> { ok, key }: gera a chave de 25 (a anterior deixa de valer)
+  rk_login      { key, secret }                       -> { ok, code, name }: este aparelho (segredo novo) vira o dono
   bind_start    { code, secret, email, lang? }        -> manda o código ao e-mail
   bind_verify   { code, secret, email, otp }          -> liga o e-mail ao perfil
   unbind        { code, secret }                      -> desliga o e-mail do perfil
@@ -34,6 +40,8 @@ Custo: ~6 comandos por pedido de código, ~8 ao confirmar; só quando a pessoa u
 |---|---|
 | `notice` | — |
 | `status` | status |
+| `rk_new` | chave de recuperação de 25 caracteres (não depende de e-mail) |
+| `rk_login` | — |
 | `unbind` | desligar o e-mail |
 | `bind_start` | ligar o e-mail ao perfil |
 | `bind_verify` | — |

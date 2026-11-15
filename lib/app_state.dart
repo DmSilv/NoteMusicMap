@@ -261,6 +261,11 @@ class AppState extends ChangeNotifier {
   /// O servidor tem o e-mail da conta disponível (envio configurado)? Sem isso o app esconde o recurso.
   bool emailEnabled = false;
 
+  /// O servidor tem uma chave de recuperação de 25 caracteres deste perfil? E o texto dela, guardado só neste aparelho
+  /// para a pessoa poder rever (o servidor guarda só o hash). Vazio se a chave foi gerada em outro aparelho.
+  bool hasRecoveryKey = false;
+  String recoveryKeyText = '';
+
   /// E-mail ligado a este perfil, mascarado ("a***@gmail.com"), ou vazio se não ligou.
   String emailHint = '';
 
@@ -277,6 +282,59 @@ class AppState extends ChangeNotifier {
     final r = await account.status(profile.shareCode, profile.secret);
     if (!r.ok) return;
     _setEmail(enabled: r.enabled, hint: r.linked ? r.hint : '');
+    hasRecoveryKey = r.hasKey;
+    if (!r.hasKey) recoveryKeyText = '';
+    _prefs?.setBool('acct_hasrk', hasRecoveryKey);
+    _prefs?.setString('acct_rk', recoveryKeyText);
+    notifyListeners();
+  }
+
+  /// Texto do problema de uma resposta da chave de recuperação, ou null se deu certo.
+  String? _keyProblem(AccountReply r) {
+    if (r.ok) return null;
+    if (r.tooMany) return tr('Muitas tentativas. Tente mais tarde.');
+    if (r.badCode) return tr('Chave inválida. Confira se digitou os 25 caracteres.');
+    if (r.unavailable) return tr('O servidor não está disponível agora. Tente mais tarde.');
+    if (r.offline) return tr('Sem conexão com o servidor. Tente de novo quando a internet voltar.');
+    if (r.rejected) return tr('Chave inválida. Confira se digitou os 25 caracteres.');
+    return tr('Não foi possível concluir. Tente de novo.');
+  }
+
+  /// Gera a chave de 25 caracteres (a anterior deixa de valer) e a guarda neste aparelho para rever. Devolve null se deu certo.
+  Future<String?> recoveryKeyNew() async {
+    final reg = await links.rev(profile.shareCode, profile.secret); // o perfil só vai ao servidor quando a pessoa pede
+    if (!reg.ok) return reg.unavailable ? tr('O servidor não está disponível agora. Tente mais tarde.') : (reg.offline ? tr('Sem conexão com o servidor. Tente de novo quando a internet voltar.') : tr('Não foi possível concluir. Tente de novo.'));
+    final r = await account.keyNew(profile.shareCode, profile.secret);
+    final p = _keyProblem(r);
+    if (p != null) return p;
+    if (r.key.isEmpty) return tr('Não foi possível concluir. Tente de novo.');
+    hasRecoveryKey = true;
+    recoveryKeyText = r.key;
+    _prefs?.setBool('acct_hasrk', true);
+    _prefs?.setString('acct_rk', r.key);
+    notifyListeners();
+    return null;
+  }
+
+  /// Aparelho novo: entra com a chave de 25 e passa a ser o dono da conta (o outro aparelho perde o acesso).
+  Future<String?> recoveryKeyLogin(String text) async {
+    final key = normalizeShortKey(text);
+    if (key == null) return tr('Chave inválida. Confira se digitou os 25 caracteres.');
+    final fresh = Profile.create(math.Random.secure()); // só para sortear um segredo novo, que o servidor passa a reconhecer
+    final r = await account.keyLogin(key, fresh.secret);
+    final problem = _keyProblem(r);
+    if (problem != null) return problem;
+    if (r.code.isEmpty) return tr('Não foi possível concluir. Tente de novo.');
+    final p = Profile(id: newUuid(math.Random.secure()), secret: fresh.secret, shareCode: r.code);
+    p.name = r.name.isNotEmpty ? r.name : profile.name;
+    _adoptProfile(p);
+    hasRecoveryKey = true; // a mesma chave continua valendo
+    recoveryKeyText = key;
+    _prefs?.setBool('acct_hasrk', true);
+    _prefs?.setString('acct_rk', key);
+    if (!linkEnabled) setLinkEnabled(true); // a conta tem vínculos: liga para trazê-los de volta
+    notifyListeners();
+    return null;
   }
 
   /// Texto do problema de uma resposta do e-mail da conta, ou null se deu certo.
@@ -344,8 +402,12 @@ class AppState extends ChangeNotifier {
     p.teacher = profile.teacher;
     p.recoveryShownAt = DateTime.now();
     profile = p;
-    emailHint = ''; // o e-mail é do perfil: ao assumir outro, ele é perguntado de novo ao servidor
+    emailHint = ''; // o e-mail e a chave de 25 são do perfil: ao assumir outro, são perguntados de novo ao servidor
     _prefs?.setString('acct_hint', '');
+    hasRecoveryKey = false;
+    recoveryKeyText = '';
+    _prefs?.setBool('acct_hasrk', false);
+    _prefs?.setString('acct_rk', '');
     // Os vínculos são da identidade: recomeça a lista de professores e deixa os alunos serem reavaliados.
     myTeachers = [];
     _unlinkStudents.clear();
@@ -3951,6 +4013,8 @@ class AppState extends ChangeNotifier {
     startCardHidden = p.getBool('start_hidden') ?? false;
     emailEnabled = p.getBool('acct_on') ?? false;
     emailHint = p.getString('acct_hint') ?? '';
+    hasRecoveryKey = p.getBool('acct_hasrk') ?? false;
+    recoveryKeyText = p.getString('acct_rk') ?? '';
     firstTuned = p.getBool('fs_tuned') ?? false;
     firstStepHidden = p.getBool('fs_hidden') ?? false;
     _toursSeen = (p.getStringList('tours_seen') ?? const []).toSet();

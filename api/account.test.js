@@ -215,3 +215,85 @@ test('quem ligou um e-mail nunca é apagado pela limpeza de perfis abandonados',
   await bind(H, P1, S1, 'ana@exemplo.com');
   assert.equal(await isEmpty(cmd, P1), false, 'com e-mail, fica');
 });
+
+// ---------------- chave de recuperação de 25 caracteres (sem e-mail) ----------------
+const rkNew = (H, c, s) => call(H.a, { action: 'rk_new', code: c, secret: s });
+
+test('chave de 25: gera no formato certo e funciona mesmo com o e-mail desligado', async () => {
+  const H = mk({});
+  await born(H, P1, S1);
+  const r = await rkNew(H, P1, S1);
+  assert.equal(r.statusCode, 200);
+  assert.match(r.json().key, /^([2-9A-HJ-NP-Z]{5}-){4}[2-9A-HJ-NP-Z]{5}$/);
+  const st = (await call(H.a, { action: 'status', code: P1, secret: S1 })).json();
+  assert.equal(st.hasKey, true);
+  assert.equal(st.enabled, false);
+  assert.equal(sent.length, 0);
+});
+
+test('chave de 25: o servidor guarda só o hash, nunca a chave', async () => {
+  const H = mk();
+  await born(H, P1, S1);
+  const key = (await rkNew(H, P1, S1)).json().key;
+  const guardado = JSON.stringify([...hashes.entries()].map(([k, m]) => [k, [...m.entries()]]));
+  assert.equal(guardado.includes(key), false);
+  assert.equal(guardado.includes(key.replace(/-/g, '')), false);
+});
+
+test('chave de 25: entrar com ela passa o perfil ao aparelho novo e o antigo perde o acesso', async () => {
+  const H = mk();
+  await born(H, P1, S1);
+  const key = (await rkNew(H, P1, S1)).json().key;
+  const v = await call(H.a, { action: 'rk_login', key: key.toLowerCase().replace(/-/g, ' '), secret: SNEW });
+  assert.equal(v.statusCode, 200, 'aceita minúsculas e sem hífens');
+  assert.equal(v.json().code, P1);
+  assert.equal((await call(H.l, { action: 'sync', code: P1, secret: S1 })).statusCode, 403);
+  assert.equal((await call(H.l, { action: 'sync', code: P1, secret: SNEW })).statusCode, 200);
+});
+
+test('chave de 25: errada, curta ou com símbolo fora do alfabeto é recusada', async () => {
+  const H = mk();
+  await born(H, P1, S1);
+  await rkNew(H, P1, S1);
+  for (const k of ['AAAAA-AAAAA-AAAAA-AAAAA-AAAAA', 'ABC', '', 'OOOOO-OOOOO-OOOOO-OOOOO-OOOOO', 42, null]) {
+    const r = await call(H.a, { action: 'rk_login', key: k, secret: SNEW });
+    assert.ok([400, 403].includes(r.statusCode), String(k));
+  }
+  assert.equal((await call(H.l, { action: 'sync', code: P1, secret: S1 })).statusCode, 200, 'o dono continua dono');
+});
+
+test('chave de 25: gerar outra cancela a anterior', async () => {
+  const H = mk();
+  await born(H, P1, S1);
+  const velha = (await rkNew(H, P1, S1)).json().key;
+  const nova = (await rkNew(H, P1, S1)).json().key;
+  assert.notEqual(velha, nova);
+  assert.equal((await call(H.a, { action: 'rk_login', key: velha, secret: SNEW })).statusCode, 403);
+  assert.equal((await call(H.a, { action: 'rk_login', key: nova, secret: SNEW })).statusCode, 200);
+});
+
+test('chave de 25: só o dono do perfil gera (segredo errado é recusado) e há limite por hora', async () => {
+  const H = mk();
+  await born(H, P1, S1);
+  assert.equal((await rkNew(H, P1, S2)).statusCode, 403);
+  for (let i = 0; i < 5; i++) assert.equal((await rkNew(H, P1, S1)).statusCode, 200);
+  assert.equal((await rkNew(H, P1, S1)).statusCode, 429);
+});
+
+test('chave de 25: tentativas erradas seguidas da mesma origem são barradas', async () => {
+  const H = mk();
+  await born(H, P1, S1);
+  await rkNew(H, P1, S1);
+  let last = 0;
+  for (let i = 0; i < 25; i++) last = (await call(H.a, { action: 'rk_login', key: 'AAAAA-AAAAA-AAAAA-AAAAA-AAAAA', secret: SNEW }, '5.5.5.5')).statusCode;
+  assert.equal(last, 429);
+});
+
+test('chave de 25: perfil com chave nunca é apagado pela limpeza de abandonados', async () => {
+  const H = mk();
+  await born(H, P1, S1);
+  const cmd = createCmd(H.cfg, async () => { throw new Error('sem rede'); }, { allowMemory: true });
+  assert.equal(await isEmpty(cmd, P1), true);
+  await rkNew(H, P1, S1);
+  assert.equal(await isEmpty(cmd, P1), false);
+});

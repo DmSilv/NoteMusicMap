@@ -34,6 +34,10 @@ class AccountReply {
   final bool linked;
   final String hint;
 
+  /// Chave de 25: o servidor tem uma deste perfil (status) e a chave recém-gerada (rk_new).
+  final bool hasKey;
+  final String key;
+
   /// Entrar com e-mail: o código do perfil e o apelido que voltam do servidor.
   final String code;
   final String name;
@@ -48,6 +52,8 @@ class AccountReply {
     this.enabled = false,
     this.linked = false,
     this.hint = '',
+    this.hasKey = false,
+    this.key = '',
     this.code = '',
     this.name = '',
   });
@@ -84,6 +90,8 @@ class AccountService {
         enabled: j['enabled'] == true,
         linked: j['linked'] == true,
         hint: cleanText(j['hint'] as String?, max: 80),
+        hasKey: j['hasKey'] == true,
+        key: normalizeShortKey((j['key'] as String?) ?? '') ?? '',
         code: formatShareCode((j['code'] as String?) ?? '') ?? '',
         name: cleanText(j['name'] as String?, max: kMaxName),
       );
@@ -106,6 +114,12 @@ class AccountService {
   Future<AccountReply> unbind(String code, String secret) => _post({..._auth(code, secret), 'action': 'unbind'});
 
   Future<AccountReply> loginStart(String email) => _post({'action': 'login_start', 'email': email, 'lang': _lang});
+
+  /// Gera a chave de recuperação de 25 caracteres (a anterior deixa de valer).
+  Future<AccountReply> keyNew(String code, String secret) => _post({..._auth(code, secret), 'action': 'rk_new'});
+
+  /// Aparelho novo: entra com a chave de 25 e passa a ser o dono do perfil.
+  Future<AccountReply> keyLogin(String key, String secret) => _post({'action': 'rk_login', 'key': key, 'secret': secret});
 
   Future<AccountReply> loginVerify(String email, String otp, String secret) => _post({'action': 'login_verify', 'email': email, 'otp': otp, 'secret': secret});
 

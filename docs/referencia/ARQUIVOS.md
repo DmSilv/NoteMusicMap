@@ -278,7 +278,7 @@
 | `api/_lib/router.js` | REGRA DE NEGÓCIO: qual IA atende cada tipo de pedido, e quando trocar de serviço. - cada tipo de pedido tem uma ordem de preferência e um "nível" de modelo (rápido e barato para resumos; mais capaz para relatórios e… |
 | `api/_lib/store.js` | Contadores, estado de saúde e fila. Usa o Upstash Redis (REST) quando configurado, para valer entre TODAS as instâncias da Vercel; senão cai para a memória da instância. |
 | `api/_lib/store_cmd.js` | Comandos genéricos do Redis (HyperLogLog, conjuntos ordenados, contadores em hash) para as métricas, com um emulador mínimo em memória para os testes. Em produção vai tudo ao Upstash, em lote (`/pipeline`): uma ida e… |
-| `api/_lib/sweep.js` | Limpeza de perfis abandonados: um perfil SEM vínculo, SEM aluno/professor, SEM horários nem notificações e parado há 60 dias é apagado. Quem tem qualquer vínculo ou agenda, quem ligou um e-mail e quem foi bloqueado… |
+| `api/_lib/sweep.js` | Limpeza de perfis abandonados: um perfil SEM vínculo, SEM aluno/professor, SEM horários nem notificações e parado há 60 dias é apagado. Quem tem qualquer vínculo ou agenda, quem ligou e-mail ou gerou chave de… |
 | `api/_lib/unlink.js` | Desfaz o vínculo entre um professor e um aluno e apaga tudo o que dependia dele. Usado pelo app (ação "unlink" de /api/link) e pelo suporte do painel (/api/admin). |
 | `api/_lib/webpush.js` | Web Push (RFC 8030 + VAPID RFC 8292 + criptografia aes128gcm RFC 8291) só com o módulo `crypto` do Node: o projeto não instala pacotes npm, então nada de dependência externa. |
 

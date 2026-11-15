@@ -36,6 +36,8 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   bool _showKey = false;
+  bool _showShort = false; // mostrar a chave de 25 na tela
+  bool _keyBusy = false;
   bool _fast = false;
   final _restore = TextEditingController();
   final _claimCode = TextEditingController();
@@ -74,7 +76,153 @@ class _ProfilePageState extends State<ProfilePage> {
     app.say(tr('{0} copiado.', [what]));
   }
 
+  /// Gera (ou troca) a chave de recuperação de 25 caracteres.
+  Future<void> _genKey() async {
+    if (app.hasRecoveryKey) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: Text(tr('Gerar outra chave?')),
+          content: Text(tr('A chave atual deixa de valer. Guarde a nova em lugar seguro.')),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Gerar'))),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+    }
+    _upd(() => _keyBusy = true);
+    final problem = await app.recoveryKeyNew();
+    if (!mounted) return;
+    _upd(() {
+      _keyBusy = false;
+      if (problem == null) _showShort = true;
+    });
+    app.say(problem ?? tr('Chave gerada. Guarde em lugar seguro.'));
+  }
+
+  /// Cartão da chave de 25 caracteres: a principal (curta, sem e-mail).
+  Widget _shortKeyCard() {
+    final has = app.hasRecoveryKey;
+    final text = app.recoveryKeyText;
+    return AppCard(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(tr('Sua chave de recuperação'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+        const SizedBox(height: 4),
+        Text(
+          tr('Uma chave curta (25 caracteres) para levar a sua conta a outro aparelho, sem e-mail. Fica guardada de forma embaralhada no servidor. Guarde em lugar seguro: quem a tiver assume a sua conta.'),
+          style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+        ),
+        const SizedBox(height: 12),
+        if (has && text.isEmpty)
+          Text(tr('A chave desta conta foi gerada em outro aparelho. Para ver uma aqui, gere outra (a atual deixa de valer).'),
+              style: TextStyle(color: AppColors.textDim, fontSize: 12.5))
+        else if (has && _showShort) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
+            child: SelectableText(text,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 17, fontWeight: FontWeight.w800, letterSpacing: 1.2, height: 1.5)),
+          ),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: () async {
+                  await _copy(text, tr('Chave'));
+                  app.markRecoveryShown();
+                },
+                icon: const Icon(Icons.copy, size: 18),
+                label: Text(tr('Copiar')),
+              ),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton(
+              onPressed: () {
+                app.markRecoveryShown();
+                _upd(() => _showShort = false);
+              },
+              child: Text(tr('Já guardei')),
+            ),
+          ]),
+        ] else if (has)
+          FilledButton.tonalIcon(
+            onPressed: () => _upd(() => _showShort = true),
+            icon: const Icon(Icons.visibility_outlined),
+            label: Text(tr('Mostrar minha chave')),
+          ),
+        if (!has)
+          SizedBox(
+            width: double.infinity,
+            height: Ds.primaryHeight,
+            child: FilledButton.icon(
+              onPressed: _keyBusy ? null : _genKey,
+              icon: _keyBusy ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2.5)) : const Icon(Icons.vpn_key_outlined),
+              label: Text(tr('Gerar minha chave')),
+            ),
+          )
+        else
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              style: TextButton.styleFrom(minimumSize: const Size(0, Ds.tap), padding: EdgeInsets.zero),
+              onPressed: _keyBusy ? null : _genKey,
+              icon: const Icon(Icons.autorenew, size: 18),
+              label: Text(tr('Gerar outra chave')),
+            ),
+          ),
+      ]),
+    );
+  }
+
+  /// A chave longa antiga, recolhida: quem já guardou uma continua podendo usá-la.
+  Widget _legacyCard(Widget body) => AppCard(
+        padding: EdgeInsets.zero,
+        child: Theme(
+          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+          child: ExpansionTile(
+            tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+            childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            shape: const Border(),
+            collapsedShape: const Border(),
+            title: Text(tr('Chave antiga (formato longo)'), style: const TextStyle(fontWeight: FontWeight.w800)),
+            subtitle: Text(tr('Para quem já guardou uma.'), style: Ds.support()),
+            children: [body],
+          ),
+        ),
+      );
+
   Future<void> _doRestore() async {
+    // Chave de 25 caracteres: confere no servidor. Qualquer outra coisa segue o caminho da chave longa antiga.
+    final shortKey = normalizeShortKey(_restore.text);
+    if (shortKey != null) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          title: Text(tr('Entrar com esta chave?')),
+          content: Text(tr('Este aparelho passa a ser o seu perfil e o outro perde o acesso. O que ficou guardado só no outro aparelho (anotações, histórico) não vem junto.')),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Entrar'))),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+      _upd(() => _keyBusy = true);
+      final problem = await app.recoveryKeyLogin(shortKey);
+      if (!mounted) return;
+      _upd(() => _keyBusy = false);
+      if (problem == null) {
+        _restore.clear();
+        app.say(tr('Conta recuperada neste aparelho.'));
+      } else {
+        app.say(problem);
+      }
+      return;
+    }
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
@@ -584,8 +732,10 @@ class _ProfilePageState extends State<ProfilePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppCard(
-          child: Column(
+        _shortKeyCard(),
+        const SizedBox(height: 16),
+        _legacyCard(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
@@ -641,9 +791,9 @@ class _ProfilePageState extends State<ProfilePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(tr('Usar um perfil que já tenho'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              Text(tr('Usar uma chave que já tenho'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
-              Text(tr('Cole a chave de recuperação do outro aparelho.'),
+              Text(tr('Digite a chave de 25 caracteres (ou cole a chave antiga, que começa com NM1).'),
                   style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
               const SizedBox(height: 8),
               TextField(
@@ -653,14 +803,14 @@ class _ProfilePageState extends State<ProfilePage> {
                 maxLines: 4,
                 autocorrect: false,
                 enableSuggestions: false,
-                decoration: InputDecoration(hintText: 'NM1-…'),
+                decoration: InputDecoration(hintText: 'XXXXX-XXXXX-XXXXX-XXXXX-XXXXX'),
                 onChanged: (_) => _upd(() {}),
               ),
               const SizedBox(height: 8),
               OutlinedButton.icon(
-                onPressed: _restore.text.trim().isEmpty ? null : _doRestore,
+                onPressed: _restore.text.trim().isEmpty || _keyBusy ? null : _doRestore,
                 icon: const Icon(Icons.restore),
-                label: Text(tr('Restaurar perfil')),
+                label: Text(tr('Entrar com a chave')),
               ),
             ],
           ),

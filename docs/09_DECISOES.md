@@ -76,3 +76,8 @@ O guia de uso é sempre opcional (convite no cartão "Comece por aqui" e botão 
 - *Decisão:* e-mail **opcional**, **sem senha**: código de 6 dígitos enviado ao e-mail (prova de posse), em `/api/account`. O cadastro instantâneo continua; o e-mail é uma camada de recuperação que a pessoa liga se quiser.
 - *Alternativas descartadas:* login com e-mail e senha (guardar senhas, redefinir, bloquear tentativas: mais risco e suporte para o mesmo ganho); login com Google (dependência e dados de terceiros).
 - *Consequências:* o servidor passa a guardar um dado pessoal (hash do e-mail, mascarado para exibir); precisa de um provedor de e-mail com domínio verificado (`MAIL_*`); 1 função a mais na Vercel (10 de 12). Quem controla o e-mail controla a conta, então o código é curto, de uso único e com tentativas limitadas.
+
+## D-chave25. Chave de recuperação curta (25 caracteres), verificada no servidor
+- *Contexto:* a chave antiga (~100 caracteres) é a identidade inteira em texto: ninguém consegue anotá-la, e a maioria não guarda.
+- *Decisão:* uma chave aleatória de 25 símbolos (125 bits) que o servidor guarda só como hash; digitá-la num aparelho novo troca o segredo do perfil. A antiga continua valendo; a nova é a principal. Funciona sem e-mail e sem domínio.
+- *Consequências:* deixa de ser autossuficiente (precisa do servidor e do perfil registrado, o que acontece quando a pessoa gera a chave); o aparelho antigo perde o acesso ao usá-la; quem tem a chave assume a conta.

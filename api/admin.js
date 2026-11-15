@@ -306,6 +306,8 @@ function makeHandler(deps = {}) {
           teachers: teaList,
           alsoStudent: stuList.length > 0 && teaList.length > 0,
           support: { pendingUntil: Number(prof.sx) > now ? Number(prof.sx) : 0 },
+          // Como a pessoa já pode recuperar a conta sozinha (a ficha do perfil já foi lida: 0 comandos a mais).
+          recovery: { email: !!prof.eh, key: !!prof.rk },
           // Já veio na leitura do perfil (0 comandos a mais): tempo de uso estimado e ficha do aparelho.
           usage: usageOf(prof, now),
           device: deviceOf(prof),

@@ -281,6 +281,17 @@ Profile? profileFromRecoveryKey(String text, {DateTime? now}) {
 /// no idioma de quando o aluno entrou na lista.
 bool isDefaultStudentName(String name, String code) => name == 'Aluno $code' || name == 'Student $code';
 
+/// Chave de recuperação curta: 25 símbolos do mesmo alfabeto dos códigos (sem 0, O, 1 e I), em 5 grupos de 5.
+/// Aceita minúsculas, espaços e hífens; devolve "XXXXX-XXXXX-XXXXX-XXXXX-XXXXX" ou null se não for uma chave assim.
+String? normalizeShortKey(String input) {
+  final t = input.toUpperCase().replaceAll(RegExp(r'[\s-]'), '');
+  if (t.length != 25) return null;
+  for (final c in t.split('')) {
+    if (!kCodeAlphabet.contains(c)) return null;
+  }
+  return [for (var i = 0; i < 25; i += 5) t.substring(i, i + 5)].join('-');
+}
+
 /// "d***@gmail.com": o que o app mostra no lugar do e-mail inteiro (o mesmo formato que o servidor guarda).
 String maskEmail(String email) {
   final i = email.indexOf('@');

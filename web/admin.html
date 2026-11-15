@@ -1475,6 +1475,7 @@
       var rt = document.createElement('h4'); rt.textContent = 'Liberar a conta em outro aparelho'; rel.appendChild(rt);
       var rn = document.createElement('div'); rn.className = 'empty';
       rn.textContent = d.support.pendingUntil ? 'Há um código pendente, válido até ' + dt(d.support.pendingUntil) + '. Gerar outro cancela o anterior.' : 'Gera um código de uso único (vale 24 h). Passe-o à pessoa por um canal seguro; ela digita em Minha conta › Chave de recuperação, no aparelho novo. O aparelho antigo perde o acesso.';
+      if (d.recovery) rn.textContent += ' Recuperação própria desta pessoa: ' + (d.recovery.email ? 'e-mail ligado' : 'sem e-mail') + ' · ' + (d.recovery.key ? 'chave de 25 gerada' : 'sem chave de 25') + (d.recovery.email || d.recovery.key ? ' (ela mesma consegue entrar em outro aparelho).' : ' (só o código de suporte ou a chave longa antiga resgatam).');
       rel.appendChild(rn);
       var rb = document.createElement('div'); rb.className = 'toolbar';
       var gen = document.createElement('button'); gen.textContent = 'Gerar código de liberação';
