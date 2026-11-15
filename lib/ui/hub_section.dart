@@ -18,6 +18,8 @@ import 'teacher_page.dart';
 import 'open_slots_page.dart';
 import 'hello_bar.dart';
 import 'meeting_link.dart';
+import 'study_glance.dart';
+import 'widgets.dart' show AppCard;
 import 'tour/first_step_card.dart';
 import 'tour/start_card.dart';
 import 'tour/tour.dart';
@@ -53,6 +55,7 @@ class HubSection extends StatelessWidget {
         todayCount: today,
         hasStudents: app.students.isNotEmpty);
     final layout = hubLayout(view, hasTeacherSide: app.hasTeacherSide);
+    if (!isT && hero.kind == HeroKind.noTeacher) return _newcomer(context);
 
     // O bloco de agenda do aluno já está no destaque: não repete como cartão.
     final tiles = [for (final d in layout.tiles) if (d != HubDest.agendaStudent) _tileFor(context, d, now)];
@@ -68,6 +71,36 @@ class HubSection extends StatelessWidget {
       if (tiles.length == 2) _pair(tiles[0], tiles[1]) else if (tiles.length == 1) tiles.first,
       if (tiles.isNotEmpty) const SizedBox(height: Ds.gap),
     ]);
+  }
+
+  /// Meu espaço de quem chegou e ainda não tem professor nem é professor: o que dá para fazer agora (o próximo passo),
+  /// o estudo de hoje e, mais abaixo, o convite para ligar a um professor. Antes era só um cartão pedindo o QR do professor.
+  Widget _newcomer(BuildContext context) {
+    final step = app.firstStepInHub;
+    final study = StudyGlanceCard(app: app);
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (app.linkStatus.health != LinkHealth.off) _statusChip(context), // o selo "Desligado" não diz nada a quem acabou de chegar
+      ..._news(context, HubView.student),
+      if (step) ...[FirstStepCard(app: app), const SizedBox(height: Ds.gap)],
+      study,
+      const SizedBox(height: Ds.sectionGap),
+      Padding(padding: const EdgeInsets.only(left: Ds.s4, bottom: Ds.s8), child: Text(tr('Aulas com professor'), style: Ds.section())),
+      AppCard(
+        padding: EdgeInsets.zero,
+        child: Column(children: [
+          DsNavRow(Icons.qr_code_scanner, tr('Tenho professor'), tr('Leia o QR dele para ver aulas e tarefas.'), () => _scanTeacher(context)),
+          Divider(height: 1, color: AppColors.outline),
+          DsNavRow(Icons.school_outlined, tr('Sou professor'), tr('Cadastre alunos e passe tarefas.'), () => _beTeacher(context)),
+        ]),
+      ),
+      const SizedBox(height: Ds.gap),
+    ]);
+  }
+
+  /// "Sou professor": liga o modo professor direto daqui (como na apresentação), depois de pedir o nome.
+  Future<void> _beTeacher(BuildContext context) async {
+    if (!await requireNickname(context, app, reason: tr('Para ser professor, seus alunos precisam ver o seu nome.'))) return;
+    app.setTeacherMode(true);
   }
 
   /// Alternador Aluno | Professor (só para quem tem os dois papéis).

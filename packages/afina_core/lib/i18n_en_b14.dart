@@ -2,6 +2,9 @@
 library;
 
 const Map<String, String> kEnB14 = {
+  'Aulas com professor': 'Lessons with a teacher',
+  'Leia o QR dele para ver aulas e tarefas.': 'Scan their QR to see lessons and tasks.',
+  'Cadastre alunos e passe tarefas.': 'Add students and assign tasks.',
   'Sua chave de recuperação': 'Your recovery key',
   'Uma chave curta (25 caracteres) para levar a sua conta a outro aparelho, sem e-mail. Fica guardada de forma embaralhada no servidor. Guarde em lugar seguro: quem a tiver assume a sua conta.': 'A short key (25 characters) to move your account to another device, no email needed. It is stored scrambled on the server. Keep it somewhere safe: whoever has it takes over your account.',
   'A chave desta conta foi gerada em outro aparelho. Para ver uma aqui, gere outra (a atual deixa de valer).': 'This account\'s key was generated on another device. To see one here, generate another (the current one stops working).',

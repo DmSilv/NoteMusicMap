@@ -21,7 +21,7 @@ class FirstStepCard extends StatelessWidget {
       case 'study':
         app.goTab?.call(kTabMetronome);
       default:
-        break; // afinar: a pessoa já está no Afinador
+        app.goTab?.call(kTabTuner); // afinar: leva ao Afinador (no próprio Afinador o cartão só aparece depois desse passo)
     }
   }
 
@@ -47,7 +47,7 @@ class FirstStepCard extends StatelessWidget {
                   Text(next.title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
                 ]),
               ),
-              if (next.id != 'tune') Icon(Icons.chevron_right, color: AppColors.textDim),
+              Icon(Icons.chevron_right, color: AppColors.textDim),
               IconButton(
                 tooltip: tr('Esconder'),
                 visualDensity: VisualDensity.compact,

@@ -2470,6 +2470,9 @@ class AppState extends ChangeNotifier {
   /// Mostrar o cartão? Só para quem não está no modo professor, depois da 1ª corda afinada, até concluir ou esconder.
   bool get firstStepVisible => !teacherMode && firstTuned && !firstStepHidden && !allStartDone(firstStepItems);
 
+  /// No Meu espaço de quem ainda não tem professor o cartão aparece desde o começo (o 1º passo leva ao Afinador).
+  bool get firstStepInHub => !teacherMode && !firstStepHidden && !allStartDone(firstStepItems);
+
   void markFirstTuned() {
     if (firstTuned) return;
     firstTuned = true;
