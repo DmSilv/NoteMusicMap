@@ -41,16 +41,32 @@ void main() {
     expect(changes.single.stepBpm, 5, reason: 'o resto não muda');
   });
 
-  testWidgets('trocar para compassos mostra as opções de compassos', (tester) async {
+  testWidgets('trocar para compassos mostra só o seletor − número + (sem lista de atalhos)', (tester) async {
     final changes = await _mostra(tester, porTempo);
     await tester.tap(find.text('Por compassos'));
     expect(changes.single.byTime, isFalse);
     changes.clear();
     await _mostra(tester, const TempoTrainer(everyBars: 4, stepBpm: 5, maxBpm: 120));
+    expect(find.text('4'), findsOneWidget);
+    expect(find.text('compassos'), findsOneWidget);
+    expect(find.byTooltip('Mais 1 compasso'), findsOneWidget);
+    expect(find.byTooltip('Menos 1 compasso'), findsOneWidget);
     for (final r in ['2 compassos', '4 compassos', '8 compassos', '16 compassos']) {
-      expect(find.text(r), findsOneWidget, reason: r);
+      expect(find.text(r), findsNothing, reason: 'sem atalhos repetindo o seletor: $r');
     }
     expect(find.text('30 s'), findsNothing);
+  });
+
+  testWidgets('compassos: o − e o + mudam de 1 em 1 e desligam nos limites', (tester) async {
+    final changes = await _mostra(tester, const TempoTrainer(everyBars: 6, stepBpm: 5, maxBpm: 120));
+    await tester.tap(find.byTooltip('Mais 1 compasso'));
+    expect(changes.last.everyBars, 7);
+    await tester.tap(find.byTooltip('Menos 1 compasso'));
+    expect(changes.last.everyBars, 5);
+    await _mostra(tester, TempoTrainer(everyBars: kTrainerMinBars, stepBpm: 5, maxBpm: 120));
+    expect(tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.remove).first).onPressed, isNull);
+    await _mostra(tester, TempoTrainer(everyBars: kTrainerMaxBars, stepBpm: 5, maxBpm: 120));
+    expect(tester.widget<IconButton>(find.widgetWithIcon(IconButton, Icons.add).first).onPressed, isNull);
   });
 
   testWidgets('trocar para tempo volta com 30 segundos', (tester) async {
@@ -90,9 +106,9 @@ void main() {
 
   testWidgets('um valor fora das opções (dado antigo) aparece como opção também', (tester) async {
     await _mostra(tester, const TempoTrainer(everyBars: 5, stepBpm: 3, maxBpm: 120));
-    expect(find.text('5 compassos'), findsOneWidget);
+    expect(find.text('5'), findsOneWidget, reason: 'os compassos aparecem no seletor');
     expect(find.text('+3 BPM'), findsOneWidget);
     final sel = tester.widgetList<ChoiceChip>(find.byType(ChoiceChip)).where((c) => c.selected).length;
-    expect(sel, greaterThanOrEqualTo(2), reason: 'o atual de cada pergunta aparece marcado');
+    expect(sel, greaterThanOrEqualTo(1), reason: 'o valor atual de quanto aumentar aparece marcado');
   });
 }
