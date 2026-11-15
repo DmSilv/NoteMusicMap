@@ -233,7 +233,8 @@ Mensagem velha (aula mudada, cancelada, dia pulado, vínculo desfeito) é ignora
 ```text
 /api/stats: métricas ANÔNIMAS de uso do app.
 
- POST (o app, sem chave): { t: 'open'|'beat', id, d?: { pl, in, v, o?, x?: { os, sc, lg, th, tc, mic, nt } }, tabs?: [...] }
+ POST (o app, sem chave): { t: 'open'|'beat'|'ev', id, d?: { pl, in, v, o?, x?: { os, sc, lg, th, tc, mic, nt } }, tabs?: [...] }
+       'ev' = evento de ativação ("primeira vez"): { t: 'ev', id, e: 'tuned'|..., o?: origem }
        id = código aleatório do aparelho (NÃO é o código de professor/aluno). Nada de IP,
        nome, áudio ou o que a pessoa toca é guardado.
  GET  (só o admin, com "Authorization: Bearer <chave>"): ?part=live (online agora) ou ?part=full.
@@ -244,5 +245,6 @@ batida (a cada ~5 min, só com o app à frente). Nenhum comando lê listas grand
 
 | Ação / tipo | Descrição (comentário do código) |
 |---|---|
+| `ev` | — |
 | `beat` | — |
 

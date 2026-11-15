@@ -44,6 +44,7 @@ Tudo guardado no servidor é anônimo: código de perfil, apelido, datas e o nec
 | `st:dim:d:<d>` | aparelhos por plataforma/instalação/versão/origem do link no dia (hash) |
 | `st:hll:d:<d>:tab:<t>` | aparelhos distintos que abriram cada aba no dia |
 | `st:cnt:all` | totais (hash): profiles, links |
+| `st:act` | ativação do músico solo (hash): <evento> e <evento>:<origem> -> aparelhos (cada aparelho conta 1 vez por evento) |
 | `st:online` | conjunto ordenado: aparelho -> última batida (ms) |
 
 ### Relatórios de erro (`api/_lib/errors_lib.js`)
@@ -106,6 +107,8 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `fing_json` | app_state.dart |
 | `flash` | app_state.dart |
 | `flats` | app_state.dart |
+| `fs_hidden` | app_state.dart |
+| `fs_tuned` | app_state.dart |
 | `gain` | app_state.dart |
 | `goal` | app_state.dart |
 | `gridMig` | app_state.dart |
@@ -164,6 +167,7 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `split_r2` | app_state.dart |
 | `start_hidden` | app_state.dart |
 | `stats_dims_day` | stats_service.dart |
+| `stats_ev` | stats_service.dart |
 | `stats_id` | stats_service.dart |
 | `stats_on` | stats_service.dart |
 | `stats_origin` | stats_service.dart |
@@ -192,4 +196,4 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `verdict_rev` | app_state.dart |
 | `verdicts` | app_state.dart |
 
-Total: **118** chaves locais.
+Total: **121** chaves locais.

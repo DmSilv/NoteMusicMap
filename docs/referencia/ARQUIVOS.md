@@ -99,6 +99,7 @@
 | `lib/ui/theme.dart` | Paleta do app, com tema escuro e claro. As cores que mudam com o tema são `getters` lidos a cada construção de tela. [AppColors.dark] é definido uma vez por troca de tema em `main.dart` (que recria a árvore de… |
 | `lib/ui/toast.dart` | Aviso curto no TOPO da tela: aparece deslizando, some sozinho e pode ser arrastado para dispensar. Não cobre os botões de baixo nem exige toque. O tipo (sucesso, atenção, informação) vem do texto, ou de [kind]; muda… |
 | `lib/ui/toast_kind.dart` | Tipos de aviso curto: o tipo define cor, ícone e quanto tempo fica na tela. |
+| `lib/ui/tour/first_step_card.dart` | "Seu primeiro passo": para o músico que chegou sozinho (afinar, tocar uma escala, estudar 5 min). Aparece no Afinador depois da primeira corda afinada, numa linha só (para não empurrar o afinador): mostra o progresso… |
 | `lib/ui/tour/start_card.dart` | "Comece por aqui": três passos para o professor novo (vincular, marcar aula, passar tarefa), com o progresso, um atalho para cada passo e o tutorial "Ver como funciona". Some sozinho quando tudo foi feito e dá para… |
 | `lib/ui/tour/tour.dart` | Tutorial guiado: escurece a tela, deixa um buraco redondo no botão e mostra uma caixinha com o que ele faz. Nunca é obrigatório (sempre tem "Pular") e nunca trava: se um botão não estiver na tela, o passo é pulado. O… |
 | `lib/ui/trainer_editor.dart` | Ajustes do "Acelerar aos poucos", em quatro perguntas simples e um resumo em frase: 1. Quando aumentar (por tempo ou por compassos), 2. Quanto aumentar, 3. Até quantos BPM, 4. "Fica assim: …". Só botões de escolha e… |
@@ -248,7 +249,7 @@
 | `api/fingering.js` | GET /api/fingering: dedilhados do violino que o administrador corrigiu ou incluiu (ver _lib/fingering.js). Público e sem dado pessoal. O app busca uma vez por abertura; a CDN guarda a resposta por 5 minutos, então o… |
 | `api/link.js` | POST /api/link: vínculo entre professor e aluno, registrado dos dois lados. Quem lê o QR (ou digita o código) do outro cria o vínculo; ele passa a valer para os dois, e cada um vê o outro na sua lista na próxima… |
 | `api/remind.js` | POST /api/remind: chamado pelo QStash 15 minutos antes de uma aula. Envia a notificação ao professor e ao aluno (Web Push) e agenda o lembrete da próxima aula (se a aula é semanal). Só aceita mensagens que o próprio… |
-| `api/stats.js` | /api/stats: métricas ANÔNIMAS de uso do app. POST (o app, sem chave): { t: 'open'\|'beat', id, d?: { pl, in, v, o?, x?: { os, sc, lg, th, tc, mic, nt } }, tabs?: [...] } id = código aleatório do aparelho (NÃO é o… |
+| `api/stats.js` | /api/stats: métricas ANÔNIMAS de uso do app. POST (o app, sem chave): { t: 'open'\|'beat'\|'ev', id, d?: { pl, in, v, o?, x?: { os, sc, lg, th, tc, mic, nt } }, tabs?: [...] } 'ev' = evento de ativação ("primeira… |
 
 ## Apoio da API (`api/_lib/`, não conta como função)
 
@@ -332,4 +333,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **289** arquivos mapeados.
+Total: **290** arquivos mapeados.
