@@ -126,11 +126,19 @@ void main() {
     });
 
     test('as opções prontas são crescentes e cabem no limite do metrônomo', () {
-      for (final l in [kTrainerBarsOptions, kTrainerSecondsOptions, kTrainerStepOptions, kTrainerUpOptions]) {
+      for (final l in [kTrainerSecondsOptions, kTrainerStepOptions, kTrainerUpOptions]) {
         final sorted = [...l]..sort();
         expect(l, sorted);
       }
       expect(kTrainerMinBpm, lessThan(kTrainerMaxBpm));
+    });
+
+    test('qualquer número de compassos do limite vira um resumo e um tempo coerentes', () {
+      for (final b in [kTrainerMinBars, 7, kTrainerMaxBars]) {
+        final t = TempoTrainer(everyBars: b, stepBpm: 5, maxBpm: 120);
+        expect(trainerSummary(t, 100, 4), contains('$b compasso'));
+        expect(trainerSecondsToMax(t, 100, 4), isNotNull);
+      }
     });
 
     test('igualdade e cópia do treino', () {

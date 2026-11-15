@@ -2,6 +2,11 @@
 library;
 
 const Map<String, String> kEnB14 = {
+  'Menos 1 compasso': 'One bar less',
+  'Mais 1 compasso': 'One bar more',
+  'A cada {0} compasso{1}': 'Every {0} bar{1}',
+  'compasso': 'bar',
+  'compassos': 'bars',
   '{0} de {1} notas diferentes': '{0} of {1} different notes',
   'Partitura do exercício. Nota de agora: {0}': 'Exercise staff. Current note: {0}',
   'corda solta': 'open string',

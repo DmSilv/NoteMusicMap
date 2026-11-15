@@ -58,7 +58,30 @@ class TrainerEditor extends StatelessWidget {
       if (t.byTime)
         _chips<int>(kTrainerSecondsOptions, t.everySeconds, (s) => s < 60 ? '$s s' : '${s ~/ 60} min${s % 60 == 0 ? '' : ' ${s % 60} s'}', (v) => onChanged(t.copyWith(everySeconds: v)))
       else
-        _chips<int>(kTrainerBarsOptions, t.everyBars, (b) => tr('{0} compassos', [b]), (v) => onChanged(t.copyWith(everyBars: v))),
+        // Só o seletor: − número +, de 1 em 1 (sem lista de atalhos repetindo o mesmo controle).
+        Row(children: [
+          IconButton.filledTonal(
+            tooltip: tr('Menos 1 compasso'),
+            iconSize: 26,
+            onPressed: t.everyBars > kTrainerMinBars ? () => onChanged(t.copyWith(everyBars: t.everyBars - 1)) : null,
+            icon: const Icon(Icons.remove),
+          ),
+          Expanded(
+            child: Semantics(
+              label: tr('A cada {0} compasso{1}', [t.everyBars, t.everyBars == 1 ? '' : 's']),
+              child: Column(children: [
+                Text('${t.everyBars}', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w800, height: 1.1)),
+                Text(t.everyBars == 1 ? tr('compasso') : tr('compassos'), style: Ds.support()),
+              ]),
+            ),
+          ),
+          IconButton.filledTonal(
+            tooltip: tr('Mais 1 compasso'),
+            iconSize: 26,
+            onPressed: t.everyBars < kTrainerMaxBars ? () => onChanged(t.copyWith(everyBars: t.everyBars + 1)) : null,
+            icon: const Icon(Icons.add),
+          ),
+        ]),
       _title(tr('Quanto aumentar a cada vez')),
       _chips<int>(kTrainerStepOptions, t.stepBpm.round(), (s) => tr('+{0} BPM', [s]), (v) => onChanged(t.copyWith(stepBpm: v.toDouble()))),
       _title(tr('Até quantos BPM (o teto)'), help: tr('Quando chegar aqui, o metrônomo para de acelerar e segue nesse andamento.')),

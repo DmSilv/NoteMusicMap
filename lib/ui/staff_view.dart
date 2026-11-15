@@ -299,7 +299,14 @@ class _StaffPainter extends CustomPainter {
     if (current != null) {
       for (final e in s.events) {
         if (e.e.index != current) continue;
-        final r = RRect.fromLTRBR(px(e.slotX0 - 0.1), py(s.top - 0.5), px(e.slotX1 - 0.15), py(s.bottom + 0.5), Radius.circular(sp * 0.7));
+        // O quadrado fica CENTRADO na nota (acidente + cabeça), na horizontal e na vertical: antes ele seguia o espaço da nota
+        // e a cabeça aparecia encostada num canto, principalmente nas notas graves e agudas com linhas suplementares.
+        final cx = ((e.accX ?? e.x) + e.x + e.headW) / 2;
+        final half = (e.slotX1 - e.slotX0 - 0.25) / 2;
+        final cy = py(e.y);
+        // altura fixa em volta da nota (cobre a pauta e a haste): o quadrado acompanha a nota subindo e descendo
+        final reach = 3.4 * sp;
+        final r = RRect.fromLTRBR(px(cx - half), cy - reach, px(cx + half), cy + reach, Radius.circular(sp * 0.7));
         canvas.drawRRect(r, Paint()..color = ink.withValues(alpha: 0.10));
         canvas.drawRRect(
             r,

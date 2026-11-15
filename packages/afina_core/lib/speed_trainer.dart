@@ -4,8 +4,9 @@ import 'i18n.dart';
 /// Ajudantes do "Acelerar aos poucos": opções prontas, textos em linguagem simples e o tempo até o teto.
 /// Dart puro (sem Flutter), testado em test/speed_trainer_test.dart.
 
-/// A cada quantos compassos aumentar.
-const List<int> kTrainerBarsOptions = [2, 4, 8, 16];
+/// Limites do número de compassos entre os aumentos (o seletor vai de 1 em 1; é o mesmo limite com que o app guarda a escolha).
+const int kTrainerMinBars = 1;
+const int kTrainerMaxBars = 32;
 
 /// A cada quantos segundos aumentar.
 const List<int> kTrainerSecondsOptions = [15, 30, 60, 120];

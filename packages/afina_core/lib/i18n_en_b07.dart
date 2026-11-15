@@ -34,7 +34,6 @@ const Map<String, String> kEnB07 = {
   'Conta os compassos tocados (depois da contagem inicial).': 'Counts the bars played (after the count-in).',
   'Por tempo': 'By time',
   'Por compassos': 'By bars',
-  '{0} compassos': '{0} bars',
   'Quanto aumentar a cada vez': 'How much to increase each time',
   '+{0} BPM': '+{0} BPM',
   'Até quantos BPM (o teto)': 'Up to how many BPM (the cap)',
