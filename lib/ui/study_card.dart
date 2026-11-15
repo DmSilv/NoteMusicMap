@@ -63,19 +63,7 @@ class StudyCard extends StatelessWidget {
     final today = DateTime.now();
     final goal = app.dailyGoalMinutes;
     final todayMin = app.todaySeconds / 60;
-    var streak = 0;
-    for (var i = 0;; i++) {
-      final d = today.subtract(Duration(days: i));
-      final s = app.studySeconds[AppState.dayKey(d)] ?? 0;
-      if (s >= 60) {
-        streak++;
-      } else if (i == 0) {
-        continue; // hoje ainda pode estar zerado
-      } else {
-        break;
-      }
-      if (i > 400) break;
-    }
+    final streak = studyStreak(app.studySeconds, today); // um dia de folga é perdoado
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,7 +94,7 @@ class StudyCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(tr('Dias seguidos'), style: Ds.support()),
-                  Text('$streak', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w800)),
+                  Text('${streak.days}', style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w800)),
                 ],
               ),
             ],
@@ -123,7 +111,16 @@ class StudyCard extends StatelessWidget {
           ),
           const SizedBox(height: Ds.s8),
           Row(children: [
-            Expanded(child: Text(tr('Meta diária: {0} min', [goal.round()]), style: Ds.support())),
+            Expanded(
+              child: Text(
+                todayMin >= goal
+                    ? tr('Meta de hoje feita!')
+                    : streak.forgave
+                        ? tr('Meta diária: {0} min · 1 dia de folga perdoado', [goal.round()])
+                        : tr('Meta diária: {0} min', [goal.round()]),
+                style: Ds.support(),
+              ),
+            ),
             TextButton.icon(
               onPressed: () => _openSettings(context),
               icon: const Icon(Icons.tune, size: 18),

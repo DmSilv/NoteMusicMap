@@ -3837,7 +3837,8 @@ class AppState extends ChangeNotifier {
     // Dedilhados que o administrador corrigiu: o último que o app recebeu vale já na abertura (e funciona sem internet).
     setViolinFingeringFromJson(p.getString('fing_json'));
     scaleNames = StaffNames.values[(p.getInt('scale_names') ?? StaffNames.none.index).clamp(0, StaffNames.values.length - 1)];
-    dailyGoalMinutes = p.getDouble('goal') ?? 20;
+    // Meta simples para quem chega agora (5 min); quem já usava e nunca mexeu continua com 20.
+    dailyGoalMinutes = p.getDouble('goal') ?? ((p.getBool('onboarded') ?? false) ? 20 : 5);
     themeMode = ThemeMode.values[p.getInt('theme') ?? 0];
     langPref = p.getString('lang') ?? 'auto';
     _applyLang();

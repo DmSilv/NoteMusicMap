@@ -2,6 +2,13 @@
 library;
 
 const Map<String, String> kEnB14 = {
+  'Meta de hoje feita!': 'Today\'s goal done!',
+  'Meta diária: {0} min · 1 dia de folga perdoado': 'Daily goal: {0} min · 1 day off forgiven',
+  'Igual à semana passada.': 'Same as last week.',
+  '{0} min a mais que na semana passada.': '{0} min more than last week.',
+  '{0} min a menos que na semana passada.': '{0} min less than last week.',
+  'Comece com poucos minutos hoje: o resumo da semana aparece aqui.': 'Start with a few minutes today: your weekly summary shows up here.',
+  '{0} de 7 dias estudados · meta batida {1}×': '{0} of 7 days studied · goal reached {1}×',
   'Seu primeiro passo · {0} de {1}': 'Your first step · {0} of {1}',
   'Afinar uma corda': 'Tune a string',
   'Toque uma corda solta e deixe o ponteiro no centro.': 'Play an open string and bring the needle to the center.',

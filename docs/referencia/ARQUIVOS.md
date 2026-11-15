@@ -173,6 +173,7 @@
 | `packages/afina_core/lib/staff_notation.dart` | Partitura de escalas e arpejos (clave de Sol, compasso 4/4, como no "sistema de escalas" de Flesch). Esta parte é só MÚSICA, em Dart puro e testável: posição da nota na pauta, armadura de clave, quando aparece ♯ ♭ ♮… |
 | `packages/afina_core/lib/start_checklist.dart` | "Comece por aqui": o que o professor novo precisa fazer para o app render (vincular, marcar aula, passar tarefa). Dart puro: o app diz o que já aconteceu e esta lógica diz o que falta e qual é o próximo passo. |
 | `packages/afina_core/lib/study_clock.dart` | Relógios de estudo: CRONÔMETRO (conta para cima) e MINUTERIA (conta para baixo até um tempo escolhido). Dart puro: o relógio de parede é passado de fora (ms), então dá para testar e para retomar depois de fechar o app. |
+| `packages/afina_core/lib/study_streak.dart` | Dias seguidos de estudo (com perdão de 1 dia) e o resumo da semana. Dart puro: o app passa o mapa "dia (AAAA-MM-DD) -> segundos estudados" e a data de hoje; aqui sai o que mostrar. |
 | `packages/afina_core/lib/system_guide.dart` | Dados para explicar o "Sistema de afinação" na tela: para a tônica escolhida, qual é o ALVO de cada nota no sistema (igual, pitagórico ou justo) e quanto ele difere do temperamento igual, em Hz. Dart puro e testável. |
 | `packages/afina_core/lib/task_status.dart` | Decisão oficial do professor sobre uma tarefa que o aluno marcou como feita. |
 | `packages/afina_core/lib/teacher.dart` | Área do professor (versão local, sem login): alunos, tarefas, observações, relatórios e troca de dados por texto. Dart puro e testável. |
@@ -228,6 +229,7 @@
 | `packages/afina_core/test/staff_notation_test.dart` | Leitor independente: lê a partitura como um músico (armadura + acidentes valem até a barra de compasso) e devolve a nota MIDI que cada evento representa. Se bater com a sequência do exercício, a escrita está certa. |
 | `packages/afina_core/test/start_checklist_test.dart` | Testes do módulo `start_checklist`. |
 | `packages/afina_core/test/study_clock_test.dart` | Testes do módulo `study_clock`. |
+| `packages/afina_core/test/study_streak_test.dart` | estudou 0,1,3,5,6: faltaram 2 e 4; o 2º vazio vem logo depois do 1º perdão -> quebra |
 | `packages/afina_core/test/system_guide_test.dart` | em Hz, na oitava 4: Mi justo (5/4 de 261,626) = 327,03 Hz contra 329,63 do igual |
 | `packages/afina_core/test/task_review_test.dart` | Testes do módulo `task_review`. |
 | `packages/afina_core/test/task_status_test.dart` | Testes do módulo `task_status`. |
@@ -333,4 +335,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **290** arquivos mapeados.
+Total: **292** arquivos mapeados.

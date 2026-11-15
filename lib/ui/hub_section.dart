@@ -18,6 +18,7 @@ import 'teacher_page.dart';
 import 'open_slots_page.dart';
 import 'hello_bar.dart';
 import 'meeting_link.dart';
+import 'tour/first_step_card.dart';
 import 'tour/start_card.dart';
 import 'tour/tour.dart';
 import 'design_system.dart';
@@ -61,6 +62,8 @@ class HubSection extends StatelessWidget {
       ..._news(context, view),
       _heroCard(context, hero, nc, view, extra: _agendaExtra(context, view, nc, layout.tools, now)),
       if (isT && StartCard.visibleFor(app)) StartCard(app: app) else if (isT && StartCard.hiddenFor(app)) StartCardReturn(app: app),
+      // Quem chegou sozinho vê aqui o mesmo "Seu primeiro passo" do Afinador (some ao concluir ou ao esconder).
+      if (!isT && app.firstStepVisible) Padding(padding: const EdgeInsets.only(top: Ds.s12), child: FirstStepCard(app: app)),
       const SizedBox(height: Ds.gap),
       if (tiles.length == 2) _pair(tiles[0], tiles[1]) else if (tiles.length == 1) tiles.first,
       if (tiles.isNotEmpty) const SizedBox(height: Ds.gap),

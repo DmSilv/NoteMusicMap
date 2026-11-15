@@ -21,6 +21,7 @@ export 'class_rules.dart';
 export 'markdown_lite.dart';
 export 'hub_view.dart';
 export 'start_checklist.dart';
+export 'study_streak.dart';
 export 'errors.dart';
 export 'error_report.dart';
 export 'methods.dart';

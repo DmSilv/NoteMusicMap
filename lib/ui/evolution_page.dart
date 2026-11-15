@@ -25,6 +25,8 @@ class EvolutionPage extends StatelessWidget {
           builder: (context, _) => ListView(
             padding: Ds.screen,
             children: [
+              _summary(),
+              const DsGap(Ds.gap),
               _week(),
               const DsGap(Ds.gap),
               EvolutionCard(app: app),
@@ -33,6 +35,34 @@ class EvolutionPage extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// Resumo da semana: total de minutos, dias estudados, dias da meta e a comparação com a semana anterior.
+  Widget _summary() {
+    final w = weekSummary(app.studySeconds, DateTime.now(), app.dailyGoalMinutes);
+    final cmp = w.delta == 0
+        ? tr('Igual à semana passada.')
+        : w.delta > 0
+            ? tr('{0} min a mais que na semana passada.', [w.delta])
+            : tr('{0} min a menos que na semana passada.', [-w.delta]);
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(tr('Esta semana'), style: TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody)),
+          const SizedBox(height: Ds.s8),
+          if (w.empty)
+            Text(tr('Comece com poucos minutos hoje: o resumo da semana aparece aqui.'), style: Ds.support())
+          else ...[
+            Text(tr('{0} min', [w.minutes]), style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w800)),
+            const SizedBox(height: Ds.s4),
+            Text(tr('{0} de 7 dias estudados · meta batida {1}×', [w.daysStudied, w.goalDays]), style: Ds.support()),
+            const SizedBox(height: Ds.s4),
+            Text(cmp, style: Ds.support()),
+          ],
+        ],
       ),
     );
   }
