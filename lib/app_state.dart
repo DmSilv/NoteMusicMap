@@ -883,6 +883,9 @@ class AppState extends ChangeNotifier {
   // ---------------- Estatísticas anônimas de uso ----------------
   /// Aviso anônimo de acesso (para o painel do administrador). Desligável em Configurações.
   final StatsService stats = StatsService();
+
+  /// Conta um evento de ativação (uma vez por aparelho): 'mic', 'tuned', 'scale', 'study5', 'door_study'...
+  void trackAct(String name) => unawaited(stats.event(name, _prefs));
   Timer? _statsTimer;
 
   bool get statsEnabled => stats.enabled;
@@ -2302,6 +2305,35 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ---------------- "Seu primeiro passo" (músico que estuda sozinho) ----------------
+  /// Já deixou o ponteiro no centro ao ouvir uma corda (só com o microfone, nunca na simulação).
+  bool firstTuned = false;
+  bool firstStepHidden = false;
+
+  /// Os 3 passos de quem chegou sozinho; o 2º e o 3º saem do que o app já registra (sessões de escala e tempo de estudo).
+  List<StartItem> get firstStepItems => soloStartItems(
+        tuned: firstTuned,
+        playedScale: scaleSessions.isNotEmpty,
+        studySeconds: studySeconds.values.fold<double>(0, (a, b) => a + b),
+      );
+
+  /// Mostrar o cartão? Só para quem não está no modo professor, depois da 1ª corda afinada, até concluir ou esconder.
+  bool get firstStepVisible => !teacherMode && firstTuned && !firstStepHidden && !allStartDone(firstStepItems);
+
+  void markFirstTuned() {
+    if (firstTuned) return;
+    firstTuned = true;
+    _prefs?.setBool('fs_tuned', true);
+    trackAct('tuned');
+    notifyListeners();
+  }
+
+  void hideFirstStep() {
+    firstStepHidden = true;
+    _prefs?.setBool('fs_hidden', true);
+    notifyListeners();
+  }
+
   bool tourSeen(String id) => _toursSeen.contains(id);
 
   void markTourSeen(String id) {
@@ -2311,6 +2343,8 @@ class AppState extends ChangeNotifier {
   /// "Rever tutoriais": o cartão volta e os tutoriais contam como não vistos.
   void resetTutorials() {
     startCardHidden = false;
+    firstStepHidden = false;
+    _prefs?.setBool('fs_hidden', false);
     _toursSeen = {};
     _prefs?.setBool('start_hidden', false);
     _prefs?.remove('tours_seen');
@@ -3826,6 +3860,8 @@ class AppState extends ChangeNotifier {
     final rd = p.getInt('remind_default');
     remindDefault = rd != null && kRemindOptions.contains(rd) ? rd : kReminderMinutes;
     startCardHidden = p.getBool('start_hidden') ?? false;
+    firstTuned = p.getBool('fs_tuned') ?? false;
+    firstStepHidden = p.getBool('fs_hidden') ?? false;
     _toursSeen = (p.getStringList('tours_seen') ?? const []).toSet();
     keepAwake = p.getBool('keepAwake') ?? true;
     showFreq = p.getBool('showFreq') ?? true;
@@ -4034,6 +4070,7 @@ class AppState extends ChangeNotifier {
     }
     final ok = await src.start();
     if (!demoMode) micGranted = ok;
+    if (ok && !demoMode) trackAct('mic');
     if (!ok) {
       micError =
           tr('Sem acesso ao microfone. Permita o acesso nas configurações do aparelho ou do navegador.');
@@ -4405,7 +4442,10 @@ class AppState extends ChangeNotifier {
     if (!active) return;
     final k = dayKey(DateTime.now());
     studySeconds[k] = (studySeconds[k] ?? 0) + 1;
-    if (DateTime.now().second % 15 == 0) _saveStudy();
+    if (DateTime.now().second % 15 == 0) {
+      _saveStudy();
+      if (studySeconds.values.fold<double>(0, (a, b) => a + b) >= kFirstStudySeconds) trackAct('study5');
+    }
   }
 
   Future<void> _saveStudy() async {
@@ -4431,6 +4471,7 @@ class AppState extends ChangeNotifier {
     });
     if (scaleSessions.length > 100) scaleSessions.removeRange(100, scaleSessions.length);
     await _prefs?.setString('sessions', jsonEncode(scaleSessions));
+    trackAct('scale');
     await _saveStudy();
     notifyListeners();
   }

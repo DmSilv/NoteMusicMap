@@ -462,6 +462,12 @@
         <div class="card"><div class="k"><span>De onde vieram (marca ?o= do link)</span><button class="help" data-def="origin">?</button></div><div id="dO"></div></div>
         <div class="card"><div class="k">Abas abertas (aparelhos distintos)</div><div id="dTabs"></div></div>
       </div>
+      <h2>Ativação do músico solo</h2>
+      <p class="lead">Quantos aparelhos já fizeram cada "primeira vez" (cada aparelho conta uma vez por evento, desde que o recurso entrou). Serve para comparar publicações e origens de link.</p>
+      <div class="two">
+        <div class="card"><div class="k">Primeiras vezes</div><div id="dAct"></div></div>
+        <div class="card"><div class="k">Por origem do link (?o=)</div><div id="dActO"></div></div>
+      </div>
       <h2>Quando usam (30 dias) <button class="help" data-def="heatmap">?</button></h2>
       <p class="lead">Os horários mais cheios. Quanto mais forte a cor, mais gente usando.</p>
       <div class="card"><div class="heat" id="heat"></div><div class="axis" id="heatNote" style="margin-top:8px"></div></div>
@@ -958,6 +964,37 @@
       b.setAttribute('data-t', labels[i] + ': ' + fmt(v)); el.appendChild(b);
     });
   }
+  var ACT_LABELS = [
+    ['door_study', 'Porta: quero estudar'], ['door_student', 'Porta: tenho professor'], ['door_teacher', 'Porta: sou professor'], ['door_look', 'Porta: só olhar'],
+    ['mic', 'Liberou o microfone'], ['tuned', '1ª corda afinada (o "aha")'], ['scale', '1ª escala tocada'], ['study5', '5 min de estudo']
+  ];
+  function renderAct(j) {
+    var acts = j.acts || {}, el = $('dAct'), eo = $('dActO');
+    var max = 1; ACT_LABELS.forEach(function (l) { max = Math.max(max, acts[l[0]] || 0); });
+    el.innerHTML = '';
+    var any = ACT_LABELS.some(function (l) { return (acts[l[0]] || 0) > 0; });
+    if (!any) el.innerHTML = '<div class="empty">Sem dados ainda: os números começam quando a nova versão do app for aberta.</div>';
+    else ACT_LABELS.forEach(function (l) {
+      var n = acts[l[0]] || 0, r = document.createElement('div'); r.className = 'row';
+      var a = document.createElement('span'); a.className = 'n'; a.textContent = l[1];
+      var b = document.createElement('span'); b.className = 'b'; var i = document.createElement('i'); i.style.width = Math.round((n / max) * 100) + '%'; b.appendChild(i);
+      var c = document.createElement('span'); c.className = 'c'; c.textContent = fmt(n);
+      r.appendChild(a); r.appendChild(b); r.appendChild(c); el.appendChild(r);
+    });
+    var origins = {};
+    Object.keys(acts).forEach(function (k) { var ix = k.indexOf(':'); if (ix > 0) { var o = k.slice(ix + 1); (origins[o] = origins[o] || {})[k.slice(0, ix)] = acts[k]; } });
+    eo.innerHTML = '';
+    var os = Object.keys(origins);
+    if (!os.length) { eo.innerHTML = '<div class="empty">Nenhum link com marca ?o= ainda.</div>'; return; }
+    os.sort().forEach(function (o) {
+      var r = document.createElement('div'); r.className = 'row';
+      var a = document.createElement('span'); a.className = 'n'; a.textContent = o;
+      var c = document.createElement('span'); c.className = 'c'; c.style.flex = '1'; c.style.textAlign = 'left';
+      var v = origins[o];
+      c.textContent = 'mic ' + fmt(v.mic || 0) + ' · afinou ' + fmt(v.tuned || 0) + ' · escala ' + fmt(v.scale || 0) + ' · 5 min ' + fmt(v.study5 || 0);
+      r.appendChild(a); r.appendChild(c); eo.appendChild(r);
+    });
+  }
   function dist(el, obj) {
     var arr = Object.keys(obj).map(function (k) { return [k, obj[k]]; }).sort(function (a, b) { return b[1] - a[1]; });
     el.innerHTML = '';
@@ -999,7 +1036,7 @@
     var a = labels[0], b2 = labels[labels.length - 1];
     $('axA').textContent = a; $('axB').textContent = b2; $('axC').textContent = a; $('axD').textContent = b2;
     dist($('dPl'), j.dims.pl); dist($('dIn'), j.dims['in']); dist($('dV'), j.dims.v); dist($('dO'), j.dims.o || {}); dist($('dTabs'), j.tabs);
-    renderCompare(j); renderHeat(j); renderJourney(); renderMedals();
+    renderCompare(j); renderHeat(j); renderJourney(); renderMedals(); renderAct(j);
     var now = new Date();
     $('updated').textContent = 'Atualizado às ' + p2(now.getHours()) + ':' + p2(now.getMinutes()) + ' · horário de Brasília · o dia de hoje é parcial';
     var hr = now.getHours();

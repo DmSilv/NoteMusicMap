@@ -113,6 +113,12 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
     if (ctx == null || !mounted) return;
     final choice = await showWelcomeTour(ctx);
     widget.app.markOnboarded();
+    widget.app.trackAct(switch (choice) {
+      TourChoice.study => 'door_study',
+      TourChoice.hasTeacher => 'door_student',
+      TourChoice.teacher => 'door_teacher',
+      TourChoice.look => 'door_look',
+    });
     unawaited(widget.app.checkVibration());
     switch (choice) {
       case TourChoice.study:

@@ -1,6 +1,7 @@
 // /api/stats: métricas ANÔNIMAS de uso do app.
 //
-//  POST (o app, sem chave): { t: 'open'|'beat', id, d?: { pl, in, v, o?, x?: { os, sc, lg, th, tc, mic, nt } }, tabs?: [...] }
+//  POST (o app, sem chave): { t: 'open'|'beat'|'ev', id, d?: { pl, in, v, o?, x?: { os, sc, lg, th, tc, mic, nt } }, tabs?: [...] }
+//        'ev' = evento de ativação ("primeira vez"): { t: 'ev', id, e: 'tuned'|..., o?: origem }
 //        id = código aleatório do aparelho (NÃO é o código de professor/aluno). Nada de IP,
 //        nome, áudio ou o que a pessoa toca é guardado.
 //  GET  (só o admin, com "Authorization: Bearer <chave>"): ?part=live (online agora) ou ?part=full.
@@ -12,7 +13,7 @@
 const crypto = require('node:crypto');
 const { config } = require('./_lib/config');
 const { createCmd } = require('./_lib/store_cmd');
-const { K, TABS, dayKey } = require('./_lib/metrics');
+const { K, TABS, ACT_EVENTS, dayKey } = require('./_lib/metrics');
 const { serverError } = require('./_lib/error_store');
 
 const sha = (s) => crypto.createHash('sha256').update(String(s)).digest('hex');
@@ -105,6 +106,7 @@ function makeHandler(deps = {}) {
         cmds.push(['PFCOUNT', ...prevDays.map(K.day)]);
         cmds.push(['HGETALL', K.total]);
         cmds.push(['HGETALL', K.dim(today)]);
+        cmds.push(['HGETALL', K.act]);
         for (const t of TABS) cmds.push(['PFCOUNT', K.tab(today, t)]);
         const r = await m.pipeline(cmds);
 
@@ -125,6 +127,7 @@ function makeHandler(deps = {}) {
         const mauPrev = Number(r[k++]) || 0;
         const totals = hash(r[k++]);
         const dimRaw = hash(r[k++]);
+        const acts = hash(r[k++]);
         const dims = { pl: {}, in: {}, v: {}, o: {} };
         for (const [f, n] of Object.entries(dimRaw)) {
           const [kind, ...rest] = f.split(':');
@@ -134,7 +137,7 @@ function makeHandler(deps = {}) {
         for (const t of TABS) tabs[t] = Number(r[k++]) || 0;
         return send(200, {
           ok: true, now, today, online5: Number(on5) || 0, online1: Number(on1) || 0,
-          total, wau, mau, wauPrev, mauPrev, series, dims, tabs, totals, generatedAt: now,
+          total, wau, mau, wauPrev, mauPrev, series, dims, tabs, totals, acts, generatedAt: now,
         });
       }
 
@@ -145,8 +148,20 @@ function makeHandler(deps = {}) {
       if (!b || typeof b !== 'object' || JSON.stringify(b).length > 1024) return send(400, { error: 'Corpo inválido.' });
       const id = String(b.id || '');
       if (!ID_RE.test(id)) return send(400, { error: 'Identificador inválido.' });
-      const kind = b.t === 'open' ? 'open' : b.t === 'beat' ? 'beat' : '';
+      const kind = b.t === 'open' ? 'open' : b.t === 'beat' ? 'beat' : b.t === 'ev' ? 'ev' : '';
       if (!kind) return send(400, { error: 'Evento inválido.' });
+
+      if (kind === 'ev') {
+        // Ativação ("primeira vez"): o app manda cada evento uma só vez por aparelho; aqui só entram nomes conhecidos.
+        // Custo: 1 comando (2 com origem do link) por evento, no máximo ~8 eventos por aparelho em toda a vida dele.
+        const e = String(b.e || '');
+        if (!ACT_EVENTS.includes(e)) return send(400, { error: 'Evento inválido.' });
+        const o = clip(b.o, /^[a-z0-9]{1,8}$/);
+        const list = [['HINCRBY', K.act, e, '1']];
+        if (o) list.push(['HINCRBY', K.act, e + ':' + o, '1']);
+        await m.pipeline(list);
+        return send(200, { ok: true });
+      }
 
       if (kind === 'beat') {
         // XX: só atualiza quem já abriu (batida solta não cria aparelho "online" do nada).

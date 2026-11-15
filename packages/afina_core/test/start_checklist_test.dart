@@ -22,4 +22,19 @@ void main() {
       expect(startDoneCount(l), 3);
     });
   });
+
+  group('Seu primeiro passo (músico solo)', () {
+    test('começa sem nada feito e o próximo passo é afinar', () {
+      final l = soloStartItems(tuned: false, playedScale: false, studySeconds: 0);
+      expect(l.map((i) => i.id), ['tune', 'scale', 'study']);
+      expect(startDoneCount(l), 0);
+      expect(nextStartItem(l)!.id, 'tune');
+    });
+    test('estudar só conta a partir de 5 minutos', () {
+      expect(soloStartItems(tuned: true, playedScale: true, studySeconds: 299).last.done, isFalse);
+      final l = soloStartItems(tuned: true, playedScale: true, studySeconds: 300);
+      expect(l.last.done, isTrue);
+      expect(allStartDone(l), isTrue);
+    });
+  });
 }

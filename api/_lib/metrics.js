@@ -17,10 +17,13 @@ const K = {
   dim: (d) => `st:dim:d:${d}`, // aparelhos por plataforma/instalação/versão/origem do link no dia (hash)
   tab: (d, t) => `st:hll:d:${d}:tab:${t}`, // aparelhos distintos que abriram cada aba no dia
   total: 'st:cnt:all', // totais (hash): profiles, links
+  act: 'st:act', // ativação do músico solo (hash): <evento> e <evento>:<origem> -> aparelhos (cada aparelho conta 1 vez por evento)
   online: 'st:online', // conjunto ordenado: aparelho -> última batida (ms)
 };
 
 const TABS = ['tuner', 'pedal', 'metronome', 'grid', 'study', 'profile', 'teacher', 'agenda', 'settings', 'scales'];
+/** Eventos de ativação ("primeira vez") que o app envia uma única vez por aparelho. Só estes nomes são aceitos. */
+const ACT_EVENTS = ['mic', 'tuned', 'scale', 'study5', 'door_study', 'door_teacher', 'door_student', 'door_look'];
 const EVENTS = ['lesson', 'slot', 'remind', 'link', 'done', 'verdict', 'pick', 'rev10'];
 
 /** Soma 1 num contador do dia (e, se pedido, no total). Silencioso se der erro. */
@@ -34,4 +37,4 @@ async function bump(cfg, fetchImpl, clock, opts, event, { total } = {}) {
   } catch (_) { /* métrica não derruba nada */ }
 }
 
-module.exports = { K, TABS, EVENTS, dayKey, bump, BR_OFFSET };
+module.exports = { K, TABS, ACT_EVENTS, EVENTS, dayKey, bump, BR_OFFSET };

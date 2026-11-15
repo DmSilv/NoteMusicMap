@@ -258,3 +258,17 @@ test('país sem estado vira só o país', async () => {
   const j = (await admin(H, 'devices')).json();
   assert.equal(Object.keys(j.combos)[0].split('|')[10], 'pt');
 });
+
+test('ativação: eventos de primeira vez somam por evento e por origem, e nomes desconhecidos são recusados', async () => {
+  const H = mk();
+  const id = rid();
+  await ping(H, { t: 'open', id });
+  assert.equal((await ping(H, { t: 'ev', id, e: 'tuned', o: 'ig1' })).statusCode, 200);
+  assert.equal((await ping(H, { t: 'ev', id: rid(), e: 'tuned' })).statusCode, 200);
+  assert.equal((await ping(H, { t: 'ev', id, e: 'xablau' })).statusCode, 400);
+  assert.equal((await ping(H, { t: 'ev', id: 'curto', e: 'tuned' })).statusCode, 400);
+  const full = (await admin(H)).json();
+  assert.equal(full.acts.tuned, 2);
+  assert.equal(full.acts['tuned:ig1'], 1);
+  assert.equal(full.acts.xablau, undefined);
+});

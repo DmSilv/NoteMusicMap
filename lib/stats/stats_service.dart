@@ -29,6 +29,7 @@ class StatsService {
   final Set<String> _tabsSent = {};
   final Set<String> _tabsPending = {};
   DateTime? lastOpen;
+  final Set<String> _evSent = {}; // eventos de "primeira vez" já enviados por este aparelho (cada um vai uma só vez)
 
   /// Estado do microfone ("sim", "nao" ou "nd"); o AppState informa.
   String Function()? micProbe;
@@ -87,6 +88,7 @@ class StatsService {
       }
     }
     _dimsDay = p.getString('stats_dims_day') ?? '';
+    _evSent.addAll(p.getStringList('stats_ev') ?? const []);
     final t = p.getString('stats_tabs') ?? '';
     final parts = t.split('|');
     if (parts.length == 2) {
@@ -198,6 +200,14 @@ class StatsService {
     final tabs = _takeTabs(p);
     if (tabs.isNotEmpty) body['tabs'] = tabs;
     await _post(body);
+  }
+
+  /// Evento de ativação ("primeira vez": 1ª corda afinada, 1ª escala, portas da apresentação...). Cada nome vai UMA vez por
+  /// aparelho e só como contador agregado (com a origem do link, se houver); nada de quem é a pessoa. Falha em silêncio.
+  Future<void> event(String name, SharedPreferences? p) async {
+    if (!enabled || _id.length < 16 || !_evSent.add(name)) return;
+    p?.setStringList('stats_ev', _evSent.toList());
+    await _post({'t': 'ev', 'id': _id, 'e': name, if (_origin.isNotEmpty) 'o': _origin});
   }
 
   /// A cada ~5 min com o app à frente: "estou online" (e as abas novas do dia).

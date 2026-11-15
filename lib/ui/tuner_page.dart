@@ -12,6 +12,7 @@ import 'theme.dart';
 import 'tuning_guide.dart';
 import 'pedal_view.dart';
 import 'widgets.dart';
+import 'tour/first_step_card.dart';
 
 class TunerPage extends StatefulWidget {
   final AppState app;
@@ -194,9 +195,18 @@ class _TunerPageState extends State<TunerPage> {
                 ? tr('Afinado')
                 : (cents < 0 ? tr('Grave: suba a afinação') : tr('Agudo: desça a afinação'));
 
+        // 1ª corda afinada de verdade (microfone, não a simulação): vira o passo 1 de "Seu primeiro passo".
+        if (inZone && app.listening && !app.demo && !app.firstTuned) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => app.markFirstTuned());
+        }
+
         return ListView(
           padding: Ds.screen,
           children: [
+            if (app.firstStepVisible) ...[
+              FirstStepCard(app: app),
+              const DsGap(Ds.s12),
+            ],
             _modeRow(),
             const DsGap(Ds.s12),
             _instrumentRow(stringsMode),

@@ -2,6 +2,13 @@
 library;
 
 const Map<String, String> kEnB14 = {
+  'Seu primeiro passo · {0} de {1}': 'Your first step · {0} of {1}',
+  'Afinar uma corda': 'Tune a string',
+  'Toque uma corda solta e deixe o ponteiro no centro.': 'Play an open string and bring the needle to the center.',
+  'Tocar a primeira escala': 'Play your first scale',
+  'Escolha uma escala e toque nota por nota.': 'Pick a scale and play it note by note.',
+  'Estudar 5 minutos': 'Study for 5 minutes',
+  'Ligue o metrônomo e toque junto.': 'Turn on the metronome and play along.',
   'Enviar link ao professor': 'Send link to teacher',
   'Quero ser seu aluno no {0}. Abra este link para me adicionar: {1}': 'I\'d like to be your student on {0}. Open this link to add me: {1}',
   'Sou {0}, quero ser seu aluno no {1}. Abra este link para me adicionar: {2}': 'I\'m {0}, I\'d like to be your student on {1}. Open this link to add me: {2}',

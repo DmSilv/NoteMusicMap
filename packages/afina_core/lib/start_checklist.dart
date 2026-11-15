@@ -21,6 +21,17 @@ List<StartItem> teacherStartItems({required bool hasLinkedStudent, required bool
       StartItem('task', tr('Passe uma tarefa'), tr('Escala, lição ou repertório; o aluno recebe na hora.'), hasTask),
     ];
 
+/// Segundos de estudo que contam como "estudar um pouco" no passo 3 do músico novo (5 minutos).
+const int kFirstStudySeconds = 300;
+
+/// "Seu primeiro passo": o que o músico que chega sozinho faz nos primeiros minutos (afinar, tocar uma escala, estudar 5 min).
+/// Ids: 'tune', 'scale' e 'study'.
+List<StartItem> soloStartItems({required bool tuned, required bool playedScale, required double studySeconds}) => [
+      StartItem('tune', tr('Afinar uma corda'), tr('Toque uma corda solta e deixe o ponteiro no centro.'), tuned),
+      StartItem('scale', tr('Tocar a primeira escala'), tr('Escolha uma escala e toque nota por nota.'), playedScale),
+      StartItem('study', tr('Estudar 5 minutos'), tr('Ligue o metrônomo e toque junto.'), studySeconds >= kFirstStudySeconds),
+    ];
+
 /// O primeiro passo que ainda falta (null se tudo foi feito).
 StartItem? nextStartItem(List<StartItem> items) {
   for (final i in items) {
