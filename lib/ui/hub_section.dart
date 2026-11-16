@@ -17,6 +17,7 @@ import 'slot_form_page.dart';
 import 'teacher_page.dart';
 import 'open_slots_page.dart';
 import 'hello_bar.dart';
+import 'link_bar.dart' show confirmTeacherLink;
 import 'meeting_link.dart';
 import 'study_glance.dart';
 import 'widgets.dart' show AppCard;
@@ -100,6 +101,7 @@ class HubSection extends StatelessWidget {
   /// "Sou professor": liga o modo professor direto daqui (como na apresentação), depois de pedir o nome.
   Future<void> _beTeacher(BuildContext context) async {
     if (!await requireNickname(context, app, reason: tr('Para ser professor, seus alunos precisam ver o seu nome.'))) return;
+    if (!context.mounted || !await confirmTeacherLink(context, app)) return;
     app.setTeacherMode(true);
   }
 

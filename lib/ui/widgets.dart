@@ -655,7 +655,7 @@ class Help {
         tr('Mede cada nota contra a tônica por proporções simples (quinta 3:2, terça maior 5:4). Com essas proporções as ondas se encaixam e some o tremor chamado batimento. A terça maior fica mais baixa que no piano e a quinta um pouco mais alta. Escolha para acordes e música em conjunto sem piano: toque a tônica como referência e afine a terça e a quinta contra ela.')),
   ];
   static final systemFooter =
-      tr('Mudar o sistema muda o ALVO de cada nota: a mesma nota pode aparecer "baixa" no Igual e "afinada" no Justo, e isso não é erro do app. Na tabela "Entender" você vê, em Hz, o alvo de cada nota. Se não tiver certeza, use Igual. As cordas soltas não dependem desta opção.');
+      tr('Mudar o sistema muda o ALVO de cada nota: a mesma nota pode aparecer "baixa" no Igual e "afinada" no Justo, e isso não é erro do app. Na tabela "Entender" você vê, em Hz, o alvo de cada nota. Se não tiver certeza, use Igual. No modo Cordas soltas o sistema não vale; no Cromático, as cordas soltas do arco ficam em quintas puras mesmo em Igual.');
 
   static final tonic = <(String, String)>[
     (tr('Tônica (tom da peça)'),

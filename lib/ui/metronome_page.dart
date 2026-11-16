@@ -126,8 +126,8 @@ class _MetronomePageState extends State<MetronomePage>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _roundBtn(Icons.remove, () => app.setBpm(m.bpm - 1), tr('Diminuir 1 BPM'),
-                          onLong: () => app.setBpm(m.bpm - 5)),
+                      _roundBtn(Icons.remove, () => app.setBpm(app.metro.bpm - 1), tr('Diminuir 1 BPM'),
+                          onLong: () => app.setBpm(app.metro.bpm - 5)),
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 18),
                         child: GestureDetector(
@@ -152,8 +152,8 @@ class _MetronomePageState extends State<MetronomePage>
                           ),
                         ),
                       ),
-                      _roundBtn(Icons.add, () => app.setBpm(m.bpm + 1), tr('Aumentar 1 BPM'),
-                          onLong: () => app.setBpm(m.bpm + 5)),
+                      _roundBtn(Icons.add, () => app.setBpm(app.metro.bpm + 1), tr('Aumentar 1 BPM'),
+                          onLong: () => app.setBpm(app.metro.bpm + 5)),
                     ],
                   ),
                   Slider(
@@ -174,7 +174,7 @@ class _MetronomePageState extends State<MetronomePage>
                                 child: Text(d > 0 ? '+$d' : '$d',
                                     textAlign: TextAlign.center),
                               ),
-                              onPressed: () => app.setBpm(m.bpm + d),
+                              onPressed: () => app.setBpm(app.metro.bpm + d),
                             ),
                           ),
                         ),

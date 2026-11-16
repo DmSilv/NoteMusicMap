@@ -250,6 +250,12 @@ class _TunerPageState extends State<TunerPage> {
                     height: 22,
                     child: Text(hint, style: TextStyle(color: color, fontWeight: FontWeight.w600)),
                   ),
+                  // Instrumentos de arco: o alvo das cordas soltas é em quintas puras (não o do piano); sem isso parece erro.
+                  if (stringsMode && !inst.fretted && targetHz != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: Ds.s8),
+                      child: Text(tr('Alvo em quintas puras, como na orquestra. Difere um pouco do afinador de piano.'), textAlign: TextAlign.center, style: Ds.support().copyWith(fontSize: 12)),
+                    ),
                   LevelBar(level: app.level),
                 ],
               ),

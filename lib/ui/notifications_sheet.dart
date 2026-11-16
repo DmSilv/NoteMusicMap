@@ -70,7 +70,9 @@ Future<void> showNotificationsSheet(BuildContext context, AppState app) {
                   if (list.isNotEmpty) TextButton.icon(onPressed: app.clearNotices, icon: const Icon(Icons.delete_sweep, size: 18), label: Text(tr('Limpar'))),
                 ]),
                 const DsGap.small(),
+                if (suggestionCount(app) > 0) Padding(padding: const EdgeInsets.only(bottom: Ds.s4), child: Text(tr('Dicas'), style: Ds.section())),
                 SuggestionTiles(app: app, closeSheet: () => Navigator.of(c).pop()),
+                if (suggestionCount(app) > 0 && list.isNotEmpty) Padding(padding: const EdgeInsets.only(top: Ds.s12, bottom: Ds.s4), child: Text(tr('Avisos'), style: Ds.section())),
                 if (list.isEmpty && suggestionCount(app) == 0)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 28),

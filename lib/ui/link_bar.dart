@@ -55,6 +55,45 @@ class LinkOffBar extends StatelessWidget {
   }
 }
 
+/// Antes de ligar o modo professor: se o vínculo online ainda está desligado, ele será ligado junto, e isso manda código, apelido
+/// e tarefas ao servidor. Pergunta uma vez (sem pergunta se o vínculo já está ligado).
+Future<bool> confirmTeacherLink(BuildContext context, AppState app) async {
+  if (app.linkEnabled) return true;
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      icon: Icon(Icons.cloud_outlined, color: AppColors.accent),
+      title: Text(tr('Ligar o modo professor?')),
+      content: Text(tr('Para enviar tarefas e receber avisos dos alunos, o app conecta online (só código, apelido e tarefas).')),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Agora não'))),
+        FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Ligar e conectar'))),
+      ],
+    ),
+  );
+  return ok == true;
+}
+
+/// Depois de desligar o modo professor: se não há professor, aula, agenda nem aluno com código, o vínculo online não serve mais
+/// a nada; pergunta se quer desligá-lo também. Se algo depende dele, não faz nada (ninguém perde avisos sem querer).
+Future<void> offerLinkOffAfterTeacher(BuildContext context, AppState app) async {
+  final needed = app.hasTeacherSide || app.students.any((s) => s.code != null);
+  if (!app.linkEnabled || needed) return;
+  final off = await showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      icon: Icon(Icons.cloud_off_outlined, color: AppColors.textDim),
+      title: Text(tr('Desligar também o vínculo online?')),
+      content: Text(tr('Sem professor nem aluno vinculado, ele não é mais necessário. Dá para ligar de novo em Minha conta.')),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Manter ligado'))),
+        FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Desligar'))),
+      ],
+    ),
+  );
+  if (off == true) app.setLinkEnabled(false);
+}
+
 /// Aviso antes de desligar o vínculo: diz claramente o que deixa de funcionar.
 Future<bool> confirmDisableLink(BuildContext context, AppState app) async {
   final q = app.linkQueueSize;

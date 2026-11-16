@@ -45,6 +45,7 @@ class SpeedTrainerCard extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             SwitchListTile(
               contentPadding: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Ds.radiusControl + 4)), // o toque/hover acompanha o canto do cartão
               secondary: Icon(Icons.speed_rounded, color: on ? AppColors.accent : AppColors.textDim),
               title: Text(tr('Acelerar aos poucos'), style: TextStyle(fontWeight: FontWeight.w800)),
               subtitle: Text(

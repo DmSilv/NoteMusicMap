@@ -489,7 +489,8 @@ class _TeacherPageState extends State<TeacherPage> {
       ),
       floatingActionButton: ListenableBuilder(
         listenable: app,
-        builder: (context, _) => app.teacherLocked || _manage
+        // Lista vazia: o botão grande do centro já pede o 1º aluno; o flutuante só entra quando há alunos.
+        builder: (context, _) => app.teacherLocked || _manage || app.students.isEmpty
             ? const SizedBox.shrink()
             : FloatingActionButton.extended(
                 onPressed: () => showAddStudent(context, app),

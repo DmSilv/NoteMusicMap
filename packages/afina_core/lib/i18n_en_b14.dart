@@ -2,6 +2,17 @@
 library;
 
 const Map<String, String> kEnB14 = {
+  'Alvo em quintas puras, como na orquestra. Difere um pouco do afinador de piano.': 'Target in pure fifths, as in the orchestra. It differs slightly from a piano tuner.',
+  'Ligar o modo professor?': 'Turn on teacher mode?',
+  'Para enviar tarefas e receber avisos dos alunos, o app conecta online (só código, apelido e tarefas).': 'To send tasks and get notices from students, the app connects online (only code, nickname and tasks).',
+  'Ligar e conectar': 'Turn on and connect',
+  'Desligar também o vínculo online?': 'Also turn off the online link?',
+  'Sem professor nem aluno vinculado, ele não é mais necessário. Dá para ligar de novo em Minha conta.': 'With no linked teacher or student it is no longer needed. You can turn it back on in My account.',
+  'Manter ligado': 'Keep on',
+  'Desligar': 'Turn off',
+  'Dicas': 'Tips',
+  'Toque para ver, desligar ou reconectar': 'Tap to view, turn off or reconnect',
+  'Com o vínculo online ligado, só código, apelido e tarefas das aulas vão ao servidor.': 'With the online link on, only code, nickname and lesson tasks go to the server.',
   'Aulas com professor': 'Lessons with a teacher',
   'Leia o QR dele para ver aulas e tarefas.': 'Scan their QR to see lessons and tasks.',
   'Cadastre alunos e passe tarefas.': 'Add students and assign tasks.',

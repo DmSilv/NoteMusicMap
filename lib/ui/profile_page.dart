@@ -357,6 +357,7 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
             _section(tr('Vínculos')),
             _row(Icons.cloud_outlined, tr('Vínculo online'),
+                sub: tr('Toque para ver, desligar ou reconectar'),
                 trailing: _pill(st.title, linkColor), onTap: () => _open(tr('Vínculo online'), (_) => _linkOnlineCard())),
             _row(Icons.school_outlined, tr('Meus professores'),
                 sub: app.myTeachers.isEmpty
@@ -378,8 +379,14 @@ class _ProfilePageState extends State<ProfilePage> {
                   subtitle: Text(tr('Cadastre alunos, passe tarefas e gere relatórios.'), style: TextStyle(fontSize: 12.5)),
                   value: app.teacherMode,
                   onChanged: (v) async {
-                    if (v && !await requireNickname(context, app, reason: tr('Para ser professor, seus alunos precisam ver o seu nome.'))) return;
-                    app.setTeacherMode(v);
+                    if (v) {
+                      if (!await requireNickname(context, app, reason: tr('Para ser professor, seus alunos precisam ver o seu nome.'))) return;
+                      if (!context.mounted || !await confirmTeacherLink(context, app)) return;
+                      app.setTeacherMode(true);
+                    } else {
+                      app.setTeacherMode(false);
+                      if (context.mounted) await offerLinkOffAfterTeacher(context, app);
+                    }
                   },
                 ),
               ),
@@ -406,10 +413,17 @@ class _ProfilePageState extends State<ProfilePage> {
             _row(Icons.ios_share, tr('Compartilhar o app'), onTap: () => showShareSheet(context)),
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
-              child: Text(
-                tr('Sem cadastro: seus dados ficam neste aparelho. A chave guarda só a sua identidade, não o histórico.'),
-                style: TextStyle(color: AppColors.textDim, fontSize: 12),
-              ),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(
+                  tr('Sem cadastro: seus dados ficam neste aparelho. A chave guarda só a sua identidade, não o histórico.'),
+                  style: TextStyle(color: AppColors.textDim, fontSize: 12),
+                ),
+                const SizedBox(height: Ds.s4),
+                Text(
+                  tr('Com o vínculo online ligado, só código, apelido e tarefas das aulas vão ao servidor.'),
+                  style: TextStyle(color: AppColors.textDim, fontSize: 12),
+                ),
+              ]),
             ),
           ],
         );

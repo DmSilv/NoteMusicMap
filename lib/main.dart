@@ -542,7 +542,8 @@ class _HomeShellState extends State<HomeShell> {
               builder: (context, _) => IconButton(
                 tooltip: tr('Avisos'),
                 icon: Badge(
-                  label: (app.unseenNotices + suggestionCount(app)) > 0 ? Text('${app.unseenNotices + suggestionCount(app)}') : null,
+                  // O número é só de avisos de verdade (aula, tarefa, horário); só dicas viram um pontinho.
+                  label: app.unseenNotices > 0 ? Text('${app.unseenNotices}') : null,
                   isLabelVisible: (app.unseenNotices + suggestionCount(app)) > 0,
                   backgroundColor: AppColors.sharp,
                   child: _BarCircle(

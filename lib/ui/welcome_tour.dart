@@ -733,7 +733,7 @@ class _WelcomeTourState extends State<WelcomeTour> {
                 _pick(
                   Icons.person_add_alt_1_rounded,
                   tr('Sou professor'),
-                  tr('Alunos, agenda e tarefas num só lugar'),
+                  tr('Alunos, agenda e tarefas online num só lugar'),
                   TourChoice.teacher,
                 ),
               ],
