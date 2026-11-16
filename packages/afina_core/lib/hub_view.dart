@@ -40,14 +40,11 @@ const Set<HubDest> kTeacherOnly = {
   HubDest.inviteStudent,
 };
 
-/// O alternador Aluno | Professor só aparece para quem tem os dois papéis.
-bool canSwitchHubView({required bool teacherMode, required bool hasTeacherSide}) => teacherMode && hasTeacherSide;
-
-/// Visão em uso: só aluno → aluno; só professor → professor; os dois → a escolha da pessoa
-/// ([preferred]), ou professor se ela nunca escolheu.
-HubView resolveHubView({required bool teacherMode, required bool hasTeacherSide, HubView? preferred}) {
+/// Visão em uso. Com o modo professor desligado só existe a visão de aluno. Com ele ligado vale a escolha da pessoa
+/// ([preferred], feita no alternador Aluno | Professor, que fica sempre à vista); sem escolha, professor.
+/// Quem é professor também pode olhar o próprio estudo na visão de aluno, mesmo sem professor vinculado.
+HubView resolveHubView({required bool teacherMode, HubView? preferred}) {
   if (!teacherMode) return HubView.student;
-  if (!hasTeacherSide) return HubView.teacher;
   return preferred ?? HubView.teacher;
 }
 

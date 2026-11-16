@@ -61,7 +61,7 @@ class HubSection extends StatelessWidget {
     // O bloco de agenda do aluno já está no destaque: não repete como cartão.
     final tiles = [for (final d in layout.tiles) if (d != HubDest.agendaStudent) _tileFor(context, d, now)];
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      if (app.canSwitchHub) _viewSwitch(view),
+      _viewSwitch(context, view),
       _statusChip(context),
       ..._news(context, view),
       _heroCard(context, hero, nc, view, extra: _agendaExtra(context, view, nc, layout.tools, now)),
@@ -80,6 +80,7 @@ class HubSection extends StatelessWidget {
     final step = app.firstStepInHub;
     final study = StudyGlanceCard(app: app);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      _viewSwitch(context, HubView.student),
       if (app.linkStatus.health != LinkHealth.off) _statusChip(context), // o selo "Desligado" não diz nada a quem acabou de chegar
       ..._news(context, HubView.student),
       if (step) ...[FirstStepCard(app: app), const SizedBox(height: Ds.gap)],
@@ -90,8 +91,6 @@ class HubSection extends StatelessWidget {
         padding: EdgeInsets.zero,
         child: Column(children: [
           DsNavRow(Icons.qr_code_scanner, tr('Tenho professor'), tr('Leia o QR dele para ver aulas e tarefas.'), () => _scanTeacher(context)),
-          Divider(height: 1, color: AppColors.outline),
-          DsNavRow(Icons.school_outlined, tr('Sou professor'), tr('Cadastre alunos e passe tarefas.'), () => _beTeacher(context)),
         ]),
       ),
       const SizedBox(height: Ds.gap),
@@ -105,19 +104,29 @@ class HubSection extends StatelessWidget {
     app.setTeacherMode(true);
   }
 
-  /// Alternador Aluno | Professor (só para quem tem os dois papéis).
-  Widget _viewSwitch(HubView view) => Padding(
+  /// Alternador Aluno | Professor, sempre à vista no topo. Escolher "Professor" com o modo professor desligado segue o mesmo
+  /// caminho do antigo "Sou professor": pede o nome, confirma que conecta online e liga o modo.
+  Widget _viewSwitch(BuildContext context, HubView view) => Padding(
         padding: const EdgeInsets.only(bottom: Ds.s16),
         child: SizedBox(
           width: double.infinity,
           child: SegmentedButton<HubView>(
             showSelectedIcon: false,
+            style: SegmentedButton.styleFrom(minimumSize: const Size.fromHeight(Ds.tap)),
             segments: [
-              ButtonSegment(value: HubView.student, icon: Icon(Icons.person_outline, size: 18), label: Text(tr('Aluno'))),
-              ButtonSegment(value: HubView.teacher, icon: Icon(Icons.school_outlined, size: 18), label: Text(tr('Professor'))),
+              ButtonSegment(value: HubView.student, icon: const Icon(Icons.person_outline, size: 20), label: Text(tr('Aluno'))),
+              ButtonSegment(value: HubView.teacher, icon: const Icon(Icons.school_outlined, size: 20), label: Text(tr('Professor'))),
             ],
             selected: {view},
-            onSelectionChanged: (s) => app.setHubView(s.first),
+            onSelectionChanged: (s) async {
+              final v = s.first;
+              if (v == HubView.teacher && !app.teacherMode) {
+                await _beTeacher(context); // pede o nome e a confirmação; se a pessoa desistir, nada muda
+                if (app.teacherMode) app.setHubView(HubView.teacher);
+                return;
+              }
+              app.setHubView(v);
+            },
           ),
         ),
       );

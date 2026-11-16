@@ -1472,10 +1472,11 @@ class AppState extends ChangeNotifier {
   /// Tem o lado de aluno: professor, aula recebida ou agenda marcada por um professor.
   bool get hasTeacherSide => myTeachers.isNotEmpty || myLessons.isNotEmpty || myAgenda.isNotEmpty;
 
-  bool get canSwitchHub => canSwitchHubView(teacherMode: teacherMode, hasTeacherSide: hasTeacherSide);
+  /// O alternador Aluno | Professor fica sempre à vista no Meu espaço (escolher Professor com o modo desligado liga o modo).
+  bool get canSwitchHub => true;
 
   /// Visão que o Meu espaço mostra agora.
-  HubView get hubView => resolveHubView(teacherMode: teacherMode, hasTeacherSide: hasTeacherSide, preferred: hubViewPref);
+  HubView get hubView => resolveHubView(teacherMode: teacherMode, preferred: hubViewPref);
 
   void setHubView(HubView v) {
     hubViewPref = v;

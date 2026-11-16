@@ -3,23 +3,15 @@ import 'package:test/test.dart';
 
 void main() {
   group('qual visão aparece', () {
-    test('o alternador só existe para quem tem os dois papéis', () {
-      expect(canSwitchHubView(teacherMode: true, hasTeacherSide: true), isTrue);
-      expect(canSwitchHubView(teacherMode: true, hasTeacherSide: false), isFalse);
-      expect(canSwitchHubView(teacherMode: false, hasTeacherSide: true), isFalse);
-      expect(canSwitchHubView(teacherMode: false, hasTeacherSide: false), isFalse);
+    test('sem modo professor só existe a visão de aluno, seja qual for a preferência', () {
+      expect(resolveHubView(teacherMode: false, preferred: HubView.teacher), HubView.student);
+      expect(resolveHubView(teacherMode: false), HubView.student);
     });
 
-    test('um papel só: visão fixa, ignora a preferência', () {
-      expect(resolveHubView(teacherMode: false, hasTeacherSide: true, preferred: HubView.teacher), HubView.student);
-      expect(resolveHubView(teacherMode: false, hasTeacherSide: false), HubView.student);
-      expect(resolveHubView(teacherMode: true, hasTeacherSide: false, preferred: HubView.student), HubView.teacher);
-    });
-
-    test('os dois papéis: vale a escolha; sem escolha, professor', () {
-      expect(resolveHubView(teacherMode: true, hasTeacherSide: true, preferred: HubView.student), HubView.student);
-      expect(resolveHubView(teacherMode: true, hasTeacherSide: true, preferred: HubView.teacher), HubView.teacher);
-      expect(resolveHubView(teacherMode: true, hasTeacherSide: true), HubView.teacher);
+    test('com modo professor vale a escolha do alternador; sem escolha, professor', () {
+      expect(resolveHubView(teacherMode: true, preferred: HubView.student), HubView.student);
+      expect(resolveHubView(teacherMode: true, preferred: HubView.teacher), HubView.teacher);
+      expect(resolveHubView(teacherMode: true), HubView.teacher);
     });
   });
 
