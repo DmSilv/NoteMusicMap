@@ -653,9 +653,9 @@ class _TeacherPageState extends State<TeacherPage> {
   Widget _summaryStrip() {
     final today = classesToday(app.visibleAgenda, DateTime.now()).count;
     final waiting = app.awaitingTotal;
-    Widget chip(IconData icon, String text, {bool alert = false}) {
+    Widget chip(IconData icon, String text, {bool alert = false, VoidCallback? onTap}) {
       final color = alert ? AppColors.accent : AppColors.textDim;
-      return Container(
+      final box = Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: color.withValues(alpha: alert ? 0.16 : 0.10),
@@ -668,6 +668,7 @@ class _TeacherPageState extends State<TeacherPage> {
           Text(text, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: color)),
         ]),
       );
+      return onTap == null ? box : InkWell(borderRadius: BorderRadius.circular(20), onTap: onTap, child: box);
     }
 
     final n = app.students.length;
@@ -675,7 +676,9 @@ class _TeacherPageState extends State<TeacherPage> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Wrap(spacing: 8, runSpacing: 8, children: [
         chip(Icons.groups_outlined, n == 1 ? tr('1 aluno') : tr('{0} alunos', [n])),
-        if (waiting > 0) chip(Icons.fact_check_outlined, tr('{0} para validar', [waiting]), alert: true),
+        if (waiting > 0)
+          chip(Icons.fact_check_outlined, tr('{0} para validar', [waiting]),
+              alert: true, onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ValidationQueuePage(app: app)))),
         if (today > 0) chip(Icons.event_outlined, today == 1 ? tr('1 aula hoje') : tr('{0} aulas hoje', [today])),
       ]),
     );

@@ -456,6 +456,42 @@ List<Assignment> toReview(Student s, DateTime now) {
   return l;
 }
 
+/// Um aluno na fila de validação: primeiro o que ELE marcou como feito, depois o resto do que espera decisão.
+class ReviewGroup {
+  final Student student;
+
+  /// Tarefas que o aluno marcou como feitas (mais antigas marcações primeiro).
+  final List<Assignment> marked;
+
+  /// Tarefas enviadas que o aluno não marcou (o professor confere na aula).
+  final List<Assignment> others;
+  const ReviewGroup(this.student, this.marked, this.others);
+
+  int get total => marked.length + others.length;
+
+  /// Todas, na ordem em que aparecem: marcadas e depois as outras.
+  List<Assignment> get all => [...marked, ...others];
+}
+
+/// A fila de validação de todos os alunos: só quem tem tarefa esperando decisão. Quem tem tarefa marcada
+/// pelo aluno vem antes (mais marcadas primeiro; empate pelo nome); depois os demais, por nome.
+List<ReviewGroup> reviewQueue(Iterable<Student> students, DateTime now) {
+  final out = <ReviewGroup>[];
+  for (final s in students) {
+    final list = toReview(s, now);
+    if (list.isEmpty) continue;
+    final marked = [for (final t in list) if (t.claimedAt != null) t]..sort((a, b) => a.claimedAt!.compareTo(b.claimedAt!));
+    final others = [for (final t in list) if (t.claimedAt == null) t];
+    out.add(ReviewGroup(s, marked, others));
+  }
+  out.sort((a, b) {
+    final byMarked = b.marked.length.compareTo(a.marked.length);
+    if (byMarked != 0) return byMarked;
+    return a.student.name.toLowerCase().compareTo(b.student.name.toLowerCase());
+  });
+  return out;
+}
+
 /// Aplica a decisão [r] do professor à tarefa [taskId]. Devolve false se ela não existe.
 bool reviewTask(Student s, String taskId, TaskReview r, {DateTime? now}) {
   final i = s.tasks.indexWhere((t) => t.id == taskId);

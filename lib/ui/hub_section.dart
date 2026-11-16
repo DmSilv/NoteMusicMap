@@ -26,6 +26,7 @@ import 'tour/start_card.dart';
 import 'tour/tour.dart';
 import 'design_system.dart';
 import 'theme.dart';
+import 'validation_ui.dart' show ValidationQueuePage;
 
 /// "Meu espaço": o topo da aba. Um destaque grande (o que importa agora), dois blocos do que pede
 /// ação e uma faixa de ferramentas. Muda conforme o papel (aluno, professor ou os dois).
@@ -153,11 +154,8 @@ class HubSection extends StatelessWidget {
     }
   }
 
-  /// "Para validar": se só um aluno espera validação, abre a ficha dele; senão a lista de alunos.
-  void _openValidation(BuildContext context) {
-    final waiting = [for (final s in app.students) if (app.awaitingOf(s).isNotEmpty) s];
-    _push(context, waiting.length == 1 ? StudentPage(app: app, studentId: waiting.first.id) : TeacherPage(app: app));
-  }
+  /// "Para validar": abre a fila com as tarefas de todos os alunos.
+  void _openValidation(BuildContext context) => _push(context, ValidationQueuePage(app: app));
 
   void _push(BuildContext c, Widget w) => Navigator.of(c).push(MaterialPageRoute<void>(builder: (_) => w));
 

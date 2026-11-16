@@ -222,6 +222,7 @@
 | `packages/afina_core/test/pitch_grid_test.dart` | Sobe devagar até +52 cents. |
 | `packages/afina_core/test/pomodoro_test.dart` | Testes do módulo `pomodoro`. |
 | `packages/afina_core/test/remind_test.dart` | Testes do módulo `remind`. |
+| `packages/afina_core/test/review_queue_test.dart` | Testes do módulo `review_queue`. |
 | `packages/afina_core/test/rhythm_challenge_test.dart` | Sorteia [n] compassos e devolve a decisão de cada um. |
 | `packages/afina_core/test/scale_coach_test.dart` | Passos de uma escala em que cada nota (pitch class) tem um viés fixo. |
 | `packages/afina_core/test/scale_flow_test.dart` | Sol maior, 1 oitava. |
@@ -341,4 +342,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **298** arquivos mapeados.
+Total: **299** arquivos mapeados.

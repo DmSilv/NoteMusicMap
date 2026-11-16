@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import 'design_system.dart';
 import 'my_lessons_page.dart' show taskKindIcon;
+import 'teacher_page.dart' show StudentPage;
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -220,5 +221,162 @@ Future<void> showValidationDialog(BuildContext context, AppState app, Student s)
   }
   if (good + back + next > 0) {
     app.say(tr('{0} validada(s), {1} para refazer, {2} para a próxima aula.', [good, back, next]));
+  }
+}
+
+/// Fila de validação: todas as tarefas que esperam decisão, de todos os alunos, numa tela só.
+/// As que o aluno marcou como feitas vêm primeiro; "Validar as marcadas" resolve todas de uma vez.
+class ValidationQueuePage extends StatefulWidget {
+  final AppState app;
+  const ValidationQueuePage({super.key, required this.app});
+
+  @override
+  State<ValidationQueuePage> createState() => _ValidationQueuePageState();
+}
+
+class _ValidationQueuePageState extends State<ValidationQueuePage> {
+  /// null = automático: só as marcadas, se houver alguma; senão todas.
+  bool? _onlyMarked;
+
+  AppState get app => widget.app;
+
+  Future<void> _validateMarked(List<ReviewGroup> queue, int n) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text(tr('Validar {0} tarefas?', [n])),
+        content: Text(tr('Só as que os alunos marcaram como feitas. Cada aluno recebe o aviso.')),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Validar'))),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    for (final g in queue) {
+      for (final t in g.marked) {
+        app.reviewAssignment(g.student, t.id, TaskReview.ok);
+      }
+    }
+    app.say(tr('{0} tarefas confirmadas.', [n]));
+  }
+
+  Widget _row(ReviewGroup g, Assignment t, {required bool only}) {
+    final marked = t.claimedAt != null;
+    return DsTaskRow(
+      icon: taskKindIcon(t.kind),
+      title: t.title,
+      support: tr('Enviada em {0}', [fmtDayMonth(t.created)]),
+      status: marked && !only ? DsStatus(tr('Aluno marcou como feita'), Icons.fact_check_outlined, AppColors.accent) : null,
+      onTap: () => showReviewSheet(context, app, g.student, t),
+      trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+        IconButton.filledTonal(
+          tooltip: tr('Está boa'),
+          style: IconButton.styleFrom(minimumSize: const Size(Ds.tap, Ds.tap)),
+          onPressed: () => app.reviewAssignment(g.student, t.id, TaskReview.ok),
+          icon: const Icon(Icons.check_rounded),
+        ),
+        Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
+      ]),
+    );
+  }
+
+  Widget _header(ReviewGroup g, int shown) {
+    final name = g.student.name;
+    return InkWell(
+      borderRadius: BorderRadius.circular(Ds.radiusControl),
+      onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => StudentPage(app: app, studentId: g.student.id))),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: Ds.tap),
+        child: Row(children: [
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: AppColors.accent.withValues(alpha: 0.2),
+            child: Text(name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase(), style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800, fontSize: 14)),
+          ),
+          const SizedBox(width: Ds.s12),
+          Expanded(child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: Ds.fontBody))),
+          Text(shown == 1 ? tr('1 tarefa') : tr('{0} tarefas', [shown]), style: Ds.support()),
+          Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
+        ]),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(tr('Para validar'))),
+      body: DsPageSafe(
+        child: ListenableBuilder(
+          listenable: app,
+          builder: (context, _) {
+            final queue = reviewQueue(app.students, DateTime.now());
+            if (queue.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(Ds.s32),
+                  child: Column(mainAxisSize: MainAxisSize.min, children: [
+                    DsIconBadge(Icons.task_alt_rounded, size: 56, color: AppColors.inTune),
+                    const SizedBox(height: Ds.s16),
+                    Text(tr('Nada para validar'), style: Ds.title()),
+                    const SizedBox(height: Ds.s8),
+                    Text(tr('Quando os alunos marcarem tarefas como feitas, elas aparecem aqui.'), textAlign: TextAlign.center, style: Ds.support()),
+                  ]),
+                ),
+              );
+            }
+            final markedTotal = queue.fold<int>(0, (a, g) => a + g.marked.length);
+            final total = queue.fold<int>(0, (a, g) => a + g.total);
+            final hasBoth = markedTotal > 0 && markedTotal < total;
+            final only = markedTotal == 0 ? false : (hasBoth ? (_onlyMarked ?? true) : true);
+            final groups = [
+              for (final g in queue)
+                if ((only ? g.marked : g.all).isNotEmpty) g,
+            ];
+            return ListView(
+              padding: Ds.screen,
+              children: [
+                if (markedTotal > 0) ...[
+                  SizedBox(
+                    height: Ds.primaryHeight,
+                    child: FilledButton.icon(
+                      onPressed: () => _validateMarked(queue, markedTotal),
+                      icon: const Icon(Icons.done_all_rounded),
+                      label: Text(markedTotal == 1 ? tr('Validar a tarefa marcada') : tr('Validar as {0} marcadas', [markedTotal]),
+                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                  const SizedBox(height: Ds.s4),
+                  Text(tr('Os alunos marcaram estas como feitas.'), textAlign: TextAlign.center, style: Ds.support()),
+                  const SizedBox(height: Ds.gap),
+                ],
+                if (hasBoth) ...[
+                  Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
+                    ChoiceChip(label: Text(tr('Marcadas ({0})', [markedTotal])), selected: only, onSelected: (_) => setState(() => _onlyMarked = true)),
+                    ChoiceChip(label: Text(tr('Todas ({0})', [total])), selected: !only, onSelected: (_) => setState(() => _onlyMarked = false)),
+                  ]),
+                  const SizedBox(height: Ds.gap),
+                ],
+                for (final g in groups) ...[
+                  _header(g, (only ? g.marked : g.all).length),
+                  const SizedBox(height: Ds.s8),
+                  AppCard(
+                    padding: EdgeInsets.zero,
+                    child: Column(children: [
+                      for (var i = 0; i < (only ? g.marked : g.all).length; i++) ...[
+                        if (i > 0) Divider(height: 1, color: AppColors.textDim.withValues(alpha: 0.15)),
+                        _row(g, (only ? g.marked : g.all)[i], only: only),
+                      ],
+                    ]),
+                  ),
+                  const SizedBox(height: Ds.gap),
+                ],
+              ],
+            );
+          },
+        ),
+      ),
+    );
   }
 }
