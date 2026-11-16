@@ -239,9 +239,10 @@ class HubSection extends StatelessWidget {
     final urgent = h.kind == HeroKind.ongoing || h.kind == HeroKind.soon;
     final student = nc == null || nc.slot.studentCode.isEmpty ? null : app.studentByCode(nc.slot.studentCode);
     final buttons = <Widget>[];
-    Widget primary(String t, IconData i, VoidCallback f) =>
-        FilledButton.icon(onPressed: f, icon: Icon(i, size: 18), label: Text(t));
-    Widget soft(String t, IconData i, VoidCallback f) => OutlinedButton.icon(onPressed: f, icon: Icon(i, size: 18), label: Text(t));
+    Widget primary(String t, IconData i, VoidCallback f) => FilledButton.icon(
+        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(Ds.tap)), onPressed: f, icon: Icon(i, size: 18), label: Text(t));
+    Widget soft(String t, IconData i, VoidCallback f) => OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(Ds.tap)), onPressed: f, icon: Icon(i, size: 18), label: Text(t));
 
     for (final d in heroActions(view, h.kind, hasStudents: app.students.isNotEmpty, hasClassStudent: student != null)) {
       switch (d) {
@@ -284,11 +285,13 @@ class HubSection extends StatelessWidget {
         Text(h.title, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, height: 1.15)),
         const SizedBox(height: Ds.s4),
         Text(h.subtitle, style: TextStyle(fontSize: Ds.fontSupport, color: AppColors.textDim, height: 1.3)),
-        const SizedBox(height: Ds.s16),
-        Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: buttons),
+        if (buttons.isNotEmpty) ...[
+          const SizedBox(height: Ds.s16),
+          Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            for (var i = 0; i < buttons.length; i++) ...[if (i > 0) const SizedBox(height: Ds.s8), buttons[i]],
+          ]),
+        ],
         if (extra != null) ...[
-          const SizedBox(height: Ds.s20),
-          Divider(height: 1, color: AppColors.accent.withValues(alpha: 0.35)),
           const SizedBox(height: Ds.s16),
           extra,
         ],
@@ -296,14 +299,14 @@ class HubSection extends StatelessWidget {
     );
   }
 
-  /// "Hoje · 18:00", "Amanhã · 14:30", "Dom 15/11 · 12:00" (curto, cabe numa linha).
-  String _shortWhen(DateTime d, DateTime now) {
-    String two(int n) => n.toString().padLeft(2, '0');
+  /// Rótulo do dia, curto: "Hoje", "Amanhã" ou "Qua 18/11".
+  String _dayLabel(DateTime d, DateTime now) {
     final day = DateTime(d.year, d.month, d.day).difference(DateTime(now.year, now.month, now.day)).inDays;
     final wd = [tr('Seg'), tr('Ter'), tr('Qua'), tr('Qui'), tr('Sex'), tr('Sáb'), tr('Dom')];
-    final label = day == 0 ? tr('Hoje') : (day == 1 ? tr('Amanhã') : '${wd[d.weekday - 1]} ${fmtDayMonth(d)}');
-    return '$label · ${two(d.hour)}:${two(d.minute)}';
+    return day == 0 ? tr('Hoje') : (day == 1 ? tr('Amanhã') : '${wd[d.weekday - 1]} ${fmtDayMonth(d)}');
   }
+
+  String _hm(DateTime d) => '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 
   String _whoOf(SlotOccurrence o) {
     final st = o.slot.studentCode.isEmpty ? null : app.studentByCode(o.slot.studentCode);
@@ -311,6 +314,7 @@ class HubSection extends StatelessWidget {
   }
 
   /// O que vem depois da próxima aula (até 3, nos próximos 14 dias) e os atalhos da agenda.
+  /// "Depois" numa área recuada (hora e dia à esquerda, quem à direita) e os atalhos lado a lado, para o cartão não virar uma pilha de botões.
   Widget? _agendaExtra(BuildContext context, HubView view, SlotOccurrence? nc, List<HubDest> tools, DateTime now) {
     final isT = view == HubView.teacher;
     final slots = isT ? app.visibleAgenda : app.myAgenda;
@@ -319,14 +323,21 @@ class HubSection extends StatelessWidget {
         .where((o) => nc == null || o.startMs != nc.startMs)
         .take(3)
         .toList();
-    Widget act(IconData i, String t, VoidCallback f) => OutlinedButton.icon(onPressed: f, icon: Icon(i, size: 18), label: Text(t));
-    final actions = <Widget>[
-      if (nc != null && nc.slot.hasLink)
-        FilledButton.icon(
-          onPressed: () => openMeetingLink(context, app, nc.slot.link),
-          icon: const Icon(Icons.videocam, size: 18),
-          label: Text(isT ? tr('Abrir a sala da aula online') : tr('Entrar na aula online')),
-        ),
+    Widget act(IconData i, String t, VoidCallback f) => OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(minimumSize: const Size(0, Ds.tap), padding: const EdgeInsets.symmetric(horizontal: Ds.s8)),
+          onPressed: f,
+          icon: Icon(i, size: 18),
+          label: Text(t, maxLines: 1, overflow: TextOverflow.ellipsis),
+        );
+    final online = (nc != null && nc.slot.hasLink)
+        ? FilledButton.icon(
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(Ds.tap)),
+            onPressed: () => openMeetingLink(context, app, nc.slot.link),
+            icon: const Icon(Icons.videocam, size: 18),
+            label: Text(isT ? tr('Abrir a sala da aula online') : tr('Entrar na aula online')),
+          )
+        : null;
+    final shortcuts = <Widget>[
       if (isT || app.hasTeacherSide)
         KeyedSubtree(
             key: isT ? TourKeys.hubAgenda : null,
@@ -337,30 +348,54 @@ class HubSection extends StatelessWidget {
       if (tools.contains(HubDest.pickSlot))
         act(Icons.event_available_outlined, tr('Pegar horário'), () => _push(context, PickSlotPage(app: app))),
     ];
-    if (later.isEmpty && actions.isEmpty) return null;
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      if (later.isNotEmpty) ...[
-        Text(tr('Depois'), style: Ds.section()),
-        const SizedBox(height: Ds.s12),
-        for (final o in later)
-          Padding(
-            padding: const EdgeInsets.only(bottom: Ds.s12),
-            child: Row(children: [
-              const DsIconBadge(Icons.event_rounded, size: 30),
-              const SizedBox(width: Ds.s12),
-              Expanded(
-                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(_shortWhen(o.start, now), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody)),
-                  Text(_whoOf(o), maxLines: 1, overflow: TextOverflow.ellipsis, style: Ds.support()),
-                ]),
-              ),
+    if (later.isEmpty && shortcuts.isEmpty && online == null) return null;
+    Widget row(SlotOccurrence o) {
+      final name = _whoOf(o);
+      final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: Ds.s8),
+        child: Row(children: [
+          SizedBox(
+            width: 70,
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(_hm(o.start), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, height: 1.1)),
+              Text(_dayLabel(o.start, now), style: TextStyle(fontSize: 12.5, color: AppColors.textDim)),
             ]),
           ),
-        const SizedBox(height: Ds.s8),
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: AppColors.accent.withValues(alpha: 0.2),
+            child: Text(initial, style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800, fontSize: 14)),
+          ),
+          const SizedBox(width: Ds.s12),
+          Expanded(child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody))),
+        ]),
+      );
+    }
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (later.isNotEmpty) ...[
+        Container(
+          padding: const EdgeInsets.fromLTRB(Ds.s16, Ds.s12, Ds.s16, Ds.s4),
+          decoration: BoxDecoration(color: AppColors.bg.withValues(alpha: 0.35), borderRadius: BorderRadius.circular(Ds.radiusControl + 4)),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(tr('Depois'), style: Ds.section()),
+            for (var i = 0; i < later.length; i++) ...[
+              if (i > 0) Divider(height: 1, color: AppColors.accent.withValues(alpha: 0.18)),
+              row(later[i]),
+            ],
+          ]),
+        ),
+        const SizedBox(height: Ds.s12),
       ],
-      if (actions.isNotEmpty)
-        Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          for (var i = 0; i < actions.length; i++) ...[if (i > 0) const SizedBox(height: Ds.s8), actions[i]],
+      ?online,
+      if (online != null && shortcuts.isNotEmpty) const SizedBox(height: Ds.s8),
+      if (shortcuts.length == 1) shortcuts.first,
+      if (shortcuts.length >= 2)
+        Row(children: [
+          Expanded(child: shortcuts[0]),
+          const SizedBox(width: Ds.s8),
+          Expanded(child: shortcuts[1]),
         ]),
     ]);
   }
