@@ -304,3 +304,18 @@ bool looksLikeEmail(String text) {
   final t = text.trim();
   return t.length >= 6 && t.length <= 120 && RegExp(r'^[^\s@,;<>()\[\]\\"]+@[^\s@,;<>()\[\]\\"]+\.[^\s@.,;<>()\[\]\\"]{2,}$').hasMatch(t);
 }
+
+/// Código de pareamento (liga outro aparelho à conta): 8 símbolos do mesmo alfabeto dos códigos, escritos "XXXX-XXXX".
+/// Diferente do código de perfil, não tem dígito de verificação: vale 10 minutos e uma vez só, e o servidor confere.
+/// Aceita minúsculas, espaços e hífens; devolve null se não for isso. Também tira o código de um link (`?pair=…`).
+String? normalizePairCode(String input) {
+  var s = input.trim();
+  final q = RegExp(r'[?&]pair=([^&#\s]+)').firstMatch(s);
+  if (q != null) s = q.group(1)!;
+  s = s.toUpperCase().replaceAll(RegExp(r'[\s-]'), '');
+  if (s.length != 8) return null;
+  for (final c in s.split('')) {
+    if (!kCodeAlphabet.contains(c)) return null;
+  }
+  return '${s.substring(0, 4)}-${s.substring(4)}';
+}

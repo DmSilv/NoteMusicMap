@@ -55,6 +55,7 @@
 | `lib/ui/home_tabs.dart` | Abas da tela principal. Os ids são fixos (o hub e os atalhos usam estes números); só a ORDEM na barra de baixo muda. |
 | `lib/ui/hub_section.dart` | "Meu espaço": o topo da aba. Um destaque grande (o que importa agora), dois blocos do que pede ação e uma faixa de ferramentas. Muda conforme o papel (aluno, professor ou os dois). |
 | `lib/ui/install_banner.dart` | Faixa "Instale o Notemusic no celular" (só no navegador, enquanto não instalou). |
+| `lib/ui/join_account_page.dart` | Link que, aberto no aparelho novo, já traz o código de pareamento (a câmera comum do celular abre o app). |
 | `lib/ui/library_page.dart` | Abre o acervo. Sem [teacher]: o próprio professor (edita). Com [teacher]: o aluno (só abre e denuncia). [focusTitle] e [folder] vêm de uma tarefa "Material do professor": filtram e destacam o item. |
 | `lib/ui/link_bar.dart` | Aviso do alto da tela quando o vínculo online está DESLIGADO mas há quem dependa dele (modo professor, professor ou aluno vinculado): sem ele, nada chega ao aparelho. |
 | `lib/ui/markdown_lite.dart` | Mostra um texto em Markdown simples (o que a IA devolve): títulos com `##`, tópicos com `-`, listas numeradas, **negrito** e *itálico*. A leitura dos trechos mora no núcleo (`parseInline`), com testes; aqui só se… |
@@ -223,6 +224,7 @@
 | `packages/afina_core/test/note_gate_test.dart` | Alimenta a porta com [n] por [seconds], um quadro a cada 17 ms, desde [t0]. Devolve o instante final. |
 | `packages/afina_core/test/open_slots_test.dart` | Testes do módulo `open_slots`. |
 | `packages/afina_core/test/open_strings_grid_test.dart` | O afinador de cordas afina em quintas puras (Sol3 = 195,56 Hz). Em temperamento igual o Sol3 seria 196,00 Hz (3,9 cents acima). A grade precisa concordar. |
+| `packages/afina_core/test/pair_code_test.dart` | Testes do módulo `pair_code`. |
 | `packages/afina_core/test/pedal_test.dart` | a soma das amplitudes no pior caso fica contida (< 1,6) |
 | `packages/afina_core/test/photo_test.dart` | Cabeçalhos mínimos mas verdadeiros (o núcleo lê largura e altura deles). |
 | `packages/afina_core/test/pitch_detector_test.dart` | Gera um tom com harmônicos [amps] (índice 0 = fundamental). |
@@ -354,4 +356,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **311** arquivos mapeados.
+Total: **313** arquivos mapeados.

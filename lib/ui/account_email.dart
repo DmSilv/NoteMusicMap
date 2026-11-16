@@ -16,7 +16,10 @@ class AccountEmailBody extends StatefulWidget {
 
   /// Chamado quando entrar com e-mail deu certo (a subtela se fecha).
   final VoidCallback? onSignedIn;
-  const AccountEmailBody({super.key, required this.app, this.onSignedIn});
+
+  /// Já abre no "entrar numa conta que tem e-mail" (aparelho novo).
+  final bool startInLogin;
+  const AccountEmailBody({super.key, required this.app, this.onSignedIn, this.startInLogin = false});
 
   @override
   State<AccountEmailBody> createState() => _AccountEmailBodyState();
@@ -25,7 +28,7 @@ class AccountEmailBody extends StatefulWidget {
 class _AccountEmailBodyState extends State<AccountEmailBody> {
   final _email = TextEditingController();
   final _otp = TextEditingController();
-  bool _login = false; // false = ligar o e-mail a esta conta; true = entrar numa conta que já tem e-mail
+  late bool _login = widget.startInLogin; // false = ligar o e-mail a esta conta; true = entrar numa conta que já tem e-mail
   bool _changing = false; // trocar o e-mail que já está ligado
   bool _codeStep = false;
   bool _busy = false;

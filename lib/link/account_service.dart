@@ -86,6 +86,10 @@ class AccountReply {
   final String code;
   final String name;
 
+  /// Código de pareamento recém-gerado (`pair_new`) e quantos segundos ele vale.
+  final String pair;
+  final int pairTtl;
+
   /// Aparelhos da conta (resposta de `devices`) e o máximo permitido.
   final List<AccountDevice> devices;
   final int maxDevices;
@@ -110,6 +114,8 @@ class AccountReply {
     this.devices = const [],
     this.maxDevices = 5,
     this.limit = false,
+    this.pair = '',
+    this.pairTtl = 0,
   });
 }
 
@@ -153,6 +159,8 @@ class AccountService {
         name: cleanText(j['name'] as String?, max: kMaxName),
         devices: _devices(j['devices']),
         maxDevices: (j['max'] as num?)?.toInt() ?? 5,
+        pair: normalizePairCode((j['pair'] as String?) ?? '') ?? '',
+        pairTtl: ((j['ttl'] as num?)?.toInt() ?? 0).clamp(0, 3600),
       );
     } catch (_) {
       return const AccountReply(offline: true);
@@ -185,6 +193,13 @@ class AccountService {
 
   Future<AccountReply> loginVerify(String email, String otp, String secret, {String? drop}) =>
       _post({'action': 'login_verify', 'email': email, 'otp': otp, 'secret': secret, 'drop': ?drop});
+
+  /// Gera um código de 10 minutos para ligar outro aparelho a esta conta.
+  Future<AccountReply> pairNew(String code, String secret) => _post({..._auth(code, secret), 'action': 'pair_new'});
+
+  /// Aparelho novo: entra na conta com o código gerado no outro aparelho. Com a conta cheia, [drop] é o id do que sai.
+  Future<AccountReply> pairJoin(String pair, String secret, {String? drop}) =>
+      _post({'action': 'pair_join', 'pair': pair, 'secret': secret, 'drop': ?drop});
 
   /// Os aparelhos em que a conta está aberta.
   Future<AccountReply> devices(String code, String secret) => _post({..._auth(code, secret), 'action': 'devices'});

@@ -21,6 +21,8 @@
 //   unbind        { code, secret }                      -> desliga o e-mail do perfil
 //   login_start   { email, lang? }                      -> manda o código (sempre { ok } para não revelar quem tem conta)
 //   login_verify  { email, otp, secret, drop?, dn? }    -> { ok, code, name }: este aparelho (segredo novo) entra na conta
+//   pair_new      { code, secret }                      -> { ok, pair: 'XXXX-XXXX', ttl }: código de 10 min para ligar OUTRO aparelho
+//   pair_join     { pair, secret, drop?, dn? }          -> { ok, code, name }: o aparelho novo entra na conta (sem e-mail nem chave)
 //   devices       { code, secret }                      -> { ok, max, devices: [{ id, ou, br, md, dn, c, l, me }] }
 //   device_remove { code, secret, id }                  -> tira um aparelho da conta (nunca o último)
 //   device_name   { code, secret, dn }                  -> dá um apelido a ESTE aparelho
@@ -73,7 +75,26 @@ const RK_LEN = 25;
 const KEYS_PER_HOUR = 5; // chaves novas por perfil
 const U = (code) => `u:${code}`;
 const OTP = (eh) => `acct:otp:${eh}`;
-const DEV_CALLS_PER_HOUR = 60; // pedidos de aparelhos por perfil
+const DEV_CALLS_PER_HOUR = 180; // pedidos de aparelhos por perfil (a tela de adicionar confere a cada 10 s enquanto o código está aberto)
+const PAIR_TTL = 600; // segundos
+const PAIR_TRIES = 5;
+const PAIRS_PER_HOUR = 10; // códigos de pareamento por perfil
+const PAIR = (h) => `acct:pair:${h}`;
+const PAIR_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+/** O código digitado (com ou sem hífen, minúsculas) em 8 símbolos, ou null. */
+function normPair(v) {
+  if (typeof v !== 'string' || v.length > 24) return null;
+  const k = v.toUpperCase().replace(/[\s-]/g, '');
+  if (k.length !== 8) return null;
+  for (const c of k) if (!PAIR_ALPHABET.includes(c)) return null;
+  return k;
+}
+const pairHash = (k) => sha('pair|' + k);
+function newPair() {
+  let k = '';
+  for (let i = 0; i < 8; i++) k += PAIR_ALPHABET[crypto.randomInt(0, 32)];
+  return k;
+}
 
 function clientIp(req) {
   const xf = String((req.headers && req.headers['x-forwarded-for']) || '').split(',')[0].trim();
@@ -206,7 +227,7 @@ function makeHandler(deps = {}) {
         return send(200, { ok: true, enabled: mailEnabled(cfg), linked: !!o.prof.eh, hint: o.prof.em || '', hasKey: !!o.prof.rk });
       }
 
-      if (!['bind_start', 'bind_verify', 'unbind', 'login_start', 'login_verify', 'rk_new', 'rk_login', 'devices', 'device_remove', 'device_name'].includes(action)) return send(400, { error: 'Ação inválida.' });
+      if (!['bind_start', 'bind_verify', 'unbind', 'login_start', 'login_verify', 'rk_new', 'rk_login', 'devices', 'device_remove', 'device_name', 'pair_new', 'pair_join'].includes(action)) return send(400, { error: 'Ação inválida.' });
 
       // Ficha do aparelho de quem pede (sistema, navegador, modelo): o servidor deduz; nada de IP.
       const infoOf = () => {
@@ -240,12 +261,41 @@ function makeHandler(deps = {}) {
         return send(200, { ok: true, max: devices.MAX_DEVICES, devices: devices.list(o.prof).map((d) => devices.view(d, mine)) });
       }
 
+      // ---------------- ligar outro aparelho com um código de 10 minutos (sem e-mail e sem chave) ----------------
+      // O aparelho que já está na conta gera o código (pair_new) e o aparelho novo o digita (pair_join). Uso único,
+      // 5 tentativas, 10 minutos, só o hash fica guardado.
+      if (action === 'pair_new') {
+        const o = await owner();
+        if (!o) return;
+        const n = await store.incr(`acct:pairn:${o.code}:${hour}`, 3600);
+        if (n.n > PAIRS_PER_HOUR) return send(429, { error: 'Muitas tentativas. Tente mais tarde.' });
+        const k = newPair();
+        await store.set(PAIR(pairHash(k)), JSON.stringify({ c: o.code, n: 0 }), PAIR_TTL);
+        return send(200, { ok: true, pair: `${k.slice(0, 4)}-${k.slice(4)}`, ttl: PAIR_TTL });
+      }
       /** Põe o aparelho de quem pede na conta (e responde se a conta já está cheia). Devolve true se entrou. */
       const joinDevice = async (code, prof, secret, dropId, name) => {
         const r = await devices.add(store, code, prof, devices.secretHash(secret), infoOf(), name, clock(), dropId);
         if (r.limit) { limitReply(r); return false; }
         return true;
       };
+
+      if (action === 'pair_join') {
+        const k = normPair(b.pair);
+        const secret = String(b.secret || '');
+        if (!k || !/^[0-9a-f]{64}$/.test(secret)) return bad(400, 'Código inválido ou vencido.');
+        const key = PAIR(pairHash(k));
+        let rec = null;
+        try { rec = JSON.parse((await store.get(key)) || 'null'); } catch (_) { rec = null; }
+        if (!rec || !rec.c || rec.n >= PAIR_TRIES) return bad(403, 'Código inválido ou vencido.');
+        const code = rec.c;
+        const prof = await store.hgetall(U(code));
+        if (!prof.h || prof.bl === '1') return bad(403, 'Código inválido ou vencido.');
+        if (!(await joinDevice(code, prof, secret, b.drop, b.dn))) return; // conta cheia: 422, o código continua valendo
+        await store.set(key, '', 1); // uso único
+        await store.hset(U(code), 'kr', String(clock()));
+        return send(200, { ok: true, code, name: prof.n || '' });
+      }
 
       // ---------------- chave de recuperação de 25 caracteres (não depende de e-mail) ----------------
       if (action === 'rk_new') {
@@ -375,4 +425,4 @@ function makeHandler(deps = {}) {
 
 module.exports = makeHandler();
 module.exports.makeHandler = makeHandler;
-module.exports._internal = { normEmail, maskEmail, normKey };
+module.exports._internal = { normEmail, maskEmail, normKey, normPair };

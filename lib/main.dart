@@ -26,6 +26,7 @@ import 'ui/design_system.dart';
 import 'ui/suggestions.dart';
 import 'ui/notifications_sheet.dart';
 import 'ui/person_avatar.dart';
+import 'ui/join_account_page.dart' show JoinAccountPage, handleIncomingPairCode;
 import 'ui/profile_page.dart' show ProfilePage, handleIncomingTeacherCode;
 import 'ui/metronome_page.dart';
 import 'ui/study_page.dart';
@@ -119,6 +120,7 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
       TourChoice.hasTeacher => 'door_student',
       TourChoice.teacher => 'door_teacher',
       TourChoice.look => 'door_look',
+      TourChoice.hasAccount => 'door_account',
     });
     unawaited(widget.app.checkVibration());
     switch (choice) {
@@ -136,6 +138,12 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
         }
       case TourChoice.look:
         break;
+      case TourChoice.hasAccount:
+        // Aparelho novo de quem já tem conta: leva direto à tela de entrar (código do outro aparelho, chave ou e-mail).
+        final c = _navKey.currentContext;
+        if (c == null || !mounted) return;
+        // ignore: use_build_context_synchronously
+        await Navigator.of(c).push<bool>(MaterialPageRoute<bool>(builder: (_) => JoinAccountPage(app: widget.app)));
     }
   }
 
@@ -184,7 +192,7 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
       WidgetsBinding.instance.addPostFrameCallback((_) => _onboarding());
     }
     // Aberto por um QR/link de aluno (?aluno=CÓDIGO): leva ao cadastro já preenchido.
-    if (widget.app.incomingStudentCode != null || widget.app.incomingTeacherCode != null) {
+    if (widget.app.incomingStudentCode != null || widget.app.incomingTeacherCode != null || widget.app.incomingPairCode != null) {
       Future<void>.delayed(const Duration(milliseconds: 1500), () {
         final ctx = _navKey.currentContext;
         // O contexto vem do navegador do app, lido agora (depois da espera), não guardado antes.
@@ -193,6 +201,8 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
         handleIncomingStudentCode(ctx, widget.app);
         // ignore: use_build_context_synchronously
         handleIncomingTeacherCode(ctx, widget.app);
+        // ignore: use_build_context_synchronously
+        handleIncomingPairCode(ctx, widget.app);
       });
     }
     // Aviso de erro: mesmo formato sempre (ícone de alerta, frase e código para citar).

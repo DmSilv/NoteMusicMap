@@ -31,6 +31,8 @@ Ações (todas POST):
   unbind        { code, secret }                      -> desliga o e-mail do perfil
   login_start   { email, lang? }                      -> manda o código (sempre { ok } para não revelar quem tem conta)
   login_verify  { email, otp, secret, drop?, dn? }    -> { ok, code, name }: este aparelho (segredo novo) entra na conta
+  pair_new      { code, secret }                      -> { ok, pair: 'XXXX-XXXX', ttl }: código de 10 min para ligar OUTRO aparelho
+  pair_join     { pair, secret, drop?, dn? }          -> { ok, code, name }: o aparelho novo entra na conta (sem e-mail nem chave)
   devices       { code, secret }                      -> { ok, max, devices: [{ id, ou, br, md, dn, c, l, me }] }
   device_remove { code, secret, id }                  -> tira um aparelho da conta (nunca o último)
   device_name   { code, secret, dn }                  -> dá um apelido a ESTE aparelho
@@ -49,6 +51,8 @@ Custo: ~6 comandos por pedido de código, ~8 ao confirmar; só quando a pessoa u
 | `devices` | aparelhos da conta |
 | `device_remove` | — |
 | `device_name` | — |
+| `pair_new` | ligar outro aparelho com um código de 10 minutos (sem e-mail e sem chave) O aparelho que já está na conta gera o código (pair_new) e o aparelho novo o digita (pair_join). Uso único, 5 tentativas, 10 minutos, só o hash fica guardado. |
+| `pair_join` | — |
 | `rk_new` | chave de recuperação de 25 caracteres (não depende de e-mail) |
 | `rk_login` | — |
 | `unbind` | desligar o e-mail |

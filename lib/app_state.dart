@@ -461,6 +461,50 @@ class AppState extends ChangeNotifier {
     return r.offline ? tr('Sem conexão com o servidor. Tente de novo quando a internet voltar.') : tr('Não foi possível concluir. Tente de novo.');
   }
 
+  /// Gera um código de 10 minutos para ligar outro aparelho a esta conta. Devolve (código, segundos) ou o texto do problema.
+  Future<({String? pair, int ttl, String? problem})> pairNew() async {
+    final reg = await links.rev(profile.shareCode, profile.secret); // o perfil só vai ao servidor quando a pessoa pede
+    if (!reg.ok) {
+      return (pair: null, ttl: 0, problem: reg.unavailable ? tr('O servidor não está disponível agora. Tente mais tarde.') : (reg.offline ? tr('Sem conexão com o servidor. Tente de novo quando a internet voltar.') : tr('Não foi possível concluir. Tente de novo.')));
+    }
+    final r = await account.pairNew(profile.shareCode, profile.secret);
+    if (r.ok && r.pair.isNotEmpty) return (pair: r.pair, ttl: r.pairTtl > 0 ? r.pairTtl : 600, problem: null);
+    if (r.tooMany) return (pair: null, ttl: 0, problem: tr('Muitas tentativas. Tente mais tarde.'));
+    if (r.offline) return (pair: null, ttl: 0, problem: tr('Sem conexão com o servidor. Tente de novo quando a internet voltar.'));
+    return (pair: null, ttl: 0, problem: tr('Não foi possível concluir. Tente de novo.'));
+  }
+
+  /// Código de pareamento que chegou por link (`?pair=XXXX-XXXX`), para o app oferecer entrar na conta.
+  String? incomingPairCode;
+
+  /// Aparelho novo: entra na conta com o código gerado no outro aparelho. Com a conta cheia devolve
+  /// [deviceLimitProblem] e preenche [deviceChoices]; repita com [drop]. Devolve null se deu certo.
+  Future<String?> pairJoin(String text, {String? drop}) async {
+    final pair = normalizePairCode(text);
+    if (pair == null) return tr('Código inválido ou vencido. Confira ou peça outro.');
+    final fresh = _pendingLogin ?? Profile.create(math.Random.secure());
+    final r = await account.pairJoin(pair, fresh.secret, drop: drop);
+    if (r.limit) {
+      _pendingLogin = fresh;
+      deviceChoices = r.devices;
+      return deviceLimitProblem;
+    }
+    _pendingLogin = null;
+    if (!r.ok) {
+      if (r.tooMany) return tr('Muitas tentativas. Tente mais tarde.');
+      if (r.unavailable) return tr('O servidor não está disponível agora. Tente mais tarde.');
+      if (r.offline) return tr('Sem conexão com o servidor. Tente de novo quando a internet voltar.');
+      return tr('Código inválido ou vencido. Confira ou peça outro.');
+    }
+    if (r.code.isEmpty) return tr('Não foi possível concluir. Tente de novo.');
+    final p = Profile(id: newUuid(math.Random.secure()), secret: fresh.secret, shareCode: r.code);
+    p.name = r.name.isNotEmpty ? r.name : profile.name;
+    _adoptProfile(p);
+    if (!linkEnabled) setLinkEnabled(true); // a conta tem vínculos: liga para trazê-los de volta
+    notifyListeners();
+    return null;
+  }
+
   /// Aparelho novo: entra com a chave de 25 e passa a ser um dos aparelhos da conta (até 5; os outros continuam).
   /// Com a conta cheia devolve [deviceLimitProblem] e preenche [deviceChoices]; repita com [drop] = id do que sai.
   Future<String?> recoveryKeyLogin(String text, {String? drop}) async {
@@ -3038,6 +3082,7 @@ class AppState extends ChangeNotifier {
     final q = Uri.base.queryParameters;
     if (q['aluno'] != null) incomingStudentCode = formatShareCode(q['aluno']!);
     if (q['professor'] != null) incomingTeacherCode = formatShareCode(q['professor']!);
+    if (q['pair'] != null) incomingPairCode = normalizePairCode(q['pair']!);
   }
 
   void toggleAssignment(Student s, String id) {

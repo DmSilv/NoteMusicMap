@@ -271,3 +271,74 @@ test('"visto por último" não ressuscita um aparelho tirado nem apaga um que ac
   assert.equal((await call(H.l, { action: 'sync', code: P1, secret: S[1] })).statusCode, 403, 'o tirado continua tirado');
   assert.equal((await call(H.l, { action: 'sync', code: P1, secret: S[2] })).statusCode, 200, 'o novo continua na conta');
 });
+
+// ---------------- ligar outro aparelho com um código de 10 minutos ----------------
+const pairNew = (H, s) => call(H.a, { action: 'pair_new', code: P1, secret: s });
+const pairJoin = (H, pair, s, extra) => call(H.a, { action: 'pair_join', pair, secret: s, ...(extra || {}) });
+
+test('código de pareamento: um aparelho da conta gera, o novo digita e entra sem e-mail nem chave', async () => {
+  const H = mk();
+  await born(H, S[0]);
+  const n = await pairNew(H, S[0]);
+  assert.equal(n.statusCode, 200);
+  assert.match(n.json().pair, /^[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}$/);
+  assert.equal(n.json().ttl, 600);
+  const j = await pairJoin(H, n.json().pair.toLowerCase().replace('-', ' '), S[1], { dn: 'Celular novo' });
+  assert.equal(j.statusCode, 200);
+  assert.equal(j.json().code, P1);
+  assert.equal((await call(H.l, { action: 'sync', code: P1, secret: S[1] })).statusCode, 200);
+  assert.equal((await call(H.l, { action: 'sync', code: P1, secret: S[0] })).statusCode, 200, 'o antigo continua');
+  assert.equal((await list(H, S[1])).json().devices.find((d) => d.me).dn, 'Celular novo');
+});
+
+test('código de pareamento: uso único e vence em 10 minutos', async () => {
+  const H = mk();
+  await born(H, S[0]);
+  const a = (await pairNew(H, S[0])).json().pair;
+  assert.equal((await pairJoin(H, a, S[1])).statusCode, 200);
+  assert.equal((await pairJoin(H, a, S[2])).statusCode, 403, 'já foi usado');
+  const b = (await pairNew(H, S[0])).json().pair;
+  NOW += 11 * 60000;
+  assert.equal((await pairJoin(H, b, S[3])).statusCode, 403, 'venceu');
+});
+
+test('código de pareamento: errado, curto ou com símbolo fora do alfabeto é recusado; só o dono gera', async () => {
+  const H = mk();
+  await born(H, S[0]);
+  for (const bad of ['', 'ABC', 'AAAA-BBBB', '1111-1111', 'ÃÃÃÃ-ÃÃÃÃ', 'x'.repeat(40)]) {
+    const r = await pairJoin(H, bad, S[1]);
+    assert.ok([400, 403].includes(r.statusCode), String(bad));
+  }
+  assert.equal((await pairNew(H, S[4])).statusCode, 403, 'quem não é da conta não gera');
+  assert.equal((await call(H.l, { action: 'sync', code: P1, secret: S[1] })).statusCode, 403);
+});
+
+test('código de pareamento: com a conta cheia responde 422 e o código continua valendo para escolher qual sai', async () => {
+  const H = mk();
+  await born(H, S[0]);
+  const key = await rkNew(H, S[0]);
+  for (let i = 1; i < 5; i++) await rkLogin(H, key, S[i]);
+  const p = (await pairNew(H, S[0])).json().pair;
+  const full = await pairJoin(H, p, S[5]);
+  assert.equal(full.statusCode, 422);
+  assert.equal(full.json().devices.length, 5);
+  const drop = full.json().devices[1].id;
+  assert.equal((await pairJoin(H, p, S[5], { drop })).statusCode, 200);
+  assert.equal((await call(H.l, { action: 'sync', code: P1, secret: S[5] })).statusCode, 200);
+});
+
+test('código de pareamento: perfil bloqueado não deixa entrar e há limite por hora para gerar', async () => {
+  const H = mk();
+  await born(H, S[0]);
+  const prof = hashes.get(`u:${P1}`);
+  let last = 0;
+  for (let i = 0; i < 12; i++) last = (await pairNew(H, S[0])).statusCode;
+  assert.equal(last, 429);
+  H.reset = true;
+  const H2 = mk();
+  await born(H2, S[0]);
+  const p = (await pairNew(H2, S[0])).json().pair;
+  const pr = hashes.get(`u:${P1}`);
+  (pr.set ? pr.set('bl', '1') : (pr.bl = '1'));
+  assert.equal((await pairJoin(H2, p, S[1])).statusCode, 403);
+});

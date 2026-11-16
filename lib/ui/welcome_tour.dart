@@ -7,7 +7,7 @@ import 'app_logo.dart';
 import 'theme.dart';
 
 /// Para onde a pessoa quer ir depois da apresentação.
-enum TourChoice { study, hasTeacher, teacher, look }
+enum TourChoice { study, hasTeacher, teacher, look, hasAccount }
 
 /// Apresentação do primeiro acesso: 4 telas curtas com telas reais do app e, no fim,
 /// três portas (estudar, tenho professor, sou professor). Não pede nada: nem cadastro
@@ -743,6 +743,14 @@ class _WelcomeTourState extends State<WelcomeTour> {
             ),
             Column(
               children: [
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () => _finish(TourChoice.hasAccount),
+                    icon: const Icon(Icons.login_rounded, size: 18),
+                    label: Text(tr('Já tenho conta em outro aparelho'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                    style: TextButton.styleFrom(minimumSize: const Size(48, 44), foregroundColor: AppColors.accent),
+                  ),
+                ),
                 Center(
                   child: TextButton(
                     onPressed: () => _finish(TourChoice.look),

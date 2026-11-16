@@ -18,6 +18,7 @@ import 'hello_bar.dart';
 import 'link_bar.dart';
 import 'design_system.dart';
 import 'devices_page.dart';
+import 'join_account_page.dart';
 import 'person_avatar.dart';
 import 'photo_pick.dart';
 import 'teaching_ui.dart';
@@ -453,6 +454,8 @@ class _ProfilePageState extends State<ProfilePage> {
                           '${waiting > 0 ? tr(' · {0} para validar', [waiting]) : ''}',
                   onTap: () => _push(TeacherPage(app: app))),
             _section(tr('Conta')),
+            _row(Icons.login, tr('Já tenho conta em outro aparelho'),
+                sub: tr('Ligue este aparelho à sua conta'), onTap: () => _push(JoinAccountPage(app: app))),
             if (app.emailEnabled)
               _row(Icons.alternate_email, tr('E-mail da conta'),
                   sub: app.emailHint.isEmpty ? tr('Recupere a conta em outro aparelho, sem senha') : app.emailHint,

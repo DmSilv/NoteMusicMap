@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import '../link/account_service.dart' show AccountDevice;
 import 'design_system.dart';
+import 'join_account_page.dart' show showAddDeviceSheet;
 import 'theme.dart';
 import 'widgets.dart';
 
@@ -194,6 +195,17 @@ class _DevicesBodyState extends State<DevicesBody> {
         return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           Text(tr('Sua conta pode ficar aberta em até {0} aparelhos.', [app.maxDevices]), style: Ds.support()),
           const SizedBox(height: Ds.s16),
+          if (list.length < app.maxDevices) ...[
+            SizedBox(
+              height: Ds.primaryHeight,
+              child: FilledButton.icon(
+                onPressed: () => showAddDeviceSheet(context, app),
+                icon: const Icon(Icons.add_to_queue),
+                label: Text(tr('Adicionar um aparelho'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              ),
+            ),
+            const SizedBox(height: Ds.s16),
+          ],
           if (list.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: Ds.s24),
