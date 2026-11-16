@@ -22,6 +22,9 @@ class FeedbackService extends ChangeNotifier {
   final http.Client _http;
   SharedPreferences? _prefs;
 
+  /// O código do perfil de quem responde (o painel do dono mostra de quem é a resposta). Definido pelo app.
+  String Function()? profileCode;
+
   /// Identificador da pesquisa (a resposta da pergunta 1 usa este id).
   static const String surveyId = 'mais_usa';
   static const String improveId = 'melhorar';
@@ -121,7 +124,7 @@ class FeedbackService extends ChangeNotifier {
       final r = await _http
           .post(ep,
               headers: {'Content-Type': 'application/json', 'X-Device-Id': await _deviceId()},
-              body: jsonEncode(body))
+              body: jsonEncode({...body, if ((profileCode?.call() ?? '').isNotEmpty) 'profile': profileCode!()}))
           .timeout(const Duration(seconds: 15));
       if (r.statusCode == 200) return true;
       return r.statusCode == 400 || r.statusCode == 429;
@@ -159,6 +162,14 @@ class FeedbackService extends ChangeNotifier {
     }
     await _savePending();
     notifyListeners();
+  }
+
+  /// Uma vez por perfil neste aparelho: diz ao servidor de quem é este aparelho, para as respostas que já foram enviadas
+  /// (sem o perfil) também aparecerem no painel com o dono. Não cria resposta nova.
+  Future<void> identify({required String version, required String platform}) async {
+    final code = profileCode?.call() ?? '';
+    if (code.isEmpty || _prefs?.getString('fb_ident') == code) return;
+    if (await _post(_base('identify', version, platform))) await _prefs?.setString('fb_ident', code);
   }
 
   /// Nota de 1 a 5 (com comentário opcional). Pode ser trocada depois.

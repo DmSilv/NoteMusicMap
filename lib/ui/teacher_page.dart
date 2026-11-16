@@ -17,6 +17,7 @@ import 'qr_scan_page.dart';
 import 'scale_exercise_page.dart';
 import 'person_avatar.dart';
 import 'student_identity.dart';
+import 'teaching_ui.dart';
 import 'task_form_page.dart';
 import 'validation_ui.dart';
 import 'hello_bar.dart';
@@ -443,19 +444,6 @@ class _TeacherPageState extends State<TeacherPage> {
             icon: const Icon(Icons.calendar_month_outlined),
             onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => AgendaPage(app: app))),
           ),
-          ListenableBuilder(
-            listenable: app,
-            builder: (context, _) => app.students.isEmpty || app.teacherLocked
-                ? const SizedBox.shrink()
-                : TextButton.icon(
-                    onPressed: () => setState(() {
-                      _manage = !_manage;
-                      _selected.clear();
-                    }),
-                    icon: Icon(_manage ? Icons.check : Icons.checklist, size: 20),
-                    label: Text(_manage ? tr('Concluir') : tr('Gerenciar')),
-                  ),
-          ),
           // O que não é do dia a dia fica num menu: ler QR, importar, métodos e a senha da tela.
           ListenableBuilder(
             listenable: app,
@@ -681,12 +669,24 @@ class _TeacherPageState extends State<TeacherPage> {
     final n = app.students.length;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Wrap(spacing: 8, runSpacing: 8, children: [
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Expanded(child: Wrap(spacing: 8, runSpacing: 8, children: [
         chip(Icons.groups_outlined, n == 1 ? tr('1 aluno') : tr('{0} alunos', [n])),
         if (waiting > 0)
           chip(Icons.fact_check_outlined, tr('{0} para validar', [waiting]),
               alert: true, onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => ValidationQueuePage(app: app)))),
         if (today > 0) chip(Icons.event_outlined, today == 1 ? tr('1 aula hoje') : tr('{0} aulas hoje', [today])),
+        ])),
+        if (n > 0 && !app.teacherLocked)
+          TextButton.icon(
+            style: TextButton.styleFrom(minimumSize: const Size(Ds.tap, Ds.tap), padding: const EdgeInsets.symmetric(horizontal: Ds.s8)),
+            onPressed: () => setState(() {
+              _manage = !_manage;
+              _selected.clear();
+            }),
+            icon: Icon(_manage ? Icons.check : Icons.checklist, size: 20),
+            label: Text(_manage ? tr('Concluir') : tr('Gerenciar')),
+          ),
       ]),
     );
   }
@@ -751,9 +751,10 @@ class _TeacherPageState extends State<TeacherPage> {
                             style: TextStyle(color: classToday ? AppColors.accent : AppColors.textDim, fontSize: 13, fontWeight: classToday ? FontWeight.w700 : FontWeight.w400)),
                       ),
                     ]),
-                    if (awaiting > 0 || open > 0 || absences > 0) ...[
+                    if (awaiting > 0 || open > 0 || absences > 0 || s.instrument != null) ...[
                       const SizedBox(height: 7),
                       Wrap(spacing: 6, runSpacing: 4, children: [
+                        if (s.instrument != null) _tag(teachingById(s.instrument)?.label ?? '', AppColors.textDim),
                         if (awaiting > 0) _tag(tr('{0} para validar', [awaiting]), AppColors.accent),
                         if (open > 0) _tag(tr('{0} em aberto', [open]), AppColors.flat),
                         if (absences > 0) _tag(tr('{0} falta{1}', [absences, absences == 1 ? '' : 's']), AppColors.sharp),
@@ -775,6 +776,8 @@ class _TeacherPageState extends State<TeacherPage> {
                         await _renameStudent(context, app, s);
                       case 'code':
                         await _editStudentCode(context, app, s);
+                      case 'instrument':
+                        await showStudentInstrumentSheet(context, app, s);
                       case 'delete':
                         final ok = await _confirmDelete(context, tr('Excluir {0}?', [app.labelOf(s)]),
                             tr('Apaga o histórico, as tarefas e as observações deste aluno neste aparelho{0}. Não dá para desfazer.', [app.hasLessonWith(s.id) ? tr(', e descarta a aula em andamento com ele') : '']));
@@ -788,6 +791,7 @@ class _TeacherPageState extends State<TeacherPage> {
                     PopupMenuItem(value: 'open', child: Text(tr('Abrir'))),
                     PopupMenuItem(value: 'rename', child: Text(tr('Renomear'))),
                     PopupMenuItem(value: 'code', child: Text(tr('Código do aluno'))),
+                    PopupMenuItem(value: 'instrument', child: Text(tr('Instrumento do aluno'))),
                     PopupMenuItem(value: 'delete', child: Text(tr('Excluir aluno'))),
                   ],
                 ),
@@ -968,7 +972,17 @@ class StudentPage extends StatelessWidget {
             child: ListView(
               padding: Ds.screen,
               children: [
-                AppCard(child: StudentIdentity(app: app, student: s, large: true)),
+                AppCard(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    StudentIdentity(app: app, student: s, large: true),
+                    const SizedBox(height: Ds.s12),
+                    ActionChip(
+                      avatar: const Icon(Icons.piano_outlined, size: 18),
+                      label: Text(s.instrument == null ? tr('Instrumento do aluno') : (teachingById(s.instrument)?.label ?? '')),
+                      onPressed: () => showStudentInstrumentSheet(context, app, s),
+                    ),
+                  ]),
+                ),
                 const SizedBox(height: Ds.gap),
                 _LessonCard(
                   app: app,

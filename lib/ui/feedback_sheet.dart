@@ -13,7 +13,7 @@ String _version() => kBuildId.isEmpty ? 'dev' : kBuildId.substring(0, kBuildId.l
 String _platform() => kIsWeb ? 'web' : defaultTargetPlatform.name;
 
 final String _privacy =
-    tr('Enviamos só a sua resposta e a versão do app, sem nome, e-mail nem áudio. Você escolhe se envia.');
+    tr('Enviamos a sua resposta, a versão do app e o código do seu perfil, sem e-mail nem áudio. Você escolhe se envia.');
 
 void _afterSend(AppState app, bool delivered, String thanks) {
   app.say(delivered ? thanks : tr('Sem conexão agora: guardei sua resposta e envio depois. Obrigado!'));

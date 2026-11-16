@@ -4405,6 +4405,8 @@ class AppState extends ChangeNotifier {
     roleCardHidden = p.getBool('roleCardHidden') ?? false;
     await ai.load();
     await feedback.load(p);
+    feedback.profileCode = () => profile.shareCode;
+    unawaited(feedback.identify(version: kBuildId.isEmpty ? 'dev' : kBuildId.substring(0, kBuildId.length < 7 ? kBuildId.length : 7), platform: kIsWeb ? 'web' : defaultTargetPlatform.name));
     await dictation.load(p);
     tone.setVolume(p.getDouble('toneVol') ?? 0.9);
     tone.timbre = ToneTimbre.values[(p.getInt('timbre') ?? 0).clamp(0, ToneTimbre.values.length - 1)];

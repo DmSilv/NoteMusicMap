@@ -392,6 +392,7 @@
       <button data-tab="usage" role="tab" aria-selected="false" title="Telas mais usadas e horários mais cheios"><svg class="i" aria-hidden="true"><use href="#i-chart"/></svg><span>Uso</span></button>
       <button data-tab="devices" role="tab" aria-selected="false" title="Celulares, sistemas e navegadores dos usuários"><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg><span>Aparelhos</span></button>
       <button data-tab="people" role="tab" aria-selected="false" title="Perfis, vínculos, suporte e acervo"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg><span>Pessoas</span></button>
+      <button data-tab="survey" role="tab" aria-selected="false" title="Notas e respostas da pesquisa rápida: de quem e de qual aparelho"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg><span>Pesquisa</span></button>
       <button data-tab="bugs" role="tab" aria-selected="false" title="Erros do app e avisos de problema grave"><svg class="i" aria-hidden="true"><use href="#i-bug"/></svg><span>Bugs</span> <span id="bugBadge" class="tag x" hidden></span></button>
       <button data-tab="features" role="tab" aria-selected="false" title="Liberar novidades aos poucos"><svg class="i" aria-hidden="true"><use href="#i-toggle"/></svg><span>Recursos</span></button>
       <button data-tab="fing" role="tab" aria-selected="false" title="Corrigir ou incluir o dedilhado do violino (método de Flesch) que o app mostra nas partituras"><svg class="i" aria-hidden="true"><use href="#i-music"/></svg><span>Partituras</span></button>
@@ -555,6 +556,24 @@
         <div class="toolbar" style="margin-top:10px"><button id="bPrev">‹ Anterior</button><button id="bNext">Próxima ›</button><span class="empty" id="bNote"></span></div>
       </div>
       <p class="note">Relatórios anônimos enviados pelo app e erros do servidor (plataforma "server"). Sem nome, código de perfil, e-mail ou áudio. Um bug "resolvido" volta como "reaberto" se aparecer numa versão publicada depois da correção; bugs sem ocorrência há 90 dias são apagados.</p>
+    </main>
+
+    <!-- ===== Pesquisa ===== -->
+    <main id="tab-survey" hidden>
+      <h2>Pesquisa e notas</h2>
+      <p class="lead">O que as pessoas responderam na pesquisa rápida e na nota do app, de quem veio (perfil) e de qual aparelho. Respostas antigas ganham o dono quando o aparelho abre o app de novo.</p>
+      <div class="toolbar">
+        <label class="empty">Mostrar <select id="svKind"><option value="">Tudo</option><option value="survey">Só pesquisa</option><option value="rating">Só notas</option></select></label>
+        <label class="empty">Pergunta <select id="svQ"><option value="">Todas</option></select></label>
+        <label class="empty"><input type="checkbox" id="svOwner"> só com dono</label>
+        <button id="svReload">Atualizar</button><span class="empty" id="svNote"></span>
+      </div>
+      <div class="two">
+        <div class="card"><div class="k">Respostas</div><div class="v" id="svTotal">–</div><div class="s" id="svOwned"></div></div>
+        <div class="card"><div class="k">Nota média</div><div class="v" id="svAvg">–</div><div class="s" id="svAvgS"></div></div>
+      </div>
+      <div class="card"><div class="k">O que mais usam (pesquisa)</div><div id="svMost"></div></div>
+      <div class="card"><div class="k">Respostas</div><div style="overflow-x:auto"><table id="svTable"><thead><tr><th>Quando</th><th>Quem</th><th>Aparelho</th><th>Resposta</th></tr></thead><tbody></tbody></table></div></div>
     </main>
 
     <!-- ===== Aparelhos ===== -->
@@ -1832,6 +1851,64 @@
     return out;
   }
   function devMatch(o, skip) { return devData.fields.every(function (f) { return f === skip || !devFilter[f] || o.f[f] === devFilter[f]; }); }
+  // ---------------- Pesquisa ----------------
+  var svData = null;
+  function loadSurvey() {
+    $('svNote').textContent = 'Carregando…';
+    post({ action: 'survey' }).then(function (r) {
+      if (r.status === 200) { svData = r.j; $('svNote').textContent = ''; renderSurvey(); }
+      else if (!fail(r.status)) $('svNote').textContent = 'Não foi possível carregar (erro ' + r.status + ').';
+    }).catch(function () { $('svNote').textContent = 'Sem conexão com o servidor.'; });
+  }
+  var QNAME = { mais_usa: 'O que mais usa', melhorar: 'O que melhorar' };
+  function svWho(x) {
+    if (!x.code) return 'aparelho anônimo (' + x.dev.slice(0, 6) + ')';
+    var w = x.who, s = (w && w.name ? w.name + ' · ' : '') + x.code;
+    if (w) s += w.teacher ? ' · professor' : (w.student ? ' · aluno' : '');
+    return s;
+  }
+  function svDev(x) {
+    var w = x.who; if (!w) return (x.plat || '—') + (x.ver ? ' · ' + x.ver : '');
+    var parts = [w.md || (w.mob ? 'celular' : 'computador'), w.os, w.br && w.br.replace(/\d+$/, ''), w.city || w.region].filter(Boolean);
+    return (parts.length ? parts.join(' · ') : (x.plat || '—')) + (x.ver ? ' · v' + x.ver : '');
+  }
+  function renderSurvey() {
+    if (!svData) return;
+    var kind = $('svKind').value, q = $('svQ').value, own = $('svOwner').checked;
+    var qs = {}; svData.rows.forEach(function (x) { if (x.kind === 'survey') qs[x.q] = 1; });
+    var sel = $('svQ'), keep = sel.value;
+    if (sel.options.length - 1 !== Object.keys(qs).length) {
+      sel.innerHTML = ''; var o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Todas'; sel.appendChild(o0);
+      Object.keys(qs).forEach(function (k) { var o = document.createElement('option'); o.value = k; o.textContent = QNAME[k] || k; sel.appendChild(o); });
+      sel.value = keep;
+    }
+    var rows = svData.rows.filter(function (x) { return (!kind || x.kind === kind) && (!q || x.q === q) && (!own || x.code); });
+    $('svTotal').textContent = fmt(svData.total);
+    $('svOwned').textContent = fmt(svData.withOwner) + ' com dono nas últimas ' + fmt(svData.rows.length);
+    var rt = svData.summary.rating;
+    $('svAvg').textContent = rt.average == null ? '–' : String(rt.average).replace('.', ',') + ' ★';
+    $('svAvgS').textContent = rt.count + ' aparelho(s) deram nota';
+    var most = $('svMost'); most.innerHTML = '';
+    var s1 = (svData.summary.surveys || {}).mais_usa;
+    if (!s1) most.textContent = 'Ainda sem respostas.';
+    else Object.keys(s1.answers).sort(function (a, b) { return s1.answers[b] - s1.answers[a]; }).forEach(function (k) {
+      var d = document.createElement('div'); d.className = 'row'; var a = document.createElement('span'); a.textContent = k; var c = document.createElement('span'); c.className = 'c'; c.textContent = s1.answers[k]; d.appendChild(a); d.appendChild(c); most.appendChild(d);
+    });
+    var tb = $('svTable').querySelector('tbody'); tb.innerHTML = '';
+    if (!rows.length) { var tr0 = document.createElement('tr'); var td0 = document.createElement('td'); td0.colSpan = 4; td0.className = 'empty'; td0.textContent = 'Nada por aqui com estes filtros.'; tr0.appendChild(td0); tb.appendChild(tr0); }
+    rows.forEach(function (x) {
+      var tr = document.createElement('tr');
+      var c1 = document.createElement('td'); c1.textContent = new Date(x.t).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
+      var c2 = document.createElement('td'); c2.textContent = svWho(x);
+      var c3 = document.createElement('td'); c3.textContent = svDev(x);
+      var c4 = document.createElement('td');
+      c4.textContent = x.kind === 'rating' ? ('★'.repeat(x.r) + (x.c ? ' — ' + x.c : '')) : ((QNAME[x.q] || x.q) + ': ' + x.a);
+      tr.appendChild(c1); tr.appendChild(c2); tr.appendChild(c3); tr.appendChild(c4); tb.appendChild(tr);
+    });
+  }
+  ['svKind', 'svQ', 'svOwner'].forEach(function (id) { $(id).onchange = renderSurvey; });
+  $('svReload').onclick = loadSurvey;
+
   function loadDevices() {
     var days = $('devDays').value;
     $('devNote').textContent = 'Carregando…';
@@ -2122,7 +2199,7 @@
   var current = 'overview', loaded = {};
   function showTab(name) {
     current = name;
-    ['overview', 'visitors', 'usage', 'devices', 'people', 'bugs', 'features', 'fing', 'costs', 'system'].forEach(function (t) { $('tab-' + t).hidden = t !== name; });
+    ['overview', 'visitors', 'usage', 'devices', 'people', 'survey', 'bugs', 'features', 'fing', 'costs', 'system'].forEach(function (t) { $('tab-' + t).hidden = t !== name; });
     var bs = $('tabs').querySelectorAll('button'); for (var i = 0; i < bs.length; i++) { var isOn = bs[i].getAttribute('data-tab') === name; bs[i].className = isOn ? 'on' : ''; bs[i].setAttribute('aria-selected', isOn ? 'true' : 'false'); }
     var mainEl = $('tab-' + name); mainEl.classList.add('enter'); setTimeout(function () { mainEl.classList.remove('enter'); }, 1200);
     moveInd();
@@ -2136,6 +2213,7 @@
     if (name === 'features') loadFeatures();
     if (name === 'fing') loadFing();
     if (name === 'devices') loadDevices();
+    if (name === 'survey') loadSurvey();
     if (name === 'visitors') loadVisitors();
     if (name === 'system') loadSystem();
   }

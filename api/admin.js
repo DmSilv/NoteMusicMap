@@ -802,6 +802,34 @@ function makeHandler(deps = {}) {
       }
 
       // ---------------- Bugs (relatórios de erro do app) ----------------
+      // Respostas da pesquisa rápida e notas do app, uma por linha: quando, de quem (perfil), qual aparelho, o que respondeu.
+      // As antigas só têm o aparelho embaralhado; o app manda a identificação do perfil na próxima abertura e aí elas ganham dono.
+      if (action === 'survey') {
+        const rows = [];
+        for (const line of await store.recent('fb:v1', 3000)) {
+          try { rows.push(JSON.parse(line)); } catch (_) { /* linha ruim */ }
+        }
+        const ids = await store.hgetall('fb:ids');
+        const codeOf = (r) => r.u || (ids[r.d] ? (() => { try { return JSON.parse(ids[r.d]).c; } catch (_) { return ''; } })() : '');
+        const codes = [...new Set(rows.map(codeOf).filter((c) => CODE_RE.test(c)))].slice(0, 300);
+        const profs = {};
+        if (codes.length) {
+          const got = await cmd.pipeline(codes.map((c) => ['HMGET', U(c), 'n', 'dv', 'la', 'bl', 'rt', 'rs']));
+          codes.forEach((c, i) => {
+            const [n, dv, la, bl, rt, rs] = got[i] || [];
+            let d = {};
+            try { d = JSON.parse(dv || '{}'); } catch (_) { d = {}; }
+            profs[c] = { name: n || '', os: d.ou || '', br: d.br || '', md: d.md || '', city: d.ct || '', region: d.g || '', mob: d.mob === '1', last: Number(la) || 0, teacher: rt === '1', student: rs === '1' };
+          });
+        }
+        const out = rows.slice().reverse().slice(0, 1000).map((r) => {
+          const c = codeOf(r);
+          return { t: r.t, kind: r.k, q: r.q || '', a: r.a || '', r: r.r || 0, c: r.c || '', ver: r.v || '', plat: r.p || '', dev: r.d, code: c, who: profs[c] || null };
+        });
+        const { summarize } = require('./feedback')._internal;
+        return send(200, { ok: true, total: rows.length, withOwner: out.filter((x) => x.code).length, rows: out, summary: summarize(rows) });
+      }
+
       if (action === 'bugs') {
         const days = [1, 7, 30, 90].includes(Number(b.days)) ? Number(b.days) : 7;
         const offset = Math.max(0, Math.min(1000, Math.round(Number(b.offset)) || 0));

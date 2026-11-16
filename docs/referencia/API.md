@@ -140,7 +140,8 @@ Custo: só quando o admin abre o painel (kpis ~35 comandos; lista de 25 = ~27; d
 | `mine` | — |
 | `support_code` | Suporte: código para liberar a conta em outro aparelho |
 | `support_cancel` | — |
-| `bugs` | Bugs (relatórios de erro do app) |
+| `survey` | Bugs (relatórios de erro do app) Respostas da pesquisa rápida e notas do app, uma por linha: quando, de quem (perfil), qual aparelho, o que respondeu. As antigas só têm o aparelho embaralhado; o app manda a identificação do perfil na próxima abertura e aí elas ganham dono. |
+| `bugs` | — |
 | `health` | Saúde (semáforo do painel) |
 | `system` | Sistema: banco, servidor, variáveis e limites Custo: 3 comandos de teste + 14 leituras de erros (só quando o admin abre a aba Sistema). |
 | `costs` | Custos (estimativa de comandos do Redis) |
@@ -207,6 +208,7 @@ memória da instância (e vão para o log da Vercel); com Upstash Redis ficam gu
 | Ação / tipo | Descrição (comentário do código) |
 |---|---|
 | `rating` | — |
+| `identify` | — |
 
 ## `/api/fingering`
 

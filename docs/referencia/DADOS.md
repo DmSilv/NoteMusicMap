@@ -105,6 +105,7 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `exFlow` | app_state.dart |
 | `fb_answered` | feedback_service.dart |
 | `fb_first` | feedback_service.dart |
+| `fb_ident` | feedback_service.dart |
 | `fb_pending` | feedback_service.dart |
 | `fb_rating` | feedback_service.dart |
 | `fb_snooze_until` | feedback_service.dart |
@@ -209,4 +210,4 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `verdict_rev` | app_state.dart |
 | `verdicts` | app_state.dart |
 
-Total: **133** chaves locais.
+Total: **134** chaves locais.

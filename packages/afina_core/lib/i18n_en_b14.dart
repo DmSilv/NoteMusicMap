@@ -225,4 +225,5 @@ const Map<String, String> kEnB14 = {
   'Enviar o link': 'Send the link',
   'Aparelho adicionado à sua conta.': 'Device added to your account.',
   'Ligue este aparelho à sua conta': 'Link this device to your account',
+  'O que {0} estuda com você. As sugestões da tarefa seguem este instrumento.': 'What {0} studies with you. Task suggestions follow this instrument.',
 };

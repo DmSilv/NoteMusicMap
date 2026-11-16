@@ -126,3 +126,30 @@ class TaskInstrumentRow extends StatelessWidget {
     ]);
   }
 }
+
+/// Marca o instrumento que o aluno estuda (a "tag" que aparece na lista e escolhe as sugestões da tarefa).
+/// Mostra primeiro os instrumentos que o professor ensina; "Outro" abre a lista toda.
+Future<void> showStudentInstrumentSheet(BuildContext context, AppState app, Student s) {
+  return showDsSheet(
+    context,
+    title: tr('Instrumento do aluno'),
+    listenable: app,
+    children: (c) {
+      final mine = [for (final id in app.teachInstruments) ?teachingById(id)];
+      final all = mine.isEmpty ? kTeachingInstruments : [...mine, for (final i in kTeachingInstruments) if (!app.teachInstruments.contains(i.id)) i];
+      return [
+        Text(tr('O que {0} estuda com você. As sugestões da tarefa seguem este instrumento.', [s.name]), style: Ds.support()),
+        const SizedBox(height: Ds.s16),
+        Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
+          for (final i in all)
+            ChoiceChip(
+              label: Text(i.label),
+              selected: s.instrument == i.id,
+              onSelected: (v) => app.setStudentInstrument(s, v ? i.id : null),
+            ),
+        ]),
+        const SizedBox(height: Ds.s16),
+      ];
+    },
+  );
+}

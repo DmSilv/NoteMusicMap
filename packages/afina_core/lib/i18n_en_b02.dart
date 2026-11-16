@@ -115,7 +115,7 @@ const Map<String, String> kEnB02 = {
   'Se estiver tocando ou estudando, o app para de ouvir.': 'If you\'re playing or studying, the app stops listening.',
   'Continuar no app': 'Stay in the app',
   'Sair do app': 'Leave the app',
-  'Enviamos só a sua resposta e a versão do app, sem nome, e-mail nem áudio. Você escolhe se envia.': 'We only send your answer and the app version, with no name, email or audio. You choose whether to send it.',
+  'Enviamos a sua resposta, a versão do app e o código do seu perfil, sem e-mail nem áudio. Você escolhe se envia.': 'We send your answer, the app version and your profile code, with no email or audio. You choose whether to send it.',
   'Sem conexão agora: guardei sua resposta e envio depois. Obrigado!': 'No connection right now: I saved your answer and will send it later. Thank you!',
   'Ruim': 'Bad',
   'Pode melhorar': 'Could be better',

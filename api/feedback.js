@@ -11,6 +11,8 @@ const { config } = require('./_lib/config');
 const { createStore } = require('./_lib/store');
 
 const LIST_KEY = 'fb:v1';
+const ID_KEY = 'fb:ids'; // hash: aparelho (embaralhado) -> { c: código do perfil, t }  (liga respostas antigas e novas ao perfil)
+const CODE_RE = /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$/;
 const DAILY_LIMIT = 30; // envios por aparelho+IP por dia
 
 function clientIp(req) {
@@ -44,9 +46,12 @@ function clean(v, max) {
 /** Valida e normaliza o pedido; devolve { rec } ou { error }. */
 function parse(body, deviceHash, now) {
   if (!body || typeof body !== 'object') return { error: 'Corpo inválido.' };
-  const kind = body.kind === 'rating' ? 'rating' : body.kind === 'survey' ? 'survey' : '';
+  const kind = body.kind === 'rating' ? 'rating' : body.kind === 'survey' ? 'survey' : body.kind === 'identify' ? 'identify' : '';
   if (!kind) return { error: 'Tipo inválido.' };
   const rec = { t: new Date(now).toISOString(), d: deviceHash, k: kind, v: clean(body.version, 40), p: clean(body.platform, 20) };
+  const profile = clean(body.profile, 9).toUpperCase();
+  if (CODE_RE.test(profile)) rec.u = profile; // o código do perfil de quem enviou (o painel mostra de quem é)
+  if (kind === 'identify') return rec.u ? { rec } : { error: 'Falta o perfil.' };
   if (kind === 'rating') {
     const r = Number(body.rating);
     if (!Number.isInteger(r) || r < 1 || r > 5) return { error: 'A nota vai de 1 a 5.' };
@@ -111,7 +116,7 @@ function makeHandler(deps = {}) {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.setHeader('Cache-Control', 'no-store');
     const cfg = getCfg();
-    const store = createStore(cfg, fetchImpl, clock);
+    const store = createStore(cfg, fetchImpl, clock, { allowMemory: !!deps.allowMemory });
 
     if (req.method === 'GET') {
       if (!cfg.feedbackKey) {
@@ -155,6 +160,14 @@ function makeHandler(deps = {}) {
       res.statusCode = 400;
       return res.end(JSON.stringify({ error }));
     }
+    // Liga este aparelho (embaralhado) ao perfil: vale para as respostas de agora e para as antigas deste aparelho.
+    if (rec.u) {
+      try { await store.hset(ID_KEY, deviceHash, JSON.stringify({ c: rec.u, t: rec.t })); } catch (_) { /* sem Redis: a resposta ainda vale, só não liga o aparelho ao perfil */ }
+    }
+    if (rec.k === 'identify') {
+      res.statusCode = 200;
+      return res.end(JSON.stringify({ ok: true }));
+    }
     await store.push(LIST_KEY, JSON.stringify(rec));
     console.log('feedback', JSON.stringify(rec)); // também no log da Vercel (sobrevive sem Redis)
     res.statusCode = 200;
@@ -164,4 +177,4 @@ function makeHandler(deps = {}) {
 
 module.exports = makeHandler();
 module.exports.makeHandler = makeHandler;
-module.exports._internal = { parse, summarize, clean };
+module.exports._internal = { parse, summarize, clean, LIST_KEY, ID_KEY };
