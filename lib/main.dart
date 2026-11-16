@@ -443,7 +443,10 @@ class _HomeShellState extends State<HomeShell> {
     final a = widget.app;
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
-      child: SizedBox(
+      child: LayoutBuilder(builder: (context, box) {
+        // Painel largo: o nome de TODAS as telas (sem ícone, para caber); painel estreito: só o lado escolhido mostra o nome.
+        final all = box.maxWidth >= 560;
+        return SizedBox(
         width: double.infinity,
         child: SegmentedButton<int>(
           showSelectedIcon: false,
@@ -452,10 +455,9 @@ class _HomeShellState extends State<HomeShell> {
             for (var i = 0; i < 5; i++)
               ButtonSegment<int>(
                 value: i,
-                icon: Icon(_icons[i], size: 18),
+                icon: all ? null : Icon(_icons[i], size: 18),
                 tooltip: _titles[i],
-                // Só o lado escolhido mostra o nome (com 5 telas os nomes não cabem em todos).
-                label: i == cur ? Text(_titles[i], maxLines: 1, overflow: TextOverflow.ellipsis) : null,
+                label: (all || i == cur) ? Text(_titles[i], maxLines: 1, overflow: TextOverflow.ellipsis) : null,
                 enabled: i == cur || i != other, // a mesma tela não aparece nos dois lados
               ),
           ],
@@ -474,7 +476,8 @@ class _HomeShellState extends State<HomeShell> {
             });
           },
         ),
-      ),
+      );
+      }),
     );
   }
 

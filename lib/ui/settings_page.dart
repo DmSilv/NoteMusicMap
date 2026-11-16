@@ -37,7 +37,7 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(tr('Ajustes'))),
-      body: SafeArea(
+      body: DsPageSafe(
         child: ListenableBuilder(
           listenable: Listenable.merge([app, app.feedback]),
           builder: (context, _) {

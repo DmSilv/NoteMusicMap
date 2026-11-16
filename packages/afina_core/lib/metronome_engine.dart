@@ -17,6 +17,44 @@ import 'dart:typed_data';
 
 enum Accent { strong, medium, weak, mute }
 
+/// Acentos padrão de cada compasso: a ÚNICA tabela (a tela de escolha do compasso e a leitura ao reabrir o app usam esta).
+/// [beats] são os tempos que o metrônomo conta e [subdivision] quantas notas há em cada tempo (6/8 = 2 tempos de 3; 12/8 = 4 de 3).
+/// Agrupamentos: 5/4 = 3+2, 6/4 = 3+3, 7/8 = 2+2+3, 6/8 = 2 grupos de 3 (forte, médio), 12/8 = 4 tempos (forte, fraco, médio, fraco).
+/// Qualquer outro número de tempos: o 1º forte e o resto fraco.
+List<Accent> standardAccents(int beats, int subdivision) {
+  const s = Accent.strong, m = Accent.medium, w = Accent.weak;
+  final table = <String, List<Accent>>{
+    '5/1': [s, w, w, m, w],
+    '6/1': [s, w, w, m, w, w],
+    '7/1': [s, w, m, w, m, w, w],
+    '2/3': [s, m],
+    '4/3': [s, w, m, w],
+  };
+  final hit = table['$beats/$subdivision'] ?? (subdivision != 1 ? null : table['$beats/1']);
+  if (hit != null && hit.length == beats) return List<Accent>.of(hit);
+  final acc = List<Accent>.filled(beats < 1 ? 1 : beats, w);
+  acc[0] = s;
+  return acc;
+}
+
+/// Os acentos como texto curto para guardar no aparelho: "v1:smwx" (s forte, m médio, w fraco, x mudo).
+String encodeAccents(List<Accent> a) => 'v1:${a.map((x) => 'smwx'[x.index]).join()}';
+
+/// Lê o texto de [encodeAccents]. Devolve null se estiver ausente, em outra versão, com letra estranha ou com tamanho diferente
+/// de [beats] (nesse caso o app volta ao padrão do compasso, sem quebrar).
+List<Accent>? decodeAccents(String? raw, int beats) {
+  if (raw == null || !raw.startsWith('v1:')) return null;
+  final body = raw.substring(3);
+  if (body.length != beats || beats < 1) return null;
+  final out = <Accent>[];
+  for (final ch in body.split('')) {
+    final i = 'smwx'.indexOf(ch);
+    if (i < 0) return null;
+    out.add(Accent.values[i]);
+  }
+  return out;
+}
+
 enum ClickSound { click, wood, beep, clave, drum }
 
 /// "Acelerar aos poucos": o andamento sobe sozinho até um teto.
@@ -99,9 +137,11 @@ class MetronomeConfig {
     ClickSound sound = ClickSound.click,
     int? groupSize,
   }) {
-    final acc = List<Accent>.filled(beats, Accent.weak);
-    acc[0] = Accent.strong;
+    // Sem grupo pedido: a tabela padrão do compasso. Com grupo: um acento médio a cada [groupSize] tempos.
+    var acc = standardAccents(beats, subdivision);
     if (groupSize != null && groupSize > 1) {
+      acc = List<Accent>.filled(beats, Accent.weak);
+      acc[0] = Accent.strong;
       for (var i = groupSize; i < beats; i += groupSize) {
         acc[i] = Accent.medium;
       }

@@ -4033,8 +4033,10 @@ class AppState extends ChangeNotifier {
     metro = MetronomeConfig.signature(beats,
         bpm: bpm,
         subdivision: sub,
-        sound: ClickSound.values[p.getInt('sound') ?? 0],
-        groupSize: beats == 6 ? 3 : (beats == 7 ? 2 : null));
+        sound: ClickSound.values[p.getInt('sound') ?? 0]);
+    // Padrão de acentos guardado (versionado): se faltar ou não tiver o tamanho do compasso, vale o padrão do compasso.
+    final savedAcc = decodeAccents(p.getString('metro_acc'), beats);
+    if (savedAcc != null) metro = metro.copyWith(accents: savedAcc);
     try {
       final raw = p.getString('challenge');
       if (raw != null) {
@@ -4130,6 +4132,7 @@ class AppState extends ChangeNotifier {
     await p.setDouble('bpm', metro.bpm);
     await p.setInt('beats', metro.beatsPerBar);
     await p.setInt('sub', metro.subdivision);
+    await p.setString('metro_acc', encodeAccents(metro.accents)); // o padrão de acentos entra no que se guarda
     await p.setInt('sound', metro.sound.index);
   }
 
@@ -4567,7 +4570,7 @@ class AppState extends ChangeNotifier {
         bpm: metro.bpm,
         subdivision: metro.subdivision,
         sound: metro.sound,
-        groupSize: group ?? (beats == 6 ? 3 : (beats == 7 ? 2 : null)));
+        groupSize: group);
     setMetro(nm.copyWith(
         volume: metro.volume,
         countInBars: metro.countInBars,

@@ -569,6 +569,9 @@ class _WelcomeTourState extends State<WelcomeTour> {
           ),
           const SizedBox(height: 12),
           Expanded(child: _phone(_hubs, _teacherSide ? 1 : 0)),
+          const SizedBox(height: 6),
+          // As telas são capturas fixas (datas e nomes de exemplo): avisa que é uma ilustração.
+          Center(child: Text(tr('Exemplo ilustrativo'), style: TextStyle(fontSize: 12, color: AppColors.textDim))),
         ],
       ),
       copy: AnimatedSwitcher(

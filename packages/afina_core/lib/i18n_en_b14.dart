@@ -2,6 +2,7 @@
 library;
 
 const Map<String, String> kEnB14 = {
+  'Exemplo ilustrativo': 'Illustrative example',
   'Alvo em quintas puras, como na orquestra. Difere um pouco do afinador de piano.': 'Target in pure fifths, as in the orchestra. It differs slightly from a piano tuner.',
   'Ligar o modo professor?': 'Turn on teacher mode?',
   'Para enviar tarefas e receber avisos dos alunos, o app conecta online (só código, apelido e tarefas).': 'To send tasks and get notices from students, the app connects online (only code, nickname and tasks).',

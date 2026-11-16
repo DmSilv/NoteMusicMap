@@ -269,7 +269,7 @@ class _ProfilePageState extends State<ProfilePage> {
     Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => Scaffold(
         appBar: AppBar(title: Text(title)),
-        body: SafeArea(
+        body: DsPageSafe(
           child: ListenableBuilder(
             listenable: Listenable.merge([app, _tick]),
             builder: (context, _) => ListView(
@@ -286,7 +286,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(tr('Minha conta'))),
-      body: SafeArea(child: _mainList()),
+      body: DsPageSafe(child: _mainList()),
     );
   }
 

@@ -498,7 +498,7 @@ class _TeacherPageState extends State<TeacherPage> {
                 label: Text(tr('Adicionar aluno'), style: const TextStyle(fontWeight: FontWeight.w700)),
               ),
       ),
-      body: SafeArea(
+      body: DsPageSafe(
         child: ListenableBuilder(
           listenable: app,
           builder: (context, _) => app.teacherLocked ? _PinGate(app: app) : _home(context),
@@ -964,7 +964,7 @@ class StudentPage extends StatelessWidget {
               ),
             ],
           ),
-          body: SafeArea(
+          body: DsPageSafe(
             child: ListView(
               padding: Ds.screen,
               children: [

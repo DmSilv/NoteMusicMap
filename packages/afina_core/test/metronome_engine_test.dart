@@ -283,4 +283,37 @@ void main() {
       expect(t.tap(10750), closeTo(80, 1e-9));
     });
   });
+
+  group('Acentos padrão e guardados', () {
+    test('agrupamentos: 5/4 = 3+2, 7/8 = 2+2+3, 6/8 = 2 grupos de 3, 12/8 = 4 tempos', () {
+      const s = Accent.strong, m = Accent.medium, w = Accent.weak;
+      expect(standardAccents(5, 1), [s, w, w, m, w]);
+      expect(standardAccents(7, 1), [s, w, m, w, m, w, w]);
+      expect(standardAccents(2, 3), [s, m]);
+      expect(standardAccents(4, 3), [s, w, m, w]);
+      expect(standardAccents(4, 1), [s, w, w, w]);
+      expect(standardAccents(6, 1), [s, w, w, m, w, w]);
+    });
+    test('qualquer número de tempos tem acento: o 1º forte e o resto fraco', () {
+      for (var b = 1; b <= 12; b++) {
+        final a = standardAccents(b, 1);
+        expect(a.length, b);
+        expect(a.first, Accent.strong);
+      }
+    });
+    test('a configuração nova usa a mesma tabela (sem grupo pedido)', () {
+      expect(MetronomeConfig.signature(7).accents, standardAccents(7, 1));
+      expect(MetronomeConfig.signature(2, subdivision: 3).accents, standardAccents(2, 3));
+      expect(MetronomeConfig.signature(6, groupSize: 3).accents, standardAccents(6, 1));
+    });
+    test('guardar e ler: ida e volta, e volta ao padrão quando o texto não serve', () {
+      final a = [Accent.strong, Accent.mute, Accent.medium, Accent.weak];
+      expect(decodeAccents(encodeAccents(a), 4), a);
+      expect(decodeAccents(null, 4), isNull);
+      expect(decodeAccents('v2:smwx', 4), isNull, reason: 'outra versão');
+      expect(decodeAccents('v1:smw', 4), isNull, reason: 'tamanho diferente do compasso');
+      expect(decodeAccents('v1:smwz', 4), isNull, reason: 'letra estranha');
+      expect(decodeAccents('v1:', 0), isNull);
+    });
+  });
 }

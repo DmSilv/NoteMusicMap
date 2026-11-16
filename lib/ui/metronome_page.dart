@@ -12,23 +12,23 @@ import 'design_system.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
+/// Os compassos da tela de escolha. Os acentos de cada um vêm de [standardAccents] (a mesma tabela da leitura ao reabrir o app).
 class _Sig {
   final String label;
   final int beats;
   final int sub;
-  final List<Accent> accents;
-  const _Sig(this.label, this.beats, this.sub, this.accents);
+  const _Sig(this.label, this.beats, this.sub);
+  List<Accent> get accents => standardAccents(beats, sub);
 }
 
-const _fo = Accent.strong, _me = Accent.medium, _fr = Accent.weak;
 const List<_Sig> _sigs = [
-  _Sig('2/4', 2, 1, [_fo, _fr]),
-  _Sig('3/4', 3, 1, [_fo, _fr, _fr]),
-  _Sig('4/4', 4, 1, [_fo, _fr, _fr, _fr]),
-  _Sig('5/4', 5, 1, [_fo, _fr, _fr, _me, _fr]),
-  _Sig('6/8', 2, 3, [_fo, _me]),
-  _Sig('7/8', 7, 1, [_fo, _fr, _fr, _me, _fr, _me, _fr]),
-  _Sig('12/8', 4, 3, [_fo, _fr, _me, _fr]),
+  _Sig('2/4', 2, 1),
+  _Sig('3/4', 3, 1),
+  _Sig('4/4', 4, 1),
+  _Sig('5/4', 5, 1),
+  _Sig('6/8', 2, 3),
+  _Sig('7/8', 7, 1),
+  _Sig('12/8', 4, 3),
 ];
 
 String tempoName(double bpm) {

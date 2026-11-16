@@ -163,6 +163,24 @@ class DsGap extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox(height: h);
 }
 
+/// "Área segura" para telas de LISTA em janela larga (Minha conta, Ajustes, Alunos e a ficha do aluno): o conteúdo fica numa coluna
+/// de até [DsPageSafe.maxWidth] px, centrada, em vez de esticar por toda a janela. Em celular e na coluna de 560 px não muda nada.
+/// As telas de ferramentas em dois painéis NÃO usam isto (continuam largas).
+class DsPageSafe extends StatelessWidget {
+  final Widget child;
+  const DsPageSafe({super.key, required this.child});
+
+  static const double maxWidth = 720;
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: maxWidth), child: child),
+        ),
+      );
+}
+
 /// Botão "Ajustes" que abre o modal de configuração da tela (ícone de controles).
 class DsSettingsButton extends StatelessWidget {
   final VoidCallback onPressed;
