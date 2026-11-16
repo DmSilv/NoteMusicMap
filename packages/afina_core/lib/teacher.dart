@@ -9,6 +9,7 @@ import 'identity.dart';
 import 'input_guard.dart';
 import 'lesson.dart';
 import 'photo.dart';
+import 'teaching.dart';
 import 'practice_coach.dart';
 import 'i18n.dart';
 
@@ -219,6 +220,9 @@ class Student {
 
   /// Foto do aluno (texto base64 de uma imagem pequena). Só neste aparelho: o professor escolhe; nunca vai para o servidor.
   String? photo;
+
+  /// Instrumento que este aluno estuda com o professor (id de [kTeachingInstruments]); só neste aparelho. Escolhe as sugestões da tarefa.
+  String? instrument;
   final DateTime created;
   final List<TeacherNote> notes; // mais recente primeiro
   final List<Assignment> tasks;
@@ -237,6 +241,7 @@ class Student {
     this.linkState,
     this.remoteName,
     this.photo,
+    this.instrument,
     DateTime? created,
     List<TeacherNote>? notes,
     List<Assignment>? tasks,
@@ -258,6 +263,7 @@ class Student {
         if (linkState != null) 'lk': linkState,
         if (remoteName != null) 'rn': remoteName,
         if (photo != null) 'ph': photo,
+        if (instrument != null) 'ins': instrument,
         'c': created.toIso8601String(),
         'notes': [for (final n in notes) n.toJson()],
         'tasks': [for (final t in tasks) t.toJson()],
@@ -275,6 +281,7 @@ class Student {
         linkState: (j['lk'] as String?),
         remoteName: (j['rn'] as String?) == null ? null : cleanText(j['rn'] as String?, max: kMaxName),
         photo: cleanPhoto(j['ph'] as String?),
+        instrument: teachingById(j['ins'] as String?)?.id,
         created: DateTime.tryParse((j['c'] as String?) ?? ''),
         notes: [
           for (final n in (j['notes'] as List? ?? const []).take(500))

@@ -836,12 +836,62 @@ class AppState extends ChangeNotifier {
   /// ele digita nas tarefas e também por cadastro e importação.
   List<MethodEntry> methodLibrary = [];
 
-  /// Nomes para sugerir numa tarefa: os do professor primeiro, depois os conhecidos.
-  List<String> methodNames() => [
-        for (final m in methodLibrary) m.name,
-        for (final m in kMethodSuggestions)
-          if (findMethod(methodLibrary, m) == null) m,
-      ];
+  /// Instrumentos que o professor ensina (ids de [kTeachingInstruments]); escolhem as sugestões de método e de repertório.
+  List<String> teachInstruments = [];
+
+  void setTeachInstrument(String id, bool on) {
+    final set = {...teachInstruments};
+    if (on) {
+      set.add(id);
+    } else {
+      set.remove(id);
+    }
+    teachInstruments = cleanTeachingIds(set);
+    _prefs?.setStringList('teach_inst', teachInstruments);
+    notifyListeners();
+  }
+
+  /// O instrumento a usar nas sugestões da tarefa deste aluno (o dele, se o professor ensina; senão o único que ensina).
+  String? instrumentOf(Student s) => instrumentForTask(studentInstrument: s.instrument, teaches: teachInstruments);
+
+  void setStudentInstrument(Student s, String? id) {
+    s.instrument = teachingById(id)?.id;
+    _saveTeacher();
+    notifyListeners();
+  }
+
+  /// Os instrumentos que valem para as sugestões: o do aluno; senão todos os que o professor ensina; senão nenhum (lista geral).
+  List<String> _suggestIds(String? instrument) => instrument != null ? [instrument] : teachInstruments;
+
+  /// Nomes para sugerir numa tarefa de método: os do professor primeiro, depois os do instrumento
+  /// (ou os mais conhecidos, se ele ainda não escolheu o que ensina).
+  List<String> methodNames({String? instrument}) {
+    final ids = _suggestIds(instrument);
+    final known = ids.isEmpty ? kMethodSuggestions : catalogMethods(ids);
+    return [
+      for (final m in methodLibrary) m.name,
+      for (final m in known)
+        if (findMethod(methodLibrary, m) == null) m,
+    ];
+  }
+
+  /// Peças para sugerir numa tarefa de repertório: as que o professor já passou (mais recentes primeiro) e depois as do instrumento.
+  List<String> repertoireNames({String? instrument}) {
+    final recent = <String>[];
+    final seen = <String>{};
+    final tasks = [for (final s in students) ...s.tasks.where((t) => t.kind == TaskKind.repertoire && t.subject.trim().isNotEmpty)]
+      ..sort((a, b) => b.created.compareTo(a.created));
+    for (final t in tasks) {
+      final name = t.subject.trim();
+      if (seen.add(name.toLowerCase())) recent.add(name);
+      if (recent.length >= 12) break;
+    }
+    return [
+      ...recent,
+      for (final p in catalogRepertoire(_suggestIds(instrument)))
+        if (seen.add(p.toLowerCase())) p,
+    ];
+  }
 
   void _saveMethods() => _repo?.saveMethods(methodLibrary);
 
@@ -4184,6 +4234,7 @@ class AppState extends ChangeNotifier {
     remindDefault = rd != null && kRemindOptions.contains(rd) ? rd : kReminderMinutes;
     startCardHidden = p.getBool('start_hidden') ?? false;
     emailEnabled = p.getBool('acct_on') ?? false;
+    teachInstruments = cleanTeachingIds(p.getStringList('teach_inst'));
     myPhoto = cleanPhoto(p.getString('my_photo'));
     sharePhoto = p.getBool('photo_share') ?? false;
     _photoDirty = p.getBool('photo_dirty') ?? false;

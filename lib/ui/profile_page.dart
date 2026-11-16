@@ -20,6 +20,7 @@ import 'design_system.dart';
 import 'devices_page.dart';
 import 'person_avatar.dart';
 import 'photo_pick.dart';
+import 'teaching_ui.dart';
 import 'hub_section.dart' show shareStudentLink;
 import 'theme.dart';
 import 'widgets.dart';
@@ -438,6 +439,12 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
             ),
+            if (app.teacherMode)
+              _row(Icons.piano_outlined, tr('Instrumentos que ensino'),
+                  sub: app.teachInstruments.isEmpty
+                      ? tr('Escolha para ver métodos e repertório prontos')
+                      : app.teachInstruments.map((id) => teachingById(id)?.label ?? id).join(', '),
+                  onTap: () => showTeachingInstrumentsSheet(context, app)),
             if (app.teacherMode)
               _row(Icons.groups_rounded, tr('Meus alunos'),
                   sub: app.students.isEmpty

@@ -5,6 +5,7 @@ import '../app_state.dart';
 import 'dictation_button.dart';
 import 'design_system.dart';
 import 'methods_page.dart';
+import 'teaching_ui.dart';
 import 'my_lessons_page.dart' show taskKindIcon;
 import 'note_widgets.dart';
 import 'safe_input.dart';
@@ -376,8 +377,16 @@ class _TaskFormPageState extends State<TaskFormPage> {
   }
 
   List<Widget> _textFields() {
-    final methods = app.methodNames();
+    final st = app.studentById(widget.studentId);
+    final inst = st == null ? null : app.instrumentOf(st);
+    final methods = app.methodNames(instrument: inst);
+    final pieces = app.repertoireNames(instrument: inst);
+    final suggestions = kind == TaskKind.method ? methods : (kind == TaskKind.repertoire ? pieces : const <String>[]);
     return [
+      if (st != null && (kind == TaskKind.method || kind == TaskKind.repertoire)) ...[
+        const SizedBox(height: Ds.s12),
+        TaskInstrumentRow(app: app, student: st, onChanged: () => setState(() {})),
+      ],
       _label(_subjectLabel),
       TextField(
         key: _subjectKey,
@@ -390,10 +399,10 @@ class _TaskFormPageState extends State<TaskFormPage> {
         ),
         onChanged: (_) => setState(() => subjectErr = null),
       ),
-      if (kind == TaskKind.method) ...[
+      if (suggestions.isNotEmpty) ...[
         const SizedBox(height: 6),
         Wrap(spacing: 6, runSpacing: 0, children: [
-          for (final m in methods.take(8))
+          for (final m in suggestions.take(8))
             ActionChip(
               label: Text(m),
               visualDensity: VisualDensity.compact,
@@ -402,7 +411,24 @@ class _TaskFormPageState extends State<TaskFormPage> {
                 subjectErr = null;
               }),
             ),
+          if (suggestions.length > 8)
+            ActionChip(
+              avatar: const Icon(Icons.search, size: 16),
+              label: Text(tr('Ver todos ({0})', [suggestions.length])),
+              visualDensity: VisualDensity.compact,
+              onPressed: () async {
+                final pick = await pickSuggestion(context, title: kind == TaskKind.method ? tr('Métodos e livros') : tr('Repertório'), items: suggestions);
+                if (pick != null) {
+                  setState(() {
+                    subject.text = pick;
+                    subjectErr = null;
+                  });
+                }
+              },
+            ),
         ]),
+      ],
+      if (kind == TaskKind.method)
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
@@ -413,7 +439,6 @@ class _TaskFormPageState extends State<TaskFormPage> {
             label: Text(tr('Meus métodos e lições')),
           ),
         ),
-      ],
       if (_detailLabel != null) ...[
         _label(_detailLabel!),
         TextField(
