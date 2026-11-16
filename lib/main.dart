@@ -25,6 +25,7 @@ import 'platform/web_install.dart' show webOnInstallEvents;
 import 'ui/design_system.dart';
 import 'ui/suggestions.dart';
 import 'ui/notifications_sheet.dart';
+import 'ui/person_avatar.dart';
 import 'ui/profile_page.dart' show ProfilePage, handleIncomingTeacherCode;
 import 'ui/metronome_page.dart';
 import 'ui/study_page.dart';
@@ -653,6 +654,13 @@ class _ProfileAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = (app.profile.name ?? '').trim();
+    if (app.myPhoto != null) {
+      return _BarCircle(
+        fill: AppColors.accent.withValues(alpha: 0.18),
+        border: AppColors.accent.withValues(alpha: 0.7),
+        child: PersonAvatar(name: name, photo: app.myPhoto, radius: 17),
+      );
+    }
     return _BarCircle(
       fill: AppColors.accent.withValues(alpha: 0.18),
       border: AppColors.accent.withValues(alpha: 0.7),

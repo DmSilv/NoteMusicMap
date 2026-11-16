@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app_state.dart';
+import 'person_avatar.dart';
+import 'photo_pick.dart';
 import 'theme.dart';
 
 /// Selo do vínculo online do aluno.
@@ -54,13 +56,27 @@ class StudentIdentity extends StatelessWidget {
     final s = student;
     final remote = remoteNameOf(s);
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      CircleAvatar(
-        radius: large ? 24 : 18,
-        backgroundColor: studentTint(s).withValues(alpha: 0.22),
-        child: Text(s.name.isEmpty ? '?' : s.name[0].toUpperCase(),
-            style: TextStyle(
-                color: studentTint(s), fontWeight: FontWeight.w800, fontSize: large ? 20 : 16)),
-      ),
+      large
+          ? InkWell(
+              customBorder: const CircleBorder(),
+              onTap: () async {
+                final r = await pickPersonPhoto(context, app, hasPhoto: s.photo != null);
+                if (r != null) app.setStudentPhoto(s, r);
+              },
+              child: Stack(clipBehavior: Clip.none, children: [
+                PersonAvatar(name: s.name, photo: app.photoOfStudent(s), tint: studentTint(s), radius: 24),
+                Positioned(
+                  right: -4,
+                  bottom: -4,
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(color: AppColors.surface2, shape: BoxShape.circle, border: Border.all(color: AppColors.outline)),
+                    child: Icon(Icons.photo_camera_outlined, size: 13, color: AppColors.textDim),
+                  ),
+                ),
+              ]),
+            )
+          : PersonAvatar(name: s.name, photo: app.photoOfStudent(s), tint: studentTint(s), radius: 18),
       const SizedBox(width: 12),
       Expanded(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

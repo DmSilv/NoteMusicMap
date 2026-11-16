@@ -22,6 +22,7 @@ Tudo guardado no servidor é anônimo: código de perfil, apelido, datas e o nec
 | `tk:<code>` | horários já pegos (trava contra dois alunos): idHorário -> aluno |
 | `vd:<code>` | decisões do professor sobre as tarefas deste aluno: "professor:idAula:idTarefa" -> JSON |
 | `lb:<code>` | acervo do professor: idItem -> JSON (só links) |
+| `ph:<code>` | foto do perfil (campo d), só quando a pessoa escolhe mostrar aos vinculados |
 
 ### Índice de perfis para o painel (`api/_lib/profiles.js`)
 
@@ -135,6 +136,7 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `meet_default` | app_state.dart |
 | `metro_acc` | app_state.dart |
 | `micRationale` | app_state.dart |
+| `my_photo` | app_state.dart |
 | `my_teacher` | app_state.dart |
 | `my_teachers` | app_state.dart |
 | `nick_hide` | app_state.dart |
@@ -143,6 +145,9 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `ok_haptic` | app_state.dart |
 | `onboarded` | app_state.dart |
 | `open_slots` | app_state.dart |
+| `peer_photos` | app_state.dart |
+| `photo_dirty` | app_state.dart |
+| `photo_share` | app_state.dart |
 | `picks_rev` | app_state.dart |
 | `pomo_cfg` | app_state.dart |
 | `pomo_days` | app_state.dart |
@@ -201,4 +206,4 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `verdict_rev` | app_state.dart |
 | `verdicts` | app_state.dart |
 
-Total: **126** chaves locais.
+Total: **130** chaves locais.

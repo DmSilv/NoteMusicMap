@@ -8,6 +8,7 @@ import 'absence.dart';
 import 'identity.dart';
 import 'input_guard.dart';
 import 'lesson.dart';
+import 'photo.dart';
 import 'practice_coach.dart';
 import 'i18n.dart';
 
@@ -215,6 +216,9 @@ class Student {
 
   /// Apelido que o aluno informou ao se vincular (para acompanhar mudanças dele).
   String? remoteName;
+
+  /// Foto do aluno (texto base64 de uma imagem pequena). Só neste aparelho: o professor escolhe; nunca vai para o servidor.
+  String? photo;
   final DateTime created;
   final List<TeacherNote> notes; // mais recente primeiro
   final List<Assignment> tasks;
@@ -232,6 +236,7 @@ class Student {
     this.code,
     this.linkState,
     this.remoteName,
+    this.photo,
     DateTime? created,
     List<TeacherNote>? notes,
     List<Assignment>? tasks,
@@ -252,6 +257,7 @@ class Student {
         if (code != null) 'code': code,
         if (linkState != null) 'lk': linkState,
         if (remoteName != null) 'rn': remoteName,
+        if (photo != null) 'ph': photo,
         'c': created.toIso8601String(),
         'notes': [for (final n in notes) n.toJson()],
         'tasks': [for (final t in tasks) t.toJson()],
@@ -268,6 +274,7 @@ class Student {
         code: formatShareCode((j['code'] as String?) ?? ''),
         linkState: (j['lk'] as String?),
         remoteName: (j['rn'] as String?) == null ? null : cleanText(j['rn'] as String?, max: kMaxName),
+        photo: cleanPhoto(j['ph'] as String?),
         created: DateTime.tryParse((j['c'] as String?) ?? ''),
         notes: [
           for (final n in (j['notes'] as List? ?? const []).take(500))
@@ -448,7 +455,7 @@ String studentReport(Student s, {bool? flats = false}) {
 }
 
 /// Dados do aluno em texto (JSON) para copiar/colar.
-String exportStudent(Student s) => jsonEncode(s.toJson());
+String exportStudent(Student s) => jsonEncode(s.toJson()..remove('ph')); // a foto fica no aparelho
 
 /// Lê os dados colados; null se não forem válidos.
 Student? importStudent(String text) {

@@ -316,6 +316,102 @@ class AppState extends ChangeNotifier {
     return null;
   }
 
+  // ---------------- Fotos ----------------
+  /// A foto deste perfil (texto base64 de uma imagem pequena) ou null. Fica neste aparelho.
+  String? myPhoto;
+
+  /// Troca (ou, com null ou vazio, remove) a foto do perfil.
+  void setMyPhoto(String? b64) {
+    final clean = cleanPhoto(b64);
+    myPhoto = clean;
+    if (clean == null) {
+      _prefs?.remove('my_photo');
+    } else {
+      _prefs?.setString('my_photo', clean);
+    }
+    notifyListeners();
+    if (sharePhoto) unawaited(_pushMyPhoto());
+  }
+
+  /// A pessoa escolheu mostrar a foto a quem está vinculado (começa desligado: a foto fica só neste aparelho).
+  bool sharePhoto = false;
+
+  /// Falta avisar o servidor da foto (sem internet na hora): tenta de novo na próxima sincronização.
+  bool _photoDirty = false;
+
+  void setSharePhoto(bool v) {
+    sharePhoto = v;
+    _prefs?.setBool('photo_share', v);
+    notifyListeners();
+    unawaited(_pushMyPhoto());
+  }
+
+  /// Manda a foto (ou, se não é para mostrar, apaga a do servidor). Com a foto escolhida ou o interruptor mudando.
+  Future<void> _pushMyPhoto() async {
+    if (!linkEnabled || linkUnavailable) return;
+    final shown = sharePhoto ? (myPhoto ?? '') : '';
+    final r = await links.photoPut(profile.shareCode, profile.secret, shown);
+    _photoDirty = !(r.ok || r.rejected);
+    _prefs?.setBool('photo_dirty', _photoDirty);
+  }
+
+  /// Fotos das pessoas vinculadas que escolheram mostrar a delas: código -> texto base64 (e a versão de cada uma).
+  final Map<String, String> _peerPhotos = {};
+  final Map<String, String> _peerTags = {};
+  bool _peerPhotosBusy = false;
+
+  /// A foto de quem está vinculado a mim (aluno ou professor), ou null.
+  String? peerPhoto(String code) => _peerPhotos[code];
+
+  /// A foto a mostrar do aluno: a que o professor pôs na ficha; senão a que o próprio aluno escolheu mostrar.
+  String? photoOfStudent(Student s) => s.photo ?? (s.code == null ? null : _peerPhotos[s.code]);
+
+  /// Traz as fotos novas das pessoas vinculadas (só as que mudaram de versão) e esquece as que foram tiradas.
+  Future<void> _syncPeerPhotos(LinkReply r) async {
+    if (_peerPhotosBusy) return;
+    _peerPhotosBusy = true;
+    try {
+      final all = [...r.asTeacher, ...r.asStudent];
+      var changed = false;
+      for (final k in _peerTags.keys.toList()) {
+        if (!all.any((x) => x.code == k && x.pv.isNotEmpty)) {
+          _peerTags.remove(k);
+          _peerPhotos.remove(k);
+          changed = true;
+        }
+      }
+      var fetched = 0;
+      for (final x in all) {
+        if (x.pv.isEmpty || _peerTags[x.code] == x.pv) continue;
+        if (fetched >= 6) break; // o resto vem na próxima sincronização
+        fetched++;
+        final g = await links.photoGet(profile.shareCode, profile.secret, x.code);
+        if (g.ok && g.photo.isNotEmpty) {
+          _peerPhotos[x.code] = g.photo;
+          _peerTags[x.code] = x.pv;
+          changed = true;
+        } else if (g.rejected) {
+          _peerTags[x.code] = x.pv; // sem foto de verdade: não insiste até a versão mudar
+        } else {
+          break; // sem internet: tenta de novo depois
+        }
+      }
+      if (changed) {
+        _prefs?.setString('peer_photos', jsonEncode({for (final e in _peerPhotos.entries) e.key: {'pv': _peerTags[e.key] ?? '', 'ph': e.value}}));
+        notifyListeners();
+      }
+    } finally {
+      _peerPhotosBusy = false;
+    }
+  }
+
+  /// Troca (ou remove) a foto de um aluno. Só neste aparelho: o aluno não recebe nem vê.
+  void setStudentPhoto(Student s, String? b64) {
+    s.photo = cleanPhoto(b64);
+    _saveTeacher();
+    notifyListeners();
+  }
+
   // ---------------- Aparelhos da conta (até 5) ----------------
   /// Aparelhos em que a conta está aberta (do último pedido) e o máximo.
   List<AccountDevice> deviceList = const [];
@@ -461,6 +557,9 @@ class AppState extends ChangeNotifier {
   Profile? _pendingLogin;
 
   void _adoptProfile(Profile p) {
+    _peerPhotos.clear();
+    _peerTags.clear();
+    _prefs?.remove('peer_photos');
     deviceList = const [];
     deviceChoices = const [];
     p.teacher = profile.teacher;
@@ -2767,6 +2866,8 @@ class AppState extends ChangeNotifier {
         }
       }
       _applyLinkLists(r);
+      unawaited(_syncPeerPhotos(r));
+      if (_photoDirty) unawaited(_pushMyPhoto());
       _applyLibraryFlags(r);
       _applyFeatures(r);
       // Aulas: o aluno busca quando o servidor avisa que há novidade; o professor envia as pendentes.
@@ -4083,6 +4184,25 @@ class AppState extends ChangeNotifier {
     remindDefault = rd != null && kRemindOptions.contains(rd) ? rd : kReminderMinutes;
     startCardHidden = p.getBool('start_hidden') ?? false;
     emailEnabled = p.getBool('acct_on') ?? false;
+    myPhoto = cleanPhoto(p.getString('my_photo'));
+    sharePhoto = p.getBool('photo_share') ?? false;
+    _photoDirty = p.getBool('photo_dirty') ?? false;
+    try {
+      final raw = p.getString('peer_photos');
+      if (raw != null && raw.isNotEmpty) {
+        for (final e in (jsonDecode(raw) as Map).entries) {
+          final v = (e.value as Map).cast<String, dynamic>();
+          final ph = cleanPhoto(v['ph'] as String?);
+          if (ph != null && e.key is String) {
+            _peerPhotos[e.key as String] = ph;
+            _peerTags[e.key as String] = (v['pv'] as String?) ?? '';
+          }
+        }
+      }
+    } catch (_) {
+      _peerPhotos.clear();
+      _peerTags.clear();
+    }
     emailHint = p.getString('acct_hint') ?? '';
     hasRecoveryKey = p.getBool('acct_hasrk') ?? false;
     recoveryKeyText = p.getString('acct_rk') ?? '';

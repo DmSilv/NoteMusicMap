@@ -18,6 +18,8 @@ import 'hello_bar.dart';
 import 'link_bar.dart';
 import 'design_system.dart';
 import 'devices_page.dart';
+import 'person_avatar.dart';
+import 'photo_pick.dart';
 import 'hub_section.dart' show shareStudentLink;
 import 'theme.dart';
 import 'widgets.dart';
@@ -348,20 +350,58 @@ class _ProfilePageState extends State<ProfilePage> {
             ],
             AppCard(
               padding: EdgeInsets.zero,
-              child: ListTile(
-                contentPadding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
-                leading: CircleAvatar(
-                  backgroundColor: AppColors.accent.withValues(alpha: 0.2),
-                  child: Text(name.isEmpty ? '?' : name[0].toUpperCase(),
-                      style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800)),
+              child: Row(children: [
+                // A foto e o resto do cartão são dois controles lado a lado (nunca um dentro do outro).
+                Padding(
+                  padding: const EdgeInsets.only(left: Ds.s12),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: () async {
+                      final r = await pickPersonPhoto(context, app, hasPhoto: app.myPhoto != null);
+                      if (r != null) app.setMyPhoto(r);
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(Ds.s4),
+                      child: Stack(clipBehavior: Clip.none, children: [
+                        PersonAvatar(name: name, photo: app.myPhoto, radius: 22),
+                        Positioned(
+                          right: -4,
+                          bottom: -4,
+                          child: Container(
+                            padding: const EdgeInsets.all(3),
+                            decoration: BoxDecoration(color: AppColors.surface2, shape: BoxShape.circle, border: Border.all(color: AppColors.outline)),
+                            child: Icon(Icons.photo_camera_outlined, size: 13, color: AppColors.textDim),
+                          ),
+                        ),
+                      ]),
+                    ),
+                  ),
                 ),
-                title: Text(name.isEmpty ? tr('Defina o seu nome') : name,
-                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                subtitle: Text(tr('Código {0}', [p.shareCode])),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => _open(tr('Meu código e QR'), (_) => _codeBody()),
-              ),
+                Expanded(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.fromLTRB(Ds.s8, Ds.s8, Ds.s8, Ds.s8),
+                    title: Text(name.isEmpty ? tr('Defina o seu nome') : name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                    subtitle: Text(tr('Código {0}', [p.shareCode])),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => _open(tr('Meu código e QR'), (_) => _codeBody()),
+                  ),
+                ),
+              ]),
             ),
+            if (app.myPhoto != null && app.linkEnabled)
+              Padding(
+                padding: const EdgeInsets.only(top: Ds.s8, bottom: Ds.s8),
+                child: AppCard(
+                  padding: EdgeInsets.zero,
+                  child: SwitchListTile(
+                    contentPadding: const EdgeInsets.fromLTRB(Ds.s16, Ds.s4, Ds.s12, Ds.s4),
+                    title: Text(tr('Mostrar a minha foto'), style: const TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: Text(tr('Só para professores e alunos vinculados a você.'), style: Ds.support()),
+                    value: app.sharePhoto,
+                    onChanged: app.setSharePhoto,
+                  ),
+                ),
+              ),
             _section(tr('Vínculos')),
             _row(Icons.cloud_outlined, tr('Vínculo online'),
                 sub: tr('Toque para ver, desligar ou reconectar'),
@@ -656,8 +696,9 @@ class _ProfilePageState extends State<ProfilePage> {
             ListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
-              leading: Icon(t.since > 0 ? Icons.link : Icons.sync_problem,
-                  color: t.since > 0 ? AppColors.inTune : AppColors.flat),
+              leading: app.peerPhoto(t.code) != null
+                  ? PersonAvatar(name: t.name, photo: app.peerPhoto(t.code), radius: 18)
+                  : Icon(t.since > 0 ? Icons.link : Icons.sync_problem, color: t.since > 0 ? AppColors.inTune : AppColors.flat),
               title: Text(t.name.isEmpty ? tr('Professor {0}', [t.code]) : t.name,
                   style: const TextStyle(fontWeight: FontWeight.w700)),
               subtitle: Text(t.since > 0 ? tr('Código {0} · vinculado', [t.code]) : tr('Código {0} · a vincular quando houver conexão', [t.code])),

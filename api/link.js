@@ -46,6 +46,9 @@ const BAD_AUTH_PER_HOUR = 20;
 const NEW_PROFILES_PER_DAY = 100; // perfis novos por origem/dia (escola ou igreja com um Wi-Fi só cabe)
 const NEW_PROFILES_ALERT = 30; // passou disso numa origem: o painel mostra um aviso
 const MAX_BODY = 2048; // bytes: o pedido comum tem ~200
+const PHOTO_MAX_BYTES = 24000; // igual ao do app (kMaxPhotoBytes)
+const PHOTO_PUTS_PER_HOUR = 10; // trocas de foto por perfil
+const MAX_PHOTO_BODY = 36000; // foto de perfil (imagem de até 24 mil bytes em base64)
 const MAX_LESSON_BODY = 40000; // pedido de publicar aula (30 tarefas com texto cheio cabem)
 const MAX_LESSON_JSON = 30000; // aula já limpa
 const LESSONS_KEPT = 60; // aulas guardadas por aluno
@@ -148,7 +151,7 @@ function readBody(req) {
   }
   if (!b || typeof b !== 'object' || Array.isArray(b)) return null;
   // Só 'lesson' pode ser grande; os demais pedidos têm ~200 bytes.
-  const limit = b.action === 'lesson' ? MAX_LESSON_BODY : b.action === 'lib_put' ? 4096 : MAX_BODY;
+  const limit = b.action === 'lesson' ? MAX_LESSON_BODY : b.action === 'photo_put' ? MAX_PHOTO_BODY : b.action === 'lib_put' ? 4096 : MAX_BODY;
   if (JSON.stringify(b).length > limit) return null;
   return b;
 }
@@ -165,6 +168,7 @@ const TK = (code) => `tk:${code}`; // horários já pegos (trava contra dois alu
 const VD = (code) => `vd:${code}`; // decisões do professor sobre as tarefas deste aluno: "professor:idAula:idTarefa" -> JSON
 const DN = (code) => `dn:${code}`;
 const LB = (code) => `lb:${code}`; // acervo do professor: idItem -> JSON (só links)
+const PH = (code) => `ph:${code}`; // foto do perfil (campo d), só quando a pessoa escolhe mostrar aos vinculados
 const LBREP = 'lbrep'; // denúncias do acervo: "professor:idItem" -> JSON { n, t } // tarefas que os alunos deste professor marcaram: "aluno:idAula:idTarefa" -> JSON
 
 function parseLinks(h) {
@@ -172,7 +176,7 @@ function parseLinks(h) {
   for (const [code, raw] of Object.entries(h)) {
     try {
       const j = JSON.parse(raw);
-      out.push({ code, name: j.n || '', since: j.t || 0, by: j.by || '' });
+      out.push({ code, name: j.n || '', since: j.t || 0, by: j.by || '', ...(j.pv ? { pv: j.pv } : {}) });
     } catch (_) { /* linha ruim */ }
   }
   return out.sort((a, b) => a.since - b.since);
@@ -322,6 +326,39 @@ function makeHandler(deps = {}) {
         const feats = await features.forProfile(store, me, prof, legacy, clock());
         const libT = stuList.length ? await features.many(cmd, store, 'acervo', stuList.map((x) => x.code), legacy, clock()) : new Set();
         return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: stuList, ff: feats, ...(feats.includes('aula_online') && prof.ml ? { ml: prof.ml } : {}), lb: feats.includes('acervo') ? 1 : 0, lbT: stuList.map((x) => x.code).filter((c) => libT.has(c)), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...noticeOf(prof) });
+      }
+
+      // ---------------- foto do perfil (só aparece para quem está vinculado e só se a pessoa escolheu mostrar) ----------------
+      // photo_put { photo }  -> guarda (ou, vazia, apaga) a foto e avisa quem está vinculado (a versão "pv" vai em cada vínculo)
+      // photo_get { other }  -> a foto de quem está vinculado a você (nunca a de um desconhecido)
+      if (action === 'photo_put') {
+        const raw = typeof b.photo === 'string' ? b.photo : '';
+        const n = await store.incr(`phput:${me}:${hour}`, 3600);
+        if (n.n > PHOTO_PUTS_PER_HOUR) return send(429, { error: 'Muitas trocas de foto. Tente mais tarde.' });
+        if (!raw) {
+          await store.hdel(PH(me), 'd');
+          await store.hdel(U(me), 'pv');
+          await propagatePhoto(store, me, '', clock());
+          return send(200, { ok: true, pv: '' });
+        }
+        const clean = cleanPhotoText(raw);
+        if (!clean) return send(400, { error: 'Foto inválida.' });
+        const pv = crypto.createHash('sha256').update(clean).digest('hex').slice(0, 8);
+        await store.hset(PH(me), 'd', clean);
+        await store.hset(U(me), 'pv', pv);
+        await propagatePhoto(store, me, pv, clock());
+        return send(200, { ok: true, pv });
+      }
+
+      if (action === 'photo_get') {
+        const other = normCode(b.other);
+        if (!other) return send(400, { error: 'Código inválido.' });
+        const linked = (await store.hget(T(me), other)) !== undefined || (await store.hget(S(me), other)) !== undefined;
+        if (!linked) return send(403, { error: 'Sem vínculo com esta pessoa.' });
+        const photo = await store.hget(PH(other), 'd');
+        const pv = await store.hget(U(other), 'pv');
+        if (!photo || !pv) return send(404, { error: 'Sem foto.' });
+        return send(200, { ok: true, photo, pv });
       }
 
       // Consulta barata: o perfil já foi lido na autenticação, então não custa nenhum comando a mais.
@@ -746,8 +783,10 @@ function makeHandler(deps = {}) {
         const nameOfStudent = role === 'student' ? myName : theirName;
         const nameOfTeacher = role === 'teacher' ? myName : theirName;
         if (!existed) {
-          await store.hset(T(teacher), student, JSON.stringify({ n: nameOfStudent, t: now, by: role }));
-          await store.hset(S(student), teacher, JSON.stringify({ n: nameOfTeacher, t: now, by: role }));
+          const pvStudent = (role === 'student' ? prof.pv : otherProf.pv) || '';
+          const pvTeacher = (role === 'teacher' ? prof.pv : otherProf.pv) || '';
+          await store.hset(T(teacher), student, JSON.stringify({ n: nameOfStudent, t: now, by: role, ...(pvStudent ? { pv: pvStudent } : {}) }));
+          await store.hset(S(student), teacher, JSON.stringify({ n: nameOfTeacher, t: now, by: role, ...(pvTeacher ? { pv: pvTeacher } : {}) }));
           await store.hset(U(teacher), 'kr', String(now)); // os dois lados veem que os vínculos mudaram
           await store.hset(U(student), 'kr', String(now));
           await profiles.setRole(cmd, teacher, 't', true, now);
@@ -776,6 +815,35 @@ function makeHandler(deps = {}) {
 }
 
 /** Atualiza o apelido de [me] dentro dos vínculos dos outros. */
+/** Texto base64 de uma imagem JPEG, PNG ou WebP de até 24 mil bytes (o mesmo que o app confere); senão null. */
+function cleanPhotoText(v) {
+  if (typeof v !== 'string' || v.length > 33000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(v)) return null;
+  const b = Buffer.from(v, 'base64');
+  if (!b.length || b.length > PHOTO_MAX_BYTES) return null;
+  const jpeg = b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+  const png = b.length > 8 && b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+  const webp = b.length > 12 && b.subarray(0, 4).toString('latin1') === 'RIFF' && b.subarray(8, 12).toString('latin1') === 'WEBP';
+  if (!jpeg && !png && !webp) return null;
+  return b.toString('base64');
+}
+
+/** A versão da foto de [me] vai para cada vínculo (quem está do outro lado vê que mudou) e todos veem que "algo mudou" (kr). */
+async function propagatePhoto(store, me, pv, now) {
+  const setPv = (raw) => {
+    const j = JSON.parse(raw);
+    if (pv) j.pv = pv; else delete j.pv;
+    return JSON.stringify(j);
+  };
+  for (const student of Object.keys(await store.hgetall(T(me)))) {
+    const raw = (await store.hgetall(S(student)))[me];
+    if (raw) { await store.hset(S(student), me, setPv(raw)); await store.hset(U(student), 'kr', String(now)); }
+  }
+  for (const teacher of Object.keys(await store.hgetall(S(me)))) {
+    const raw = (await store.hgetall(T(teacher)))[me];
+    if (raw) { await store.hset(T(teacher), me, setPv(raw)); await store.hset(U(teacher), 'kr', String(now)); }
+  }
+}
+
 async function propagateName(store, me, name) {
   const asTeacher = await store.hgetall(T(me)); // meus alunos: neles eu sou o professor
   for (const student of Object.keys(asTeacher)) {

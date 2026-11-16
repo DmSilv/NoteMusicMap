@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import 'design_system.dart';
 import 'my_lessons_page.dart' show taskKindIcon;
+import 'person_avatar.dart';
 import 'student_identity.dart' show studentTint;
 import 'teacher_page.dart' show StudentPage;
 import 'theme.dart';
@@ -291,11 +292,7 @@ class _ValidationQueuePageState extends State<ValidationQueuePage> {
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: Ds.tap),
         child: Row(children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: tint.withValues(alpha: 0.22),
-            child: Text(name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase(), style: TextStyle(color: tint, fontWeight: FontWeight.w800, fontSize: 14)),
-          ),
+          PersonAvatar(name: g.student.name, photo: app.photoOfStudent(g.student), tint: tint, radius: 16),
           const SizedBox(width: Ds.s12),
           Expanded(child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: Ds.fontBody))),
           Text(shown == 1 ? tr('1 tarefa') : tr('{0} tarefas', [shown]), style: Ds.support()),

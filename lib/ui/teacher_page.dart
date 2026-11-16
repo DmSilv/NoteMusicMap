@@ -15,6 +15,7 @@ import 'markdown_lite.dart';
 import 'methods_page.dart';
 import 'qr_scan_page.dart';
 import 'scale_exercise_page.dart';
+import 'person_avatar.dart';
 import 'student_identity.dart';
 import 'task_form_page.dart';
 import 'validation_ui.dart';
@@ -720,17 +721,7 @@ class _TeacherPageState extends State<TeacherPage> {
                   onChanged: (v) => setState(() => v == true ? _selected.add(s.id) : _selected.remove(s.id)),
                 )
               else
-                Container(
-                  width: 46,
-                  height: 46,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: studentTint(s).withValues(alpha: 0.2),
-                    border: Border.all(color: ring, width: 2),
-                  ),
-                  child: Text(s.name.isEmpty ? '?' : s.name[0].toUpperCase(), style: TextStyle(color: studentTint(s), fontWeight: FontWeight.w800, fontSize: 18)),
-                ),
+                PersonAvatar(name: s.name, photo: app.photoOfStudent(s), tint: studentTint(s), radius: 23, ring: ring == Colors.transparent ? null : ring),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(

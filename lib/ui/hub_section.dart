@@ -26,6 +26,7 @@ import 'tour/start_card.dart';
 import 'tour/tour.dart';
 import 'design_system.dart';
 import 'theme.dart';
+import 'person_avatar.dart';
 import 'student_identity.dart' show studentTint;
 import 'validation_ui.dart' show ValidationQueuePage;
 
@@ -310,7 +311,7 @@ class HubSection extends StatelessWidget {
 
   String _whoOf(SlotOccurrence o) {
     final st = o.slot.studentCode.isEmpty ? null : app.studentByCode(o.slot.studentCode);
-    return st?.name ?? o.slot.teacherName;
+    return st == null ? o.slot.teacherName : app.labelOf(st);
   }
 
   /// O que vem depois da próxima aula (até 3, nos próximos 14 dias) e os atalhos da agenda.
@@ -351,7 +352,6 @@ class HubSection extends StatelessWidget {
     if (later.isEmpty && shortcuts.isEmpty && online == null) return null;
     Widget row(SlotOccurrence o) {
       final name = _whoOf(o);
-      final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
       final who = o.slot.studentCode.isEmpty ? null : app.studentByCode(o.slot.studentCode);
       final tint = who == null ? AppColors.accent : studentTint(who);
       return Padding(
@@ -364,11 +364,7 @@ class HubSection extends StatelessWidget {
               Text(_dayLabel(o.start, now), style: TextStyle(fontSize: 12.5, color: AppColors.textDim)),
             ]),
           ),
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: tint.withValues(alpha: 0.22),
-            child: Text(initial, style: TextStyle(color: tint, fontWeight: FontWeight.w800, fontSize: 14)),
-          ),
+          PersonAvatar(name: name, photo: who == null ? null : app.photoOfStudent(who), tint: tint, radius: 16),
           const SizedBox(width: Ds.s12),
           Expanded(child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody))),
         ]),

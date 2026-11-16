@@ -12,9 +12,12 @@ class LinkedPerson {
   final String code;
   final String name;
   final int since; // ms desde 1970
-  const LinkedPerson(this.code, this.name, this.since);
 
-  Map<String, dynamic> toJson() => {'code': code, 'name': name, 'since': since};
+  /// Versão da foto que a pessoa escolheu mostrar a quem está vinculado (vazio = sem foto).
+  final String pv;
+  const LinkedPerson(this.code, this.name, this.since, [this.pv = '']);
+
+  Map<String, dynamic> toJson() => {'code': code, 'name': name, 'since': since, if (pv.isNotEmpty) 'pv': pv};
   static LinkedPerson? tryFrom(Object? j) {
     try {
       final m = (j as Map).cast<String, dynamic>();
@@ -22,7 +25,8 @@ class LinkedPerson {
       final code = formatShareCode((m['code'] as String?) ?? '');
       if (code == null) return null;
       final since = ((m['since'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000);
-      return LinkedPerson(code, cleanText(m['name'] as String?, max: kMaxName), since);
+      final pv = (m['pv'] as String?) ?? '';
+      return LinkedPerson(code, cleanText(m['name'] as String?, max: kMaxName), since, RegExp(r'^[0-9a-f]{8}$').hasMatch(pv) ? pv : '');
     } catch (_) {
       return null;
     }
@@ -100,6 +104,10 @@ class LinkReply {
 
   /// Como ficou o lembrete da aula marcada: 'scheduled', 'off', 'none' ou 'error'.
   final String? reminder;
+
+  /// Foto de uma pessoa vinculada (resposta de `photo_get`) e a versão dela (também em `photo_put`).
+  final String photo;
+  final String pv;
   const LinkReply({
     this.ok = false,
     this.unavailable = false,
@@ -133,6 +141,8 @@ class LinkReply {
     this.libItems = const [],
     this.ff = const [],
     this.ml = '',
+    this.photo = '',
+    this.pv = '',
   });
 }
 
@@ -180,6 +190,8 @@ class LinkService {
         lbT: [for (final c in ((j['lbT'] as List?) ?? const []).take(60)) ?(c is String ? formatShareCode(c) : null)],
         ff: [for (final f in ((j['ff'] as List?) ?? const []).take(30)) if (f is String && RegExp(r'^[a-z][a-z0-9_]{1,30}$').hasMatch(f)) f],
         ml: meetingUrl(j['ml'] as String?) ?? '',
+        photo: cleanPhoto(j['photo'] as String?) ?? '',
+        pv: RegExp(r'^[0-9a-f]{8}$').hasMatch((j['pv'] as String?) ?? '') ? j['pv'] as String : '',
         libItems: [for (final x in ((j['items'] as List?) ?? const []).take(kLibMaxItems)) ?LibItem.tryFrom(x)],
         lr: ((j['lr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
         dr: ((j['dr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
@@ -267,6 +279,12 @@ class LinkService {
 
   Future<LinkReply> unlink(String code, String secret, {required String role, required String other}) =>
       _post({..._auth(code, secret, null), 'action': 'unlink', 'role': role, 'other': other});
+
+  /// Mostra (ou, com texto vazio, tira) a foto do perfil para quem está vinculado.
+  Future<LinkReply> photoPut(String code, String secret, String photo) => _post({..._auth(code, secret, null), 'action': 'photo_put', 'photo': photo});
+
+  /// A foto de uma pessoa vinculada a este perfil.
+  Future<LinkReply> photoGet(String code, String secret, String other) => _post({..._auth(code, secret, null), 'action': 'photo_get', 'other': other});
 
   /// PROFESSOR: publica uma aula encerrada para o aluno [other] (já vinculado).
   Future<LinkReply> publishLesson(String code, String secret,

@@ -176,4 +176,13 @@ const Map<String, String> kEnB14 = {
   'Sua conta pode ficar aberta em até {0} aparelhos.': 'Your account can be open on up to {0} devices.',
   'Não foi possível ver os aparelhos agora. Tente de novo mais tarde.': 'Could not load the devices right now. Try again later.',
   'entrou em {0}': 'joined {0}',
+  'Tirar uma foto': 'Take a photo',
+  'Escolher da galeria': 'Choose from gallery',
+  'Remover a foto': 'Remove photo',
+  'Não foi possível usar essa foto. Tente outra, menor.': 'Could not use that photo. Try another, smaller one.',
+  'Mostrar a minha foto': 'Show my photo',
+  'Só para professores e alunos vinculados a você.': 'Only to teachers and students linked to you.',
+  'Foto inválida.': 'Invalid photo.',
+  'Sem vínculo com esta pessoa.': 'You are not linked to this person.',
+  'Sem foto.': 'No photo.',
 };

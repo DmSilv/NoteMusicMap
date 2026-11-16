@@ -72,6 +72,8 @@
 | `lib/ui/paper_picker.dart` | A partitura está escura agora? ("Igual ao app" segue o tema.) |
 | `lib/ui/pedal_view.dart` | Modo "Pedal" do Afinador: escolha notas num teclado e elas soam juntas, sustentadas. Serve para tocar uma melodia por cima (bordão) e para treinar o ouvido com intervalos e acordes. Soa no sistema de afinação… |
 | `lib/ui/perf.dart` | Um [Listenable] que nunca avisa nada. Uma aba escondida escuta este em vez do app: assim ela não se reconstrói enquanto não está na tela, e volta a atualizar sozinha (o ListenableBuilder reassina) quando fica visível. |
+| `lib/ui/person_avatar.dart` | Fotos já decodificadas para bytes, para a lista não decodificar o texto base64 a cada quadro. |
+| `lib/ui/photo_pick.dart` | Pergunta de onde vem a foto (câmera, galeria ou remover), reduz a imagem e devolve o texto base64 pronto. Devolve: o texto da foto; '' para remover; null se a pessoa desistiu ou não deu para usar a imagem. |
 | `lib/ui/pomodoro_card.dart` | Timer de estudo (Pomodoro) com alarme sutil. |
 | `lib/ui/profile_page.dart` | "Minha conta": lista curta com o código que identifica você (sem cadastro) e a chave de recuperação, que permite levar o histórico para outro aparelho. |
 | `lib/ui/progress_cards.dart` | Evolução da taxa de acerto nos exercícios de escala. |
@@ -165,6 +167,7 @@
 | `packages/afina_core/lib/note_gate.dart` | Porta de registro da sessão: só vira nota da grade (cor, ×N, placar) o que se mantém por um tempo mínimo. Corta o que o músico não tocou de verdade: a passagem entre duas notas (de Lá para Si o dedo cruza o Lá♯),… |
 | `packages/afina_core/lib/open_slots.dart` | Horários disponíveis do professor e o aluno que "pega" um deles. Dart puro e testável. Um horário disponível usa o mesmo formato de [ClassSlot] (data, duração, semanal ou avulso). Quando o aluno pega um, o servidor o… |
 | `packages/afina_core/lib/pedal.dart` | Pedal (bordão / drone): várias notas soando ao mesmo tempo para tocar uma melodia por cima ou treinar o ouvido. Dart puro e testável: escolhe as notas, calcula as frequências no sistema de afinação escolhido (Igual,… |
+| `packages/afina_core/lib/photo.dart` | Foto pequena de pessoa (o próprio perfil ou um aluno): guardada como texto base64 de uma imagem JPEG, PNG ou WebP já reduzida pelo app. Aqui só se confere e se limpa o que entra (da galeria, do servidor, de um… |
 | `packages/afina_core/lib/pitch_detector.dart` | Detector de altura (pitch) pelo método McLeod (MPM), implementação própria a partir do artigo público "A Smarter Way to Find Pitch" (McLeod & Wyvill). Decisões de precisão: - NSDF (função de diferença quadrática… |
 | `packages/afina_core/lib/pitch_grid.dart` | Estabilizador de notas + grade de entonação + relatório de escala. A grade guarda, para cada nota (número MIDI), a MÉDIA PONDERADA do desvio em cents em relação ao alvo do sistema escolhido. Ponderação por clareza e… |
 | `packages/afina_core/lib/pomodoro.dart` | Temporizador de estudo no estilo Pomodoro: foco, pausa curta e pausa longa. Lógica pura (sem relógio próprio): quem usa passa o instante atual em milissegundos. Isso deixa tudo testável e permite retomar depois de o… |
@@ -219,6 +222,7 @@
 | `packages/afina_core/test/open_slots_test.dart` | Testes do módulo `open_slots`. |
 | `packages/afina_core/test/open_strings_grid_test.dart` | O afinador de cordas afina em quintas puras (Sol3 = 195,56 Hz). Em temperamento igual o Sol3 seria 196,00 Hz (3,9 cents acima). A grade precisa concordar. |
 | `packages/afina_core/test/pedal_test.dart` | a soma das amplitudes no pior caso fica contida (< 1,6) |
+| `packages/afina_core/test/photo_test.dart` | Testes do módulo `photo`. |
 | `packages/afina_core/test/pitch_detector_test.dart` | Gera um tom com harmônicos [amps] (índice 0 = fundamental). |
 | `packages/afina_core/test/pitch_grid_test.dart` | Sobe devagar até +52 cents. |
 | `packages/afina_core/test/pomodoro_test.dart` | Testes do módulo `pomodoro`. |
@@ -313,6 +317,7 @@
 | `api/link.test.js` | Testes do vínculo professor-aluno, sem rede: `node --test api/link.test.js` |
 | `api/online.test.js` | Testes da aula online (link da aula, modo online/presencial, link padrão): `node --test api/online.test.js` |
 | `api/painel_precisao.test.js` | Painel mais preciso: saúde, custos, coortes, período anterior, horas, limpeza e erros do servidor. `node --test api/painel_precisao.test.js` |
+| `api/photo.test.js` | Foto de perfil mostrada a quem está vinculado, sem rede: `node --test api/photo.test.js` |
 | `api/presence.test.js` | Testes da presença (quem está online agora) no painel, sem rede: `node --test api/presence.test.js` |
 | `api/remind_choice.test.js` | Testes do lembrete escolhido pelo professor (chave `lembrete_escolha`): `node --test api/remind_choice.test.js` |
 | `api/stats.test.js` | Testes das métricas anônimas e do painel de admin, sem rede: `node --test api/stats.test.js` |
@@ -346,4 +351,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **303** arquivos mapeados.
+Total: **308** arquivos mapeados.
