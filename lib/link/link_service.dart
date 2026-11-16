@@ -33,6 +33,14 @@ class LinkedPerson {
   }
 }
 
+/// Uma seção do espelho baixada do servidor: versão, texto (vazio se foi apagada) e se foi apagada.
+class MirrorItem {
+  final int u;
+  final String? d;
+  final bool deleted;
+  const MirrorItem(this.u, this.d, {this.deleted = false});
+}
+
 /// Resposta de uma chamada de vínculo.
 class LinkReply {
   /// O servidor aceitou.
@@ -108,6 +116,15 @@ class LinkReply {
   /// Foto de uma pessoa vinculada (resposta de `photo_get`) e a versão dela (também em `photo_put`).
   final String photo;
   final String pv;
+
+  /// Espelho da conta entre aparelhos: a conta tem 2+ aparelhos (`mo`) e a revisão do espelho (`mr`);
+  /// as seções do servidor (`mi_list`) e as baixadas (`mi_get`); a gravação foi ignorada por ser antiga; o espelho está desligado.
+  final bool mirrorOn;
+  final int mirrorRev;
+  final Map<String, RemoteSection> secs;
+  final Map<String, MirrorItem> items;
+  final bool stale;
+  final bool mirrorOff;
   const LinkReply({
     this.ok = false,
     this.unavailable = false,
@@ -143,16 +160,26 @@ class LinkReply {
     this.ml = '',
     this.photo = '',
     this.pv = '',
+    this.mirrorOn = false,
+    this.mirrorRev = 0,
+    this.secs = const {},
+    this.items = const {},
+    this.stale = false,
+    this.mirrorOff = false,
   });
 }
 
 /// Fala com `/api/link`: registra o vínculo professor-aluno dos dois lados e traz
 /// as listas atualizadas. Nada além de códigos, apelidos e datas passa por aqui.
 class LinkService {
-  LinkService({http.Client? client}) : _http = client ?? http.Client();
+  LinkService({http.Client? client, Uri? endpoint}) : _http = client ?? http.Client(), _fixed = endpoint;
   final http.Client _http;
 
+  /// Endereço fixo (usado nos testes, sem rede de verdade).
+  final Uri? _fixed;
+
   Uri? _endpoint() {
+    if (_fixed != null) return _fixed;
     if (kApiBase.isNotEmpty) return Uri.parse('$kApiBase/api/link');
     if (kIsWeb) return Uri.base.resolve('/api/link');
     return null;
@@ -173,6 +200,7 @@ class LinkService {
       if (r.statusCode == 409 && j['error'] == 'student_not_ready') {
         return LinkReply(notReady: true, error: trOrNull(j['message'] as String?));
       }
+      if (r.statusCode == 409 && j['error'] == 'mirror_off') return const LinkReply(rejected: true, mirrorOff: true);
       if (r.statusCode != 200) {
         // 5xx: servidor com problema, tentar depois. 4xx: o pedido foi recusado de vez.
         return LinkReply(
@@ -190,6 +218,11 @@ class LinkService {
         lbT: [for (final c in ((j['lbT'] as List?) ?? const []).take(60)) ?(c is String ? formatShareCode(c) : null)],
         ff: [for (final f in ((j['ff'] as List?) ?? const []).take(30)) if (f is String && RegExp(r'^[a-z][a-z0-9_]{1,30}$').hasMatch(f)) f],
         ml: meetingUrl(j['ml'] as String?) ?? '',
+        mirrorOn: j['mo'] == 1,
+        mirrorRev: ((j['mr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
+        secs: _mirrorSecs(j['secs']),
+        items: _mirrorItems(j['mitems']),
+        stale: j['stale'] == true,
         photo: cleanPhoto(j['photo'] as String?) ?? '',
         pv: RegExp(r'^[0-9a-f]{8}$').hasMatch((j['pv'] as String?) ?? '') ? j['pv'] as String : '',
         libItems: [for (final x in ((j['items'] as List?) ?? const []).take(kLibMaxItems)) ?LibItem.tryFrom(x)],
@@ -222,6 +255,41 @@ class LinkService {
     } catch (_) {
       return const LinkReply(offline: true);
     }
+  }
+
+  static final _secRe = RegExp(r'^[A-Za-z0-9:_.-]{1,64}$');
+
+  static Map<String, RemoteSection> _mirrorSecs(Object? v) {
+    final out = <String, RemoteSection>{};
+    if (v is! Map) return out;
+    for (final e in v.entries.take(500)) {
+      final k = e.key;
+      final m = e.value;
+      if (k is! String || !_secRe.hasMatch(k) || m is! Map) continue;
+      final u = (m['u'] as num?)?.toInt() ?? 0;
+      if (u <= 0) continue;
+      out[k] = RemoteSection(u, deleted: m['x'] == 1);
+    }
+    return out;
+  }
+
+  static Map<String, MirrorItem> _mirrorItems(Object? v) {
+    final out = <String, MirrorItem>{};
+    if (v is! Map) return out;
+    for (final e in v.entries.take(40)) {
+      final k = e.key;
+      final m = e.value;
+      if (k is! String || !_secRe.hasMatch(k) || m is! Map) continue;
+      final u = (m['u'] as num?)?.toInt() ?? 0;
+      final d = m['d'];
+      if (u <= 0) continue;
+      if (m['x'] == 1) {
+        out[k] = MirrorItem(u, null, deleted: true);
+      } else if (d is String && d.length <= kMaxSectionChars) {
+        out[k] = MirrorItem(u, d);
+      }
+    }
+    return out;
   }
 
   /// Uma aula marcada vinda do servidor: confere o professor e limpa tudo.
@@ -279,6 +347,16 @@ class LinkService {
 
   Future<LinkReply> unlink(String code, String secret, {required String role, required String other}) =>
       _post({..._auth(code, secret, null), 'action': 'unlink', 'role': role, 'other': other});
+
+  // ---------------- espelho da conta entre aparelhos (só com 2+ aparelhos) ----------------
+  Future<LinkReply> miList(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'mi_list'});
+
+  Future<LinkReply> miGet(String code, String secret, List<String> secs) => _post({..._auth(code, secret, null), 'action': 'mi_get', 'secs': secs});
+
+  Future<LinkReply> miPut(String code, String secret, String sec, int u, String data) =>
+      _post({..._auth(code, secret, null), 'action': 'mi_put', 'sec': sec, 'u': u, 'd': data});
+
+  Future<LinkReply> miDel(String code, String secret, String sec, int u) => _post({..._auth(code, secret, null), 'action': 'mi_del', 'sec': sec, 'u': u});
 
   /// Mostra (ou, com texto vazio, tira) a foto do perfil para quem está vinculado.
   Future<LinkReply> photoPut(String code, String secret, String photo) => _post({..._auth(code, secret, null), 'action': 'photo_put', 'photo': photo});

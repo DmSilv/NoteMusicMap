@@ -22,6 +22,7 @@ import 'data/repository.dart';
 import 'feedback/feedback_service.dart';
 import 'link/account_service.dart';
 import 'link/link_service.dart';
+import 'link/mirror_engine.dart';
 import 'stats/error_service.dart';
 import 'stats/stats_service.dart';
 import 'voice/dictation.dart';
@@ -316,6 +317,128 @@ class AppState extends ChangeNotifier {
     return null;
   }
 
+  // ---------------- Espelho da conta entre aparelhos ----------------
+  MirrorEngine? _mirror;
+
+  /// O motor que mantém os aparelhos da mesma conta iguais (só trabalha com 2 ou mais aparelhos na conta).
+  MirrorEngine get mirror => _mirror ??= MirrorEngine(
+        links: links,
+        account: () => (profile.shareCode, profile.secret),
+        memory: () => _prefs == null ? null : _PrefsMirrorMemory(_prefs!),
+        build: _mirrorBuild,
+        apply: _mirrorApply,
+        deleteLocal: _mirrorDeleteLocal,
+        changed: notifyListeners,
+      );
+
+  /// Avisa o espelho que algo mudou aqui (ele junta as mudanças e manda daqui a pouco).
+  void _mirrorKick() {
+    if (_prefs == null) return;
+    mirror.kick();
+  }
+
+  /// Tudo que este aparelho guarda e vale para a conta toda, por seção.
+  Map<String, LocalSection> _mirrorBuild() {
+    final out = <String, LocalSection>{};
+    for (final s in students) {
+      final data = studentToSection(s);
+      if (data.length > kMaxSectionChars) continue; // grande demais: segue só neste aparelho
+      out[studentSection(s)] = LocalSection(data, pristine: isPristineStudent(s));
+    }
+    out['AG'] = LocalSection(slotsToSection(agenda), pristine: agenda.isEmpty);
+    out['OS'] = LocalSection(slotsToSection(openSlots), pristine: openSlots.isEmpty);
+    out['ME'] = LocalSection(methodsToSection(methodLibrary), pristine: methodLibrary.isEmpty);
+    final prefs = AccountPrefs(teachInstruments: teachInstruments, teacherMode: teacherMode);
+    out['PR'] = LocalSection(prefs.toSection(), pristine: prefs.isDefault);
+    out['SE'] = LocalSection(sessionsToSection(sessionRecords), pristine: sessionRecords.isEmpty);
+    return out;
+  }
+
+  Student? _mirrorStudentFor(String sec, Student remote) {
+    if (sec.startsWith('S:i:')) return studentById(sec.substring(4));
+    return remote.code == null ? studentById(remote.id) : studentByCode(remote.code!);
+  }
+
+  /// Aplica uma seção que veio do outro aparelho. [merge]: os dois lados mudaram, então soma; senão adota o do outro.
+  void _mirrorApply(String sec, String data, {required bool merge}) {
+    if (sec.startsWith('S:')) {
+      final remote = studentFromSection(data);
+      if (remote == null) return;
+      final cur = _mirrorStudentFor(sec, remote);
+      if (cur == null) {
+        remote.linkState = null; // o vínculo vem do servidor, a cada aparelho
+        students.add(remote);
+        activeStudentId ??= remote.id;
+      } else if (merge) {
+        mergeStudentFrom(cur, remote, preferOther: isPristineStudent(cur));
+      } else {
+        cur.name = remote.name.trim().isEmpty ? cur.name : remote.name;
+        cur.instrument = remote.instrument;
+        cur.photo = remote.photo;
+        cur.code ??= remote.code;
+        cur.tasks
+          ..clear()
+          ..addAll(remote.tasks);
+        cur.notes
+          ..clear()
+          ..addAll(remote.notes);
+        cur.sessions
+          ..clear()
+          ..addAll(remote.sessions);
+        cur.lessons
+          ..clear()
+          ..addAll(remote.lessons);
+        cur.absences = remote.absences;
+      }
+      _repo?.saveStudents(students);
+    } else if (sec == 'AG') {
+      final remote = slotsFromSection(data);
+      agenda = merge ? mergeSlotLists(agenda, remote) : _keepPending(remote, agenda);
+      _saveAgenda();
+    } else if (sec == 'OS') {
+      final remote = slotsFromSection(data);
+      openSlots = merge ? mergeSlotLists(openSlots, remote) : _keepPending(remote, openSlots);
+      _saveAgenda();
+    } else if (sec == 'ME') {
+      final remote = methodsFromSection(data);
+      if (!merge) methodLibrary.clear();
+      mergeMethods(methodLibrary, remote);
+      _saveMethods();
+    } else if (sec == 'PR') {
+      final remote = AccountPrefs.fromSection(data);
+      final mine = AccountPrefs(teachInstruments: teachInstruments, teacherMode: teacherMode);
+      final next = merge ? mine.merge(remote) : remote.merge(const AccountPrefs());
+      teachInstruments = next.teachInstruments;
+      _prefs?.setStringList('teach_inst', teachInstruments);
+      if (next.teacherMode && !teacherMode && linkEnabled) {
+        teacherMode = true;
+        _saveTeacher();
+      }
+    } else if (sec == 'SE') {
+      mergeSessions(sessionRecords, sessionsFromSection(data));
+      if (sessionRecords.length > 200) sessionRecords.removeRange(200, sessionRecords.length);
+      _repo?.saveSessions(sessionRecords);
+      _mirrorKick();
+    }
+    notifyListeners();
+  }
+
+  /// A lista que veio do outro aparelho, mas mantendo o "falta enviar" das aulas que este aparelho ainda precisa mandar.
+  List<ClassSlot> _keepPending(List<ClassSlot> remote, List<ClassSlot> mine) {
+    final pend = {for (final s in mine) if (s.pending == true) s.id: s};
+    return [for (final s in remote) pend.containsKey(s.id) ? s.copyWith(pending: true) : s];
+  }
+
+  void _mirrorDeleteLocal(String sec) {
+    if (!sec.startsWith('S:')) return;
+    final i = sec.startsWith('S:i:') ? students.indexWhere((s) => s.id == sec.substring(4)) : students.indexWhere((s) => s.code != null && 'S:${s.code}' == sec);
+    if (i < 0) return;
+    final gone = students.removeAt(i);
+    if (activeStudentId == gone.id) activeStudentId = students.isEmpty ? null : students.first.id;
+    _repo?.saveStudents(students);
+    notifyListeners();
+  }
+
   // ---------------- Fotos ----------------
   /// A foto deste perfil (texto base64 de uma imagem pequena) ou null. Fica neste aparelho.
   String? myPhoto;
@@ -608,6 +731,7 @@ class AppState extends ChangeNotifier {
     // A foto e o "mostrar" são deste aparelho: ao assumir outra conta, o servidor dela ainda não tem a foto.
     _photoDirty = sharePhoto && myPhoto != null;
     _prefs?.setBool('photo_dirty', _photoDirty);
+    mirror.reset();
     _peerPhotos.clear();
     _peerTags.clear();
     _prefs?.remove('peer_photos');
@@ -900,6 +1024,7 @@ class AppState extends ChangeNotifier {
     teachInstruments = cleanTeachingIds(set);
     _prefs?.setStringList('teach_inst', teachInstruments);
     notifyListeners();
+    _mirrorKick();
   }
 
   /// O instrumento a usar nas sugestões da tarefa deste aluno (o dele, se o professor ensina; senão o único que ensina).
@@ -944,7 +1069,10 @@ class AppState extends ChangeNotifier {
     ];
   }
 
-  void _saveMethods() => _repo?.saveMethods(methodLibrary);
+  void _saveMethods() {
+    _repo?.saveMethods(methodLibrary);
+    _mirrorKick();
+  }
 
   /// Cadastra um método (com lições, uma por linha ou separadas por ';'). false se o nome está vazio.
   bool addMethod(String name, [String lessonsText = '']) {
@@ -1393,6 +1521,7 @@ class AppState extends ChangeNotifier {
     p.setInt('agenda_rev', _agendaRev);
     p.setString('open_slots', jsonEncode([for (final s in openSlots) s.toJson()]));
     p.setInt('picks_rev', _picksRev);
+    _mirrorKick();
   }
 
   /// As aulas marcadas (não canceladas) do professor com o aluno [code].
@@ -1908,6 +2037,7 @@ class AppState extends ChangeNotifier {
     }
     linkOnline = true;
     _supportNotice(r);
+    if (_prefs != null) mirror.note(r);
     final lessonsNew = myTeachers.isNotEmpty && r.lr != lessonsRev;
     final donesNew = students.isNotEmpty && r.dr != _doneRev;
     final agendaNew = myTeachers.isNotEmpty && r.sr != _agendaRev;
@@ -2931,6 +3061,7 @@ class AppState extends ChangeNotifier {
       // 2) Lista do servidor.
       var r = await links.sync(own, secret, name: profile.name);
       if (r.unavailable) return _markLinkUnavailable();
+      if (r.ok && _prefs != null) mirror.note(r);
       if (!r.ok) {
         if (r.offline) linkOnline = false;
         notifyListeners();
@@ -3141,6 +3272,7 @@ class AppState extends ChangeNotifier {
     } else {
       p.setString('activeStudent', activeStudentId!);
     }
+    _mirrorKick();
   }
 
   Future<void> _loadTeacher(SharedPreferences p) async {
@@ -5042,4 +5174,23 @@ class AppState extends ChangeNotifier {
     _saveStudy();
     super.dispose();
   }
+}
+
+/// O espelho guarda o que já trocou nas preferências do aparelho.
+class _PrefsMirrorMemory implements MirrorMemory {
+  _PrefsMirrorMemory(this._p);
+  final SharedPreferences _p;
+  @override
+  String? read(String key) => key == 'mirror_rev' ? _p.getInt(key)?.toString() : _p.getString(key);
+  @override
+  void write(String key, String value) {
+    if (key == 'mirror_rev') {
+      _p.setInt(key, int.tryParse(value) ?? 0);
+    } else {
+      _p.setString(key, value);
+    }
+  }
+
+  @override
+  void remove(String key) => _p.remove(key);
 }

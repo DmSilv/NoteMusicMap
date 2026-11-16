@@ -250,6 +250,9 @@ Precisa do Upstash Redis. Sem ele devolve 503 e o app segue só neste aparelho.
 | `lesson` | Só 'lesson' pode ser grande; os demais pedidos têm ~200 bytes. |
 | `claim` | Liberação pelo suporte: o aparelho novo prova que tem o código de uso único gerado no painel e passa a ser o dono do perfil (o segredo antigo deixa de valer). Só a tentativa errada conta. |
 | `sync` | — |
+| `mi_list` | mi_get { secs: [...] }  -> { mitems: { seção: { u, d } } } mi_put { sec, u, d }    -> grava a seção (versão mais antiga que a guardada é ignorada) mi_del { sec, u }       -> marca a seção como apagada |
+| `mi_put` | — |
+| `mi_get` | — |
 | `photo_put` | foto do perfil (só aparece para quem está vinculado e só se a pessoa escolheu mostrar) photo_put { photo }  -> guarda (ou, vazia, apaga) a foto e avisa quem está vinculado (a versão "pv" vai em cada vínculo) photo_get { other }  -> a foto de quem está vinculado a você (nunca a de um desconhecido) |
 | `photo_get` | — |
 | `rev` | Consulta barata: o perfil já foi lido na autenticação, então não custa nenhum comando a mais. lr = aulas novas, dr = tarefas marcadas pelos alunos, kr = vínculos mudaram. |

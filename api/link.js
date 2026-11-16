@@ -33,6 +33,7 @@ const { bump } = require('./_lib/metrics');
 const { createCmd } = require('./_lib/store_cmd');
 const profiles = require('./_lib/profiles');
 const devices = require('./_lib/devices');
+const mirror = require('./_lib/mirror');
 const { sweepEmpty } = require('./_lib/sweep');
 const { unlinkPair } = require('./_lib/unlink');
 const { serverError } = require('./_lib/error_store');
@@ -49,6 +50,9 @@ const MAX_BODY = 2048; // bytes: o pedido comum tem ~200
 const PHOTO_MAX_BYTES = 24000; // igual ao do app (kMaxPhotoBytes)
 const PHOTO_MAX_SIDE = 512; // pixels por lado (o app manda 160; igual a kMaxPhotoSide)
 const PHOTO_PUTS_PER_HOUR = 10; // trocas de foto por perfil
+const MAX_MIRROR_BODY = 130000; // uma seção do espelho (até 120 mil caracteres) e o envelope
+const MIRROR_PUTS_PER_HOUR = 600; // gravações do espelho por perfil
+const MIRROR_PULLS_PER_HOUR = 240; // listas e baixadas do espelho por perfil
 const MAX_PHOTO_BODY = 36000; // foto de perfil (imagem de até 24 mil bytes em base64)
 const MAX_LESSON_BODY = 40000; // pedido de publicar aula (30 tarefas com texto cheio cabem)
 const MAX_LESSON_JSON = 30000; // aula já limpa
@@ -143,16 +147,16 @@ function clientIp(req) {
 function readBody(req) {
   // Pedido grande demais nunca é um pedido do app: nem tenta ler.
   const len = Number(req.headers && req.headers['content-length']);
-  if (Number.isFinite(len) && len > MAX_LESSON_BODY) return null;
+  if (Number.isFinite(len) && len > MAX_MIRROR_BODY) return null;
   let b = null;
   if (req.body && typeof req.body === 'object') b = req.body;
   else if (typeof req.body === 'string') {
-    if (req.body.length > MAX_LESSON_BODY) return null;
+    if (req.body.length > MAX_MIRROR_BODY) return null;
     try { b = JSON.parse(req.body); } catch (_) { return null; }
   }
   if (!b || typeof b !== 'object' || Array.isArray(b)) return null;
   // Só 'lesson' pode ser grande; os demais pedidos têm ~200 bytes.
-  const limit = b.action === 'lesson' ? MAX_LESSON_BODY : b.action === 'photo_put' ? MAX_PHOTO_BODY : b.action === 'lib_put' ? 4096 : MAX_BODY;
+  const limit = b.action === 'lesson' ? MAX_LESSON_BODY : b.action === 'mi_put' ? MAX_MIRROR_BODY : b.action === 'photo_put' ? MAX_PHOTO_BODY : b.action === 'lib_put' ? 4096 : MAX_BODY;
   if (JSON.stringify(b).length > limit) return null;
   return b;
 }
@@ -171,6 +175,12 @@ const DN = (code) => `dn:${code}`;
 const LB = (code) => `lb:${code}`; // acervo do professor: idItem -> JSON (só links)
 const PH = (code) => `ph:${code}`; // foto do perfil (campo d), só quando a pessoa escolhe mostrar aos vinculados
 const LBREP = 'lbrep'; // denúncias do acervo: "professor:idItem" -> JSON { n, t } // tarefas que os alunos deste professor marcaram: "aluno:idAula:idTarefa" -> JSON
+
+/** mo = a conta tem 2+ aparelhos (o espelho vale); mr = revisão do espelho. Sem 'dl' (um aparelho só) não custa nada. */
+function mirrorFlags(prof) {
+  if (!prof.dl) return {};
+  return devices.list(prof).length >= 2 ? { mo: 1, mr: Number(prof.mr) || 0 } : {};
+}
 
 function parseLinks(h) {
   const out = [];
@@ -270,6 +280,7 @@ function makeHandler(deps = {}) {
         if (given.length !== target.sc.length || !crypto.timingSafeEqual(Buffer.from(given), Buffer.from(target.sc))) return bad();
         await store.hset(U(me), 'h', sha('lnk|' + secret));
         await store.hdel(U(me), 'dl'); // a liberação do suporte deixa só este aparelho na conta
+        await mirror.clear(store, me);
         await store.hdel(U(me), 'sc');
         await store.hdel(U(me), 'sx');
         await store.hset(U(me), 'kr', String(clock()));
@@ -327,7 +338,23 @@ function makeHandler(deps = {}) {
         const stuList = parseLinks(asStudent);
         const feats = await features.forProfile(store, me, prof, legacy, clock());
         const libT = stuList.length ? await features.many(cmd, store, 'acervo', stuList.map((x) => x.code), legacy, clock()) : new Set();
-        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: stuList, ff: feats, ...(feats.includes('aula_online') && prof.ml ? { ml: prof.ml } : {}), lb: feats.includes('acervo') ? 1 : 0, lbT: stuList.map((x) => x.code).filter((c) => libT.has(c)), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...noticeOf(prof) });
+        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: stuList, ff: feats, ...(feats.includes('aula_online') && prof.ml ? { ml: prof.ml } : {}), lb: feats.includes('acervo') ? 1 : 0, lbT: stuList.map((x) => x.code).filter((c) => libT.has(c)), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...mirrorFlags(prof), ...noticeOf(prof) });
+      }
+
+      // ---------------- espelho da conta entre aparelhos (só com 2+ aparelhos; ver api/_lib/mirror.js) ----------------
+      //   mi_list {}              -> { mr, secs: { seção: { u, x? } } }
+      //   mi_get { secs: [...] }  -> { mitems: { seção: { u, d } } }
+      //   mi_put { sec, u, d }    -> grava a seção (versão mais antiga que a guardada é ignorada)
+      //   mi_del { sec, u }       -> marca a seção como apagada
+      if (action === 'mi_list' || action === 'mi_get' || action === 'mi_put' || action === 'mi_del') {
+        if (devices.list(prof).length < 2) return send(409, { error: 'mirror_off' });
+        const hourN = await store.incr(`mirror:${action === 'mi_put' || action === 'mi_del' ? 'w' : 'r'}:${me}:${hour}`, 3600);
+        if (hourN.n > (action === 'mi_put' || action === 'mi_del' ? MIRROR_PUTS_PER_HOUR : MIRROR_PULLS_PER_HOUR)) return send(429, { error: 'Muitas consultas. Tente mais tarde.' });
+        if (action === 'mi_list') return send(200, { ok: true, mr: Number(prof.mr) || 0, secs: await mirror.list(store, me) });
+        if (action === 'mi_get') return send(200, { ok: true, mitems: await mirror.get(store, me, Array.isArray(b.secs) ? b.secs : []) });
+        const r = action === 'mi_put' ? await mirror.put(store, me, b.sec, b.u, b.d, clock()) : await mirror.del(store, me, b.sec, b.u, clock());
+        if (r.error) return send(400, { error: r.error });
+        return send(200, r);
       }
 
       // ---------------- foto do perfil (só aparece para quem está vinculado e só se a pessoa escolheu mostrar) ----------------
@@ -368,7 +395,7 @@ function makeHandler(deps = {}) {
       if (action === 'rev') {
         // Conta 1 em cada 10 consultas (barato) para o painel estimar o custo do polling.
         if (Math.random() < 0.1) await metric('rev10');
-        return send(200, { ok: true, lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...noticeOf(prof) });
+        return send(200, { ok: true, lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...mirrorFlags(prof), ...noticeOf(prof) });
       }
 
       // O ALUNO vê os horários disponíveis de um professor a que está vinculado (só os que ainda dá para pegar).

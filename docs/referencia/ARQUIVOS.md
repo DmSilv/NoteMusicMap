@@ -16,6 +16,7 @@
 | `lib/feedback/feedback_service.dart` | Nota do app e pesquisa rápida (1 ou 2 perguntas por aparelho). - Só envia quando a pessoa toca em "Enviar". Vai a resposta, a versão do app e um código do aparelho que o servidor embaralha. Sem nome, e-mail ou áudio.… |
 | `lib/link/account_service.dart` | Um aparelho em que a conta está aberta (o servidor nunca manda o segredo dele). |
 | `lib/link/link_service.dart` | Cliente da API de vínculo (`/api/link`): vincular, aulas, tarefas feitas, decisões do professor, agenda, horários livres e notificações. Fala só com o servidor do app. |
+| `lib/link/mirror_engine.dart` | Onde o motor guarda o que já foi trocado (um texto por nome). |
 | `lib/main.dart` | Abre o app. Se algo falhar ao iniciar, mostra a tela de erro (com "Tentar de novo") em vez de ficar em branco. Erros inesperados depois disso são classificados, guardados e avisados. |
 | `lib/platform/hard_reset.dart` | Apagar tudo e recarregar o app (botão "Apagar tudo e recomeçar"): escolhe a versão da web ou a de celular (importação condicional). |
 | `lib/platform/hard_reset_stub.dart` | Fora da web não há cache de página para limpar. |
@@ -164,6 +165,7 @@
 | `packages/afina_core/lib/markdown_lite.dart` | Markdown simples da IA (títulos `##`, tópicos, listas numeradas, **negrito** e *itálico*): leitura dos trechos em linha e conversão para texto puro com quebras de linha (para copiar). Dart puro e testável; a tela só… |
 | `packages/afina_core/lib/methods.dart` | Biblioteca de métodos do professor (ex.: Suzuki, Ševčík) com as lições de cada um. O professor cadastra, importa de um texto colado e exporta. Dart puro e testável. |
 | `packages/afina_core/lib/metronome_engine.dart` | Motor do metrônomo: gera PCM com cliques posicionados em AMOSTRAS exatas. Por que assim: o app não agenda cliques com Timer (que oscila 5-20 ms). Em vez disso, gera o áudio contínuo e coloca cada clique na amostra… |
+| `packages/afina_core/lib/mirror.dart` | Espelho da conta entre aparelhos: as regras de COMO juntar o que dois aparelhos da mesma conta guardam, sem perder nada. O servidor só guarda seções de texto (api/_lib/mirror.js); aqui está a parte que entende o… |
 | `packages/afina_core/lib/needle_spring.dart` | Movimento natural de ponteiro: mola amortecida e mapeamento de ângulo. Fica no núcleo (Dart puro) para poder ser testado sem a interface. |
 | `packages/afina_core/lib/note_display.dart` | Estabilizador da nota EXIBIDA (a que fica em destaque na tela). A grade continua registrando cada nota que o microfone ouve (as cores são fiéis ao que foi tocado). Só o DESTAQUE ao vivo (nome da nota, ponteiro e… |
 | `packages/afina_core/lib/note_gate.dart` | Porta de registro da sessão: só vira nota da grade (cor, ×N, placar) o que se mantém por um tempo mínimo. Corta o que o músico não tocou de verdade: a passagem entre duas notas (de Lá para Si o dedo cruza o Lá♯),… |
@@ -219,6 +221,7 @@
 | `packages/afina_core/test/markdown_lite_test.dart` | Testes do módulo `markdown_lite`. |
 | `packages/afina_core/test/methods_test.dart` | Testes do módulo `methods`. |
 | `packages/afina_core/test/metronome_engine_test.dart` | Renderiza [total] amostras em blocos de [chunk] e junta tudo. |
+| `packages/afina_core/test/mirror_test.dart` | Testes do módulo `mirror`. |
 | `packages/afina_core/test/needle_spring_test.dart` | Simula [seconds] com passos de [dt] e devolve a trajetória (posições). |
 | `packages/afina_core/test/note_display_test.dart` | Alimenta o filtro com [n] por [seconds], num quadro a cada 30 ms, a partir de [t0]. Devolve a lista do que foi exibido em cada quadro. |
 | `packages/afina_core/test/note_gate_test.dart` | Alimenta a porta com [n] por [seconds], um quadro a cada 17 ms, desde [t0]. Devolve o instante final. |
@@ -285,6 +288,7 @@
 | `api/_lib/library.js` | Acervo e Repertório do professor (só LINKS, nenhum arquivo é guardado aqui). O professor cadastra título, autor e o endereço do material (Google Drive, IMSLP, YouTube…); o aluno vinculado abre o endereço. Liberado só… |
 | `api/_lib/mail.js` | Envio de e-mail (só os códigos de verificação da conta). Usa o serviço de e-mail por API (padrão: Resend); a chave e o remetente vêm das variáveis de ambiente da Vercel (MAIL_API_KEY ou RESEND_API_KEY, e MAIL_FROM).… |
 | `api/_lib/metrics.js` | Métricas anônimas de uso: nomes das chaves, o dia (fuso de Brasília) e o contador que o servidor soma sozinho quando algo acontece (aula enviada, vínculo criado...). Falhar aqui NUNCA pode derrubar o que o usuário… |
+| `api/_lib/mirror.js` | Espelho da conta entre aparelhos: o que o professor (e a pessoa) guarda só no aparelho — alunos com tarefas, observações e aulas, agenda, métodos, histórico de estudo — passa a ficar também no servidor, para o outro… |
 | `api/_lib/profiles.js` | Índice dos perfis anônimos (código + apelido) para o painel do administrador: quando entrou, última atividade, papel (professor / aluno) e bloqueio. NÃO há cadastro nem login. Custo: 3 comandos quando o perfil nasce;… |
 | `api/_lib/prompts.js` | Instruções de cada tipo de pedido. O texto recebido é DADO, nunca instrução. |
 | `api/_lib/providers.js` | Um adaptador por serviço de IA. Todos recebem {system, prompt} e devolvem {status: 'ok'\|'busy'\|'auth'\|'error', text?, model?, retryAfterMs?}. |
@@ -320,6 +324,7 @@
 | `api/indicators.test.js` | Testes dos indicadores de saúde do uso no painel, sem rede: `node --test api/indicators.test.js` |
 | `api/library.test.js` | Testes do Acervo e Repertório do professor (só links): `node --test api/library.test.js` |
 | `api/link.test.js` | Testes do vínculo professor-aluno, sem rede: `node --test api/link.test.js` |
+| `api/mirror.test.js` | Espelho da conta entre aparelhos, sem rede: `node --test api/mirror.test.js` |
 | `api/online.test.js` | Testes da aula online (link da aula, modo online/presencial, link padrão): `node --test api/online.test.js` |
 | `api/painel_precisao.test.js` | Painel mais preciso: saúde, custos, coortes, período anterior, horas, limpeza e erros do servidor. `node --test api/painel_precisao.test.js` |
 | `api/photo.test.js` | Foto de perfil mostrada a quem está vinculado, sem rede: `node --test api/photo.test.js` |
@@ -356,4 +361,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **313** arquivos mapeados.
+Total: **318** arquivos mapeados.

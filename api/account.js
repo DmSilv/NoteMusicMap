@@ -41,6 +41,7 @@ const { mailEnabled, sendMail } = require('./_lib/mail');
 const { serverError } = require('./_lib/error_store');
 const { _internal } = require('./link');
 const devices = require('./_lib/devices');
+const mirror = require('./_lib/mirror');
 const profilesLib = require('./_lib/profiles');
 
 const { normCode } = _internal;
@@ -251,6 +252,7 @@ function makeHandler(deps = {}) {
           if (r.missing) return send(404, { error: 'Aparelho não encontrado.' });
           if (r.last) return send(400, { error: 'last_device' });
           await store.hset(U(o.code), 'kr', String(clock())); // quem foi tirado percebe na próxima consulta
+          if (r.devices.length < 2) await mirror.clear(store, o.code); // um aparelho só: o espelho não serve mais
           return send(200, { ok: true, max: devices.MAX_DEVICES, devices: r.devices.map((d) => devices.view(d, mine)) });
         }
         if (action === 'device_name') {

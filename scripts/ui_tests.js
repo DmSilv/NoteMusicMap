@@ -14,7 +14,7 @@ const { spawnSync } = require('node:child_process');
 const ROOT = path.join(__dirname, '..');
 const LIB = path.join(ROOT, 'lib');
 const TESTS = path.join(ROOT, 'test', 'ui');
-const OK_PACKAGES = new Set(['flutter', 'flutter_test', 'flutter_localizations', 'afina_core']); // afina_core é Dart puro: entra como dependência local
+const OK_PACKAGES = new Set(['flutter', 'flutter_test', 'flutter_localizations', 'afina_core', 'http', 'shared_preferences']); // http e shared_preferences rodam sem código nativo no teste; afina_core é Dart puro: entra como dependência local
 const CORE = path.join(ROOT, 'packages', 'afina_core').replace(/\\/g, '/');
 
 const files = fs.existsSync(TESTS) ? fs.readdirSync(TESTS).filter((f) => f.endsWith('_test.dart')) : [];
@@ -60,7 +60,7 @@ try {
   fs.copyFileSync(path.join(ROOT, 'assets', 'fonts', 'Leland.otf'), path.join(tmp, 'assets', 'fonts', 'Leland.otf'));
   const sdk = (fs.readFileSync(path.join(ROOT, 'pubspec.yaml'), 'utf8').match(/^\s*sdk:\s*(\^[\d.]+)/m) || [])[1] || '^3.0.0';
   fs.writeFileSync(path.join(tmp, 'pubspec.yaml'),
-    `name: afina\npublish_to: none\nenvironment:\n  sdk: ${sdk}\ndependencies:\n  flutter:\n    sdk: flutter\n  flutter_localizations:\n    sdk: flutter\n  afina_core:\n    path: "${CORE}"\ndev_dependencies:\n  flutter_test:\n    sdk: flutter\nflutter:\n  assets:\n    - assets/fonts/Leland.otf\n`);
+    `name: afina\npublish_to: none\nenvironment:\n  sdk: ${sdk}\ndependencies:\n  flutter:\n    sdk: flutter\n  flutter_localizations:\n    sdk: flutter\n  afina_core:\n    path: "${CORE}"\n  http: ^1.6.0\n  shared_preferences: ^2.5.6\ndev_dependencies:\n  flutter_test:\n    sdk: flutter\nflutter:\n  assets:\n    - assets/fonts/Leland.otf\n`);
   console.log(`Teste de tela isolado: ${files.length} arquivo(s) de teste, ${need.size} arquivo(s) do app (${[...need].join(', ')})`);
   const flutter = process.platform === 'win32' ? 'flutter.bat' : 'flutter';
   const get = spawnSync(flutter, ['pub', 'get'], { cwd: tmp, stdio: 'inherit', shell: process.platform === 'win32' });

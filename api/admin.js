@@ -353,7 +353,7 @@ function makeHandler(deps = {}) {
           await store.hset(U(te), 'kr', String(now));
           if ((await store.hlen(T(te))) === 0) await profiles.setRole(cmd, te, 't', false, now);
         }
-        for (const key of [T, S, SL, SS, UL, DN, VD, AV, TK, PS, LB, (c) => `ph:${c}`, U]) {
+        for (const key of [T, S, SL, SS, UL, DN, VD, AV, TK, PS, LB, (c) => `ph:${c}`, (c) => `mi:${c}`, (c) => `mm:${c}`, U]) {
           for (const f of Object.keys(await store.hgetall(key(code)))) await store.hdel(key(code), f);
         }
         await profiles.forget(cmd, code);
