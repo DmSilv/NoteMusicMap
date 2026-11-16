@@ -726,10 +726,10 @@ class _TeacherPageState extends State<TeacherPage> {
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: AppColors.accent.withValues(alpha: 0.18),
+                    color: studentTint(s).withValues(alpha: 0.2),
                     border: Border.all(color: ring, width: 2),
                   ),
-                  child: Text(s.name.isEmpty ? '?' : s.name[0].toUpperCase(), style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800, fontSize: 18)),
+                  child: Text(s.name.isEmpty ? '?' : s.name[0].toUpperCase(), style: TextStyle(color: studentTint(s), fontWeight: FontWeight.w800, fontSize: 18)),
                 ),
               const SizedBox(width: 12),
               Expanded(
@@ -737,7 +737,7 @@ class _TeacherPageState extends State<TeacherPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      Flexible(child: Text(s.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16.5))),
+                      Flexible(child: Text(app.labelOf(s), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16.5))),
                       const SizedBox(width: 8),
                       linkBadge(s),
                     ]),
@@ -767,7 +767,7 @@ class _TeacherPageState extends State<TeacherPage> {
               ),
               if (!_manage)
                 PopupMenuButton<String>(
-                  tooltip: tr('Opções de {0}', [s.name]),
+                  tooltip: tr('Opções de {0}', [app.labelOf(s)]),
                   icon: Icon(Icons.more_vert, color: AppColors.textDim),
                   onSelected: (v) async {
                     switch (v) {
@@ -779,7 +779,7 @@ class _TeacherPageState extends State<TeacherPage> {
                       case 'code':
                         await _editStudentCode(context, app, s);
                       case 'delete':
-                        final ok = await _confirmDelete(context, tr('Excluir {0}?', [s.name]),
+                        final ok = await _confirmDelete(context, tr('Excluir {0}?', [app.labelOf(s)]),
                             tr('Apaga o histórico, as tarefas e as observações deste aluno neste aparelho{0}. Não dá para desfazer.', [app.hasLessonWith(s.id) ? tr(', e descarta a aula em andamento com ele') : '']));
                         if (ok) {
                           app.removeStudent(s.id);
@@ -928,7 +928,7 @@ class StudentPage extends StatelessWidget {
           appBar: AppBar(
             title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(tr('Alunos'), style: TextStyle(fontSize: 12, color: AppColors.textDim, fontWeight: FontWeight.w600)),
-              Text(s.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+              Text(app.labelOf(s), maxLines: 1, overflow: TextOverflow.ellipsis),
             ]),
             actions: [
               PopupMenuButton<String>(
@@ -947,7 +947,7 @@ class StudentPage extends StatelessWidget {
                     case 'rename':
                       await _renameStudent(context, app, s);
                     case 'delete':
-                      final ok = await _confirmDelete(context, tr('Excluir {0}?', [s.name]),
+                      final ok = await _confirmDelete(context, tr('Excluir {0}?', [app.labelOf(s)]),
                           tr('Apaga o histórico, as tarefas e as observações deste aluno neste aparelho{0}. Não dá para desfazer.', [app.hasLessonWith(s.id) ? tr(', e descarta a aula em andamento com ele') : '']));
                       if (ok) {
                         app.removeStudent(s.id);

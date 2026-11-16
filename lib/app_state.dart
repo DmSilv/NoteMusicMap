@@ -539,6 +539,9 @@ class AppState extends ChangeNotifier {
 
   /// Cadastra o aluno. Quem chama deve validar antes com [checkStudent]; por segurança,
   /// um código que não passa nas regras (por exemplo, o seu próprio) é descartado aqui.
+  /// Nome do aluno para mostrar nas listas (diferencia alunos de mesmo nome pelo código).
+  String labelOf(Student s) => studentLabel(s, students);
+
   Student addStudent(String name, {String? code}) {
     final okCode = (code == null || code.trim().isEmpty) ? null : formatShareCode(code);
     final s = Student(

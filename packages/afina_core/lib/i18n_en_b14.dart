@@ -155,4 +155,5 @@ const Map<String, String> kEnB14 = {
   'Os alunos marcaram estas como feitas.': 'Students marked these as done.',
   'Marcadas ({0})': 'Marked ({0})',
   'Todas ({0})': 'All ({0})',
+  'sem código': 'no code',
 };

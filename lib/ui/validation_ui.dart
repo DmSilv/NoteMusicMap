@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import 'design_system.dart';
 import 'my_lessons_page.dart' show taskKindIcon;
+import 'student_identity.dart' show studentTint;
 import 'teacher_page.dart' show StudentPage;
 import 'theme.dart';
 import 'widgets.dart';
@@ -102,7 +103,7 @@ class ValidationCard extends StatelessWidget {
             child: DsCardTitle(
               Icons.fact_check_outlined,
               list.length == 1 ? tr('1 tarefa para avaliar') : tr('{0} tarefas para avaliar', [list.length]),
-              subtitle: tr('Como foi a semana de {0}? Valide, mande refazer ou passe para a próxima aula.', [student.name]),
+              subtitle: tr('Como foi a semana de {0}? Valide, mande refazer ou passe para a próxima aula.', [app.labelOf(student)]),
             ),
           ),
           for (final t in list)
@@ -282,7 +283,8 @@ class _ValidationQueuePageState extends State<ValidationQueuePage> {
   }
 
   Widget _header(ReviewGroup g, int shown) {
-    final name = g.student.name;
+    final name = app.labelOf(g.student);
+    final tint = studentTint(g.student);
     return InkWell(
       borderRadius: BorderRadius.circular(Ds.radiusControl),
       onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => StudentPage(app: app, studentId: g.student.id))),
@@ -291,8 +293,8 @@ class _ValidationQueuePageState extends State<ValidationQueuePage> {
         child: Row(children: [
           CircleAvatar(
             radius: 16,
-            backgroundColor: AppColors.accent.withValues(alpha: 0.2),
-            child: Text(name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase(), style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800, fontSize: 14)),
+            backgroundColor: tint.withValues(alpha: 0.22),
+            child: Text(name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase(), style: TextStyle(color: tint, fontWeight: FontWeight.w800, fontSize: 14)),
           ),
           const SizedBox(width: Ds.s12),
           Expanded(child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: Ds.fontBody))),

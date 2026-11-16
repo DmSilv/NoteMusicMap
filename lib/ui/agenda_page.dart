@@ -237,7 +237,7 @@ class _AgendaPageState extends State<AgendaPage> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Flexible(
-                  child: Text(st?.name ?? tr('Aluno'),
+                  child: Text(st == null ? tr('Aluno') : app.labelOf(st),
                       maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
                 ),
                 if (s.weekly) ...[

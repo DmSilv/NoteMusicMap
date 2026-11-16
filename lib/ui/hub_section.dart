@@ -26,6 +26,7 @@ import 'tour/start_card.dart';
 import 'tour/tour.dart';
 import 'design_system.dart';
 import 'theme.dart';
+import 'student_identity.dart' show studentTint;
 import 'validation_ui.dart' show ValidationQueuePage;
 
 /// "Meu espaço": o topo da aba. Um destaque grande (o que importa agora), dois blocos do que pede
@@ -44,7 +45,7 @@ class HubSection extends StatelessWidget {
     final nc = app.nextClassFor(view);
     String whoOf(SlotOccurrence o) {
       final st = o.slot.studentCode.isEmpty ? null : app.studentByCode(o.slot.studentCode);
-      return st?.name ?? o.slot.teacherName;
+      return st == null ? o.slot.teacherName : app.labelOf(st);
     }
 
     final cls = nc == null ? null : HubClass(nc.startMs, nc.startMs + nc.slot.endOffsetMs, whoOf(nc));
@@ -245,7 +246,8 @@ class HubSection extends StatelessWidget {
     for (final d in heroActions(view, h.kind, hasStudents: app.students.isNotEmpty, hasClassStudent: student != null)) {
       switch (d) {
         case HubDest.studentFile:
-          final first = student!.name.split(' ').first;
+          final shown = app.labelOf(student!);
+          final first = shown == student.name ? student.name.split(' ').first : shown;
           buttons.add(primary(urgent ? tr('Abrir ficha') : tr('Ficha de {0}', [first]), Icons.person_outline,
               () => _push(context, StudentPage(app: app, studentId: student.id))));
         case HubDest.markClass:
@@ -350,6 +352,8 @@ class HubSection extends StatelessWidget {
     Widget row(SlotOccurrence o) {
       final name = _whoOf(o);
       final initial = name.trim().isEmpty ? '?' : name.trim()[0].toUpperCase();
+      final who = o.slot.studentCode.isEmpty ? null : app.studentByCode(o.slot.studentCode);
+      final tint = who == null ? AppColors.accent : studentTint(who);
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: Ds.s8),
         child: Row(children: [
@@ -362,8 +366,8 @@ class HubSection extends StatelessWidget {
           ),
           CircleAvatar(
             radius: 16,
-            backgroundColor: AppColors.accent.withValues(alpha: 0.2),
-            child: Text(initial, style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800, fontSize: 14)),
+            backgroundColor: tint.withValues(alpha: 0.22),
+            child: Text(initial, style: TextStyle(color: tint, fontWeight: FontWeight.w800, fontSize: 14)),
           ),
           const SizedBox(width: Ds.s12),
           Expanded(child: Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody))),

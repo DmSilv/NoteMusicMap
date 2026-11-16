@@ -232,6 +232,7 @@
 | `packages/afina_core/test/staff_layout_test.dart` | perto: no máximo ~3 espaços acima do alto da nota (ou da haste) |
 | `packages/afina_core/test/staff_notation_test.dart` | Leitor independente: lê a partitura como um músico (armadura + acidentes valem até a barra de compasso) e devolve a nota MIDI que cada evento representa. Se bater com a sequência do exercício, a escrita está certa. |
 | `packages/afina_core/test/start_checklist_test.dart` | Testes do módulo `start_checklist`. |
+| `packages/afina_core/test/student_label_test.dart` | Testes do módulo `student_label`. |
 | `packages/afina_core/test/study_clock_test.dart` | Testes do módulo `study_clock`. |
 | `packages/afina_core/test/study_streak_test.dart` | estudou 0,1,3,5,6: faltaram 2 e 4; o 2º vazio vem logo depois do 1º perdão -> quebra |
 | `packages/afina_core/test/system_guide_test.dart` | em Hz, na oitava 4: Mi justo (5/4 de 261,626) = 327,03 Hz contra 329,63 do igual |
@@ -342,4 +343,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **299** arquivos mapeados.
+Total: **300** arquivos mapeados.

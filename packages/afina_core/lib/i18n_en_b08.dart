@@ -166,7 +166,7 @@ const Map<String, String> kEnB08 = {
   'Este código já é de {0}.': 'This code already belongs to {0}.',
   'Digite o nome do aluno.': 'Enter the student\'s name.',
   'Este é o seu nome. Para estudar você mesmo, use o app normalmente: não precisa se cadastrar como aluno. Se for outra pessoa com o mesmo nome, acrescente o sobrenome.': 'This is your name. To study yourself, just use the app normally: you don\'t need to register as a student. If it\'s someone else with the same name, add the last name.',
-  'Já existe um aluno com este nome. Acrescente o sobrenome, ou use o código para diferenciar.': 'A student with this name already exists. Add the last name, or use the code to tell them apart.',
+  'Já existe um aluno chamado {0}. Acrescente o sobrenome (por exemplo, "{0} M.") ou cadastre com o código do aluno.': 'There is already a student called {0}. Add a last name (for example, "{0} M.") or add them with the student\'s code.',
   'Relatório de {0}\n': 'Report for {0}\n',
   'Sessões: {0}': 'Sessions: {0}',
   'Taxa de acerto média (últimas 5): {0} · melhor: {1}': 'Average accuracy (last 5): {0} · best: {1}',

@@ -353,12 +353,32 @@ StudentEntryCheck checkStudentEntry({
       if (s.id == exceptId || _nameKey(s.name) != n) continue;
       final bothHaveCodes = code != null && s.code != null;
       if (!bothHaveCodes) {
-        nameErr = tr('Já existe um aluno com este nome. Acrescente o sobrenome, ou use o código para diferenciar.');
+        final first = name.trim().split(RegExp(r'\s+')).first;
+        nameErr = tr('Já existe um aluno chamado {0}. Acrescente o sobrenome (por exemplo, "{0} M.") ou cadastre com o código do aluno.', [first]);
         break;
       }
     }
   }
   return StudentEntryCheck(nameErr, codeErr);
+}
+
+/// Nome para mostrar nas listas. Igual ao nome do aluno, a não ser que OUTRO aluno tenha o mesmo nome:
+/// aí acrescenta o fim do código ("Lucas · 4TXD") ou, sem código, "sem código" (numerado se houver mais de um).
+/// Assim "2 Lucas" nunca aparecem iguais. O nome guardado não muda.
+String studentLabel(Student s, Iterable<Student> all) {
+  final k = _nameKey(s.name);
+  final others = [for (final o in all) if (o.id != s.id && _nameKey(o.name) == k) o];
+  if (others.isEmpty) return s.name;
+  final code = s.code;
+  if (code != null && code.isNotEmpty) {
+    final tail = code.length > 4 ? code.substring(code.length - 4) : code;
+    final clash = others.any((o) => (o.code ?? '').endsWith(tail));
+    return '${s.name} · ${clash ? code : tail}';
+  }
+  final noCode = [s, ...others.where((o) => (o.code ?? '').isEmpty)]..sort((a, b) => a.created.compareTo(b.created));
+  final n = noCode.indexWhere((o) => o.id == s.id) + 1;
+  final base = '${s.name} · ${tr('sem código')}';
+  return noCode.length > 1 ? '$base $n' : base;
 }
 
 class StudentSummary {

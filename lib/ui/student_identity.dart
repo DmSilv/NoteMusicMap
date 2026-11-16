@@ -20,6 +20,17 @@ Widget linkBadge(Student s) {
   ]);
 }
 
+/// Cor própria do aluno (sempre a mesma para o mesmo aluno), para distinguir de relance quem tem nome igual.
+/// Sai do id, entre 8 tons que combinam com o tema.
+Color studentTint(Student s) {
+  const hues = [168.0, 200.0, 262.0, 320.0, 24.0, 48.0, 100.0, 350.0];
+  var h = 0;
+  for (final c in s.id.codeUnits) {
+    h = (h * 31 + c) & 0x7fffffff;
+  }
+  return HSLColor.fromAHSL(1, hues[h % hues.length], 0.62, AppColors.dark ? 0.62 : 0.34).toColor();
+}
+
 /// O nome que o próprio aluno registrou no perfil dele, se for diferente do que o professor usa.
 String? remoteNameOf(Student s) {
   final r = (s.remoteName ?? '').trim();
@@ -45,10 +56,10 @@ class StudentIdentity extends StatelessWidget {
     return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
       CircleAvatar(
         radius: large ? 24 : 18,
-        backgroundColor: AppColors.accent.withValues(alpha: 0.2),
+        backgroundColor: studentTint(s).withValues(alpha: 0.22),
         child: Text(s.name.isEmpty ? '?' : s.name[0].toUpperCase(),
             style: TextStyle(
-                color: AppColors.accent, fontWeight: FontWeight.w800, fontSize: large ? 20 : 16)),
+                color: studentTint(s), fontWeight: FontWeight.w800, fontSize: large ? 20 : 16)),
       ),
       const SizedBox(width: 12),
       Expanded(
