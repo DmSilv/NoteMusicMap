@@ -20,7 +20,13 @@
 //   bind_verify   { code, secret, email, otp }          -> liga o e-mail ao perfil
 //   unbind        { code, secret }                      -> desliga o e-mail do perfil
 //   login_start   { email, lang? }                      -> manda o código (sempre { ok } para não revelar quem tem conta)
-//   login_verify  { email, otp, secret }                -> { ok, code, name }: este aparelho (segredo novo) vira o dono
+//   login_verify  { email, otp, secret, drop?, dn? }    -> { ok, code, name }: este aparelho (segredo novo) entra na conta
+//   devices       { code, secret }                      -> { ok, max, devices: [{ id, ou, br, md, dn, c, l, me }] }
+//   device_remove { code, secret, id }                  -> tira um aparelho da conta (nunca o último)
+//   device_name   { code, secret, dn }                  -> dá um apelido a ESTE aparelho
+//
+// APARELHOS: a mesma conta abre em até 5 aparelhos (api/_lib/devices.js). Entrar com e-mail ou chave ADICIONA o aparelho;
+// com 5 já na conta, responde 409 { error: 'device_limit', max, devices } e o app pergunta qual tirar (repete com drop: id).
 //
 // Precisa do Upstash Redis e das variáveis de e-mail (MAIL_API_KEY e MAIL_FROM). Sem e-mail configurado: 503 mail_unavailable.
 // Custo: ~6 comandos por pedido de código, ~8 ao confirmar; só quando a pessoa usa o recurso.
@@ -32,6 +38,8 @@ const { createStore } = require('./_lib/store');
 const { mailEnabled, sendMail } = require('./_lib/mail');
 const { serverError } = require('./_lib/error_store');
 const { _internal } = require('./link');
+const devices = require('./_lib/devices');
+const profilesLib = require('./_lib/profiles');
 
 const { normCode } = _internal;
 const OTP_TTL = 600; // segundos
@@ -65,6 +73,7 @@ const RK_LEN = 25;
 const KEYS_PER_HOUR = 5; // chaves novas por perfil
 const U = (code) => `u:${code}`;
 const OTP = (eh) => `acct:otp:${eh}`;
+const DEV_CALLS_PER_HOUR = 60; // pedidos de aparelhos por perfil
 
 function clientIp(req) {
   const xf = String((req.headers && req.headers['x-forwarded-for']) || '').split(',')[0].trim();
@@ -150,7 +159,7 @@ function makeHandler(deps = {}) {
         if (!code || !/^[0-9a-f]{64}$/.test(secret)) { await bad(400, 'Código ou segredo inválido.'); return null; }
         const prof = await store.hgetall(U(code));
         const given = sha('lnk|' + secret);
-        if (!prof.h || prof.h.length !== given.length || !crypto.timingSafeEqual(Buffer.from(prof.h), Buffer.from(given))) {
+        if (!prof.h || !devices.find(prof, given)) {
           await bad(403, 'Este código pertence a outro aparelho.');
           return null;
         }
@@ -197,7 +206,46 @@ function makeHandler(deps = {}) {
         return send(200, { ok: true, enabled: mailEnabled(cfg), linked: !!o.prof.eh, hint: o.prof.em || '', hasKey: !!o.prof.rk });
       }
 
-      if (!['bind_start', 'bind_verify', 'unbind', 'login_start', 'login_verify', 'rk_new', 'rk_login'].includes(action)) return send(400, { error: 'Ação inválida.' });
+      if (!['bind_start', 'bind_verify', 'unbind', 'login_start', 'login_verify', 'rk_new', 'rk_login', 'devices', 'device_remove', 'device_name'].includes(action)) return send(400, { error: 'Ação inválida.' });
+
+      // Ficha do aparelho de quem pede (sistema, navegador, modelo): o servidor deduz; nada de IP.
+      const infoOf = () => {
+        const i = profilesLib.deviceInfo(undefined, req.headers);
+        return { ou: i.ou, br: i.br, md: i.md };
+      };
+      const limitReply = (r) => send(422, { error: 'device_limit', max: devices.MAX_DEVICES, devices: r.devices.map((d) => devices.view(d)) });
+
+      // ---------------- aparelhos da conta ----------------
+      if (action === 'devices' || action === 'device_remove' || action === 'device_name') {
+        const o = await owner();
+        if (!o) return;
+        const n = await store.incr(`acct:dev:${o.code}:${hour}`, 3600);
+        if (n.n > DEV_CALLS_PER_HOUR) return send(429, { error: 'Muitas tentativas. Tente mais tarde.' });
+        const mine = devices.secretHash(String(b.secret));
+        if (action === 'device_remove') {
+          const id = String(b.id || '');
+          const cur = devices.find(o.prof, mine);
+          if (cur && cur.i === id) return send(400, { error: 'current_device' });
+          const r = await devices.remove(store, o.code, o.prof, id);
+          if (r.missing) return send(404, { error: 'Aparelho não encontrado.' });
+          if (r.last) return send(400, { error: 'last_device' });
+          await store.hset(U(o.code), 'kr', String(clock())); // quem foi tirado percebe na próxima consulta
+          return send(200, { ok: true, max: devices.MAX_DEVICES, devices: r.devices.map((d) => devices.view(d, mine)) });
+        }
+        if (action === 'device_name') {
+          await devices.rename(store, o.code, o.prof, mine, b.dn);
+          const prof = await store.hgetall(U(o.code));
+          return send(200, { ok: true, max: devices.MAX_DEVICES, devices: devices.list(prof).map((d) => devices.view(d, mine)) });
+        }
+        return send(200, { ok: true, max: devices.MAX_DEVICES, devices: devices.list(o.prof).map((d) => devices.view(d, mine)) });
+      }
+
+      /** Põe o aparelho de quem pede na conta (e responde se a conta já está cheia). Devolve true se entrou. */
+      const joinDevice = async (code, prof, secret, dropId, name) => {
+        const r = await devices.add(store, code, prof, devices.secretHash(secret), infoOf(), name, clock(), dropId);
+        if (r.limit) { limitReply(r); return false; }
+        return true;
+      };
 
       // ---------------- chave de recuperação de 25 caracteres (não depende de e-mail) ----------------
       if (action === 'rk_new') {
@@ -221,8 +269,8 @@ function makeHandler(deps = {}) {
         const code = await store.hget(RK, h);
         const prof = code ? await store.hgetall(U(code)) : {};
         if (!code || !prof.h || prof.rk !== h || prof.bl === '1') return bad(403, 'Chave inválida.');
-        // este aparelho passa a ser o dono; o segredo antigo e o código de suporte pendente deixam de valer
-        await store.hset(U(code), 'h', sha('lnk|' + secret));
+        // este aparelho entra na conta (até 5); o código de suporte pendente deixa de valer
+        if (!(await joinDevice(code, prof, secret, b.drop, b.dn))) return;
         await store.hdel(U(code), 'sc');
         await store.hdel(U(code), 'sx');
         await store.hset(U(code), 'kr', String(clock()));
@@ -302,8 +350,11 @@ function makeHandler(deps = {}) {
         const code = rec.c;
         const prof = await store.hgetall(U(code));
         if (!prof.h || prof.eh !== eh || prof.bl === '1') return bad(403, 'Código inválido ou vencido.');
-        // este aparelho passa a ser o dono; o segredo antigo e o código de suporte pendente deixam de valer
-        await store.hset(U(code), 'h', sha('lnk|' + secret));
+        // este aparelho entra na conta (até 5); com a conta cheia o código de 6 dígitos continua valendo para escolher qual tirar
+        if (!(await joinDevice(code, prof, secret, b.drop, b.dn))) {
+          await store.set(OTP(eh), JSON.stringify(rec), OTP_TTL);
+          return;
+        }
         await store.hdel(U(code), 'sc');
         await store.hdel(U(code), 'sx');
         await store.hset(U(code), 'kr', String(clock()));

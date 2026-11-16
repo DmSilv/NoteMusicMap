@@ -316,12 +316,64 @@ class AppState extends ChangeNotifier {
     return null;
   }
 
-  /// Aparelho novo: entra com a chave de 25 e passa a ser o dono da conta (o outro aparelho perde o acesso).
-  Future<String?> recoveryKeyLogin(String text) async {
+  // ---------------- Aparelhos da conta (até 5) ----------------
+  /// Aparelhos em que a conta está aberta (do último pedido) e o máximo.
+  List<AccountDevice> deviceList = const [];
+  int maxDevices = 5;
+
+  /// Conta cheia ao entrar: os aparelhos entre os quais a pessoa escolhe qual tirar (o app mostra a lista e repete com [drop]).
+  List<AccountDevice> deviceChoices = const [];
+
+  /// Marca de "a conta está cheia" no texto devolvido por [recoveryKeyLogin] e [emailLoginConfirm].
+  static const String deviceLimitProblem = 'device_limit';
+
+  /// Pergunta ao servidor em quais aparelhos a conta está aberta. Sem internet, mantém o que já sabia.
+  Future<void> refreshDevices() async {
+    final r = await account.devices(profile.shareCode, profile.secret);
+    if (!r.ok) return;
+    deviceList = r.devices;
+    maxDevices = r.maxDevices;
+    notifyListeners();
+  }
+
+  /// Tira o aparelho [id] da conta (ele perde o acesso). Devolve null se deu certo, ou o texto do problema.
+  Future<String?> removeDevice(String id) async {
+    final r = await account.deviceRemove(profile.shareCode, profile.secret, id);
+    if (r.ok) {
+      deviceList = r.devices;
+      maxDevices = r.maxDevices;
+      notifyListeners();
+      return null;
+    }
+    if (r.tooMany) return tr('Muitas tentativas. Tente mais tarde.');
+    if (r.offline) return tr('Sem conexão com o servidor. Tente de novo quando a internet voltar.');
+    return tr('Não foi possível concluir. Tente de novo.');
+  }
+
+  /// Dá um apelido a este aparelho (vazio = volta ao nome automático).
+  Future<String?> nameThisDevice(String nick) async {
+    final r = await account.deviceName(profile.shareCode, profile.secret, nick.trim());
+    if (r.ok) {
+      deviceList = r.devices;
+      notifyListeners();
+      return null;
+    }
+    return r.offline ? tr('Sem conexão com o servidor. Tente de novo quando a internet voltar.') : tr('Não foi possível concluir. Tente de novo.');
+  }
+
+  /// Aparelho novo: entra com a chave de 25 e passa a ser um dos aparelhos da conta (até 5; os outros continuam).
+  /// Com a conta cheia devolve [deviceLimitProblem] e preenche [deviceChoices]; repita com [drop] = id do que sai.
+  Future<String?> recoveryKeyLogin(String text, {String? drop}) async {
     final key = normalizeShortKey(text);
     if (key == null) return tr('Chave inválida. Confira se digitou os 25 caracteres.');
-    final fresh = Profile.create(math.Random.secure()); // só para sortear um segredo novo, que o servidor passa a reconhecer
-    final r = await account.keyLogin(key, fresh.secret);
+    final fresh = _pendingLogin ?? Profile.create(math.Random.secure()); // só para sortear um segredo novo, que o servidor passa a reconhecer
+    final r = await account.keyLogin(key, fresh.secret, drop: drop);
+    if (r.limit) {
+      _pendingLogin = fresh; // o mesmo segredo vale na segunda tentativa
+      deviceChoices = r.devices;
+      return deviceLimitProblem;
+    }
+    _pendingLogin = null;
     final problem = _keyProblem(r);
     if (problem != null) return problem;
     if (r.code.isEmpty) return tr('Não foi possível concluir. Tente de novo.');
@@ -382,11 +434,18 @@ class AppState extends ChangeNotifier {
     return _emailProblem(await account.loginStart(e));
   }
 
-  /// Aparelho novo: confere o código e passa a ser o dono da conta (o outro aparelho perde o acesso). Devolve null se deu certo.
-  Future<String?> emailLoginConfirm(String email, String otp) async {
+  /// Aparelho novo: confere o código e entra na conta (até 5 aparelhos; os outros continuam). Devolve null se deu certo.
+  /// Com a conta cheia devolve [deviceLimitProblem] e preenche [deviceChoices]; repita com [drop] = id do que sai.
+  Future<String?> emailLoginConfirm(String email, String otp, {String? drop}) async {
     final e = email.trim().toLowerCase();
-    final fresh = Profile.create(math.Random.secure()); // só para sortear um segredo novo, que o servidor passa a reconhecer
-    final r = await account.loginVerify(e, otp.trim(), fresh.secret);
+    final fresh = _pendingLogin ?? Profile.create(math.Random.secure()); // só para sortear um segredo novo, que o servidor passa a reconhecer
+    final r = await account.loginVerify(e, otp.trim(), fresh.secret, drop: drop);
+    if (r.limit) {
+      _pendingLogin = fresh;
+      deviceChoices = r.devices;
+      return deviceLimitProblem;
+    }
+    _pendingLogin = null;
     final problem = _emailProblem(r);
     if (problem != null) return problem;
     if (r.code.isEmpty) return tr('Não foi possível concluir. Tente de novo.');
@@ -398,7 +457,12 @@ class AppState extends ChangeNotifier {
     return null;
   }
 
+  /// Segredo sorteado para uma entrada que parou na conta cheia (a segunda tentativa usa o mesmo).
+  Profile? _pendingLogin;
+
   void _adoptProfile(Profile p) {
+    deviceList = const [];
+    deviceChoices = const [];
     p.teacher = profile.teacher;
     p.recoveryShownAt = DateTime.now();
     profile = p;

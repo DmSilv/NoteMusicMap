@@ -14,7 +14,7 @@
 | `lib/data/repository.dart` | Onde ficam os dados que pertencem ao PERFIL (e que um dia serão sincronizados): o próprio perfil, o histórico de sessões e os alunos do professor. A interface não sabe se os dados estão no aparelho ou na nuvem. Hoje… |
 | `lib/dev/frame_meter.dart` | Medidor de fluidez, SÓ para builds de desenvolvimento (kDevDemo). Enquanto a simulação roda, mede a cada quadro: - o INTERVALO entre quadros (quanto tempo a tela leva para ser atualizada); - o CUSTO do quadro: do… |
 | `lib/feedback/feedback_service.dart` | Nota do app e pesquisa rápida (1 ou 2 perguntas por aparelho). - Só envia quando a pessoa toca em "Enviar". Vai a resposta, a versão do app e um código do aparelho que o servidor embaralha. Sem nome, e-mail ou áudio.… |
-| `lib/link/account_service.dart` | Resposta de uma chamada ao e-mail da conta. |
+| `lib/link/account_service.dart` | Um aparelho em que a conta está aberta (o servidor nunca manda o segredo dele). |
 | `lib/link/link_service.dart` | Cliente da API de vínculo (`/api/link`): vincular, aulas, tarefas feitas, decisões do professor, agenda, horários livres e notificações. Fala só com o servidor do app. |
 | `lib/main.dart` | Abre o app. Se algo falhar ao iniciar, mostra a tela de erro (com "Tentar de novo") em vez de ficar em branco. Erros inesperados depois disso são classificados, guardados e avisados. |
 | `lib/platform/hard_reset.dart` | Apagar tudo e recarregar o app (botão "Apagar tudo e recomeçar"): escolhe a versão da web ou a de celular (importação condicional). |
@@ -39,6 +39,7 @@
 | `lib/ui/app_locale.dart` | O app fala português do Brasil ou inglês: os textos do próprio Flutter (seletor de data e hora, "OK"/"Cancelar", copiar/colar, nomes de mês e dia) seguem o idioma escolhido (veja `Lang` e `tr()` em afina_core). Custo… |
 | `lib/ui/app_logo.dart` | Logo do Notemusic: um mostrador de afinador (arco verde, a cor do app) com uma nota musical branca no centro. Mesma geometria de tools/make_icons.mjs. |
 | `lib/ui/design_system.dart` | Design system do Notemusic. REGRA: toda tela nova ou alterada usa estes valores e estes componentes (ver docs/12_DESIGN_SYSTEM.md). Números soltos de espaçamento, raio ou altura de botão não entram em tela nova.… |
+| `lib/ui/devices_page.dart` | Nome do sistema como a pessoa reconhece ("Android", "iPhone ou iPad"...). |
 | `lib/ui/dictation_button.dart` | Botão de microfone para ditar num campo de texto. Use como `suffixIcon` do `InputDecoration`. Pisca em vermelho enquanto ouve; tocar de novo para. |
 | `lib/ui/error_ui.dart` | Telas e blocos de erro: tela crítica (APP-99), cartão amigável no lugar de bloco que quebrou e a lista "Problemas recentes". |
 | `lib/ui/evolution_page.dart` | "Evolução": segunda tela do Meu espaço, com os dados de estudo e os gráficos (últimos 7 dias, taxa de acerto nas escalas e orientações do treinador). |
@@ -267,6 +268,7 @@
 | `api/_lib/agenda.js` | Agenda de aulas no servidor: limpeza do que chega, cálculo da próxima aula e agendamento do lembrete (QStash), uma mensagem por vez (a aula semanal agenda a próxima ao disparar). |
 | `api/_lib/config.js` | Configuração lida das variáveis de ambiente da Vercel. NENHUMA chave fica no código. |
 | `api/_lib/cost_model.js` | Quanto custa manter a plataforma: projeção de gastos por número de usuários. Função pura (sem rede, sem Redis), usada pelo painel (aba Custos › Contas) e testada em api/cost_model.test.js. De onde vêm os números: -… |
+| `api/_lib/devices.js` | Aparelhos de uma conta: a mesma conta (código do perfil) pode ser usada em até MAX_DEVICES aparelhos ao mesmo tempo. Antes, entrar em um aparelho novo (e-mail ou chave de 25) TROCAVA o dono: o segredo do aparelho… |
 | `api/_lib/error_store.js` | Gravação dos relatórios de erro no Redis (usada pelo endpoint do app e pelos erros do próprio servidor). Limites, agrupamento por impressão digital, reabertura e modo leve num só lugar. |
 | `api/_lib/errors_lib.js` | Regras dos relatórios de erro (iguais às do app, em `afina_core/errors.dart`): higienização, impressão digital do bug, validação do pacote e nomes das chaves no Redis. |
 | `api/_lib/features.js` | Recursos liberados aos poucos ("chaves"): cada novidade nasce desligada, é liberada por código de perfil, depois por porcentagem e, por fim, para todos. O SERVIDOR decide; o app só esconde o que não está ligado.… |
@@ -299,6 +301,7 @@
 | `api/avail.test.js` | Testes dos horários disponíveis (professor) e de "pegar horário" (aluno), sem rede: `node --test api/avail.test.js` |
 | `api/coach.test.js` | Testes da IA (vários serviços + fila) sem rede e sem chaves reais: `node --test api/` |
 | `api/cost_model.test.js` | Testes da conta de custos (quanto custa manter a plataforma): `node --test api/cost_model.test.js` |
+| `api/devices.test.js` | Aparelhos da conta (até 5), sem rede: `node --test api/devices.test.js` |
 | `api/errors.test.js` | Relatórios de erro do app e a aba "Bugs" do painel, sem rede: `node --test api/errors.test.js` |
 | `api/features.test.js` | Testes das chaves de recursos (liberação aos poucos): `node --test api/features.test.js` |
 | `api/feedback.test.js` | Testes da nota do app e das pesquisas rápidas, sem rede: `node --test api/feedback.test.js` |
@@ -343,4 +346,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **300** arquivos mapeados.
+Total: **303** arquivos mapeados.

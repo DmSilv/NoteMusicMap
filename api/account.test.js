@@ -139,7 +139,7 @@ test('o mesmo e-mail não protege dois perfis', async () => {
   assert.equal(r.json().error, 'email_in_use');
 });
 
-test('entrar com e-mail: o aparelho novo vira o dono e o segredo antigo deixa de valer', async () => {
+test('entrar com e-mail: o aparelho novo entra na conta e o antigo continua valendo', async () => {
   const H = mk();
   await born(H, P1, S1);
   await bind(H, P1, S1, 'ana@exemplo.com');
@@ -152,8 +152,8 @@ test('entrar com e-mail: o aparelho novo vira o dono e o segredo antigo deixa de
   assert.equal(v.json().code, P1);
   assert.equal(sent.length, 2, 'um aviso de novo acesso vai para o e-mail');
   assert.match(sent[1].subject, /Novo acesso/);
-  assert.equal((await call(H.l, { action: 'sync', code: P1, secret: S1 })).statusCode, 403, 'o aparelho antigo perdeu o acesso');
-  assert.equal((await call(H.l, { action: 'sync', code: P1, secret: SNEW })).statusCode, 200, 'o novo é o dono');
+  assert.equal((await call(H.l, { action: 'sync', code: P1, secret: S1 })).statusCode, 200, 'o aparelho antigo continua na conta');
+  assert.equal((await call(H.l, { action: 'sync', code: P1, secret: SNEW })).statusCode, 200, 'o novo também entra');
 });
 
 test('entrar com e-mail não revela quem tem conta: a resposta é a mesma e nada é enviado a quem não tem', async () => {
@@ -240,14 +240,14 @@ test('chave de 25: o servidor guarda só o hash, nunca a chave', async () => {
   assert.equal(guardado.includes(key.replace(/-/g, '')), false);
 });
 
-test('chave de 25: entrar com ela passa o perfil ao aparelho novo e o antigo perde o acesso', async () => {
+test('chave de 25: entrar com ela põe o aparelho novo na conta e o antigo continua valendo', async () => {
   const H = mk();
   await born(H, P1, S1);
   const key = (await rkNew(H, P1, S1)).json().key;
   const v = await call(H.a, { action: 'rk_login', key: key.toLowerCase().replace(/-/g, ' '), secret: SNEW });
   assert.equal(v.statusCode, 200, 'aceita minúsculas e sem hífens');
   assert.equal(v.json().code, P1);
-  assert.equal((await call(H.l, { action: 'sync', code: P1, secret: S1 })).statusCode, 403);
+  assert.equal((await call(H.l, { action: 'sync', code: P1, secret: S1 })).statusCode, 200);
   assert.equal((await call(H.l, { action: 'sync', code: P1, secret: SNEW })).statusCode, 200);
 });
 

@@ -32,6 +32,7 @@ const { validSubscription } = require('./_lib/webpush');
 const { bump } = require('./_lib/metrics');
 const { createCmd } = require('./_lib/store_cmd');
 const profiles = require('./_lib/profiles');
+const devices = require('./_lib/devices');
 const { sweepEmpty } = require('./_lib/sweep');
 const { unlinkPair } = require('./_lib/unlink');
 const { serverError } = require('./_lib/error_store');
@@ -263,6 +264,7 @@ function makeHandler(deps = {}) {
         const given = sha(`sup|${me}|${sup}`);
         if (given.length !== target.sc.length || !crypto.timingSafeEqual(Buffer.from(given), Buffer.from(target.sc))) return bad();
         await store.hset(U(me), 'h', sha('lnk|' + secret));
+        await store.hdel(U(me), 'dl'); // a liberação do suporte deixa só este aparelho na conta
         await store.hdel(U(me), 'sc');
         await store.hdel(U(me), 'sx');
         await store.hset(U(me), 'kr', String(clock()));
@@ -285,7 +287,7 @@ function makeHandler(deps = {}) {
         }
         prof = await store.hgetall(U(me));
       }
-      const okOwner = prof.h && crypto.timingSafeEqual(Buffer.from(prof.h), Buffer.from(secretHash));
+      const okOwner = !!(prof.h && devices.find(prof, secretHash));
       if (!okOwner) {
         const f = await store.incr(failKey, 3600);
         if (f.n > BAD_AUTH_PER_HOUR) return send(429, { error: 'Muitas tentativas. Tente mais tarde.' });
@@ -293,6 +295,8 @@ function makeHandler(deps = {}) {
       }
       // Perfil bloqueado pelo administrador: nada do vínculo online funciona.
       if (prof.bl === '1') return send(403, { error: 'blocked', message: 'Este perfil foi bloqueado. Fale com o administrador.' });
+      // Conta em 2+ aparelhos: "visto por último" do aparelho (no máximo 1 gravação a cada 6 h por aparelho).
+      await devices.seen(store, me, prof, secretHash, clock());
       // Atividade para o painel (no máximo uma gravação a cada 6 h por perfil).
       if (await profiles.touch(cmd, prof, me, clock())) prof.la = String(clock());
       // presença para o painel (1 gravação a cada 10 min) + tempo de uso e ficha do aparelho na mesma gravação

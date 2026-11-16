@@ -4,12 +4,13 @@ import 'package:flutter/services.dart';
 
 import '../app_state.dart';
 import 'design_system.dart';
+import 'devices_page.dart' show pickDeviceToDrop;
 import 'theme.dart';
 import 'widgets.dart';
 
 /// "E-mail da conta" (Minha conta): liga um e-mail ao perfil para recuperá-lo em outro aparelho, SEM senha.
 /// O app pede um código, o servidor manda 6 dígitos para o e-mail e a pessoa digita aqui. Mesma tela para
-/// "Entrar com e-mail" num aparelho novo (o aparelho novo vira o dono da conta e o antigo perde o acesso).
+/// "Entrar com e-mail" num aparelho novo (o aparelho novo entra na conta, que pode ficar em até 5 aparelhos).
 class AccountEmailBody extends StatefulWidget {
   final AppState app;
 
@@ -62,8 +63,20 @@ class _AccountEmailBodyState extends State<AccountEmailBody> {
         },
       );
 
+  /// Entra na conta; se ela já está em 5 aparelhos, a pessoa escolhe qual sai e o mesmo código vale de novo.
+  Future<String?> _loginConfirm() async {
+    var problem = await app.emailLoginConfirm(_email.text, _otp.text);
+    if (problem == AppState.deviceLimitProblem && mounted) {
+      final drop = await pickDeviceToDrop(context, app);
+      if (drop == null) return tr('Nada mudou. Para entrar, escolha um aparelho para sair.');
+      problem = await app.emailLoginConfirm(_email.text, _otp.text, drop: drop);
+      if (problem == AppState.deviceLimitProblem) problem = tr('Não foi possível concluir. Tente de novo.');
+    }
+    return problem;
+  }
+
   Future<void> _confirm() => _run(
-        () => _login ? app.emailLoginConfirm(_email.text, _otp.text) : app.emailConfirm(_email.text, _otp.text),
+        () => _login ? _loginConfirm() : app.emailConfirm(_email.text, _otp.text),
         onOk: () {
           if (_login) {
             app.say(tr('Conta recuperada neste aparelho.'));
@@ -168,7 +181,7 @@ class _AccountEmailBodyState extends State<AccountEmailBody> {
         _title(_login ? tr('Entrar com e-mail') : tr('Ligar um e-mail à conta')),
         Text(
           _login
-              ? tr('Use o e-mail que você ligou à sua conta. Este aparelho passa a ser o seu perfil e o outro perde o acesso. O que ficou guardado só no outro aparelho (anotações, histórico) não vem junto.')
+              ? tr('Use o e-mail que você ligou à sua conta. Este aparelho entra nela (até 5 aparelhos). O que ficou guardado só no outro aparelho (anotações, histórico) não vem junto.')
               : tr('Mandamos um código para o seu e-mail e você digita aqui: não tem senha para lembrar. Com ele dá para recuperar a conta se você perder o celular.'),
           style: Ds.support(),
         ),

@@ -30,7 +30,13 @@ Ações (todas POST):
   bind_verify   { code, secret, email, otp }          -> liga o e-mail ao perfil
   unbind        { code, secret }                      -> desliga o e-mail do perfil
   login_start   { email, lang? }                      -> manda o código (sempre { ok } para não revelar quem tem conta)
-  login_verify  { email, otp, secret }                -> { ok, code, name }: este aparelho (segredo novo) vira o dono
+  login_verify  { email, otp, secret, drop?, dn? }    -> { ok, code, name }: este aparelho (segredo novo) entra na conta
+  devices       { code, secret }                      -> { ok, max, devices: [{ id, ou, br, md, dn, c, l, me }] }
+  device_remove { code, secret, id }                  -> tira um aparelho da conta (nunca o último)
+  device_name   { code, secret, dn }                  -> dá um apelido a ESTE aparelho
+
+APARELHOS: a mesma conta abre em até 5 aparelhos (api/_lib/devices.js). Entrar com e-mail ou chave ADICIONA o aparelho;
+com 5 já na conta, responde 409 { error: 'device_limit', max, devices } e o app pergunta qual tirar (repete com drop: id).
 
 Precisa do Upstash Redis e das variáveis de e-mail (MAIL_API_KEY e MAIL_FROM). Sem e-mail configurado: 503 mail_unavailable.
 Custo: ~6 comandos por pedido de código, ~8 ao confirmar; só quando a pessoa usa o recurso.
@@ -40,6 +46,9 @@ Custo: ~6 comandos por pedido de código, ~8 ao confirmar; só quando a pessoa u
 |---|---|
 | `notice` | — |
 | `status` | status |
+| `devices` | aparelhos da conta |
+| `device_remove` | — |
+| `device_name` | — |
 | `rk_new` | chave de recuperação de 25 caracteres (não depende de e-mail) |
 | `rk_login` | — |
 | `unbind` | desligar o e-mail |

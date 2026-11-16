@@ -17,6 +17,7 @@ import 'teacher_page.dart';
 import 'hello_bar.dart';
 import 'link_bar.dart';
 import 'design_system.dart';
+import 'devices_page.dart';
 import 'hub_section.dart' show shareStudentLink;
 import 'theme.dart';
 import 'widgets.dart';
@@ -203,7 +204,7 @@ class _ProfilePageState extends State<ProfilePage> {
         context: context,
         builder: (c) => AlertDialog(
           title: Text(tr('Entrar com esta chave?')),
-          content: Text(tr('Este aparelho passa a ser o seu perfil e o outro perde o acesso. O que ficou guardado só no outro aparelho (anotações, histórico) não vem junto.')),
+          content: Text(tr('Este aparelho entra na sua conta (até 5 aparelhos). O que ficou guardado só no outro aparelho (anotações, histórico) não vem junto.')),
           actions: [
             TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
             FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Entrar'))),
@@ -212,7 +213,13 @@ class _ProfilePageState extends State<ProfilePage> {
       );
       if (ok != true || !mounted) return;
       _upd(() => _keyBusy = true);
-      final problem = await app.recoveryKeyLogin(shortKey);
+      var problem = await app.recoveryKeyLogin(shortKey);
+      if (problem == AppState.deviceLimitProblem && mounted) {
+        // A conta já está em 5 aparelhos: a pessoa escolhe qual sai.
+        final drop = await pickDeviceToDrop(context, app);
+        problem = drop == null ? tr('Nada mudou. Para entrar, escolha um aparelho para sair.') : await app.recoveryKeyLogin(shortKey, drop: drop);
+        if (problem == AppState.deviceLimitProblem) problem = tr('Não foi possível concluir. Tente de novo.');
+      }
       if (!mounted) return;
       _upd(() => _keyBusy = false);
       if (problem == null) {
@@ -403,6 +410,10 @@ class _ProfilePageState extends State<ProfilePage> {
               _row(Icons.alternate_email, tr('E-mail da conta'),
                   sub: app.emailHint.isEmpty ? tr('Recupere a conta em outro aparelho, sem senha') : app.emailHint,
                   onTap: () => _open(tr('E-mail da conta'), (c) => AccountEmailBody(app: app, onSignedIn: () => Navigator.of(c).pop()))),
+            if (app.linkEnabled)
+              _row(Icons.devices_outlined, tr('Aparelhos'),
+                  sub: app.deviceList.isEmpty ? tr('Veja onde a sua conta está aberta') : tr('{0} de {1} aparelhos', [app.deviceList.length, app.maxDevices]),
+                  onTap: () => _open(tr('Aparelhos'), (_) => DevicesBody(app: app))),
             _row(Icons.key, tr('Chave de recuperação'),
                 sub: p.recoveryShownAt == null ? tr('Você ainda não guardou a sua chave') : null,
                 onTap: () => _open(tr('Chave de recuperação'), (_) => _keyBody())),
