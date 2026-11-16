@@ -246,7 +246,7 @@ class _ValidationQueuePageState extends State<ValidationQueuePage> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: Text(tr('Validar {0} tarefas?', [n])),
+        title: Text(n == 1 ? tr('Validar 1 tarefa?') : tr('Validar {0} tarefas?', [n])),
         content: Text(tr('Só as que os alunos marcaram como feitas. Cada aluno recebe o aviso.')),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
@@ -255,12 +255,15 @@ class _ValidationQueuePageState extends State<ValidationQueuePage> {
       ),
     );
     if (ok != true) return;
-    for (final g in queue) {
+    // A fila pode ter mudado com o diálogo aberto (o aluno desmarcou, a sincronização trouxe outra): vale a de agora.
+    var done = 0;
+    for (final g in reviewQueue(app.students, DateTime.now())) {
       for (final t in g.marked) {
         app.reviewAssignment(g.student, t.id, TaskReview.ok);
+        done++;
       }
     }
-    app.say(tr('{0} tarefas confirmadas.', [n]));
+    if (done > 0) app.say(done == 1 ? tr('1 tarefa confirmada.') : tr('{0} tarefas confirmadas.', [done]));
   }
 
   Widget _row(ReviewGroup g, Assignment t, {required bool only}) {

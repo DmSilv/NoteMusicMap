@@ -669,7 +669,13 @@ class _TeacherPageState extends State<TeacherPage> {
           Text(text, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: color)),
         ]),
       );
-      return onTap == null ? box : InkWell(borderRadius: BorderRadius.circular(20), onTap: onTap, child: box);
+      return onTap == null
+          ? box
+          : InkWell(
+              borderRadius: BorderRadius.circular(Ds.tap / 2),
+              onTap: onTap,
+              child: ConstrainedBox(constraints: const BoxConstraints(minHeight: Ds.tap), child: Center(widthFactor: 1, child: box)),
+            );
     }
 
     final n = app.students.length;
@@ -1340,7 +1346,7 @@ class StudentPage extends StatelessWidget {
       final start = await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
-          title: Text(tr('Começar a aula com {0}?', [s.name])),
+          title: Text(tr('Começar a aula com {0}?', [app.labelOf(s)])),
           content: Text(tr('Em aula, o resultado do exercício entra no histórico do aluno. Sem aula, o exercício fica só no seu próprio histórico.')),
           actions: [
             TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Só treinar'))),
@@ -1838,7 +1844,7 @@ class _LessonBannerState extends State<_LessonBanner> {
                 color: l.paused ? AppColors.flat : AppColors.sharp),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(tr('{0} com {1}', [l.paused ? tr('Aula pausada') : tr('Aula em andamento'), s.name]),
+              child: Text(tr('{0} com {1}', [l.paused ? tr('Aula pausada') : tr('Aula em andamento'), app.labelOf(s)]),
                   style: const TextStyle(fontWeight: FontWeight.w800)),
             ),
             Text(clock, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),

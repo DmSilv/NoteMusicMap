@@ -57,6 +57,6 @@ Future<String?> pickPersonPhoto(BuildContext context, AppState app, {required bo
   } catch (_) {
     // sem permissão, sem câmera ou imagem que o navegador não leu: cai na mensagem abaixo
   }
-  app.say(tr('Não foi possível usar essa foto. Tente outra, menor.'));
+  app.say(tr('Não foi possível usar essa foto. Tente uma foto da câmera ou da galeria (JPEG).'));
   return null;
 }

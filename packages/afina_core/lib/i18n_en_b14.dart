@@ -179,7 +179,6 @@ const Map<String, String> kEnB14 = {
   'Tirar uma foto': 'Take a photo',
   'Escolher da galeria': 'Choose from gallery',
   'Remover a foto': 'Remove photo',
-  'Não foi possível usar essa foto. Tente outra, menor.': 'Could not use that photo. Try another, smaller one.',
   'Mostrar a minha foto': 'Show my photo',
   'Só para professores e alunos vinculados a você.': 'Only to teachers and students linked to you.',
   'Foto inválida.': 'Invalid photo.',
@@ -201,4 +200,7 @@ const Map<String, String> kEnB14 = {
   'Canto': 'Singing',
   'Bateria e percussão': 'Drums and percussion',
   'Teoria e solfejo': 'Theory and solfège',
+  'Não foi possível usar essa foto. Tente uma foto da câmera ou da galeria (JPEG).': 'Could not use that photo. Try a camera or gallery photo (JPEG).',
+  'Validar 1 tarefa?': 'Approve 1 task?',
+  '1 tarefa confirmada.': '1 task confirmed.',
 };

@@ -224,7 +224,7 @@
 | `packages/afina_core/test/open_slots_test.dart` | Testes do módulo `open_slots`. |
 | `packages/afina_core/test/open_strings_grid_test.dart` | O afinador de cordas afina em quintas puras (Sol3 = 195,56 Hz). Em temperamento igual o Sol3 seria 196,00 Hz (3,9 cents acima). A grade precisa concordar. |
 | `packages/afina_core/test/pedal_test.dart` | a soma das amplitudes no pior caso fica contida (< 1,6) |
-| `packages/afina_core/test/photo_test.dart` | Testes do módulo `photo`. |
+| `packages/afina_core/test/photo_test.dart` | Cabeçalhos mínimos mas verdadeiros (o núcleo lê largura e altura deles). |
 | `packages/afina_core/test/pitch_detector_test.dart` | Gera um tom com harmônicos [amps] (índice 0 = fundamental). |
 | `packages/afina_core/test/pitch_grid_test.dart` | Sobe devagar até +52 cents. |
 | `packages/afina_core/test/pomodoro_test.dart` | Testes do módulo `pomodoro`. |

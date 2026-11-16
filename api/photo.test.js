@@ -40,8 +40,12 @@ async function call(h, body) {
   await h({ method: 'POST', headers: { 'x-forwarded-for': '7.7.7.' + ++n }, body, socket: {} }, res);
   return res;
 }
-const jpegB64 = (len = 200, fill = 7) => Buffer.from([0xff, 0xd8, 0xff, 0xe0, ...Array(len).fill(fill)]).toString('base64');
-const pngB64 = () => Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3]).toString('base64');
+// Cabeçalhos mínimos, mas verdadeiros: o servidor lê largura e altura deles.
+const jpegBuf = (len = 200, fill = 7, w = 160, h = 160) => Buffer.from([0xff, 0xd8, 0xff, 0xc0, 0x00, 0x11, 0x08, h >> 8, h & 255, w >> 8, w & 255, 0x03, ...Array(len).fill(fill)]);
+const jpegB64 = (len = 200, fill = 7, w = 160, h = 160) => jpegBuf(len, fill, w, h).toString('base64');
+const pngBuf = (w = 96, h = 96) => { const b = Buffer.alloc(33); Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]).copy(b); b.writeUInt32BE(13, 8); b.write('IHDR', 12, 'latin1'); b.writeUInt32BE(w, 16); b.writeUInt32BE(h, 20); return b; };
+const pngB64 = (w, h) => pngBuf(w, h).toString('base64');
+const webpBuf = (kind, w, h) => { const b = Buffer.alloc(40); b.write('RIFF', 0, 'latin1'); b.write('WEBP', 8, 'latin1'); b.write(kind, 12, 'latin1'); if (kind === 'VP8X') { b.writeUIntLE(w - 1, 24, 3); b.writeUIntLE(h - 1, 27, 3); } else if (kind === 'VP8 ') { b.writeUInt16LE(w, 26); b.writeUInt16LE(h, 28); } else { b[20] = 0x2f; b.writeUInt32LE((w - 1) | ((h - 1) << 14), 21); } return b; };
 const as = (h, c, s, body) => call(h, { code: c, secret: s, ...body });
 const sync = (h, c, s) => as(h, c, s, { action: 'sync' }).then((r) => r.json());
 
@@ -102,7 +106,7 @@ test('remover a foto apaga e tira a versão dos vínculos', async () => {
   assert.equal(r.statusCode, 200);
   assert.equal(r.json().pv, '');
   assert.equal((await sync(h, PROF, S_PROF)).asTeacher[0].pv, undefined);
-  assert.equal((await as(h, PROF, S_PROF, { action: 'photo_get', other: ALU })).statusCode, 404);
+  assert.equal((await as(h, PROF, S_PROF, { action: 'photo_get', other: ALU })).statusCode, 410);
 });
 
 test('vínculo feito depois da foto já nasce com a versão', async () => {
@@ -119,12 +123,13 @@ test('recusa o que não é imagem pequena', async () => {
     jpegB64(24000), // passa do limite
     'isto não é base64!',
     jpegB64() + '<',
+    Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]).toString('base64'), // sem cabeçalho de tamanho
   ];
   for (const photo of bad) {
     const r = await as(h, ALU, S_ALU, { action: 'photo_put', photo });
     assert.ok([400].includes(r.statusCode), String(photo).slice(0, 20) + ' -> ' + r.statusCode);
   }
-  assert.equal((await as(h, PROF, S_PROF, { action: 'photo_get', other: ALU })).statusCode, 404);
+  assert.equal((await as(h, PROF, S_PROF, { action: 'photo_get', other: ALU })).statusCode, 410);
 });
 
 test('pedido grande demais é recusado antes de ler e há limite de trocas por hora', async () => {
@@ -142,4 +147,15 @@ test('a foto não vai na sincronização comum (só a versão, para o polling co
   const r = await as(h, PROF, S_PROF, { action: 'sync' });
   assert.equal(r.body.includes(jpegB64(5000)), false);
   assert.ok(r.body.length < 1500);
+});
+
+test("bomba de descompressão: imagem pequena que declara muitos pixels é recusada (PNG, JPEG e WebP)", async () => {
+  const h = await linked();
+  const { imageSize } = require("./link")._internal;
+  const bombs = [pngB64(20000, 20000), jpegB64(100, 7, 30000, 30000), webpBuf("VP8X", 16000, 16000).toString("base64"), webpBuf("VP8L", 9000, 9000).toString("base64"), webpBuf("VP8 ", 9000, 9000).toString("base64"), pngB64(513, 100), pngB64(0, 0)];
+  for (const photo of bombs) assert.equal((await as(h, ALU, S_ALU, { action: "photo_put", photo })).statusCode, 400, photo.slice(0, 16));
+  assert.deepEqual(imageSize(pngBuf(96, 80)), { w: 96, h: 80 });
+  assert.deepEqual(imageSize(jpegBuf(10, 7, 160, 120)), { w: 160, h: 120 });
+  for (const kind of ["VP8X", "VP8 ", "VP8L"]) assert.deepEqual(imageSize(webpBuf(kind, 200, 150)), { w: 200, h: 150 }, kind);
+  for (const [w, hh] of [[512, 512], [160, 160], [1, 1]]) assert.equal((await as(h, ALU, S_ALU, { action: "photo_put", photo: pngB64(w, hh) })).statusCode, 200, w + "x" + hh);
 });

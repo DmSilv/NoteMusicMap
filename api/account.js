@@ -26,7 +26,7 @@
 //   device_name   { code, secret, dn }                  -> dá um apelido a ESTE aparelho
 //
 // APARELHOS: a mesma conta abre em até 5 aparelhos (api/_lib/devices.js). Entrar com e-mail ou chave ADICIONA o aparelho;
-// com 5 já na conta, responde 409 { error: 'device_limit', max, devices } e o app pergunta qual tirar (repete com drop: id).
+// com 5 já na conta, responde 422 { error: 'device_limit', max, devices } e o app pergunta qual tirar (repete com drop: id).
 //
 // Precisa do Upstash Redis e das variáveis de e-mail (MAIL_API_KEY e MAIL_FROM). Sem e-mail configurado: 503 mail_unavailable.
 // Custo: ~6 comandos por pedido de código, ~8 ao confirmar; só quando a pessoa usa o recurso.
@@ -110,8 +110,8 @@ function mailText(kind, otp, lang) {
   const en = lang === 'en';
   if (kind === 'notice') {
     return en
-      ? { subject: 'New sign-in to your Notemusic account', text: 'Your Notemusic account was just opened on a new device using this email.\n\nIf it was you, nothing to do. If it was not, open Notemusic on your usual device and remove the email under My account.' }
-      : { subject: 'Novo acesso à sua conta do Notemusic', text: 'A sua conta do Notemusic acabou de ser aberta em um aparelho novo usando este e-mail.\n\nSe foi você, não precisa fazer nada. Se não foi, abra o Notemusic no seu aparelho de costume e remova o e-mail em Minha conta.' };
+      ? { subject: 'New sign-in to your Notemusic account', text: 'Your Notemusic account was just opened on a new device using this email.\n\nIf it was you, nothing to do. If it was not, open Notemusic on a device you trust, go to My account > Devices and remove the one you do not recognize. Then generate a new recovery key under My account > Recovery key.' }
+      : { subject: 'Novo acesso à sua conta do Notemusic', text: 'A sua conta do Notemusic acabou de ser aberta em um aparelho novo usando este e-mail.\n\nSe foi você, não precisa fazer nada. Se não foi, abra o Notemusic num aparelho em que você confia, vá em Minha conta › Aparelhos e tire o que você não reconhece. Depois gere uma nova chave de recuperação em Minha conta › Chave de recuperação.' };
   }
   return en
     ? { subject: `Your Notemusic code: ${otp}`, text: `Your Notemusic code is ${otp}.\n\nIt works for 10 minutes. If you did not ask for it, you can ignore this message.` }

@@ -36,7 +36,7 @@ Ações (todas POST):
   device_name   { code, secret, dn }                  -> dá um apelido a ESTE aparelho
 
 APARELHOS: a mesma conta abre em até 5 aparelhos (api/_lib/devices.js). Entrar com e-mail ou chave ADICIONA o aparelho;
-com 5 já na conta, responde 409 { error: 'device_limit', max, devices } e o app pergunta qual tirar (repete com drop: id).
+com 5 já na conta, responde 422 { error: 'device_limit', max, devices } e o app pergunta qual tirar (repete com drop: id).
 
 Precisa do Upstash Redis e das variáveis de e-mail (MAIL_API_KEY e MAIL_FROM). Sem e-mail configurado: 503 mail_unavailable.
 Custo: ~6 comandos por pedido de código, ~8 ao confirmar; só quando a pessoa usa o recurso.

@@ -348,7 +348,11 @@ class AppState extends ChangeNotifier {
 
   /// Manda a foto (ou, se não é para mostrar, apaga a do servidor). Com a foto escolhida ou o interruptor mudando.
   Future<void> _pushMyPhoto() async {
-    if (!linkEnabled || linkUnavailable) return;
+    if (!linkEnabled || linkUnavailable) {
+      _photoDirty = true; // quando o vínculo voltar, a próxima sincronização manda
+      _prefs?.setBool('photo_dirty', true);
+      return;
+    }
     final shown = sharePhoto ? (myPhoto ?? '') : '';
     final r = await links.photoPut(profile.shareCode, profile.secret, shown);
     _photoDirty = !(r.ok || r.rejected);
@@ -557,6 +561,9 @@ class AppState extends ChangeNotifier {
   Profile? _pendingLogin;
 
   void _adoptProfile(Profile p) {
+    // A foto e o "mostrar" são deste aparelho: ao assumir outra conta, o servidor dela ainda não tem a foto.
+    _photoDirty = sharePhoto && myPhoto != null;
+    _prefs?.setBool('photo_dirty', _photoDirty);
     _peerPhotos.clear();
     _peerTags.clear();
     _prefs?.remove('peer_photos');

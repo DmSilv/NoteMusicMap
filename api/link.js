@@ -47,6 +47,7 @@ const NEW_PROFILES_PER_DAY = 100; // perfis novos por origem/dia (escola ou igre
 const NEW_PROFILES_ALERT = 30; // passou disso numa origem: o painel mostra um aviso
 const MAX_BODY = 2048; // bytes: o pedido comum tem ~200
 const PHOTO_MAX_BYTES = 24000; // igual ao do app (kMaxPhotoBytes)
+const PHOTO_MAX_SIDE = 512; // pixels por lado (o app manda 160; igual a kMaxPhotoSide)
 const PHOTO_PUTS_PER_HOUR = 10; // trocas de foto por perfil
 const MAX_PHOTO_BODY = 36000; // foto de perfil (imagem de até 24 mil bytes em base64)
 const MAX_LESSON_BODY = 40000; // pedido de publicar aula (30 tarefas com texto cheio cabem)
@@ -304,7 +305,8 @@ function makeHandler(deps = {}) {
       // Atividade para o painel (no máximo uma gravação a cada 6 h por perfil).
       if (await profiles.touch(cmd, prof, me, clock())) prof.la = String(clock());
       // presença para o painel (1 gravação a cada 10 min) + tempo de uso e ficha do aparelho na mesma gravação
-      await profiles.seen(cmd, prof, me, clock(), { dv: b.dv !== undefined ? profiles.deviceInfo(b.dv, req.headers) : null, sm: profiles.studyMinutes(b.dv) });
+      // Conta em 2+ aparelhos: a ficha do aparelho (e a contagem de "trocou de aparelho") deixa de seguir quem chamou por último.
+      await profiles.seen(cmd, prof, me, clock(), { dv: b.dv !== undefined && !prof.dl ? profiles.deviceInfo(b.dv, req.headers) : null, sm: profiles.studyMinutes(b.dv) });
 
       // Apelido opcional (aparece para quem está vinculado a você).
       const name = b.name === undefined ? null : clean(b.name, 40);
@@ -357,7 +359,7 @@ function makeHandler(deps = {}) {
         if (!linked) return send(403, { error: 'Sem vínculo com esta pessoa.' });
         const photo = await store.hget(PH(other), 'd');
         const pv = await store.hget(U(other), 'pv');
-        if (!photo || !pv) return send(404, { error: 'Sem foto.' });
+        if (!photo || !pv) return send(410, { error: 'Sem foto.' }); // 410 (não 404): o app trata 404 como "servidor sem o recurso"
         return send(200, { ok: true, photo, pv });
       }
 
@@ -815,15 +817,50 @@ function makeHandler(deps = {}) {
 }
 
 /** Atualiza o apelido de [me] dentro dos vínculos dos outros. */
-/** Texto base64 de uma imagem JPEG, PNG ou WebP de até 24 mil bytes (o mesmo que o app confere); senão null. */
+/**
+ * Largura e altura declaradas no cabeçalho de uma imagem JPEG, PNG ou WebP, ou null se não der para ler.
+ * Serve para recusar "bombas de descompressão": um arquivo de poucos KB que declara dezenas de milhares de pixels
+ * por lado e travaria o app de quem o recebe ao decodificar.
+ */
+function imageSize(b) {
+  try {
+    if (b.length > 24 && b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
+      if (b.subarray(12, 16).toString('latin1') !== 'IHDR') return null;
+      return { w: b.readUInt32BE(16), h: b.readUInt32BE(20) };
+    }
+    if (b.length > 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) {
+      let i = 2;
+      while (i + 9 < b.length) {
+        if (b[i] !== 0xff) { i++; continue; }
+        const m = b[i + 1];
+        if (m === 0xff) { i++; continue; }
+        if (m === 0xd8 || m === 0x01 || (m >= 0xd0 && m <= 0xd7)) { i += 2; continue; }
+        const len = b.readUInt16BE(i + 2);
+        if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) return { h: b.readUInt16BE(i + 5), w: b.readUInt16BE(i + 7) };
+        i += 2 + len;
+      }
+      return null;
+    }
+    if (b.length > 30 && b.subarray(0, 4).toString('latin1') === 'RIFF' && b.subarray(8, 12).toString('latin1') === 'WEBP') {
+      const kind = b.subarray(12, 16).toString('latin1');
+      if (kind === 'VP8X') return { w: 1 + b.readUIntLE(24, 3), h: 1 + b.readUIntLE(27, 3) };
+      if (kind === 'VP8 ') return { w: b.readUInt16LE(26) & 0x3fff, h: b.readUInt16LE(28) & 0x3fff };
+      if (kind === 'VP8L' && b[20] === 0x2f) {
+        const bits = b.readUInt32LE(21);
+        return { w: (bits & 0x3fff) + 1, h: ((bits >>> 14) & 0x3fff) + 1 };
+      }
+    }
+  } catch (_) { /* cabeçalho torto */ }
+  return null;
+}
+
+/** Texto base64 de uma imagem JPEG, PNG ou WebP de até 24 mil bytes e até 512 px por lado (o mesmo que o app confere); senão null. */
 function cleanPhotoText(v) {
   if (typeof v !== 'string' || v.length > 33000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(v)) return null;
   const b = Buffer.from(v, 'base64');
   if (!b.length || b.length > PHOTO_MAX_BYTES) return null;
-  const jpeg = b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
-  const png = b.length > 8 && b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
-  const webp = b.length > 12 && b.subarray(0, 4).toString('latin1') === 'RIFF' && b.subarray(8, 12).toString('latin1') === 'WEBP';
-  if (!jpeg && !png && !webp) return null;
+  const sz = imageSize(b);
+  if (!sz || sz.w < 1 || sz.h < 1 || sz.w > PHOTO_MAX_SIDE || sz.h > PHOTO_MAX_SIDE) return null;
   return b.toString('base64');
 }
 
@@ -859,4 +896,4 @@ async function propagateName(store, me, name) {
 
 module.exports = makeHandler();
 module.exports.makeHandler = makeHandler;
-module.exports._internal = { normCode, parseLinks, cleanLesson, parseNotice };
+module.exports._internal = { normCode, parseLinks, cleanLesson, parseNotice, imageSize, cleanPhotoText };

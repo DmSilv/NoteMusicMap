@@ -237,3 +237,37 @@ test('visto por último: só grava com 2+ aparelhos e no máximo a cada 6 h', as
   prof = hashes.get(`u:${P1}`);
   assert.equal(JSON.parse(get('dl')).find((d) => d.h === devices.secretHash(S[1])).l, NOW - 3600000);
 });
+
+test('conta cheia: o aparelho parado há mais de 90 dias cede a vaga sozinho; antes disso, não', async () => {
+  const H = mk();
+  await born(H, S[0]);
+  const key = await rkNew(H, S[0]);
+  for (let i = 1; i < 5; i++) await rkLogin(H, key, S[i]);
+  NOW += 30 * 86400000;
+  assert.equal((await rkLogin(H, key, S[5])).statusCode, 422, 'com 30 dias ninguém é velho demais');
+  NOW += 70 * 86400000; // 100 dias no total, todos parados
+  const ok = await rkLogin(H, key, S[5]);
+  assert.equal(ok.statusCode, 200);
+  assert.equal((await list(H, S[5])).json().devices.length, 5);
+  assert.equal((await call(H.l, { action: 'sync', code: P1, secret: S[5] })).statusCode, 200);
+});
+
+test('"visto por último" não ressuscita um aparelho tirado nem apaga um que acabou de entrar', async () => {
+  const H = mk();
+  await born(H, S[0]);
+  const key = await rkNew(H, S[0]);
+  await rkLogin(H, key, S[1]);
+  const prof = hashes.get(`u:${P1}`);
+  const get = (k) => (prof.get ? prof.get(k) : prof[k]);
+  const stale = { h: get('h'), dl: get('dl') }; // o que um pedido em andamento leu antes das mudanças
+  const id1 = (await list(H, S[0])).json().devices.find((d) => !d.me).id;
+  await call(H.a, { action: 'device_remove', code: P1, secret: S[0], id: id1 }); // tira o aparelho 1
+  await rkLogin(H, key, S[2]); // entra o aparelho 2
+  const { createStore } = require('./_lib/store');
+  const store = createStore(config(MAIL_ENV), async () => { throw new Error('x'); }, () => NOW, { allowMemory: true });
+  NOW += 7 * 3600000;
+  await devices.seen(store, P1, stale, devices.secretHash(S[1]), NOW); // pedido atrasado do aparelho já tirado
+  await devices.seen(store, P1, stale, devices.secretHash(S[0]), NOW);
+  assert.equal((await call(H.l, { action: 'sync', code: P1, secret: S[1] })).statusCode, 403, 'o tirado continua tirado');
+  assert.equal((await call(H.l, { action: 'sync', code: P1, secret: S[2] })).statusCode, 200, 'o novo continua na conta');
+});
