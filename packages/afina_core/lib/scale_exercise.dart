@@ -138,7 +138,7 @@ class ScaleExercise {
   /// Modo guiado "sem escorregar": a nota precisa CHEGAR afinada. Se chegou fora da faixa (ou veio deslizando até
   /// achar a altura), o exercício trava e o aluno tem de voltar a tocar a nota ANTERIOR e depois a da vez de novo, para
   /// não ficar procurando a nota com o dedo (o ouvido e a mão esquerda só evoluem acertando na primeira).
-  final bool noSlide;
+  bool noSlide;
 
   /// Janela (s) logo depois de a altura assentar que decide se a nota chegou afinada.
   final double arrivalSeconds;
@@ -472,6 +472,7 @@ class ScaleExercise {
   /// Pula a nota atual (modo guiado; conta como não afinada).
   StepResult? skip() {
     if (finished || _flow) return null;
+    _locked = false; // pular a nota também solta o travamento do "sem escorregar"
     return _complete(StepResult(
         sequence[index], ascendingNow, _octaveOf(sequence[index]), null, 0, true));
   }

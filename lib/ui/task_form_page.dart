@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import 'dictation_button.dart';
 import 'design_system.dart';
-import 'methods_page.dart';
 import 'teaching_ui.dart';
+import 'materials_sheet.dart';
 import 'my_lessons_page.dart' show taskKindIcon;
 import 'note_widgets.dart';
 import 'safe_input.dart';
@@ -428,15 +428,13 @@ class _TaskFormPageState extends State<TaskFormPage> {
             ),
         ]),
       ],
-      if (kind == TaskKind.method)
+      if (kind == TaskKind.method || kind == TaskKind.repertoire)
         Align(
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
-            onPressed: () => Navigator.of(context)
-                .push(MaterialPageRoute<void>(builder: (_) => MethodsPage(app: app)))
-                .then((_) => setState(() {})),
+            onPressed: () => showMaterialsSheet(context, app, piece: kind == TaskKind.repertoire, instrument: inst).then((_) => setState(() {})),
             icon: const Icon(Icons.library_books_outlined, size: 18),
-            label: Text(tr('Meus métodos e lições')),
+            label: Text(tr('Métodos e repertório')),
           ),
         ),
       if (_detailLabel != null) ...[

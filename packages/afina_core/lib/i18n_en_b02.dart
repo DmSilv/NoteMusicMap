@@ -137,7 +137,7 @@ const Map<String, String> kEnB02 = {
   'Escreva em poucas palavras': 'Write in a few words',
   'Enviar respostas': 'Send answers',
   'Ajude a melhorar o app': 'Help improve the app',
-  'São 2 perguntas rápidas, de menos de 1 minuto. Anônimo.': 'It\'s 2 quick questions, under 1 minute. Anonymous.',
+  'São 2 perguntas rápidas, de menos de 1 minuto. Sem e-mail nem áudio.': 'It\'s 2 quick questions, under 1 minute. No email, no audio.',
   'Responder': 'Answer',
   '×{0}': '×{0}',
   'Zerar a sessão': 'Reset the session',

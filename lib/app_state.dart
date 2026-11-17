@@ -342,12 +342,13 @@ class AppState extends ChangeNotifier {
     final out = <String, LocalSection>{};
     for (final s in students) {
       final data = studentToSection(s);
-      if (data.length > kMaxSectionChars) continue; // grande demais: segue só neste aparelho
+      // Grande demais para o espelho: continua na lista (para não parecer apagado), mas o motor não envia nem troca.
       out[studentSection(s)] = LocalSection(data, pristine: isPristineStudent(s));
     }
     out['AG'] = LocalSection(slotsToSection(agenda), pristine: agenda.isEmpty);
     out['OS'] = LocalSection(slotsToSection(openSlots), pristine: openSlots.isEmpty);
     out['ME'] = LocalSection(methodsToSection(methodLibrary), pristine: methodLibrary.isEmpty);
+    out['RE'] = LocalSection(methodsToSection(repertoireLibrary), pristine: repertoireLibrary.isEmpty);
     final prefs = AccountPrefs(teachInstruments: teachInstruments, teacherMode: teacherMode, custom: customInstruments, turmas: turmas);
     out['PR'] = LocalSection(prefs.toSection(), pristine: prefs.isDefault);
     out['SE'] = LocalSection(sessionsToSection(sessionRecords), pristine: sessionRecords.isEmpty);
@@ -367,13 +368,16 @@ class AppState extends ChangeNotifier {
       final cur = _mirrorStudentFor(sec, remote);
       if (cur == null) {
         remote.linkState = null; // o vínculo vem do servidor, a cada aparelho
+        if (!turmas.any((t) => t.id == remote.turma)) remote.turma = null;
         students.add(remote);
         activeStudentId ??= remote.id;
       } else if (merge) {
         mergeStudentFrom(cur, remote, preferOther: isPristineStudent(cur));
+        if (cur.turma == null && turmas.any((t) => t.id == remote.turma)) cur.turma = remote.turma;
       } else {
         cur.name = remote.name.trim().isEmpty ? cur.name : remote.name;
         cur.instrument = remote.instrument;
+        cur.turma = turmas.any((t) => t.id == remote.turma) ? remote.turma : cur.turma;
         cur.photo = remote.photo;
         cur.code ??= remote.code;
         cur.tasks
@@ -404,6 +408,11 @@ class AppState extends ChangeNotifier {
       if (!merge) methodLibrary.clear();
       mergeMethods(methodLibrary, remote);
       _saveMethods();
+    } else if (sec == 'RE') {
+      final remote = methodsFromSection(data);
+      if (!merge) repertoireLibrary.clear();
+      mergeMethods(repertoireLibrary, remote);
+      _saveMaterials(piece: true);
     } else if (sec == 'PR') {
       final remote = AccountPrefs.fromSection(data);
       final mine = AccountPrefs(teachInstruments: teachInstruments, teacherMode: teacherMode, custom: customInstruments, turmas: turmas);
@@ -1124,6 +1133,14 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// O professor dispensou o convite "Organize por turmas".
+  bool get turmaHintOff => _prefs?.getBool('turma_hint_off') ?? false;
+
+  void hideTurmaHint() {
+    _prefs?.setBool('turma_hint_off', true);
+    notifyListeners();
+  }
+
   Turma? turmaOf(Student s) => s.turma == null ? null : turmas.where((t) => t.id == s.turma).firstOrNull;
 
   /// O instrumento a usar nas sugestões da tarefa deste aluno (o dele, se o professor ensina; senão o único que ensina).
@@ -1147,7 +1164,8 @@ class AppState extends ChangeNotifier {
     final ids = _suggestIds(instrument);
     final known = ids.isEmpty ? kMethodSuggestions : catalogMethods(ids);
     return [
-      for (final m in methodLibrary) m.name,
+      for (final m in methodLibrary)
+        if (_materialFits(m, instrument)) m.name,
       for (final m in known)
         if (findMethod(methodLibrary, m) == null) m,
     ];
@@ -1164,11 +1182,66 @@ class AppState extends ChangeNotifier {
       if (seen.add(name.toLowerCase())) recent.add(name);
       if (recent.length >= 12) break;
     }
+    final own = [for (final m in repertoireLibrary) if (_materialFits(m, instrument) && seen.add(m.name.toLowerCase())) m.name];
     return [
-      ...recent,
+      ...own,
+      ...recent.where((r) => !own.any((o) => o.toLowerCase() == r.toLowerCase())),
       for (final p in catalogRepertoire(_suggestIds(instrument)))
         if (seen.add(p.toLowerCase())) p,
     ];
+  }
+
+  /// O método ou a peça [m] vale para [instrument]? (sem instrumento escolhido, vale tudo; "geral" vale para qualquer um.)
+  bool _materialFits(MethodEntry m, String? instrument) => m.instrument.isEmpty || instrument == null || m.instrument == instrument;
+
+  // ---------------- Métodos e repertório do professor (a lista que ele monta) ----------------
+  /// As peças que o professor cadastrou (nome, notas por linha e instrumento). Os métodos ficam em [methodLibrary].
+  List<MethodEntry> repertoireLibrary = [];
+
+  List<MethodEntry> materialsOf({required bool piece}) => piece ? repertoireLibrary : methodLibrary;
+
+  void _saveMaterials({required bool piece}) {
+    if (piece) {
+      _prefs?.setString('rep_lib', methodsToSection(repertoireLibrary));
+      _mirrorKick();
+    } else {
+      _saveMethods();
+    }
+  }
+
+  /// Acrescenta vários de uma vez: um por linha (aceita também "Nome: lição 1; lição 2"). Devolve quantos entraram de novo.
+  int addMaterials({required bool piece, required String lines, String instrument = ''}) {
+    final found = parseMethodsText(lines);
+    if (found.isEmpty) return 0;
+    for (final e in found) {
+      e.instrument = instrument;
+    }
+    final lib = materialsOf(piece: piece);
+    final before = lib.length;
+    mergeMethods(lib, found);
+    if (lib.length > kMaxMethods) lib.removeRange(kMaxMethods, lib.length);
+    _saveMaterials(piece: piece);
+    notifyListeners();
+    return lib.length - before;
+  }
+
+  /// Muda nome, instrumento e lições (ou movimentos) de um método ou peça.
+  void editMaterial({required bool piece, required MethodEntry m, required String name, required String lessonsText, required String instrument}) {
+    final n = name.trim();
+    if (n.isEmpty) return;
+    m.name = n;
+    m.instrument = instrument;
+    m.lessons
+      ..clear()
+      ..addAll(MethodEntry.tryFrom({'name': n, 'lessons': lessonsText.split(RegExp(r'[;\n]'))})?.lessons ?? []);
+    _saveMaterials(piece: piece);
+    notifyListeners();
+  }
+
+  void removeMaterial({required bool piece, required MethodEntry m}) {
+    materialsOf(piece: piece).remove(m);
+    _saveMaterials(piece: piece);
+    notifyListeners();
   }
 
   void _saveMethods() {
@@ -3382,6 +3455,7 @@ class AppState extends ChangeNotifier {
     activeStudentId = p.getString('activeStudent');
     students = await _repo!.loadStudents();
     methodLibrary = await _repo!.loadMethods();
+    repertoireLibrary = methodsFromSection(p.getString('rep_lib') ?? '[]');
   }
 
   // ---------------- Estudo: cronômetro e tempo personalizado ----------------
@@ -4281,6 +4355,7 @@ class AppState extends ChangeNotifier {
 
   void setScaleNoSlide(bool v) {
     scaleNoSlide = v;
+    exercise?.noSlide = v; // vale já no exercício em andamento (e solta quem estava travado)
     _prefs?.setBool('scale_noslide', v);
     notifyListeners();
   }
@@ -4526,7 +4601,6 @@ class AppState extends ChangeNotifier {
     await ai.load();
     await feedback.load(p);
     feedback.profileCode = () => profile.shareCode;
-    unawaited(feedback.identify(version: kBuildId.isEmpty ? 'dev' : kBuildId.substring(0, kBuildId.length < 7 ? kBuildId.length : 7), platform: kIsWeb ? 'web' : defaultTargetPlatform.name));
     await dictation.load(p);
     tone.setVolume(p.getDouble('toneVol') ?? 0.9);
     tone.timbre = ToneTimbre.values[(p.getInt('timbre') ?? 0).clamp(0, ToneTimbre.values.length - 1)];
@@ -4603,6 +4677,8 @@ class AppState extends ChangeNotifier {
     }
     final repo = _repo = LocalRepository(p);
     profile = await repo.loadOrCreateProfile();
+    // Só agora o código do perfil é o de verdade (antes dele havia um provisório): liga o aparelho à conta.
+    unawaited(feedback.identify(version: kBuildId.isEmpty ? 'dev' : kBuildId.substring(0, kBuildId.length < 7 ? kBuildId.length : 7), platform: kIsWeb ? 'web' : defaultTargetPlatform.name));
     sessionRecords = await repo.loadSessions();
     _loadPomo(p);
     _loadClocks(p);
@@ -5193,6 +5269,7 @@ class AppState extends ChangeNotifier {
     await p.clear();
     students = [];
     methodLibrary = [];
+    repertoireLibrary = [];
     activeStudentId = null;
     teacherPinHash = null;
     teacherUnlocked = false;

@@ -165,7 +165,8 @@ function makeHandler(deps = {}) {
 
     try {
       // Teto de pedidos por origem (barato: 1 comando).
-      const g = await store.incr(`acct:ip:${ip}:${hour}`, 3600);
+      // A consulta de aparelhos já é do dono (segredo) e tem o teto por perfil: não gasta o teto da origem (a tela de adicionar consulta a cada 10 s).
+      const g = action === 'devices' ? { n: 0 } : await store.incr(`acct:ip:${ip}:${hour}`, 3600);
       if (g.n > CALLS_PER_HOUR) return send(429, { error: 'Muitas tentativas. Tente mais tarde.' });
 
       const bad = async (status, error) => {

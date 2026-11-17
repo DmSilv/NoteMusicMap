@@ -72,9 +72,10 @@ Future<TeachingInstrument?> showCustomInstrumentEditor(BuildContext context, App
         actions: [
           if (existing != null)
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                if (!await _confirmDelete(c, existing.label, tr('Os métodos e peças dele saem, e os alunos ficam sem esse instrumento, em todos os seus aparelhos.'))) return;
                 app.removeCustomInstrument(existing.id);
-                Navigator.pop(c);
+                if (c.mounted) Navigator.pop(c);
               },
               child: Text(tr('Excluir'), style: TextStyle(color: AppColors.sharp)),
             ),
@@ -162,9 +163,10 @@ Future<void> showTurmaEditor(BuildContext context, AppState app, {Turma? existin
         actions: [
           if (existing != null)
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                if (!await _confirmDelete(c, existing.name, tr('Os alunos continuam na sua lista, só saem da turma.'))) return;
                 app.removeTurma(existing.id);
-                Navigator.pop(c);
+                if (c.mounted) Navigator.pop(c);
               },
               child: Text(tr('Excluir'), style: TextStyle(color: AppColors.sharp)),
             ),
@@ -326,4 +328,20 @@ Future<void> showStudentInstrumentSheet(BuildContext context, AppState app, Stud
       ];
     },
   );
+}
+
+/// Pergunta antes de apagar algo que some de todos os aparelhos da conta.
+Future<bool> _confirmDelete(BuildContext context, String name, String body) async {
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: Text(tr('Excluir "{0}"?', [name])),
+      content: Text(body),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
+        FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Excluir'))),
+      ],
+    ),
+  );
+  return ok == true;
 }

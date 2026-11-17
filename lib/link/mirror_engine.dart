@@ -64,6 +64,9 @@ class MirrorEngine {
   Timer? _timer;
   bool _busy = false;
   bool _again = false;
+
+  /// Muda quando outra conta é assumida: uma rodada que começou antes não pode gravar nada na conta nova.
+  int _gen = 0;
   DateTime _last = DateTime.fromMillisecondsSinceEpoch(0);
 
   void _loadMeta() {
@@ -87,6 +90,7 @@ class MirrorEngine {
 
   /// Esquece tudo (outra conta foi assumida neste aparelho).
   void reset() {
+    _gen++;
     on = false;
     rev = 0;
     meta.clear();
@@ -144,8 +148,10 @@ class MirrorEngine {
   }
 
   Future<void> _round() async {
+    final gen = _gen;
     final (code, secret) = account();
     final list = await links.miList(code, secret);
+    if (gen != _gen) return;
     if (list.mirrorOff) {
       on = false;
       return;
@@ -171,25 +177,35 @@ class MirrorEngine {
       if (!r.ok) return;
       got.addAll(r.items);
     }
+    if (gen != _gen) return;
 
+    // As preferências da conta (instrumentos próprios, turmas) vão antes dos alunos, que se apoiam nelas.
+    final order = ops.entries.toList()..sort((a, b) => (a.key == 'PR' ? 0 : 1).compareTo(b.key == 'PR' ? 0 : 1));
     var any = false;
-    for (final e in ops.entries) {
+    for (final e in order) {
       final sec = e.key;
       switch (e.value) {
         case MirrorOp.pull:
         case MirrorOp.merge:
           final item = got[sec];
           if (item == null || item.d == null) continue;
+          final nowLocal = build()[sec];
+          // Seção grande demais para o espelho: segue só neste aparelho (não se troca por nada).
+          if (nowLocal != null && nowLocal.data.length > kMaxSectionChars) continue;
+          // A pessoa pode ter editado durante a rodada: então junta em vez de trocar.
+          var merge = e.value == MirrorOp.merge;
+          if (!merge && nowLocal != null && local[sec] != null && nowLocal.hash != local[sec]!.hash) merge = true;
           applying = true;
           try {
-            apply(sec, item.d!, merge: e.value == MirrorOp.merge);
+            apply(sec, item.d!, merge: merge);
           } finally {
             applying = false;
           }
           any = true;
-          if (e.value == MirrorOp.pull) {
+          if (!merge) {
             final now = build()[sec];
-            meta[sec] = MirrorMeta(now?.hash ?? mirrorHash(item.d!), item.u);
+            if (now == null) continue; // não deu para ler aqui: sem marca, para não apagar no servidor depois
+            meta[sec] = MirrorMeta(now.hash, item.u);
           } else {
             await _push(code, secret, sec, remote[sec]?.u ?? 0);
           }
@@ -211,6 +227,7 @@ class MirrorEngine {
           any = true;
       }
     }
+    if (gen != _gen) return;
     rev = list.mirrorRev;
     _saveMeta();
     if (any) changed();

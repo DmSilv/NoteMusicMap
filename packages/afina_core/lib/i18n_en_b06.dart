@@ -144,7 +144,6 @@ const Map<String, String> kEnB06 = {
   '{0} alunos excluídos.': '{0} students deleted.',
   'Gerenciar': 'Edit',
   'Importar aluno': 'Import student',
-  'Meus métodos e lições ({0})': 'My methods and lessons ({0})',
   'Senha desta tela': 'Password for this screen',
   'Trocar ou remover a senha': 'Change or remove the password',
   'Buscar aluno por nome ou código': 'Search student by name or code',

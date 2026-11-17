@@ -12,12 +12,13 @@ import 'design_system.dart';
 import 'dictation_button.dart';
 import 'dart:async';
 import 'markdown_lite.dart';
-import 'methods_page.dart';
 import 'qr_scan_page.dart';
 import 'scale_exercise_page.dart';
 import 'person_avatar.dart';
 import 'student_identity.dart';
 import 'teaching_ui.dart';
+import 'materials_sheet.dart';
+import 'turmas_page.dart';
 import 'task_form_page.dart';
 import 'validation_ui.dart';
 import 'hello_bar.dart';
@@ -460,7 +461,9 @@ class _TeacherPageState extends State<TeacherPage> {
                         case 'import':
                           _importStudent(context);
                         case 'methods':
-                          Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => MethodsPage(app: app)));
+                          showMaterialsSheet(context, app);
+                        case 'turmas':
+                          Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TurmasPage(app: app)));
                         case 'pin':
                           _setPin(context);
                       }
@@ -469,8 +472,9 @@ class _TeacherPageState extends State<TeacherPage> {
                       PopupMenuItem(value: 'import', child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.download), title: Text(tr('Importar aluno')))),
                       PopupMenuItem(
                         value: 'methods',
-                        child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: const Icon(Icons.library_books_outlined), title: Text(app.methodLibrary.isEmpty ? tr('Meus métodos e lições') : tr('Meus métodos e lições ({0})', [app.methodLibrary.length]))),
+                        child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: const Icon(Icons.library_books_outlined), title: Text(tr('Métodos e repertório'))),
                       ),
+                      PopupMenuItem(value: 'turmas', child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: const Icon(Icons.workspaces_outline), title: Text(tr('Turmas')))),
                       PopupMenuItem(
                         value: 'pin',
                         child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(app.teacherPinHash == null ? Icons.lock_open : Icons.lock_outline), title: Text(app.teacherPinHash == null ? tr('Senha desta tela') : tr('Trocar ou remover a senha'))),
@@ -507,6 +511,21 @@ class _TeacherPageState extends State<TeacherPage> {
         _LessonBanner(app: app),
         const SizedBox(height: 10),
         _summaryStrip(),
+        if (app.turmas.isEmpty && app.students.length >= 3 && !app.turmaHintOff)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: AppCard(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                DsCardTitle(Icons.workspaces_outline, tr('Organize por turmas'), subtitle: tr('Separe seus alunos por grupo e passe a mesma tarefa para todos.')),
+                const SizedBox(height: Ds.s12),
+                Row(children: [
+                  FilledButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TurmasPage(app: app))), child: Text(tr('Criar turmas'))),
+                  const SizedBox(width: Ds.s8),
+                  TextButton(onPressed: app.hideTurmaHint, child: Text(tr('Agora não'))),
+                ]),
+              ]),
+            ),
+          ),
         if (app.turmas.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),

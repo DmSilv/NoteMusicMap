@@ -21,6 +21,8 @@ import 'hello_bar.dart';
 import 'link_bar.dart' show confirmTeacherLink;
 import 'meeting_link.dart';
 import 'study_glance.dart';
+import 'materials_sheet.dart';
+import 'turmas_page.dart';
 import 'widgets.dart' show AppCard;
 import 'tour/first_step_card.dart';
 import 'tour/start_card.dart';
@@ -75,7 +77,26 @@ class HubSection extends StatelessWidget {
       const SizedBox(height: Ds.gap),
       if (tiles.length == 2) _pair(tiles[0], tiles[1]) else if (tiles.length == 1) tiles.first,
       if (tiles.isNotEmpty) const SizedBox(height: Ds.gap),
+      // Atalhos de quem organiza as aulas: a um toque, sem passar por Minha conta nem pelo menu da lista.
+      if (isT) ...[
+        Padding(padding: const EdgeInsets.only(left: Ds.s4, bottom: Ds.s8), child: Text(tr('Organização'), style: Ds.section())),
+        AppCard(
+          padding: EdgeInsets.zero,
+          child: Column(children: [
+            DsNavRow(Icons.library_books_outlined, tr('Métodos e repertório'), _materialsSub(), () => showMaterialsSheet(context, app)),
+            Divider(height: 1, color: AppColors.outline),
+            DsNavRow(Icons.workspaces_outline, tr('Turmas'), app.turmas.isEmpty ? tr('Separe seus alunos por grupo') : app.turmas.map((x) => x.name).join(', '), () => _push(context, TurmasPage(app: app))),
+          ]),
+        ),
+        const SizedBox(height: Ds.gap),
+      ],
     ]);
+  }
+
+  String _materialsSub() {
+    final m = app.methodLibrary.length, p = app.repertoireLibrary.length;
+    if (m == 0 && p == 0) return tr('Monte a sua lista de métodos e peças');
+    return [m == 1 ? tr('1 método') : tr('{0} métodos', [m]), p == 1 ? tr('1 peça') : tr('{0} peças', [p])].join(' · ');
   }
 
   /// Meu espaço de quem chegou e ainda não tem professor nem é professor: o que dá para fazer agora (o próximo passo),

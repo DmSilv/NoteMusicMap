@@ -90,7 +90,7 @@ class _JoinAccountPageState extends State<JoinAccountPage> {
                   controller: _pair,
                   textCapitalization: TextCapitalization.characters,
                   autocorrect: false,
-                  maxLength: 20,
+                  maxLength: 200, // aceita o link inteiro colado
                   inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9\- ?&=:/._#]'))],
                   decoration: InputDecoration(labelText: tr('Código (XXXX-XXXX)'), counterText: ''),
                   onChanged: (_) => setState(() => _error = null),
@@ -191,7 +191,11 @@ Future<void> handleIncomingPairCode(BuildContext context, AppState app) async {
     context: context,
     builder: (c) => AlertDialog(
       title: Text(tr('Entrar numa conta?')),
-      content: Text(tr('Este aparelho passa a usar uma conta que já existe e deixa o código {0}. Só continue se o link foi seu.', [app.profile.shareCode])),
+      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(tr('Este aparelho passa a usar uma conta que já existe e deixa o código {0}. Só continue se o link foi seu.', [app.profile.shareCode])),
+        const SizedBox(height: 8),
+        Text(tr('Os alunos, a agenda e o histórico daqui vão para essa conta.')),
+      ]),
       actions: [
         TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Agora não'))),
         FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Entrar'))),

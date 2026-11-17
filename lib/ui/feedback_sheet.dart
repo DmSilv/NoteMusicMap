@@ -241,7 +241,7 @@ class FeedbackInviteCard extends StatelessWidget {
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
                 ]),
                 const SizedBox(height: 4),
-                Text(tr('São 2 perguntas rápidas, de menos de 1 minuto. Anônimo.'),
+                Text(tr('São 2 perguntas rápidas, de menos de 1 minuto. Sem e-mail nem áudio.'),
                     style: TextStyle(color: AppColors.textDim, fontSize: 13)),
                 const SizedBox(height: 10),
                 Row(children: [

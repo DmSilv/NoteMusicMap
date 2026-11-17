@@ -42,6 +42,7 @@ bool isPristineStudent(Student s) =>
     s.absences.isEmpty &&
     s.photo == null &&
     s.instrument == null &&
+    s.turma == null &&
     (s.code != null && (s.name == (s.remoteName ?? '') || isDefaultStudentName(s.name, s.code!)));
 
 // ---------------- aluno ----------------
@@ -238,8 +239,16 @@ class AccountPrefs {
 }
 
 /// O histórico de estudo (as últimas [keep] sessões) como seção.
-String sessionsToSection(List<SessionRecord> sessions, {int keep = 300}) =>
-    jsonEncode([for (final s in (sessions.length > keep ? sessions.sublist(0, keep) : sessions)) s.toJson()]);
+String sessionsToSection(List<SessionRecord> sessions, {int keep = 300, int maxChars = 80000}) {
+  var n = sessions.length > keep ? keep : sessions.length;
+  var out = jsonEncode([for (final s in sessions.take(n)) s.toJson()]);
+  // Cabe no espelho: se passar do teto, tira as mais antigas (a lista vem da mais nova para a mais velha).
+  while (out.length > maxChars && n > 1) {
+    n = (n * 3) ~/ 4;
+    out = jsonEncode([for (final s in sessions.take(n)) s.toJson()]);
+  }
+  return out;
+}
 
 List<SessionRecord> sessionsFromSection(String data) {
   try {

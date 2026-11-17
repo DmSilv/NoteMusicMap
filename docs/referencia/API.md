@@ -47,8 +47,8 @@ Custo: ~6 comandos por pedido de código, ~8 ao confirmar; só quando a pessoa u
 | Ação / tipo | Descrição (comentário do código) |
 |---|---|
 | `notice` | — |
+| `devices` | Teto de pedidos por origem (barato: 1 comando). A consulta de aparelhos já é do dono (segredo) e tem o teto por perfil: não gasta o teto da origem (a tela de adicionar consulta a cada 10 s). |
 | `status` | status |
-| `devices` | aparelhos da conta |
 | `device_remove` | — |
 | `device_name` | — |
 | `pair_new` | ligar outro aparelho com um código de 10 minutos (sem e-mail e sem chave) O aparelho que já está na conta gera o código (pair_new) e o aparelho novo o digita (pair_join). Uso único, 5 tentativas, 10 minutos, só o hash fica guardado. |

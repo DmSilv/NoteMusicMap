@@ -162,7 +162,10 @@ function makeHandler(deps = {}) {
     }
     // Liga este aparelho (embaralhado) ao perfil: vale para as respostas de agora e para as antigas deste aparelho.
     if (rec.u) {
-      try { await store.hset(ID_KEY, deviceHash, JSON.stringify({ c: rec.u, t: rec.t })); } catch (_) { /* sem Redis: a resposta ainda vale, só não liga o aparelho ao perfil */ }
+      try {
+        // A lista de aparelhos ligados é aberta a qualquer um: tem teto, e passando dele não liga novos.
+        if ((await store.hlen(ID_KEY)) < 20000) await store.hset(ID_KEY, deviceHash, JSON.stringify({ c: rec.u, t: rec.t }));
+      } catch (_) { /* sem Redis: a resposta ainda vale, só não liga o aparelho ao perfil */ }
     }
     if (rec.k === 'identify') {
       res.statusCode = 200;

@@ -6,6 +6,7 @@ import 'design_system.dart';
 import 'link_bar.dart' show confirmTeacherLink;
 import 'safe_input.dart';
 import 'teaching_ui.dart';
+import 'materials_sheet.dart';
 import 'theme.dart';
 
 /// Cadastro do professor, em 3 passos curtos: como te chamar, que instrumentos leciona (e o que usa neles) e as turmas.
@@ -122,6 +123,15 @@ class _TeacherSetupPageState extends State<TeacherSetupPage> {
           for (final i in allTeachingInstruments()) FilterChip(label: Text(i.label), selected: app.teachInstruments.contains(i.id), onSelected: (v) => app.setTeachInstrument(i.id, v)),
           ActionChip(avatar: const Icon(Icons.add, size: 18), label: Text(tr('Outro instrumento')), onPressed: () => showCustomInstrumentEditor(context, app)),
         ]),
+        if (app.teachInstruments.isNotEmpty) ...[
+          const SizedBox(height: Ds.s16),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(Ds.tap)),
+            onPressed: () => showMaterialsSheet(context, app),
+            icon: const Icon(Icons.library_books_outlined),
+            label: Text(tr('Cadastrar meus métodos e repertório')),
+          ),
+        ],
         const SizedBox(height: Ds.s12),
         Text(tr('Não achou o seu? Toque em "Outro instrumento" e escreva o nome. Métodos e peças podem vir depois.'), style: Ds.support()),
       ];

@@ -809,9 +809,16 @@ function makeHandler(deps = {}) {
         for (const line of await store.recent('fb:v1', 3000)) {
           try { rows.push(JSON.parse(line)); } catch (_) { /* linha ruim */ }
         }
-        const ids = await store.hgetall('fb:ids');
+        const shown = rows.slice().reverse().slice(0, 1000); // o que o painel mostra: as mais novas
+        // Só os aparelhos das linhas mostradas (e sem dono gravado na resposta) são consultados, não a lista inteira.
+        const devs = [...new Set(shown.filter((r) => !r.u && r.d).map((r) => r.d))];
+        const ids = {};
+        if (devs.length) {
+          const got = (await cmd.pipeline([['HMGET', 'fb:ids', ...devs]]))[0] || [];
+          devs.forEach((d, i) => { if (got[i]) ids[d] = got[i]; });
+        }
         const codeOf = (r) => r.u || (ids[r.d] ? (() => { try { return JSON.parse(ids[r.d]).c; } catch (_) { return ''; } })() : '');
-        const codes = [...new Set(rows.map(codeOf).filter((c) => CODE_RE.test(c)))].slice(0, 300);
+        const codes = [...new Set(shown.map(codeOf).filter((c) => CODE_RE.test(c)))].slice(0, 300);
         const profs = {};
         if (codes.length) {
           const got = await cmd.pipeline(codes.map((c) => ['HMGET', U(c), 'n', 'dv', 'la', 'bl', 'rt', 'rs']));
@@ -822,7 +829,7 @@ function makeHandler(deps = {}) {
             profs[c] = { name: n || '', os: d.ou || '', br: d.br || '', md: d.md || '', city: d.ct || '', region: d.g || '', mob: d.mob === '1', last: Number(la) || 0, teacher: rt === '1', student: rs === '1' };
           });
         }
-        const out = rows.slice().reverse().slice(0, 1000).map((r) => {
+        const out = shown.map((r) => {
           const c = codeOf(r);
           return { t: r.t, kind: r.k, q: r.q || '', a: r.a || '', r: r.r || 0, c: r.c || '', ver: r.v || '', plat: r.p || '', dev: r.d, code: c, who: profs[c] || null };
         });

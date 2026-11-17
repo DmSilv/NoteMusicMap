@@ -101,6 +101,26 @@ void main() {
       expect(e.slips, 0);
     });
 
+    test('travado numa nota, pular solta o travamento', () {
+      final e = make();
+      play(e, 67, 1.0);
+      play(e, 69, 0.4, from: -30, to: -30);
+      play(e, 69, 1.0, from: -30, to: 0);
+      expect(e.replayNeeded, isTrue);
+      e.skip();
+      expect(e.replayNeeded, isFalse);
+    });
+
+    test('desligar no meio do exercício solta quem estava travado', () {
+      final e = make();
+      play(e, 67, 1.0);
+      play(e, 69, 0.4, from: -30, to: -30);
+      play(e, 69, 1.0, from: -30, to: 0);
+      expect(e.replayNeeded, isTrue);
+      e.noSlide = false;
+      expect(e.replayNeeded, isFalse);
+    });
+
     test('pular a nota não trava nada', () {
       final e = make();
       e.skip();

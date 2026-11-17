@@ -11,9 +11,12 @@ import 'i18n.dart';
 class MethodEntry {
   String name;
   final List<String> lessons;
-  MethodEntry(this.name, [List<String>? lessons]) : lessons = lessons ?? [];
 
-  Map<String, dynamic> toJson() => {'name': name, if (lessons.isNotEmpty) 'lessons': lessons};
+  /// Instrumento (id) a que este método ou peça pertence; vazio = vale para qualquer instrumento do professor.
+  String instrument;
+  MethodEntry(this.name, [List<String>? lessons, this.instrument = '']) : lessons = lessons ?? [];
+
+  Map<String, dynamic> toJson() => {'name': name, if (lessons.isNotEmpty) 'lessons': lessons, if (instrument.isNotEmpty) 'ins': instrument};
 
   static MethodEntry? tryFrom(Object? j) {
     try {
@@ -22,7 +25,8 @@ class MethodEntry {
       final name = _clean((m['name'] ?? m['nome'] ?? '') as String);
       if (name.isEmpty) return null;
       final raw = (m['lessons'] ?? m['licoes'] ?? m[tr('lições')] ?? const []) as List;
-      return MethodEntry(name, _uniq([for (final l in raw.take(kMaxLessons)) _clean('$l')]));
+      final ins = (m['ins'] as String?) ?? '';
+      return MethodEntry(name, _uniq([for (final l in raw.take(kMaxLessons)) _clean('$l')]), RegExp(r'^[a-z0-9_]{1,30}$').hasMatch(ins) ? ins : '');
     } catch (_) {
       return null;
     }
@@ -66,7 +70,7 @@ MergeResult mergeMethods(List<MethodEntry> into, Iterable<MethodEntry> extra) {
   for (final e in extra) {
     var cur = findMethod(into, e.name);
     if (cur == null) {
-      cur = MethodEntry(_clean(e.name));
+      cur = MethodEntry(_clean(e.name), null, e.instrument);
       into.add(cur);
       m++;
     }

@@ -152,6 +152,23 @@ void main() {
     expect(a.student(code)!.tasks.map((t) => t.id), ['t1', 't2']);
   });
 
+  test('aluno que passa do teto do espelho não é apagado no servidor nem no outro aparelho', () async {
+    final srv = FakeMirrorServer();
+    final a = Device(srv, 'A')..students.add(rich());
+    final b = Device(srv, 'B')..students.add(bare());
+    await a.engine.round();
+    await b.engine.round();
+    expect(b.student(code)!.tasks, hasLength(1));
+    a.student(code)!.notes.addAll([for (var i = 0; i < 3000; i++) TeacherNote(DateTime(2026, 11, 3), 'nota longa número $i ' + 'x' * 60)]);
+    expect(studentToSection(a.student(code)!).length, greaterThan(kMaxSectionChars));
+    await a.engine.round();
+    await a.engine.round();
+    await b.engine.round();
+    expect(srv.secs.values.where((s) => !s.x), hasLength(1), reason: 'segue no servidor');
+    expect(b.student(code), isNotNull, reason: 'o outro aparelho não apaga');
+    expect(a.student(code)!.notes.length, greaterThan(2000), reason: 'e não é trocado por nada');
+  });
+
   test('os dois mudam ao mesmo tempo: o resultado soma as duas mudanças nos dois aparelhos', () async {
     final srv = FakeMirrorServer();
     final a = Device(srv, 'A')..students.add(rich());

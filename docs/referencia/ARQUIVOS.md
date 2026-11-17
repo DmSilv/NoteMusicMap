@@ -60,6 +60,7 @@
 | `lib/ui/library_page.dart` | Abre o acervo. Sem [teacher]: o próprio professor (edita). Com [teacher]: o aluno (só abre e denuncia). [focusTitle] e [folder] vêm de uma tarefa "Material do professor": filtram e destacam o item. |
 | `lib/ui/link_bar.dart` | Aviso do alto da tela quando o vínculo online está DESLIGADO mas há quem dependa dele (modo professor, professor ou aluno vinculado): sem ele, nada chega ao aparelho. |
 | `lib/ui/markdown_lite.dart` | Mostra um texto em Markdown simples (o que a IA devolve): títulos com `##`, tópicos com `-`, listas numeradas, **negrito** e *itálico*. A leitura dos trechos mora no núcleo (`parseInline`), com testes; aqui só se… |
+| `lib/ui/materials_sheet.dart` | "Métodos e repertório": o modal que sobe para o professor montar a lista dele. Um por linha, quantos quiser: digita o nome e dá Enter (o campo continua aberto para o próximo) ou cola uma lista inteira. Cada item… |
 | `lib/ui/meeting_link.dart` | Abre o link da aula online no navegador do aparelho. Sites conhecidos (Meet, Zoom, Teams…) abrem direto; qualquer outro mostra antes o endereço, para a pessoa saber para onde está indo. |
 | `lib/ui/methods_page.dart` | "Meus métodos e lições": a biblioteca do professor. Cadastrar, editar, copiar a lista. Ela também cresce sozinha com o que é digitado nas tarefas. |
 | `lib/ui/metro_section.dart` | Qual visão a aba Metrônomo mostra: 0 = o metrônomo, 1 = estudo e timers (resumo, cronômetro, Pomodoro). Um só valor para o app todo: as pílulas de Pomodoro e relógio da faixa de cima trocam para 1 antes de ir à aba. |
@@ -118,6 +119,7 @@
 | `lib/ui/tuner_page.dart` | Aba Afinador: cordas soltas, cromático e Pedal; ponteiro, desvio, frequência, Lá de referência e tônica. |
 | `lib/ui/tuning_guide.dart` | Explicação didática do sistema de afinação escolhido, com a tabela de alvos da tônica (em Hz, contra a afinação igual) e botões para OUVIR cada nota. Aparece no Afinador (modo Cromático) e nas Configurações. |
 | `lib/ui/tuning_pick.dart` | Nome curto do sistema de afinação em uso ("Pitagórico"). |
+| `lib/ui/turmas_page.dart` | "Turmas": o lugar onde o professor se organiza quando tem mais de um grupo de alunos (mesmo dentro do mesmo instrumento). Cada turma tem o seu instrumento e os seus alunos; dali ele passa a mesma tarefa para vários… |
 | `lib/ui/undo_snack.dart` | Aviso de baixo com o botão "Desfazer": serve para toda ação que some com algo da tela (esconder um cartão, tirar um item). Fica 8 segundos (tempo de ler e decidir), é flutuante e o botão tem alvo de toque grande.… |
 | `lib/ui/validation_ui.dart` | Modal "Como foi esta tarefa?": o professor decide sozinho (o aluno não precisa marcar nada). Três saídas: está boa (valida), refazer (o aluno vê "refazer") ou levar para a próxima aula. |
 | `lib/ui/welcome_tour.dart` | Para onde a pessoa quer ir depois da apresentação. |
@@ -222,6 +224,7 @@
 | `packages/afina_core/test/link_pref_test.dart` | Testes do módulo `link_pref`. |
 | `packages/afina_core/test/link_status_test.dart` | Testes do módulo `link_status`. |
 | `packages/afina_core/test/markdown_lite_test.dart` | Testes do módulo `markdown_lite`. |
+| `packages/afina_core/test/material_instrument_test.dart` | Testes do módulo `material_instrument`. |
 | `packages/afina_core/test/methods_test.dart` | Testes do módulo `methods`. |
 | `packages/afina_core/test/metronome_engine_test.dart` | Renderiza [total] amostras em blocos de [chunk] e junta tudo. |
 | `packages/afina_core/test/mirror_test.dart` | Testes do módulo `mirror`. |
@@ -367,4 +370,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **324** arquivos mapeados.
+Total: **327** arquivos mapeados.
