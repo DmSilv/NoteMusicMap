@@ -75,6 +75,7 @@
 | `lib/ui/pedal_view.dart` | Modo "Pedal" do Afinador: escolha notas num teclado e elas soam juntas, sustentadas. Serve para tocar uma melodia por cima (bordão) e para treinar o ouvido com intervalos e acordes. Soa no sistema de afinação… |
 | `lib/ui/perf.dart` | Um [Listenable] que nunca avisa nada. Uma aba escondida escuta este em vez do app: assim ela não se reconstrói enquanto não está na tela, e volta a atualizar sozinha (o ListenableBuilder reassina) quando fica visível. |
 | `lib/ui/person_avatar.dart` | Fotos já decodificadas para bytes, para a lista não decodificar o texto base64 a cada quadro. |
+| `lib/ui/photo_editor.dart` | Resultado do editor: o texto da foto pronta (base64 de um JPEG pequeno) ou o motivo de não ter dado certo. |
 | `lib/ui/photo_pick.dart` | Pergunta de onde vem a foto (câmera, galeria ou remover), reduz a imagem e devolve o texto base64 pronto. Devolve: o texto da foto; '' para remover; null se a pessoa desistiu ou não deu para usar a imagem. |
 | `lib/ui/pomodoro_card.dart` | Timer de estudo (Pomodoro) com alarme sutil. |
 | `lib/ui/profile_page.dart` | "Minha conta": lista curta com o código que identifica você (sem cadastro) e a chave de recuperação, que permite levar o histórico para outro aparelho. |
@@ -362,4 +363,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **319** arquivos mapeados.
+Total: **320** arquivos mapeados.
