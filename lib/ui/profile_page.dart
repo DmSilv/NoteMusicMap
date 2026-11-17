@@ -447,6 +447,10 @@ class _ProfilePageState extends State<ProfilePage> {
                       : app.teachInstruments.map((id) => teachingById(id)?.label ?? id).join(', '),
                   onTap: () => showTeachingInstrumentsSheet(context, app)),
             if (app.teacherMode)
+              _row(Icons.workspaces_outline, tr('Turmas'),
+                  sub: app.turmas.isEmpty ? tr('Separe alunos por turma ou instrumento') : app.turmas.map((t) => t.name).join(', '),
+                  onTap: () => showTurmasSheet(context, app)),
+            if (app.teacherMode)
               _row(Icons.groups_rounded, tr('Meus alunos'),
                   sub: app.students.isEmpty
                       ? tr('Nenhum aluno ainda')

@@ -15,6 +15,7 @@ import 'settings_page.dart' show kAppName;
 import 'share_sheet.dart' show shareLink;
 import 'slot_form_page.dart';
 import 'teacher_page.dart';
+import 'teacher_setup_page.dart';
 import 'open_slots_page.dart';
 import 'hello_bar.dart';
 import 'link_bar.dart' show confirmTeacherLink;
@@ -102,6 +103,11 @@ class HubSection extends StatelessWidget {
 
   /// "Sou professor": liga o modo professor direto daqui (como na apresentação), depois de pedir o nome.
   Future<void> _beTeacher(BuildContext context) async {
+    // Primeira vez: o cadastro do professor (nome, instrumentos e turmas). Depois: só o nome e a confirmação de antes.
+    if (app.teachInstruments.isEmpty && app.turmas.isEmpty) {
+      await Navigator.of(context).push<bool>(MaterialPageRoute<bool>(builder: (_) => TeacherSetupPage(app: app)));
+      return;
+    }
     if (!await requireNickname(context, app, reason: tr('Para ser professor, seus alunos precisam ver o seu nome.'))) return;
     if (!context.mounted || !await confirmTeacherLink(context, app)) return;
     app.setTeacherMode(true);

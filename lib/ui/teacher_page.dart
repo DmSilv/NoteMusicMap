@@ -407,7 +407,11 @@ class _TeacherPageState extends State<TeacherPage> {
     super.dispose();
   }
 
+  /// Filtro por turma (null = todas).
+  String? _turmaFilter;
+
   bool _matches(Student s) {
+    if (_turmaFilter != null && s.turma != _turmaFilter) return false;
     final q = _query.trim().toLowerCase();
     if (q.isEmpty) return true;
     return s.name.toLowerCase().contains(q) || (s.code ?? '').toLowerCase().contains(q.replaceAll('-', ''));
@@ -503,6 +507,20 @@ class _TeacherPageState extends State<TeacherPage> {
         _LessonBanner(app: app),
         const SizedBox(height: 10),
         _summaryStrip(),
+        if (app.turmas.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(children: [
+                ChoiceChip(label: Text(tr('Todas')), selected: _turmaFilter == null, onSelected: (_) => setState(() => _turmaFilter = null)),
+                for (final t in app.turmas) ...[
+                  const SizedBox(width: 8),
+                  ChoiceChip(label: Text(t.name), selected: _turmaFilter == t.id, onSelected: (v) => setState(() => _turmaFilter = v ? t.id : null)),
+                ],
+              ]),
+            ),
+          ),
         if (app.students.length > 5)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
@@ -751,10 +769,11 @@ class _TeacherPageState extends State<TeacherPage> {
                             style: TextStyle(color: classToday ? AppColors.accent : AppColors.textDim, fontSize: 13, fontWeight: classToday ? FontWeight.w700 : FontWeight.w400)),
                       ),
                     ]),
-                    if (awaiting > 0 || open > 0 || absences > 0 || s.instrument != null) ...[
+                    if (awaiting > 0 || open > 0 || absences > 0 || s.instrument != null || app.turmaOf(s) != null) ...[
                       const SizedBox(height: 7),
                       Wrap(spacing: 6, runSpacing: 4, children: [
                         if (s.instrument != null) _tag(teachingById(s.instrument)?.label ?? '', AppColors.textDim),
+                        if (app.turmaOf(s) != null) _tag(app.turmaOf(s)!.name, AppColors.textDim),
                         if (awaiting > 0) _tag(tr('{0} para validar', [awaiting]), AppColors.accent),
                         if (open > 0) _tag(tr('{0} em aberto', [open]), AppColors.flat),
                         if (absences > 0) _tag(tr('{0} falta{1}', [absences, absences == 1 ? '' : 's']), AppColors.sharp),

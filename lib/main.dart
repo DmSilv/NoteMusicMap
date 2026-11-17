@@ -26,6 +26,7 @@ import 'ui/design_system.dart';
 import 'ui/suggestions.dart';
 import 'ui/notifications_sheet.dart';
 import 'ui/person_avatar.dart';
+import 'ui/teacher_setup_page.dart';
 import 'ui/join_account_page.dart' show JoinAccountPage, handleIncomingPairCode;
 import 'ui/profile_page.dart' show ProfilePage, handleIncomingTeacherCode;
 import 'ui/metronome_page.dart';
@@ -132,10 +133,9 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
         widget.app.goTab?.call(kTabStudy);
         final c = _navKey.currentContext;
         if (c == null || !mounted) return;
+        // O cadastro do professor (nome, instrumentos, turmas) no lugar de só pedir o nome.
         // ignore: use_build_context_synchronously
-        if (await requireNickname(c, widget.app, reason: tr('Para ser professor, seus alunos precisam ver o seu nome.'))) {
-          widget.app.setTeacherMode(true);
-        }
+        await Navigator.of(c).push<bool>(MaterialPageRoute<bool>(builder: (_) => TeacherSetupPage(app: widget.app)));
       case TourChoice.look:
         break;
       case TourChoice.hasAccount:

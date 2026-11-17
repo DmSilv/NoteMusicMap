@@ -105,7 +105,8 @@
 | `lib/ui/suggestions.dart` | Sugestões do app (não são avisos de aula): ficam no sino, não presas no topo da tela. Hoje: informar o apelido e instalar no celular. |
 | `lib/ui/task_form_page.dart` | Formulário de tarefa (escala, arpejo, método e lição, repertório ou outra) com observações. |
 | `lib/ui/teacher_page.dart` | Tela Alunos do professor (lista, novo aluno, QR, importar, métodos, senha) e a ficha do aluno (aula, tarefas, validação, observações, relatórios). |
-| `lib/ui/teaching_ui.dart` | "Instrumentos que ensino": o professor marca um ou mais; as sugestões de método e de repertório vêm prontas. Cada toque vale na hora (sem botão de confirmar), como nos outros ajustes. |
+| `lib/ui/teacher_setup_page.dart` | Cadastro do professor, em 3 passos curtos: como te chamar, que instrumentos leciona (e o que usa neles) e as turmas. Serve para qualquer professor de música: se o instrumento não está na lista, ele cria o seu e põe… |
+| `lib/ui/teaching_ui.dart` | "Instrumentos que ensino": o professor marca um ou mais; as sugestões de método e de repertório vêm prontas. Quem ensina um instrumento que não está na lista cria o seu ("Outro instrumento") e põe os métodos e as… |
 | `lib/ui/theme.dart` | Paleta do app, com tema escuro e claro. As cores que mudam com o tema são `getters` lidos a cada construção de tela. [AppColors.dark] é definido uma vez por troca de tema em `main.dart` (que recria a árvore de… |
 | `lib/ui/toast.dart` | Aviso curto no TOPO da tela: aparece deslizando, some sozinho e pode ser arrastado para dispensar. Não cobre os botões de baixo nem exige toque. O tipo (sucesso, atenção, informação) vem do texto, ou de [kind]; muda… |
 | `lib/ui/toast_kind.dart` | Tipos de aviso curto: o tipo define cor, ícone e quanto tempo fica na tela. |
@@ -192,6 +193,7 @@
 | `packages/afina_core/lib/teaching.dart` | Instrumentos que o professor ensina e o que cada um já traz de sugestão: métodos e livros de estudo e repertório. O professor escolhe o(s) instrumento(s) uma vez; ao passar uma tarefa de método ou de repertório, as… |
 | `packages/afina_core/lib/tone_synth.dart` | Síntese do tom de referência (diapasão) como um trecho que se repete sem emendas. Em vez de gerar o som aos pedaços em tempo real (o que falha se um pedaço atrasa), calcula-se UM trecho com um número inteiro de… |
 | `packages/afina_core/lib/tuning.dart` | Matemática de afinação do app. Tudo aqui é teoria musical pública (razões de intervalos de 3 e 5 limites, cents, temperamento igual). Nenhum código de terceiros. DECISÕES DE PRECISÃO (leia antes de mudar): 1. A… |
+| `packages/afina_core/lib/turma.dart` | Turma do professor: um nome que ele escolhe ("Violino iniciantes", "Piano infantil") ligado a um instrumento. Cada aluno pode estar numa turma; a lista de alunos filtra por turma e as sugestões da tarefa seguem o… |
 | `packages/afina_core/lib/violin_fingering.dart` | Dedilhado do violino para as escalas e os arpejos do "sistema de escalas" de Carl Flesch (Nº 5, 3 oitavas), lido das páginas do método. O Flesch NÃO numera todas as notas: só os pontos de mudança (começo de posição,… |
 
 ## Testes do núcleo (`packages/afina_core/test/`)
@@ -256,6 +258,7 @@
 | `packages/afina_core/test/teaching_test.dart` | Testes do módulo `teaching`. |
 | `packages/afina_core/test/tone_synth_test.dart` | Do contrabaixo ao violino agudo, e referências de orquestra. |
 | `packages/afina_core/test/tuning_test.dart` | C2 fica ~5.87 cents abaixo do temperado. |
+| `packages/afina_core/test/turma_custom_test.dart` | Testes do módulo `turma_custom`. |
 | `packages/afina_core/test/vibrato_test.dart` | Violino sintético: segue [midis] (cada um por [noteMs]) com [centerCents] de desvio médio e vibrato de ±[depth] cents a [rate] Hz. |
 | `packages/afina_core/test/violin_fingering_test.dart` | Cordas soltas do violino: Sol3, Ré4, Lá4, Mi5. |
 
@@ -364,4 +367,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **321** arquivos mapeados.
+Total: **324** arquivos mapeados.

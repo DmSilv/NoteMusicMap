@@ -15,6 +15,7 @@ import 'methods.dart';
 import 'practice_coach.dart';
 import 'teacher.dart';
 import 'teaching.dart';
+import 'turma.dart';
 
 // ---------------- identificação e resumo ----------------
 
@@ -182,24 +183,58 @@ List<MethodEntry> methodsFromSection(String data) {
 class AccountPrefs {
   final List<String> teachInstruments;
   final bool teacherMode;
-  const AccountPrefs({this.teachInstruments = const [], this.teacherMode = false});
 
-  bool get isDefault => teachInstruments.isEmpty && !teacherMode;
+  /// Instrumentos que o professor criou (com os métodos e o repertório dele) e as turmas.
+  final List<TeachingInstrument> custom;
+  final List<Turma> turmas;
+  const AccountPrefs({this.teachInstruments = const [], this.teacherMode = false, this.custom = const [], this.turmas = const []});
 
-  String toSection() => jsonEncode({'ti': teachInstruments, if (teacherMode) 'tm': true});
+  bool get isDefault => teachInstruments.isEmpty && !teacherMode && custom.isEmpty && turmas.isEmpty;
+
+  String toSection() => jsonEncode({
+        'ti': teachInstruments,
+        if (teacherMode) 'tm': true,
+        if (custom.isNotEmpty) 'ci': [for (final i in custom) i.toJson()],
+        if (turmas.isNotEmpty) 'tu': [for (final t in turmas) t.toJson()],
+      });
 
   static AccountPrefs fromSection(String data) {
     try {
       final j = (jsonDecode(data) as Map).cast<String, dynamic>();
-      return AccountPrefs(teachInstruments: cleanTeachingIds(j['ti'] as List?), teacherMode: j['tm'] == true);
+      final custom = customInstrumentsFromJson(j['ci']);
+      // Os ids dos instrumentos próprios precisam existir para passar pela limpeza.
+      final prev = customInstruments;
+      customInstruments = custom;
+      final ti = cleanTeachingIds(j['ti'] as List?);
+      customInstruments = prev;
+      return AccountPrefs(teachInstruments: ti, teacherMode: j['tm'] == true, custom: custom, turmas: turmasFromJson(j['tu']));
     } catch (_) {
       return const AccountPrefs();
     }
   }
 
-  /// Soma: os instrumentos dos dois e o modo professor se algum dos dois tem.
-  AccountPrefs merge(AccountPrefs o) => AccountPrefs(
-      teachInstruments: cleanTeachingIds([...teachInstruments, ...o.teachInstruments]), teacherMode: teacherMode || o.teacherMode);
+  /// Soma: os instrumentos, as turmas e os instrumentos próprios dos dois (pelo id; os métodos e peças somam) e o modo
+  /// professor se algum dos dois tem.
+  AccountPrefs merge(AccountPrefs o) {
+    final byId = <String, TeachingInstrument>{for (final i in custom) i.id: i};
+    for (final i in o.custom) {
+      final cur = byId[i.id];
+      byId[i.id] = cur == null
+          ? i
+          : TeachingInstrument(cur.id, cur.label,
+              methods: {...cur.methods, ...i.methods}.toList(), repertoire: {...cur.repertoire, ...i.repertoire}.toList(), custom: true);
+    }
+    final mergedCustom = byId.values.take(kMaxCustomInstruments).toList();
+    final prev = customInstruments;
+    customInstruments = mergedCustom;
+    final ti = cleanTeachingIds([...teachInstruments, ...o.teachInstruments]);
+    customInstruments = prev;
+    final tm = <String, Turma>{for (final t in turmas) t.id: t};
+    for (final t in o.turmas) {
+      tm.putIfAbsent(t.id, () => t);
+    }
+    return AccountPrefs(teachInstruments: ti, teacherMode: teacherMode || o.teacherMode, custom: mergedCustom, turmas: tm.values.take(kMaxTurmas).toList());
+  }
 }
 
 /// O histórico de estudo (as últimas [keep] sessões) como seção.

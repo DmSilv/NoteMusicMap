@@ -42,6 +42,7 @@ export 'scale_exercise.dart';
 export 'study_clock.dart';
 export 'teacher.dart';
 export 'teaching.dart';
+export 'turma.dart';
 export 'pomodoro.dart';
 export 'tone_synth.dart';
 export 'tuning.dart';

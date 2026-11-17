@@ -223,6 +223,9 @@ class Student {
 
   /// Instrumento que este aluno estuda com o professor (id de [kTeachingInstruments]); só neste aparelho. Escolhe as sugestões da tarefa.
   String? instrument;
+
+  /// Turma do aluno (id de [Turma]); só do professor.
+  String? turma;
   final DateTime created;
   final List<TeacherNote> notes; // mais recente primeiro
   final List<Assignment> tasks;
@@ -242,6 +245,7 @@ class Student {
     this.remoteName,
     this.photo,
     this.instrument,
+    this.turma,
     DateTime? created,
     List<TeacherNote>? notes,
     List<Assignment>? tasks,
@@ -264,6 +268,7 @@ class Student {
         if (remoteName != null) 'rn': remoteName,
         if (photo != null) 'ph': photo,
         if (instrument != null) 'ins': instrument,
+        if (turma != null) 'tu': turma,
         'c': created.toIso8601String(),
         'notes': [for (final n in notes) n.toJson()],
         'tasks': [for (final t in tasks) t.toJson()],
@@ -282,6 +287,7 @@ class Student {
         remoteName: (j['rn'] as String?) == null ? null : cleanText(j['rn'] as String?, max: kMaxName),
         photo: cleanPhoto(j['ph'] as String?),
         instrument: teachingById(j['ins'] as String?)?.id,
+        turma: RegExp(r'^t[a-z0-9]{1,20}$').hasMatch((j['tu'] as String?) ?? '') ? j['tu'] as String : null,
         created: DateTime.tryParse((j['c'] as String?) ?? ''),
         notes: [
           for (final n in (j['notes'] as List? ?? const []).take(500))

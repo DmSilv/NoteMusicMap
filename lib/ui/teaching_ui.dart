@@ -6,6 +6,7 @@ import 'design_system.dart';
 import 'theme.dart';
 
 /// "Instrumentos que ensino": o professor marca um ou mais; as sugestões de método e de repertório vêm prontas.
+/// Quem ensina um instrumento que não está na lista cria o seu ("Outro instrumento") e põe os métodos e as peças que usa.
 /// Cada toque vale na hora (sem botão de confirmar), como nos outros ajustes.
 Future<void> showTeachingInstrumentsSheet(BuildContext context, AppState app) {
   return showDsSheet(
@@ -16,16 +17,178 @@ Future<void> showTeachingInstrumentsSheet(BuildContext context, AppState app) {
       Text(tr('Marque o que você ensina. Ao passar uma tarefa, os métodos e o repertório do instrumento aparecem prontos.'), style: Ds.support()),
       const SizedBox(height: Ds.s16),
       Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
-        for (final i in kTeachingInstruments)
+        for (final i in allTeachingInstruments())
           FilterChip(
             label: Text(i.label),
             selected: app.teachInstruments.contains(i.id),
             onSelected: (v) => app.setTeachInstrument(i.id, v),
           ),
+        ActionChip(
+          avatar: const Icon(Icons.add, size: 18),
+          label: Text(tr('Outro instrumento')),
+          onPressed: () => showCustomInstrumentEditor(context, app),
+        ),
       ]),
+      if (customInstruments.isNotEmpty) ...[
+        const SizedBox(height: Ds.s16),
+        Text(tr('Criados por você'), style: Ds.section()),
+        for (final i in customInstruments)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(i.label, style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(tr('{0} métodos · {1} peças', [i.methods.length, i.repertoire.length]), style: Ds.support()),
+            trailing: IconButton(tooltip: tr('Editar'), icon: const Icon(Icons.edit_outlined), onPressed: () => showCustomInstrumentEditor(context, app, existing: i)),
+          ),
+      ],
       const SizedBox(height: Ds.s16),
     ],
   );
+}
+
+/// Cria ou edita um instrumento que não está no catálogo: nome, métodos e livros, repertório (um por linha; tudo opcional,
+/// o professor vai completando depois). Devolve o instrumento salvo ou null.
+Future<TeachingInstrument?> showCustomInstrumentEditor(BuildContext context, AppState app, {TeachingInstrument? existing}) async {
+  final name = TextEditingController(text: existing?.label ?? '');
+  final methods = TextEditingController(text: (existing?.methods ?? const <String>[]).join('\n'));
+  final pieces = TextEditingController(text: (existing?.repertoire ?? const <String>[]).join('\n'));
+  String? error;
+  List<String> lines(String s) => [for (final l in s.split('\n')) if (l.trim().isNotEmpty) l.trim()];
+  final r = await showDialog<TeachingInstrument>(
+    context: context,
+    builder: (c) => StatefulBuilder(
+      builder: (c, setS) => AlertDialog(
+        title: Text(existing == null ? tr('Outro instrumento') : tr('Editar instrumento')),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            TextField(controller: name, autofocus: existing == null, maxLength: 40, textCapitalization: TextCapitalization.sentences, decoration: InputDecoration(labelText: tr('Nome do instrumento'), errorText: error, counterText: '')),
+            const SizedBox(height: Ds.s12),
+            TextField(controller: methods, minLines: 3, maxLines: 6, textCapitalization: TextCapitalization.sentences, decoration: InputDecoration(labelText: tr('Métodos e livros (um por linha)'))),
+            const SizedBox(height: Ds.s12),
+            TextField(controller: pieces, minLines: 3, maxLines: 6, textCapitalization: TextCapitalization.sentences, decoration: InputDecoration(labelText: tr('Repertório (um por linha)'))),
+            const SizedBox(height: Ds.s8),
+            Text(tr('Pode deixar vazio e completar depois: o que você passar nas tarefas vira sugestão.'), style: Ds.support()),
+          ]),
+        ),
+        actions: [
+          if (existing != null)
+            TextButton(
+              onPressed: () {
+                app.removeCustomInstrument(existing.id);
+                Navigator.pop(c);
+              },
+              child: Text(tr('Excluir'), style: TextStyle(color: AppColors.sharp)),
+            ),
+          TextButton(onPressed: () => Navigator.pop(c), child: Text(tr('Cancelar'))),
+          FilledButton(
+            onPressed: () {
+              if (name.text.trim().isEmpty) {
+                setS(() => error = tr('Dê um nome ao instrumento.'));
+                return;
+              }
+              if (existing == null) {
+                final i = app.addCustomInstrument(name.text, methods: lines(methods.text), repertoire: lines(pieces.text));
+                if (i == null) {
+                  setS(() => error = tr('Não foi possível criar mais instrumentos.'));
+                  return;
+                }
+                Navigator.pop(c, i);
+              } else {
+                app.updateCustomInstrument(existing.id, name: name.text, methods: lines(methods.text), repertoire: lines(pieces.text));
+                Navigator.pop(c, teachingById(existing.id));
+              }
+            },
+            child: Text(tr('Salvar')),
+          ),
+        ],
+      ),
+    ),
+  );
+  name.dispose();
+  methods.dispose();
+  pieces.dispose();
+  return r;
+}
+
+/// Turmas do professor: um nome ("Violino iniciantes", "Piano infantil") com o instrumento dela. Criar, editar e apagar.
+Future<void> showTurmasSheet(BuildContext context, AppState app) {
+  return showDsSheet(
+    context,
+    title: tr('Turmas'),
+    listenable: app,
+    children: (c) => [
+      Text(tr('Mais de um instrumento ou tipos de turma diferentes? Separe em turmas e filtre a lista de alunos.'), style: Ds.support()),
+      const SizedBox(height: Ds.s12),
+      if (app.turmas.isEmpty) Padding(padding: const EdgeInsets.symmetric(vertical: Ds.s8), child: Text(tr('Nenhuma turma ainda.'), style: Ds.support())),
+      for (final t in app.turmas)
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: Text(t.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: Text([teachingById(t.instrument)?.label ?? tr('Sem instrumento'), tr('{0} aluno(s)', [app.students.where((s) => s.turma == t.id).length])].join(' · '), style: Ds.support()),
+          trailing: IconButton(tooltip: tr('Editar'), icon: const Icon(Icons.edit_outlined), onPressed: () => showTurmaEditor(context, app, existing: t)),
+        ),
+      const SizedBox(height: Ds.s8),
+      OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(Ds.tap)),
+        onPressed: () => showTurmaEditor(context, app),
+        icon: const Icon(Icons.add),
+        label: Text(tr('Nova turma')),
+      ),
+      const SizedBox(height: Ds.s16),
+    ],
+  );
+}
+
+Future<void> showTurmaEditor(BuildContext context, AppState app, {Turma? existing}) async {
+  final name = TextEditingController(text: existing?.name ?? '');
+  var ins = existing?.instrument ?? (app.teachInstruments.length == 1 ? app.teachInstruments.first : '');
+  String? error;
+  await showDialog<void>(
+    context: context,
+    builder: (c) => StatefulBuilder(
+      builder: (c, setS) => AlertDialog(
+        title: Text(existing == null ? tr('Nova turma') : tr('Editar turma')),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+            TextField(controller: name, autofocus: existing == null, maxLength: 40, textCapitalization: TextCapitalization.sentences, decoration: InputDecoration(labelText: tr('Nome da turma'), hintText: tr('Ex.: Violino iniciantes'), errorText: error, counterText: '')),
+            const SizedBox(height: Ds.s12),
+            Text(tr('Instrumento'), style: Ds.section()),
+            const SizedBox(height: Ds.s8),
+            Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
+              for (final i in [for (final id in app.teachInstruments) ?teachingById(id)])
+                ChoiceChip(label: Text(i.label), selected: ins == i.id, onSelected: (v) => setS(() => ins = v ? i.id : '')),
+            ]),
+          ]),
+        ),
+        actions: [
+          if (existing != null)
+            TextButton(
+              onPressed: () {
+                app.removeTurma(existing.id);
+                Navigator.pop(c);
+              },
+              child: Text(tr('Excluir'), style: TextStyle(color: AppColors.sharp)),
+            ),
+          TextButton(onPressed: () => Navigator.pop(c), child: Text(tr('Cancelar'))),
+          FilledButton(
+            onPressed: () {
+              if (name.text.trim().isEmpty) {
+                setS(() => error = tr('Dê um nome à turma.'));
+                return;
+              }
+              if (existing == null) {
+                app.addTurma(name.text, instrument: ins);
+              } else {
+                app.updateTurma(existing.id, name: name.text, instrument: ins);
+              }
+              Navigator.pop(c);
+            },
+            child: Text(tr('Salvar')),
+          ),
+        ],
+      ),
+    ),
+  );
+  name.dispose();
 }
 
 /// Lista completa de sugestões, com busca: devolve o item escolhido ou null.
@@ -127,16 +290,16 @@ class TaskInstrumentRow extends StatelessWidget {
   }
 }
 
-/// Marca o instrumento que o aluno estuda (a "tag" que aparece na lista e escolhe as sugestões da tarefa).
-/// Mostra primeiro os instrumentos que o professor ensina; "Outro" abre a lista toda.
+/// Marca o instrumento e a turma do aluno (as "tags" que aparecem na lista; o instrumento escolhe as sugestões da tarefa).
+/// Mostra primeiro os instrumentos que o professor ensina.
 Future<void> showStudentInstrumentSheet(BuildContext context, AppState app, Student s) {
   return showDsSheet(
     context,
-    title: tr('Instrumento do aluno'),
+    title: tr('Instrumento e turma'),
     listenable: app,
     children: (c) {
       final mine = [for (final id in app.teachInstruments) ?teachingById(id)];
-      final all = mine.isEmpty ? kTeachingInstruments : [...mine, for (final i in kTeachingInstruments) if (!app.teachInstruments.contains(i.id)) i];
+      final all = mine.isEmpty ? allTeachingInstruments() : [...mine, for (final i in allTeachingInstruments()) if (!app.teachInstruments.contains(i.id)) i];
       return [
         Text(tr('O que {0} estuda com você. As sugestões da tarefa seguem este instrumento.', [s.name]), style: Ds.support()),
         const SizedBox(height: Ds.s16),
@@ -147,6 +310,17 @@ Future<void> showStudentInstrumentSheet(BuildContext context, AppState app, Stud
               selected: s.instrument == i.id,
               onSelected: (v) => app.setStudentInstrument(s, v ? i.id : null),
             ),
+          ActionChip(avatar: const Icon(Icons.add, size: 18), label: Text(tr('Outro instrumento')), onPressed: () async {
+            final i = await showCustomInstrumentEditor(context, app);
+            if (i != null) app.setStudentInstrument(s, i.id);
+          }),
+        ]),
+        const SizedBox(height: Ds.s20),
+        Text(tr('Turma'), style: Ds.section()),
+        const SizedBox(height: Ds.s8),
+        Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
+          for (final t in app.turmas) ChoiceChip(label: Text(t.name), selected: s.turma == t.id, onSelected: (v) => app.setStudentTurma(s, v ? t.id : null)),
+          ActionChip(avatar: const Icon(Icons.add, size: 18), label: Text(tr('Nova turma')), onPressed: () => showTurmaEditor(context, app)),
         ]),
         const SizedBox(height: Ds.s16),
       ];

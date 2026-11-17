@@ -348,7 +348,7 @@ class AppState extends ChangeNotifier {
     out['AG'] = LocalSection(slotsToSection(agenda), pristine: agenda.isEmpty);
     out['OS'] = LocalSection(slotsToSection(openSlots), pristine: openSlots.isEmpty);
     out['ME'] = LocalSection(methodsToSection(methodLibrary), pristine: methodLibrary.isEmpty);
-    final prefs = AccountPrefs(teachInstruments: teachInstruments, teacherMode: teacherMode);
+    final prefs = AccountPrefs(teachInstruments: teachInstruments, teacherMode: teacherMode, custom: customInstruments, turmas: turmas);
     out['PR'] = LocalSection(prefs.toSection(), pristine: prefs.isDefault);
     out['SE'] = LocalSection(sessionsToSection(sessionRecords), pristine: sessionRecords.isEmpty);
     return out;
@@ -406,9 +406,13 @@ class AppState extends ChangeNotifier {
       _saveMethods();
     } else if (sec == 'PR') {
       final remote = AccountPrefs.fromSection(data);
-      final mine = AccountPrefs(teachInstruments: teachInstruments, teacherMode: teacherMode);
+      final mine = AccountPrefs(teachInstruments: teachInstruments, teacherMode: teacherMode, custom: customInstruments, turmas: turmas);
       final next = merge ? mine.merge(remote) : remote.merge(const AccountPrefs());
-      teachInstruments = next.teachInstruments;
+      customInstruments = next.custom;
+      turmas = next.turmas;
+      teachInstruments = cleanTeachingIds(next.teachInstruments);
+      _prefs?.setString('custom_inst', customInstrumentsToJson(customInstruments));
+      _prefs?.setString('turmas', turmasToJson(turmas));
       _prefs?.setStringList('teach_inst', teachInstruments);
       if (next.teacherMode && !teacherMode && linkEnabled) {
         teacherMode = true;
@@ -1022,13 +1026,111 @@ class AppState extends ChangeNotifier {
       set.remove(id);
     }
     teachInstruments = cleanTeachingIds(set);
-    _prefs?.setStringList('teach_inst', teachInstruments);
+    _saveSetup();
     notifyListeners();
+  }
+
+  // ---------------- Instrumentos próprios e turmas do professor ----------------
+  /// Turmas do professor (nome + instrumento).
+  List<Turma> turmas = [];
+
+  void _saveSetup() {
+    _prefs?.setString('custom_inst', customInstrumentsToJson(customInstruments));
+    _prefs?.setString('turmas', turmasToJson(turmas));
+    _prefs?.setStringList('teach_inst', teachInstruments);
     _mirrorKick();
   }
 
+  /// Cria um instrumento que não está no catálogo (com métodos e repertório que o professor já souber) e o marca como ensinado.
+  /// Devolve null se já há instrumentos demais.
+  TeachingInstrument? addCustomInstrument(String name, {List<String> methods = const [], List<String> repertoire = const []}) {
+    final n = name.trim();
+    if (n.isEmpty || customInstruments.length >= kMaxCustomInstruments) return null;
+    final id = newCustomInstrumentId(n, [for (final i in allTeachingInstruments()) i.id]);
+    final i = customInstrumentsFromJson([
+      {'id': id, 'n': n, 'm': methods, 'r': repertoire}
+    ]).firstOrNull;
+    if (i == null) return null;
+    customInstruments = [...customInstruments, i];
+    teachInstruments = cleanTeachingIds([...teachInstruments, id]);
+    _saveSetup();
+    notifyListeners();
+    return i;
+  }
+
+  /// Troca o nome e as listas de um instrumento do professor.
+  void updateCustomInstrument(String id, {String? name, List<String>? methods, List<String>? repertoire}) {
+    final cur = customInstruments.where((i) => i.id == id).firstOrNull;
+    if (cur == null) return;
+    final next = customInstrumentsFromJson([
+      {'id': id, 'n': name ?? cur.label, 'm': methods ?? cur.methods, 'r': repertoire ?? cur.repertoire}
+    ]).firstOrNull;
+    if (next == null) return;
+    customInstruments = [for (final i in customInstruments) i.id == id ? next : i];
+    _saveSetup();
+    notifyListeners();
+  }
+
+  /// Apaga um instrumento do professor; alunos e turmas que o usavam ficam sem instrumento.
+  void removeCustomInstrument(String id) {
+    customInstruments = [for (final i in customInstruments) if (i.id != id) i];
+    teachInstruments = cleanTeachingIds(teachInstruments);
+    for (final s in students) {
+      if (s.instrument == id) s.instrument = null;
+    }
+    for (final t in turmas) {
+      if (t.instrument == id) t.instrument = '';
+    }
+    _saveTeacher();
+    _saveSetup();
+    notifyListeners();
+  }
+
+  Turma? addTurma(String name, {String instrument = ''}) {
+    final n = name.trim();
+    if (n.isEmpty || turmas.length >= kMaxTurmas) return null;
+    final t = Turma(id: newTurmaId([for (final x in turmas) x.id], DateTime.now().millisecondsSinceEpoch), name: n, instrument: teachingById(instrument)?.id ?? '');
+    turmas = [...turmas, t];
+    _saveSetup();
+    notifyListeners();
+    return t;
+  }
+
+  void updateTurma(String id, {String? name, String? instrument}) {
+    final t = turmas.where((x) => x.id == id).firstOrNull;
+    if (t == null) return;
+    if (name != null && name.trim().isNotEmpty) t.name = name.trim();
+    if (instrument != null) t.instrument = teachingById(instrument)?.id ?? '';
+    _saveSetup();
+    notifyListeners();
+  }
+
+  void removeTurma(String id) {
+    turmas = [for (final t in turmas) if (t.id != id) t];
+    for (final s in students) {
+      if (s.turma == id) s.turma = null;
+    }
+    _saveTeacher();
+    _saveSetup();
+    notifyListeners();
+  }
+
+  /// Põe o aluno numa turma (ou tira, com null). Se a turma tem instrumento e o aluno ainda não tem, ele herda.
+  void setStudentTurma(Student s, String? id) {
+    final t = turmas.where((x) => x.id == id).firstOrNull;
+    s.turma = t?.id;
+    if (t != null && t.instrument.isNotEmpty && s.instrument == null) s.instrument = t.instrument;
+    _saveTeacher();
+    notifyListeners();
+  }
+
+  Turma? turmaOf(Student s) => s.turma == null ? null : turmas.where((t) => t.id == s.turma).firstOrNull;
+
   /// O instrumento a usar nas sugestões da tarefa deste aluno (o dele, se o professor ensina; senão o único que ensina).
-  String? instrumentOf(Student s) => instrumentForTask(studentInstrument: s.instrument, teaches: teachInstruments);
+  String? instrumentOf(Student s) {
+    final fromTurma = turmaOf(s)?.instrument;
+    return instrumentForTask(studentInstrument: s.instrument ?? ((fromTurma ?? '').isEmpty ? null : fromTurma), teaches: teachInstruments);
+  }
 
   void setStudentInstrument(Student s, String? id) {
     s.instrument = teachingById(id)?.id;
@@ -4372,6 +4474,13 @@ class AppState extends ChangeNotifier {
   // ===================================================================
   Future<void> load() async {
     final p = _prefs = await SharedPreferences.getInstance();
+    try {
+      customInstruments = customInstrumentsFromJson(jsonDecode(p.getString('custom_inst') ?? '[]'));
+      turmas = turmasFromJson(jsonDecode(p.getString('turmas') ?? '[]'));
+    } catch (_) {
+      customInstruments = [];
+      turmas = [];
+    }
     refA = p.getDouble('refA') ?? 440;
     system = TuningSystem.values[p.getInt('system') ?? 0];
     tonicPc = p.getInt('tonicPc') ?? 9;
