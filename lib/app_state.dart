@@ -4174,6 +4174,15 @@ class AppState extends ChangeNotifier {
   /// sem exigir que cada nota seja segurada. Desligado = espera cada nota.
   bool exerciseFlow = true;
 
+  /// Guiado "sem escorregar": a nota precisa chegar afinada; se não, volta à anterior e toca de novo.
+  bool scaleNoSlide = true;
+
+  void setScaleNoSlide(bool v) {
+    scaleNoSlide = v;
+    _prefs?.setBool('scale_noslide', v);
+    notifyListeners();
+  }
+
   void setExerciseFlow(bool v) {
     exerciseFlow = v;
     exercise?.flow = v; // vale já no exercício em andamento
@@ -4188,6 +4197,7 @@ class AppState extends ChangeNotifier {
       octaves: scaleOctaves,
       zone: kInTuneCents,
       flow: exerciseFlow,
+      noSlide: scaleNoSlide,
       direction: scaleDirection,
     );
     exerciseDone = false;
@@ -4386,6 +4396,7 @@ class AppState extends ChangeNotifier {
     scaleStaff = p.getBool('scale_staff') ?? true;
     scaleRhythm = StaffRhythm.values[(p.getInt('scale_rhythm') ?? StaffRhythm.quarter.index).clamp(0, StaffRhythm.values.length - 1)];
     scaleHints = p.getBool('scale_hints') ?? true;
+    scaleNoSlide = p.getBool('scale_noslide') ?? true;
     scaleOttava = p.getBool('scale_8va') ?? true;
     scaleFingers = p.getBool('scale_fingers') ?? true;
     scaleAlt = p.getBool('scale_alt') ?? false;

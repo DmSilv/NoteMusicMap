@@ -232,4 +232,9 @@ const Map<String, String> kEnB14 = {
   'Não deu para preparar esta foto. Tente outra ou chegue mais perto do rosto.': 'Could not prepare this photo. Try another one or get closer to the face.',
   'Não consegui abrir a câmera ou a galeria. Confira se o Notemusic tem permissão para fotos nas configurações do aparelho.': 'Could not open the camera or gallery. Check that Notemusic has photo permission in the device settings.',
   'Não deu para usar a foto': 'Could not use the photo',
+  'Sem escorregar o dedo': 'No sliding',
+  'A nota tem de chegar afinada. Se não, volte à anterior e toque de novo.': 'The note must arrive in tune. If not, go back to the previous one and play again.',
+  'Chegou desafinada. Toque {0} afinada e depois {1} de novo.': 'It arrived out of tune. Play {0} in tune and then {1} again.',
+  'Chegou desafinada. Solte a nota e toque de novo, direto na altura.': 'It arrived out of tune. Release the note and play again, straight on pitch.',
+  'Volte para': 'Go back to',
 };

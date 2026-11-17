@@ -225,7 +225,8 @@ class ScaleExercisePage extends StatelessWidget {
 
   /// Modo guiado: uma nota por vez; a próxima só vem quando esta ficar afinada.
   Widget _guidedCard(ScaleExercise e) {
-    final m = e.expected!;
+    final back = e.replayMidi; // travado: precisa voltar à nota anterior
+    final m = back ?? e.expected!;
     final asc = e.ascendingAt(e.index);
     final hz = targetFreq(m, app.cfg);
     final cur = app.current;
@@ -234,7 +235,11 @@ class ScaleExercisePage extends StatelessWidget {
       for (var k = 1; k <= 3; k++)
         if (e.index + k < e.sequence.length) (e.sequence[e.index + k], e.ascendingAt(e.index + k))
     ];
-    final status = e.tunedNow
+    final status = e.replayNeeded
+        ? (back != null
+            ? tr('Chegou desafinada. Toque {0} afinada e depois {1} de novo.', [app.scaleNoteName(back, ascending: e.ascendingAt(e.index - 1), withOctave: true), app.scaleNoteName(e.expected!, ascending: asc, withOctave: true)])
+            : tr('Chegou desafinada. Solte a nota e toque de novo, direto na altura.'))
+        : e.tunedNow
         ? tr('Afinada! Segure só mais um instante…')
         : (onTarget ? tr('Quase: ajuste a afinação. A barra só enche quando estiver afinada.') : tr('Aguardando a nota certa'));
     return AppCard(
@@ -243,7 +248,7 @@ class ScaleExercisePage extends StatelessWidget {
         children: [
           Row(children: [
             // A frequência fica junto do rótulo, à esquerda: o ♭/♯ grande do nome sobe no centro e não pode encostar nela.
-            Text('${tr('Toque agora')} · ${hz.toStringAsFixed(1)} Hz', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+            Text('${e.replayNeeded && back != null ? tr('Volte para') : tr('Toque agora')} · ${hz.toStringAsFixed(1)} Hz', style: TextStyle(color: e.replayNeeded ? AppColors.sharp : AppColors.textDim, fontSize: 13)),
             const Spacer(),
             _dirTag(asc),
           ]),
@@ -291,14 +296,14 @@ class ScaleExercisePage extends StatelessWidget {
             ),
           ),
           SizedBox(
-            height: 28,
+            height: 40,
             child: Center(
               child: Text(status,
                   textAlign: TextAlign.center,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                      color: e.tunedNow ? AppColors.inTune : AppColors.textDim,
+                      color: e.replayNeeded ? AppColors.sharp : (e.tunedNow ? AppColors.inTune : AppColors.textDim),
                       fontSize: 12.5,
                       fontWeight: e.tunedNow ? FontWeight.w700 : FontWeight.w400)),
             ),

@@ -135,6 +135,14 @@ class ScaleExercise {
     _resetCurrent();
   }
 
+  /// Modo guiado "sem escorregar": a nota precisa CHEGAR afinada. Se chegou fora da faixa (ou veio deslizando até
+  /// achar a altura), o exercício trava e o aluno tem de voltar a tocar a nota ANTERIOR e depois a da vez de novo, para
+  /// não ficar procurando a nota com o dedo (o ouvido e a mão esquerda só evoluem acertando na primeira).
+  final bool noSlide;
+
+  /// Janela (s) logo depois de a altura assentar que decide se a nota chegou afinada.
+  final double arrivalSeconds;
+
   /// Modo guiado: tempo (s) SEGUIDO dentro da faixa "afinado" para a nota valer.
   final double holdSeconds;
 
@@ -161,6 +169,24 @@ class ScaleExercise {
   bool _tunedNow = false;
   final List<_Sample> _landing = [];
 
+  // ---- guiado sem escorregar ----
+  bool _locked = false; // chegou fora da afinação: precisa voltar à nota anterior
+  bool _checked = false; // a chegada desta tentativa já foi avaliada (e passou)
+  bool _wasOn = false; // o quadro anterior estava na nota da vez
+  double _offT = 99; // s seguidos fora da nota da vez (99 = ainda não começou)
+  double _backHeld = 0; // s tocando a nota anterior afinada, para destravar
+  double _gapT = 0; // s soltos (primeira nota: basta soltar e tocar de novo)
+  final List<_Sample> _arrival = [];
+
+  /// Quantas vezes a nota chegou desafinada (ou escorregando) neste exercício.
+  int slips = 0;
+
+  /// O exercício está travado esperando o aluno voltar à nota anterior (ou soltar, na primeira nota).
+  bool get replayNeeded => !_flow && noSlide && _locked;
+
+  /// A nota anterior, que o aluno precisa tocar de novo para destravar (null na primeira nota: basta soltar e tocar).
+  int? get replayMidi => replayNeeded && index > 0 ? sequence[index - 1] : null;
+
   // ---- modo livre ----
   late final List<int> freeNotes; // notas distintas da escala, do grave ao agudo
   final Map<int, FreeNote> board = {};
@@ -182,6 +208,8 @@ class ScaleExercise {
     this.settleSeconds = 0.08,
     this.landingSeconds = 0.45,
     bool flow = false,
+    this.noSlide = false,
+    this.arrivalSeconds = 0.2,
     this.flowMinSeconds = 0.05,
     this.flowReleaseSeconds = 0.22,
     this.direction = ScaleDirection.both,
@@ -289,12 +317,54 @@ class ScaleExercise {
   StepResult? _feedHold(int? midi, double cents, double clarity, double dt) {
     _tunedNow = false;
     _waiting += dt;
+    if (noSlide && _locked) return _feedLocked(midi, cents, dt);
     if (midi != expected) {
       // Saiu da nota: perde um pouco do que tinha segurado.
       _run = (_run - dt).clamp(0.0, double.infinity);
+      if (noSlide) {
+        _wasOn = false;
+        _offT += dt;
+      }
       return null;
     }
+    if (noSlide) {
+      // Nota nova (vinda de outra ou de silêncio por um instante): é uma CHEGADA, que começa do zero.
+      if (!_wasOn && _offT >= 0.12) {
+        _time = 0;
+        _run = 0;
+        _landing.clear();
+        _arrival.clear();
+        _checked = false;
+      }
+      _wasOn = true;
+      _offT = 0;
+    }
     _time += dt;
+    if (noSlide && !_checked) {
+      if (_time > settleSeconds && _time <= settleSeconds + arrivalSeconds) {
+        _arrival.add(_Sample(_time, cents.clamp(-100.0, 100.0), clarity.clamp(0.05, 1.0) * dt));
+      }
+      if (_time > settleSeconds + arrivalSeconds) {
+        // Chegou afinada e firme, ou escorregou? Mediana fora da faixa, ou a altura andou demais na janela, é escorregar.
+        if (_arrival.length >= 2) {
+          final med = _weightedMedian(_arrival);
+          var lo = 1e9, hi = -1e9;
+          for (final s in _arrival) {
+            if (s.cents < lo) lo = s.cents;
+            if (s.cents > hi) hi = s.cents;
+          }
+          if (med.abs() > zone || (hi - lo) > zone * 1.2) {
+            slips++;
+            _resetCurrent();
+            _locked = true;
+            _backHeld = 0;
+            _gapT = 0;
+            return null;
+          }
+        }
+        _checked = true;
+      }
+    }
     // "Primeira tentativa": o que se ouviu logo depois de a altura assentar.
     if (_time > settleSeconds && _time <= settleSeconds + landingSeconds) {
       _landing.add(_Sample(_time, cents.clamp(-100.0, 100.0), clarity.clamp(0.05, 1.0) * dt));
@@ -310,6 +380,38 @@ class ScaleExercise {
     final land = _landing.isNotEmpty ? _weightedMedian(_landing) : cents;
     return _complete(StepResult(
         sequence[index], ascendingNow, _octaveOf(sequence[index]), land, _time, false));
+  }
+
+  /// Travado: a nota da vez chegou desafinada. Destrava tocando a nota ANTERIOR afinada por um instante
+  /// (na primeira nota, que não tem anterior, basta soltar por um instante e tocar de novo).
+  StepResult? _feedLocked(int? midi, double cents, double dt) {
+    final prev = index > 0 ? sequence[index - 1] : null;
+    if (prev != null) {
+      if (midi == prev && cents.abs() <= zone) {
+        _backHeld += dt;
+        if (_backHeld >= 0.25) {
+          _locked = false;
+          _backHeld = 0;
+          _offT = 99;
+          _wasOn = false;
+        }
+      } else {
+        _backHeld = (_backHeld - dt).clamp(0.0, double.infinity);
+      }
+      return null;
+    }
+    if (midi != expected) {
+      _gapT += dt;
+      if (_gapT >= 0.3) {
+        _locked = false;
+        _gapT = 0;
+        _offT = 99;
+        _wasOn = false;
+      }
+    } else {
+      _gapT = 0;
+    }
+    return null;
   }
 
   // ---------------- modo livre: qualquer nota da escala ----------------
@@ -375,6 +477,10 @@ class ScaleExercise {
   }
 
   void _resetCurrent() {
+    _arrival.clear();
+    _checked = false;
+    _wasOn = false;
+    _offT = 99;
     _time = _run = 0;
     _waiting = 0;
     _tunedNow = false;

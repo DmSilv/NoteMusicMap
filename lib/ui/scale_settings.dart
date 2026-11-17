@@ -336,6 +336,14 @@ List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required boo
         Text((e?.flow ?? app.exerciseFlow) ? tr('Toque as notas na ordem que quiser.') : tr('Uma nota de cada vez, na ordem.'), style: Ds.support()),
       ]),
     ),
+    if (!(e?.flow ?? app.exerciseFlow))
+      SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        title: Text(tr('Sem escorregar o dedo'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: Ds.fontBody)),
+        subtitle: Text(tr('A nota tem de chegar afinada. Se não, volte à anterior e toque de novo.'), style: Ds.support()),
+        value: app.scaleNoSlide,
+        onChanged: app.setScaleNoSlide,
+      ),
     if (!exercise) ...[
       // o mesmo desenho de todo liga/desliga da folha: título, uma frase e a chave
       SwitchListTile(
