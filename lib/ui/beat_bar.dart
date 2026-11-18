@@ -63,7 +63,11 @@ class _BeatBarState extends State<BeatBar> with SingleTickerProviderStateMixin {
               ),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: LinearProgressIndicator(minHeight: 14, value: widget.value, backgroundColor: AppColors.surface2, color: widget.color),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(end: widget.value),
+                  duration: const Duration(milliseconds: 160),
+                  builder: (context, v, _) => LinearProgressIndicator(minHeight: 14, value: v, backgroundColor: AppColors.surface2, color: widget.color),
+                ),
               ),
             ),
           ),

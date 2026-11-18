@@ -120,8 +120,17 @@ class StaffView extends StatefulWidget {
   State<StaffView> createState() => _StaffViewState();
 }
 
-class _StaffViewState extends State<StaffView> {
+class _StaffViewState extends State<StaffView> with SingleTickerProviderStateMixin {
   int _manualPage = 0;
+
+  // Pulso do quadrado laranja da nota para onde voltar: só anda enquanto ela existe (e se o aparelho não pede menos movimento).
+  late final AnimationController _pulse = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -159,7 +168,13 @@ class _StaffViewState extends State<StaffView> {
       for (var i = first; i < last; i++) {
         total += layout.systems[i].height * sp + (i > first ? gapSp * sp : 0);
       }
-      final painter = _StaffPainter(layout, first, last, w.current, w.marks, w.names, cols, gapSp, w.hintNow, w.backTo, w.backLabel);
+      if (w.backTo != null && !MediaQuery.of(context).disableAnimations) {
+        if (!_pulse.isAnimating) _pulse.repeat(reverse: true);
+      } else if (_pulse.isAnimating) {
+        _pulse.stop();
+        _pulse.value = 0;
+      }
+      final painter = _StaffPainter(layout, first, last, w.current, w.marks, w.names, cols, gapSp, w.hintNow, w.backTo, w.backLabel, _pulse);
       final label = Text('${page + 1} / $pages', style: TextStyle(fontSize: 13, color: cols.dim, fontWeight: FontWeight.w700));
       return Semantics(
         label: w.semanticLabel,
@@ -211,7 +226,9 @@ class _StaffPainter extends CustomPainter {
   final bool hintNow;
   final int? backTo;
   final String backLabel;
-  _StaffPainter(this.layout, this.from, this.to, this.current, this.marks, this.names, this.colors, this.gapSp, this.hintNow, this.backTo, this.backLabel);
+  final Animation<double> pulse;
+  _StaffPainter(this.layout, this.from, this.to, this.current, this.marks, this.names, this.colors, this.gapSp, this.hintNow, this.backTo, this.backLabel, this.pulse)
+      : super(repaint: pulse);
 
   double get sp => layout.sp;
 
@@ -291,6 +308,20 @@ class _StaffPainter extends CustomPainter {
     }
   }
 
+  /// A área de destaque de uma nota: abraça acidente, cabeça e haste (com folga), em vez de um retângulo do tamanho do espaço da nota.
+  RRect _hiBox(LaidEvent e, double Function(double) py) {
+    final x0 = (e.accX ?? e.x) - 0.7;
+    final x1 = (e.x + e.headW > e.stemX ? e.x + e.headW : e.stemX) + 0.7;
+    final cy = py(e.y);
+    final tip = py(e.stemTipY);
+    // cobre a haste e a cabeça, mas nunca fica baixa demais: pelo menos 4 espaços de altura em volta da cabeça
+    final top = (tip < cy ? tip : cy) - 1.1 * sp;
+    final bottom = (tip > cy ? tip : cy) + 1.1 * sp;
+    final lo = top < cy - 2.1 * sp ? top : cy - 2.1 * sp;
+    final hi = bottom > cy + 2.1 * sp ? bottom : cy + 2.1 * sp;
+    return RRect.fromLTRBR(x0 * sp, lo, x1 * sp, hi, Radius.circular(sp * 1.0));
+  }
+
   void _system(Canvas canvas, LaidSystem s, double yTop) {
     final ink = colors.ink;
     final yb = yTop + s.top * sp; // y (px) da 1ª linha da pauta
@@ -308,34 +339,36 @@ class _StaffPainter extends CustomPainter {
     if (current != null) {
       for (final e in s.events) {
         if (e.e.index != current) continue;
-        // O quadrado fica CENTRADO na nota (acidente + cabeça), na horizontal e na vertical: antes ele seguia o espaço da nota
-        // e a cabeça aparecia encostada num canto, principalmente nas notas graves e agudas com linhas suplementares.
-        final cx = ((e.accX ?? e.x) + e.x + e.headW) / 2;
-        final half = (e.slotX1 - e.slotX0 - 0.25) / 2;
-        final cy = py(e.y);
-        // altura fixa em volta da nota (cobre a pauta e a haste): o quadrado acompanha a nota subindo e descendo
-        final reach = 3.4 * sp;
-        final r = RRect.fromLTRBR(px(cx - half), cy - reach, px(cx + half), cy + reach, Radius.circular(sp * 0.7));
-        canvas.drawRRect(r, Paint()..color = ink.withValues(alpha: 0.10));
+        // A área abraça a nota: de lado a lado pega o acidente, a cabeça e a haste, e na altura vai da ponta da haste até a cabeça,
+        // com uma folga. Antes era um quadrado alto e largo, do tamanho do espaço da nota, que pesava na partitura.
+        final r = _hiBox(e, py);
+        canvas.drawRRect(r, Paint()..color = ink.withValues(alpha: 0.075));
         canvas.drawRRect(
             r,
             Paint()
-              ..color = ink.withValues(alpha: 0.55)
+              ..color = ink.withValues(alpha: 0.38)
               ..style = PaintingStyle.stroke
-              ..strokeWidth = 1.5);
+              ..strokeWidth = 1.3);
       }
     }
     // a nota para onde voltar (laranja, com o rótulo em cima): some assim que o aluno volta a ela
     if (backTo != null) {
       for (final e in s.events) {
         if (e.e.index != backTo) continue;
-        final cx = ((e.accX ?? e.x) + e.x + e.headW) / 2;
-        final half = (e.slotX1 - e.slotX0 - 0.25) / 2;
-        final cy = py(e.y);
-        final reach = 3.4 * sp;
         const orange = Color(0xFFFF9226);
-        final r = RRect.fromLTRBR(px(cx - half), cy - reach, px(cx + half), cy + reach, Radius.circular(sp * 0.7));
-        canvas.drawRRect(r, Paint()..color = orange.withValues(alpha: 0.18));
+        final r = _hiBox(e, py);
+        final k = pulse.value; // 0..1, vai e volta
+        canvas.drawRRect(r, Paint()..color = orange.withValues(alpha: 0.14 + 0.16 * k));
+        // um aro maior que cresce e some, para o olho achar a nota
+        if (k > 0) {
+          final grow = (k * sp * 0.9);
+          canvas.drawRRect(
+              RRect.fromLTRBR(r.left - grow, r.top - grow, r.right + grow, r.bottom + grow, Radius.circular(sp * 0.7 + grow)),
+              Paint()
+                ..color = orange.withValues(alpha: 0.45 * (1 - k))
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 2);
+        }
         canvas.drawRRect(
             r,
             Paint()
@@ -346,8 +379,8 @@ class _StaffPainter extends CustomPainter {
           final fs = (sp * 1.35).clamp(11.5, 16.0);
           final lp = _tp(backLabel, orange, fs, family: null, weight: FontWeight.w800);
           // o rótulo fica logo acima do quadrado, centralizado nele, sem sair da página
-          final lx = (px(cx) - lp.width / 2).clamp(0.0, (px(layout.widthSp) - lp.width).clamp(0.0, double.infinity));
-          lp.paint(canvas, Offset(lx, (cy - reach - lp.height - 1).clamp(0.0, double.infinity)));
+          final lx = ((r.left + r.right) / 2 - lp.width / 2).clamp(0.0, (px(layout.widthSp) - lp.width).clamp(0.0, double.infinity));
+          lp.paint(canvas, Offset(lx, (r.top - lp.height - 1).clamp(0.0, double.infinity)));
         }
       }
     }

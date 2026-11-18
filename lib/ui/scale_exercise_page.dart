@@ -261,7 +261,13 @@ class ScaleExercisePage extends StatelessWidget {
                 transitionBuilder: (c, a) => fadeThroughTransition(c, a),
                 child: KeyedSubtree(
                   key: ValueKey('${e.index}-$m'),
-                  child: _bigNote(m, asc: asc, size: 66, color: locked ? AppColors.sharp : (e.tunedNow ? AppColors.inTune : AppColors.text)),
+                  // cresce um pouco enquanto está afinada (e volta ao tamanho quando sai da faixa)
+                  child: AnimatedScale(
+                    scale: e.tunedNow ? 1.08 : 1.0,
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutBack,
+                    child: _bigNote(m, asc: asc, size: 66, color: locked ? AppColors.sharp : (e.tunedNow ? AppColors.inTune : AppColors.text)),
+                  ),
                 ),
               ),
             ),

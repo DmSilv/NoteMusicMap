@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
@@ -83,6 +85,10 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
   late final AnimationController _bounce =
       AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat(reverse: true);
 
+  // Um movimento curto cada vez que a mensagem muda de tipo: balança de lado (voltar, outra nota) ou dá um pulinho (acertou).
+  late final AnimationController _fx = AnimationController(vsync: this, duration: const Duration(milliseconds: 520), value: 1);
+  GuideKind? _fxKind;
+
   _Guide? _shown;
   DateTime _shownAt = DateTime.fromMillisecondsSinceEpoch(0);
   DateTime _heardAt = DateTime.fromMillisecondsSinceEpoch(0);
@@ -90,6 +96,7 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
   @override
   void dispose() {
     _bounce.dispose();
+    _fx.dispose();
     super.dispose();
   }
 
@@ -143,6 +150,8 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
       final canSwitch = s == null ||
           g.kind == s.kind ||
           g.kind == GuideKind.tuned ||
+          g.kind == GuideKind.back || // travou: o aviso de voltar aparece na hora (o cartão já diz "Volte para")
+          s.kind == GuideKind.back ||
           now.difference(_shownAt) >= minShow ||
           (s.kind == GuideKind.tuned && farOut);
       if (canSwitch) {
@@ -167,11 +176,29 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
       GuideKind.idle => (AppColors.textDim, widget.calm ? Icons.music_note_rounded : Icons.hearing),
     };
     final moving = data.kind == GuideKind.raise || data.kind == GuideKind.lower;
+    // Dispara o movimento quando o tipo da mensagem muda (não na primeira vez, e nunca com "reduzir movimento").
+    if (_fxKind != data.kind) {
+      final first = _fxKind == null;
+      _fxKind = data.kind;
+      if (!first && !MediaQuery.of(context).disableAnimations && (data.kind == GuideKind.tuned || data.kind == GuideKind.back || data.kind == GuideKind.other)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _fx.forward(from: 0);
+        });
+      }
+    }
 
     return Semantics(
       liveRegion: true,
       label: '${data.title}. ${data.detail}',
-      child: AnimatedOpacity(
+      child: AnimatedBuilder(
+        animation: _fx,
+        builder: (context, child) {
+          final u = _fx.value;
+          if (u >= 1) return child!;
+          if (data.kind == GuideKind.tuned) return Transform.scale(scale: 1 + 0.06 * math.sin(u * math.pi), child: child);
+          return Transform.translate(offset: Offset(math.sin(u * math.pi * 6) * 8 * (1 - u), 0), child: child);
+        },
+        child: AnimatedOpacity(
         duration: const Duration(milliseconds: 250),
         opacity: stale ? 0.6 : 1,
         child: AnimatedContainer(
@@ -240,6 +267,7 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
             ),
           ),
         ),
+      ),
       ),
     );
   }
