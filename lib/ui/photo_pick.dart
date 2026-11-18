@@ -1,7 +1,7 @@
 import 'package:afina_core/afina_core.dart';
 import 'dart:typed_data';
 
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:image_picker/image_picker.dart';
@@ -23,7 +23,7 @@ Future<String?> pickPersonPhoto(BuildContext context, AppState app, {required bo
     shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(Ds.radiusCard))),
     builder: (c) => SafeArea(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        if (!kIsWeb)
+        if (!kIsWeb || defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS)
           ListTile(
             minTileHeight: Ds.tap,
             leading: const Icon(Icons.photo_camera_outlined),
@@ -49,6 +49,14 @@ Future<String?> pickPersonPhoto(BuildContext context, AppState app, {required bo
   );
   if (choice == null) return null;
   if (choice == _PhotoChoice.remove) return '';
+  // Primeira vez com a câmera ou com as fotos: explica o que o app faz antes de o sistema pedir a permissão.
+  final kind = choice == _PhotoChoice.camera ? 'camera' : 'gallery';
+  if (!app.photoRationaleSeen(kind)) {
+    if (!context.mounted) return null;
+    final go = await _rationale(context, camera: choice == _PhotoChoice.camera);
+    if (go != true) return null;
+    app.markPhotoRationale(kind);
+  }
   Uint8List? bytes;
   try {
     final source = choice == _PhotoChoice.camera ? ImageSource.camera : ImageSource.gallery;
@@ -89,6 +97,27 @@ Future<void> _explain(BuildContext context, String text) {
       title: Text(tr('Não deu para usar a foto')),
       content: Text(text),
       actions: [FilledButton(onPressed: () => Navigator.pop(c), child: Text(tr('Entendi')))],
+    ),
+  );
+}
+
+/// Antes do pedido do sistema: para que o app usa a câmera ou as fotos (e o que NÃO faz).
+Future<bool?> _rationale(BuildContext context, {required bool camera}) {
+  return showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      icon: Icon(camera ? Icons.photo_camera_outlined : Icons.photo_library_outlined, color: AppColors.accent, size: 32),
+      title: Text(camera ? tr('Usar a câmera?') : tr('Usar as suas fotos?')),
+      content: Text(
+        camera
+            ? tr('O Notemusic usa a câmera só para tirar a foto do seu perfil. Nada é gravado nem enviado sem você escolher mostrar a foto.')
+            : tr('O Notemusic só vê a foto que você escolher para o seu perfil. Nada é enviado sem você escolher mostrar a foto.'),
+      ),
+      actionsAlignment: MainAxisAlignment.center,
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Agora não'))),
+        FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Continuar'))),
+      ],
     ),
   );
 }

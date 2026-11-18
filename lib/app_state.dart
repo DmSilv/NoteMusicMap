@@ -3979,6 +3979,14 @@ class AppState extends ChangeNotifier {
   /// null = ainda não pedida; true = a câmera abriu; false = o usuário negou.
   bool? cameraGranted;
 
+  /// Já explicamos, nesta instalação, para que o app usa a câmera ou as fotos ([kind]: 'camera' ou 'gallery')?
+  bool photoRationaleSeen(String kind) => (_prefs?.getStringList('photo_rat') ?? const <String>[]).contains(kind);
+
+  void markPhotoRationale(String kind) {
+    final l = {...(_prefs?.getStringList('photo_rat') ?? const <String>[]), kind}.toList();
+    _prefs?.setStringList('photo_rat', l);
+  }
+
   void setCameraStatus(bool granted) {
     if (cameraGranted == granted) return;
     cameraGranted = granted;
