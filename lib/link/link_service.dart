@@ -75,6 +75,9 @@ class LinkReply {
   /// O pedido foi recusado de vez (4xx): não adianta repetir.
   final bool rejected;
 
+  /// O servidor diz que este aparelho NÃO faz mais parte da conta (foi tirado da lista de aparelhos).
+  final bool revoked;
+
   /// Agenda: revisão das aulas marcadas e as aulas marcadas (resposta de `sched`).
   final int sr;
   final List<ClassSlot> slots;
@@ -145,6 +148,7 @@ class LinkReply {
     this.kr = 0,
     this.dones = const [],
     this.rejected = false,
+    this.revoked = false,
     this.sr = 0,
     this.vr = 0,
     this.ar = 0,
@@ -244,6 +248,8 @@ class LinkService {
         return LinkReply(
             offline: r.statusCode >= 500,
             rejected: r.statusCode >= 400 && r.statusCode < 500 && r.statusCode != 429,
+            // O portão do vínculo responde 403 com esta frase quando o segredo deste aparelho não está mais na conta.
+            revoked: r.statusCode == 403 && j['error'] == 'Este código pertence a outro aparelho.',
             error: trOrNull(j['error'] as String?) ?? tr('Não foi possível vincular.'));
       }
       List<LinkedPerson> list(Object? v) => [for (final x in (v as List? ?? const [])) ?LinkedPerson.tryFrom(x)];

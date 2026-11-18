@@ -2862,6 +2862,29 @@ class AppState extends ChangeNotifier {
   int get openLessonTasks => myLessons.fold<int>(
       0, (a, l) => a + l.tasks.where((t) => !lessonTasksDone.contains('${l.id}:${t.id}')).length);
 
+  /// Quem mostra o aviso de "este aparelho saiu da conta" (a tela principal liga isto).
+  Future<void> Function()? onDeviceRevoked;
+  bool _revokedShown = false;
+
+  /// Outro aparelho tirou ESTE da conta: o servidor passa a recusá-lo. Antes o app só ignorava a recusa e seguia mostrando
+  /// "Conectado" mesmo depois de recarregar. Agora desliga o vínculo online e o espelho (os dados continuam aqui, no aparelho)
+  /// e avisa uma vez, com o caminho para entrar de novo.
+  void _deviceRevoked() {
+    linkOnline = false;
+    if (linkEnabled) setLinkEnabled(false);
+    mirror.reset();
+    deviceList = const [];
+    notifyListeners();
+    if (_revokedShown) return;
+    _revokedShown = true;
+    final f = onDeviceRevoked;
+    if (f != null) {
+      unawaited(f().whenComplete(() => _revokedShown = false));
+    } else {
+      say(tr('Este aparelho foi tirado da conta e o vínculo online foi desligado.'));
+    }
+  }
+
   void setLinkEnabled(bool v) {
     crumb(v ? tr('Ligar vínculo') : tr('Desligar vínculo'));
     linkEnabled = v;
@@ -3264,6 +3287,7 @@ class AppState extends ChangeNotifier {
       // 2) Lista do servidor.
       var r = await links.sync(own, secret, name: profile.name);
       if (r.unavailable) return _markLinkUnavailable();
+      if (r.revoked) return _deviceRevoked();
       if (r.ok && _prefs != null) mirror.note(r);
       if (!r.ok) {
         if (r.offline) linkOnline = false;
@@ -3736,8 +3760,13 @@ class AppState extends ChangeNotifier {
       final expired = pomo.restore(jsonDecode(st) as Map<String, dynamic>, _nowMs);
       if (pomo.running) _runPomoTimer();
       if (expired) {
-        Future<void>.delayed(const Duration(seconds: 1),
-            () => say(tr('O tempo do foco acabou enquanto o app estava fechado.')));
+        // O estado vencido é regravado já zerado: antes ele ficava salvo como "rodando" e o aviso voltava a cada abertura do app.
+        p.setString('pomo_state', jsonEncode(pomo.toJson(_nowMs)));
+        // Só avisa se o foco acabou há pouco (até 2 h). Quem abre o app no dia seguinte não precisa ouvir falar de um foco antigo.
+        final ago = _nowMs - (pomo.expiredAtMs ?? 0);
+        if (ago >= 0 && ago <= 2 * 3600 * 1000) {
+          Future<void>.delayed(const Duration(seconds: 1), () => say(tr('O tempo do foco acabou enquanto o app estava fechado.')));
+        }
       }
     }
   }

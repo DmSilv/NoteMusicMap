@@ -556,7 +556,7 @@
       <h2>Lista de perfis</h2>
       <p class="lead">Toque em um perfil para ver a ficha, dar suporte ou resolver um problema.</p>
       <div class="card">
-        <div class="toolbar"><input id="q" placeholder="Buscar por trecho do código" maxlength="40"><label class="empty"><input type="checkbox" id="qName"> pelo apelido</label><button id="qGo">Buscar</button><button id="pExport">Exportar CSV</button><span class="empty" id="pCount"></span></div>
+        <div class="toolbar"><input id="q" placeholder="Código ou trecho (com ou sem hífen)" maxlength="40"><label class="empty"><input type="checkbox" id="qName"> pelo apelido</label><button id="qGo">Buscar</button><button id="pExport">Exportar CSV</button><span class="empty" id="pCount"></span></div>
         <div style="overflow:auto"><table><thead><tr><th>Código</th><th>Apelido</th><th>Papel</th><th>Visto</th><th class="num">Hoje</th><th class="num">Total</th><th>Entrou</th></tr></thead><tbody id="pRows"></tbody></table></div>
         <div class="toolbar" style="margin-top:10px"><button id="pPrev">‹ Anterior</button><button id="pNext">Próxima ›</button><span class="empty" id="pNote"></span></div>
       </div>
@@ -864,6 +864,8 @@
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
+  // O código digitado de qualquer jeito (minúscula, sem hífen, com espaço) vira ABCD-EFGH.
+  function fixCode(v) { var s = String(v == null ? '' : v).toUpperCase(); var t = s.replace(/[^A-Z0-9]/g, ''); return t.length === 8 ? t.slice(0, 4) + '-' + t.slice(4) : s.trim(); }
   var key = '';
   try { key = sessionStorage.getItem('nm_admin') || ''; } catch (e) { key = ''; }
   var liveTimer = null, fullTimer = null, lastFull = null, lastKpis = null, lastHealth = null;
@@ -1086,7 +1088,7 @@
   $('nwFb').onchange = function () { $('nwFbBox').hidden = !$('nwFb').value; };
   $('nwSave').onclick = function () {
     var body = { action: 'news_save', t: $('nwT').value, b: $('nwB').value, te: $('nwTe').value, be: $('nwBe').value, fb: $('nwFb').value };
-    if ($('nwFb').value && $('nwFbc').value.trim()) body.fbc = $('nwFbc').value.trim().toUpperCase();
+    if ($('nwFb').value && $('nwFbc').value.trim()) body.fbc = fixCode($('nwFbc').value);
     else if (nwEdit && !$('nwFb').value) body.fbc = '';
     if (nwEdit) body.id = nwEdit;
     if (!body.t.trim() || !body.b.trim()) { toast('Escreva o título e o texto.', 'bad'); return; }
@@ -1148,7 +1150,7 @@
     if (f.students) { var lab = document.createElement('label'); lab.className = 'ck'; ck = document.createElement('input'); ck.type = 'checkbox'; lab.appendChild(ck); lab.appendChild(document.createTextNode('Incluir os alunos vinculados')); add.appendChild(lab); }
     var go = document.createElement('button'); go.className = 'primary'; go.textContent = 'Liberar';
     go.onclick = function () {
-      var code = inp.value.trim().toUpperCase();
+      var code = fixCode(inp.value);
       if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) { toast('Digite o código completo, como ABCD-1234.', 'bad'); return; }
       var withSt = !!(ck && ck.checked);
       askConfirm({ title: 'Liberar "' + f.name + '"?', body: code, facts: ['Ele passa a ver o recurso na próxima sincronização.'].concat(withSt ? ['Os alunos vinculados a ele também recebem.'] : []).concat(['Dá para tirar da lista depois.']), ok: 'Liberar' }).then(function (y) {
@@ -2607,7 +2609,7 @@
     t.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
   function chOpen(code, ref) {
-    code = String(code || '').toUpperCase().trim();
+    code = fixCode(code);
     if (!CH_CODE.test(code)) { toast('Código inválido. Ex.: K7QM-4TXD.', 'bad'); return; }
     chRefText = String(ref || '').slice(0, 90);
     post({ action: 'inbox_thread', code: code }).then(function (r) {

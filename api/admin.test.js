@@ -254,3 +254,25 @@ test('sistema: erros do servidor aparecem por dia', async () => {
   const j = (await adm(H, { action: 'system' })).json();
   assert.equal(j.server.serverErrors.reduce((a, d) => a + d.srv, 0) >= 1, true);
 });
+
+test('código digitado de qualquer jeito acha o perfil (minúscula, sem hífen, com espaço)', async () => {
+  const H = mk();
+  await as(H, ALU, { action: 'sync', name: 'Marina' });
+  const jeitos = [ALU, ALU.toLowerCase(), ALU.replace('-', ''), ALU.replace('-', ' ').toLowerCase(), '  ' + ALU + ' '];
+  for (const q of jeitos) {
+    const l = (await adm(H, { action: 'list', q })).json();
+    assert.equal(l.total, 1, 'busca por "' + q + '"');
+    assert.equal(l.items[0].code, ALU);
+  }
+  // trecho do meio, sem hífen
+  assert.equal((await adm(H, { action: 'list', q: ALU.replace('-', '').slice(2, 6).toLowerCase() })).json().total, 1);
+  // outra pessoa não aparece
+  assert.equal((await adm(H, { action: 'list', q: ALU2 })).json().total, 0);
+});
+
+test('ações do painel aceitam o código sem hífen e em minúscula', async () => {
+  const H = mk();
+  await as(H, ALU, { action: 'sync', name: 'Marina' });
+  const r = await adm(H, { action: 'detail', code: ALU.replace('-', '').toLowerCase() });
+  assert.notEqual(r.statusCode, 400, 'código aceito');
+});

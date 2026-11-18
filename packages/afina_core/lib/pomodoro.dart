@@ -74,6 +74,9 @@ class PomodoroTimer {
   int _endMs = 0;
   int _remainingMs = 0; // valor congelado enquanto pausado
 
+  /// Se [restore] achou o tempo já vencido: quando ele venceu (ms). Serve para só avisar quando foi há pouco.
+  int? expiredAtMs;
+
   PomodoroTimer([this.config = const PomodoroConfig()]) {
     _remainingMs = config.msFor(PomoPhase.focus);
   }
@@ -189,6 +192,7 @@ class PomodoroTimer {
         running = true;
         return false;
       }
+      expiredAtMs = _endMs;
       reset();
       return true;
     }

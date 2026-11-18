@@ -126,6 +126,13 @@ const COHORT = 300; // amostra máxima para a retenção
 const U = (c) => `u:${c}`, T = (c) => `ut:${c}`, S = (c) => `us:${c}`, SL = (c) => `sl:${c}`, SS = (c) => `ss:${c}`;
 const LB = (c) => `lb:${c}`; // acervo do professor (só links)
 const UL = (c) => `ul:${c}`, DN = (c) => `dn:${c}`, VD = (c) => `vd:${c}`, AV = (c) => `av:${c}`, TK = (c) => `tk:${c}`, PS = (c) => `ps:${c}`;
+/** O código digitado de qualquer jeito (minúscula, sem hífen, com espaço ou ponto) vira ABCD-EFGH; se não tem 8 símbolos, só fica em maiúscula. */
+function fixCode(v) {
+  const s = String(v == null ? '' : v).toUpperCase();
+  const t = s.replace(/[^A-Z0-9]/g, '');
+  return t.length === 8 ? t.slice(0, 4) + '-' + t.slice(4) : s.trim();
+}
+
 const CODE_RE = /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$/;
 const LOG = 'adm:log';
 const BLOCKED = 'pf:bl'; // conjunto dos perfis bloqueados (para contar sem varrer)
@@ -199,7 +206,7 @@ function makeHandler(deps = {}) {
       }
 
       const action = String(b.action || '');
-      const code = String(b.code || '').toUpperCase();
+      const code = fixCode(b.code);
       const needCode = () => {
         if (CODE_RE.test(code)) return false;
         send(400, { error: 'Código inválido.' });
@@ -279,7 +286,8 @@ function makeHandler(deps = {}) {
         const offset = Math.max(0, Math.min(100000, Math.round(Number(b.offset)) || 0));
         const byName = b.by === 'name';
         const nameQ = byName ? String(b.q || '').replace(/[\u0000-\u001f]/g, ' ').trim().toLowerCase().slice(0, 40) : '';
-        const q = byName ? '' : String(b.q || '').toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 9);
+        // Busca por trecho do código: sem hífen, para achar "abcd1234", "ABCD-1234" ou só "BCD1".
+        const q = byName ? '' : String(b.q || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
         let rows; // [[code, la]]
         let total = null;
         if (byName && nameQ) {
@@ -289,7 +297,7 @@ function makeHandler(deps = {}) {
           total = hit.length;
           rows = hit.slice(offset, offset + PAGE);
         } else if (q) {
-          const scan = pairs(await cmd.cmd(['ZREVRANGE', Z.last, '0', String(SEARCH_SCAN - 1), 'WITHSCORES'])).filter(([c]) => String(c).includes(q));
+          const scan = pairs(await cmd.cmd(['ZREVRANGE', Z.last, '0', String(SEARCH_SCAN - 1), 'WITHSCORES'])).filter(([c]) => String(c).replace(/-/g, '').includes(q));
           total = scan.length;
           rows = scan.slice(offset, offset + PAGE);
         } else {
@@ -349,7 +357,7 @@ function makeHandler(deps = {}) {
       // ---------------- Excluir ----------------
       if (action === 'delete') {
         if (needCode()) return;
-        if (String(b.confirm || '').toUpperCase() !== code) return send(400, { error: 'confirm_required', message: 'Para excluir, repita o código do perfil.' });
+        if (fixCode(b.confirm) !== code) return send(400, { error: 'confirm_required', message: 'Para excluir, repita o código do perfil.' });
         if ((await store.hget(U(code), 'h')) === undefined) return send(404, { error: 'Perfil não encontrado.' });
         const [students, teachers] = await Promise.all([store.hgetall(T(code)), store.hgetall(S(code))]);
         const wipePrefix = async (key, prefix) => {
@@ -439,7 +447,7 @@ function makeHandler(deps = {}) {
         return send(200, { ok: true, testers, reports, hosts: require('./_lib/library').HOSTS });
       }
       if (action === 'library_hide') {
-        const teacher = String(b.teacher || '').toUpperCase();
+        const teacher = fixCode(b.teacher);
         const id = String(b.id || '');
         if (!CODE_RE.test(teacher) || !ID_RE.test(id)) return send(400, { error: 'Pedido inválido.' });
         const raw = await store.hget(LB(teacher), id);
@@ -543,7 +551,7 @@ function makeHandler(deps = {}) {
       // ---------------- Suporte: compara a agenda do professor com a que o aluno recebeu ----------------
       if (action === 'agenda_pair') {
         if (needCode()) return;
-        const other = String(b.other || '').toUpperCase();
+        const other = fixCode(b.other);
         if (!CODE_RE.test(other)) return send(400, { error: 'Código do aluno inválido.' });
         const [made, got, links] = await Promise.all([store.hgetall(SL(code)), store.hgetall(SS(other)), store.hgetall(T(code))]);
         const parse = (j) => { try { return JSON.parse(j); } catch (_) { return null; } };
@@ -620,7 +628,7 @@ function makeHandler(deps = {}) {
         if (v.error) return send(400, { error: v.error });
         // Crédito a um usuário: só com o aceite dele (pergunta feita pela conversa do painel). Sem aceite, fica anônimo.
         if (v.v.fb !== undefined) {
-          const fbc = String(b.fbc || '').toUpperCase();
+          const fbc = fixCode(b.fbc);
           if (!v.v.fb || b.fbc === '') v.v.fn = '';
           else if (fbc) {
             if (!CODE_RE.test(fbc)) return send(400, { error: 'Código do usuário inválido.' });
@@ -811,7 +819,7 @@ function makeHandler(deps = {}) {
       // ---------------- Suporte: encerrar um vínculo ----------------
       if (action === 'unlink') {
         if (needCode()) return;
-        const other = String(b.other || '').toUpperCase();
+        const other = fixCode(b.other);
         if (!CODE_RE.test(other) || other === code) return send(400, { error: 'Código do outro lado inválido.' });
         if (b.as !== 'teacher' && b.as !== 'student') return send(400, { error: 'Informe o papel (teacher ou student).' });
         const teacher = b.as === 'teacher' ? code : other, student = b.as === 'teacher' ? other : code;
@@ -859,7 +867,7 @@ function makeHandler(deps = {}) {
           await store.hdel(TK(code), id);
           await notify(code, 'agenda', 'um horário livre');
         } else {
-          const teacher = kind === 'class' ? code : String(b.other || '').toUpperCase();
+          const teacher = kind === 'class' ? code : fixCode(b.other);
           if (!CODE_RE.test(teacher)) return send(400, { error: 'Falta o código do professor.' });
           const raw = await store.hget(SL(teacher), id);
           let student = kind === 'mine' ? code : '';

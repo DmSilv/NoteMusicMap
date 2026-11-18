@@ -116,6 +116,16 @@ void main() {
     expect(r.restore(json, 90 * min), isTrue);
     expect(r.phase, PomoPhase.idle);
     expect(r.running, isFalse);
+    expect(r.expiredAtMs, 25 * min, reason: 'guarda quando venceu, para avisar só se foi há pouco');
+  });
+
+  test('o estado salvo depois de vencer vem zerado: não vence de novo na abertura seguinte', () {
+    final t = make()..start(0);
+    final r = make();
+    expect(r.restore(t.toJson(10 * min), 90 * min), isTrue);
+    final again = make();
+    expect(again.restore(r.toJson(91 * min), 92 * min), isFalse);
+    expect(again.expiredAtMs, isNull);
   });
 
   test('restaurar pausado mantém o tempo restante', () {

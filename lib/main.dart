@@ -19,7 +19,7 @@ import 'ui/home_tabs.dart';
 import 'ui/link_bar.dart';
 import 'ui/error_ui.dart';
 import 'ui/status_strip.dart';
-import 'ui/news_ui.dart' show showNewsDialog;
+import 'ui/news_ui.dart' show NewsBell, showNewsDialog;
 import 'ui/teacher_page.dart' show handleIncomingStudentCode;
 import 'ui/grid_page.dart';
 import 'platform/web_install.dart' show webOnInstallEvents;
@@ -148,6 +148,31 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
     }
   }
 
+  /// Este aparelho foi tirado da conta por outro: explica, diz que os dados continuam aqui e oferece entrar de novo.
+  Future<void> _deviceRevokedDialog() async {
+    final ctx = _navKey.currentContext;
+    if (ctx == null || !mounted) return;
+    // ignore: use_build_context_synchronously
+    final again = await showDialog<bool>(
+      context: ctx,
+      builder: (c) => AlertDialog(
+        icon: Icon(Icons.phonelink_erase_outlined, color: AppColors.sharp, size: 32),
+        title: Text(tr('Este aparelho saiu da conta')),
+        content: Text(tr('Outro aparelho tirou este da conta. O vínculo online foi desligado; seus dados continuam aqui.')),
+        actionsAlignment: MainAxisAlignment.center,
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Agora não'))),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Entrar de novo'))),
+        ],
+      ),
+    );
+    if (again != true || !mounted) return;
+    final c2 = _navKey.currentContext;
+    if (c2 == null) return;
+    // ignore: use_build_context_synchronously
+    await Navigator.of(c2).push<bool>(MaterialPageRoute<bool>(builder: (_) => JoinAccountPage(app: widget.app)));
+  }
+
   bool _newsBusy = false;
   bool _newsShown = false; // no máximo uma por abertura do app
 
@@ -213,6 +238,7 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     widget.app.markTab('tuner');
     widget.app.askMicRationale = _micRationale;
+    widget.app.onDeviceRevoked = _deviceRevokedDialog;
     widget.app.addListener(_maybeShowNews);
     // Primeiro uso: apresentação curta (sem pedir nada).
     if (!widget.app.onboarded) {
@@ -281,6 +307,7 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     widget.app.removeListener(_maybeShowNews);
+    widget.app.onDeviceRevoked = null;
     super.dispose();
   }
 
@@ -592,6 +619,8 @@ class _HomeShellState extends State<HomeShell> {
             ],
           ),
           actions: [
+            // Novidades do app (boletim): só aparece quando há uma publicada e chama atenção enquanto há uma não vista.
+            NewsBell(app: app, wrap: (c) => _BarCircle(fill: AppColors.surface2, child: c)),
             // Central de avisos: tudo o que chegou (aulas, tarefas, horários) num só lugar.
             ListenableBuilder(
               listenable: app,
