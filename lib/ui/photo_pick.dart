@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:image_picker/image_picker.dart';
 
 import '../app_state.dart';
@@ -55,9 +56,19 @@ Future<String?> pickPersonPhoto(BuildContext context, AppState app, {required bo
     final f = await ImagePicker().pickImage(source: source, maxWidth: 1600, maxHeight: 1600, imageQuality: 92, requestFullMetadata: false);
     if (f == null) return null; // desistiu
     bytes = await f.readAsBytes();
-  } catch (_) {
+  } catch (e) {
     if (!context.mounted) return null;
-    await _explain(context, tr('Não consegui abrir a câmera ou a galeria. Confira se o Notemusic tem permissão para fotos nas configurações do aparelho.'));
+    // Permissão negada: diz qual (câmera ou fotos) e onde ligar. Outro erro: o aviso geral.
+    final code = e is PlatformException ? e.code : '';
+    final cameraDenied = code == 'camera_access_denied' || code == 'camera_access_restricted';
+    final photosDenied = code == 'photo_access_denied' || code == 'photo_access_restricted';
+    await _explain(
+        context,
+        cameraDenied
+            ? tr('O Notemusic não tem permissão para usar a câmera. Ative em Configurações do aparelho, em Notemusic, e tente de novo. Ou escolha uma foto da galeria.')
+            : photosDenied
+                ? tr('O Notemusic não tem permissão para ver as fotos. Ative em Configurações do aparelho, em Notemusic, e tente de novo.')
+                : tr('Não consegui abrir a câmera ou a galeria. Confira se o Notemusic tem permissão para fotos nas configurações do aparelho.'));
     return null;
   }
   if (!context.mounted) return null;

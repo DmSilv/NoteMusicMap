@@ -64,9 +64,9 @@ void main() {
   });
 
   group('conteúdo de cada visão', () {
-    test('professor: validar e alunos; agenda, horários livres e ferramentas', () {
+    test('professor: só o bloco de alunos (o "para validar" mora nos alunos); agenda, horários livres e ferramentas', () {
       final l = hubLayout(HubView.teacher, hasTeacherSide: true);
-      expect(l.tiles, [HubDest.validate, HubDest.students]);
+      expect(l.tiles, [HubDest.students]);
       expect(l.tools, [HubDest.agendaTeacher, HubDest.openSlots, HubDest.metronome, HubDest.scales]);
     });
 

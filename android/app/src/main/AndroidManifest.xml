@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Microfone: necessário para o afinador e a grade. O áudio é analisado no aparelho e nunca é gravado nem enviado. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
-    <!-- Câmera: só para ler o QR de alunos e professores. Não é obrigatória para instalar. -->
+    <!-- Câmera: ler o QR de alunos e professores e tirar a foto do perfil. Não é obrigatória para instalar. A galeria usa o seletor de fotos do sistema (não pede permissão). -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
@@ -13,7 +13,8 @@
     <application
         android:label="Notemusic"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:enableOnBackInvokedCallback="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -55,6 +56,10 @@
         <!-- Ditado por voz (speech_to_text): permite achar o reconhecedor de fala do aparelho. -->
         <intent>
             <action android:name="android.speech.RecognitionService"/>
+        </intent>
+        <!-- Foto do perfil (image_picker): permite achar o aplicativo de câmera do aparelho (Android 11 ou mais). -->
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE"/>
         </intent>
         <!-- Abrir links do acervo do professor (url_launcher). -->
         <intent>

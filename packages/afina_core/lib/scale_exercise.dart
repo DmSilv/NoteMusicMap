@@ -181,6 +181,16 @@ class ScaleExercise {
   /// Quantas vezes a nota chegou desafinada (ou escorregando) neste exercício.
   int slips = 0;
 
+  /// Quantas vezes o aluno saiu da nota anterior direto para uma nota errada (sem passar pela da vez).
+  int wrongStarts = 0;
+
+  /// Tempo (s) seguidos numa nota errada, logo depois de largar a anterior, para valer como "errou o começo".
+  final double wrongSeconds;
+  double _wrongT = 0;
+
+  /// A nota errada que travou o exercício (null: travou por chegar desafinada ou escorregando).
+  int? lockWrongMidi;
+
   /// O exercício está travado esperando o aluno voltar à nota anterior (ou soltar, na primeira nota).
   bool get replayNeeded => !_flow && noSlide && _locked;
 
@@ -210,6 +220,7 @@ class ScaleExercise {
     bool flow = false,
     this.noSlide = false,
     this.arrivalSeconds = 0.2,
+    this.wrongSeconds = 0.15,
     this.flowMinSeconds = 0.05,
     this.flowReleaseSeconds = 0.22,
     this.direction = ScaleDirection.both,
@@ -308,9 +319,16 @@ class ScaleExercise {
           _scalePcs.contains(heardMidi % 12));
     }
     final exp = expected;
-    if (exp == null || heardMidi == exp) return null;
-    final off = (heardMidi - exp) * 100.0 + heardCents;
-    return NoteCue(heardMidi, exp, off, _scalePcs.contains(heardMidi % 12));
+    if (exp == null) return null;
+    return cueTo(exp, heardMidi, heardCents);
+  }
+
+  /// Aviso para a nota ouvida em relação a uma nota-alvo qualquer (por exemplo, a anterior, quando o exercício
+  /// está travado esperando o aluno voltar a ela).
+  NoteCue? cueTo(int target, int? heardMidi, double heardCents) {
+    if (heardMidi == null || heardMidi == target) return null;
+    final off = (heardMidi - target) * 100.0 + heardCents;
+    return NoteCue(heardMidi, target, off, _scalePcs.contains(heardMidi % 12));
   }
 
   // ---------------- modo guiado: só avança afinada ----------------
@@ -324,9 +342,27 @@ class ScaleExercise {
       if (noSlide) {
         _wasOn = false;
         _offT += dt;
+        // Saiu da nota anterior e caiu numa nota ERRADA antes de tocar a da vez: tem de voltar à anterior.
+        // (A nota anterior em si não conta: o aluno ainda pode estar segurando ela. Na primeira nota não há para onde voltar.)
+        if (midi != null && index > 0 && _time == 0 && midi != sequence[index - 1]) {
+          _wrongT += dt;
+          if (_wrongT >= wrongSeconds) {
+            slips++;
+            wrongStarts++;
+            final heard = midi;
+            _resetCurrent();
+            _locked = true;
+            lockWrongMidi = heard;
+            _backHeld = 0;
+            _gapT = 0;
+          }
+        } else {
+          _wrongT = 0;
+        }
       }
       return null;
     }
+    _wrongT = 0;
     if (noSlide) {
       // Nota nova (vinda de outra ou de silêncio por um instante): é uma CHEGADA, que começa do zero.
       if (!_wasOn && _offT >= 0.12) {
@@ -357,6 +393,7 @@ class ScaleExercise {
             slips++;
             _resetCurrent();
             _locked = true;
+            lockWrongMidi = null;
             _backHeld = 0;
             _gapT = 0;
             return null;
@@ -391,6 +428,7 @@ class ScaleExercise {
         _backHeld += dt;
         if (_backHeld >= 0.25) {
           _locked = false;
+          lockWrongMidi = null;
           _backHeld = 0;
           _offT = 99;
           _wasOn = false;
@@ -404,6 +442,7 @@ class ScaleExercise {
       _gapT += dt;
       if (_gapT >= 0.3) {
         _locked = false;
+        lockWrongMidi = null;
         _gapT = 0;
         _offT = 99;
         _wasOn = false;
@@ -473,6 +512,7 @@ class ScaleExercise {
   StepResult? skip() {
     if (finished || _flow) return null;
     _locked = false; // pular a nota também solta o travamento do "sem escorregar"
+    lockWrongMidi = null;
     return _complete(StepResult(
         sequence[index], ascendingNow, _octaveOf(sequence[index]), null, 0, true));
   }
@@ -488,6 +528,7 @@ class ScaleExercise {
     _landing.clear();
     _endRun();
     _silence = 0;
+    _wrongT = 0;
   }
 
   StepResult _complete(StepResult r) {

@@ -130,10 +130,13 @@ HubTile validateTile(int n) => n <= 0
     ? HubTile(tr('Para validar'), tr('Nada a validar'), tr('As tarefas que você passar aparecem aqui para você avaliar.'))
     : HubTile(tr('Para validar'), _n(n, tr('tarefa'), tr('tarefas')), tr('esperando a sua decisão'), needsAction: true);
 
-/// Bloco de alunos do professor.
-HubTile studentsTile(int n) => n <= 0
+/// Bloco de alunos do professor. [waiting] = quantos alunos têm tarefa esperando a decisão dele: o número é de ALUNOS (não de
+/// tarefas, que crescem sem parar); quem tem o quê fica na lista e na ficha de cada aluno.
+HubTile studentsTile(int n, {int waiting = 0}) => n <= 0
     ? HubTile(tr('Alunos'), tr('Nenhum ainda'), tr('Convide ou cadastre o primeiro.'))
-    : HubTile(tr('Alunos'), _n(n, tr('aluno'), tr('alunos')), tr('cadastrados'));
+    : waiting > 0
+        ? HubTile(tr('Alunos'), _n(n, tr('aluno'), tr('alunos')), waiting == 1 ? tr('1 aluno com tarefa para validar') : tr('{0} alunos com tarefa para validar', [waiting]), needsAction: true)
+        : HubTile(tr('Alunos'), _n(n, tr('aluno'), tr('alunos')), tr('cadastrados'));
 
 /// Bloco da agenda do aluno.
 HubTile agendaTile({required String? nextText}) => nextText == null

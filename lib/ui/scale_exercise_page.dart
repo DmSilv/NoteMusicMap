@@ -235,9 +235,14 @@ class ScaleExercisePage extends StatelessWidget {
       for (var k = 1; k <= 3; k++)
         if (e.index + k < e.sequence.length) (e.sequence[e.index + k], e.ascendingAt(e.index + k))
     ];
+    final backName = back == null ? '' : app.scaleNoteName(back, ascending: e.ascendingAt(e.index - 1), withOctave: true);
+    final nextName = app.scaleNoteName(e.expected!, ascending: asc, withOctave: true);
+    final wrong = e.lockWrongMidi;
     final status = e.replayNeeded
         ? (back != null
-            ? tr('Chegou desafinada. Toque {0} afinada e depois {1} de novo.', [app.scaleNoteName(back, ascending: e.ascendingAt(e.index - 1), withOctave: true), app.scaleNoteName(e.expected!, ascending: asc, withOctave: true)])
+            ? (wrong != null
+                ? tr('Você tocou {0}, mas a vez é de {1}. Volte para {2} e toque {1} de novo.', [app.scaleNoteName(wrong, ascending: asc, withOctave: true), nextName, backName])
+                : tr('A nota chegou fora do ponto. Volte para {0} e toque {1} de novo, já afinada.', [backName, nextName]))
             : tr('Chegou desafinada. Solte a nota e toque de novo, direto na altura.'))
         : e.tunedNow
         ? tr('Afinada! Segure só mais um instante…')
@@ -377,10 +382,15 @@ class ScaleExercisePage extends StatelessWidget {
   Widget _live(ScaleExercise e) {
     final cur = app.current;
     final zone = app.zoneCents;
-    final valid = cur != null && (e.flow ? e.freeNotes.contains(cur.midi) : cur.midi == e.expected);
+    final valid = cur != null && (e.flow ? e.freeNotes.contains(cur.midi) : cur.midi == (e.replayMidi ?? e.expected));
     final cents = valid ? cur.cents : null;
-    final cue = e.cue(cur?.midi, cur?.cents ?? 0);
+    // Travado: o que vale agora é a nota ANTERIOR. O desvio e os avisos são em relação a ela, não à nota da vez.
+    final back = e.replayMidi;
+    final locked = e.replayNeeded && back != null;
+    final cue = locked ? e.cueTo(back, cur?.midi, cur?.cents ?? 0) : e.cue(cur?.midi, cur?.cents ?? 0);
     final exp = e.expected;
+    final backName = back == null ? '' : app.scaleNoteName(back, ascending: e.ascendingAt(e.index - 1), withOctave: true);
+    final nextName = exp == null ? '' : app.scaleNoteName(exp, ascending: e.ascendingNow, withOctave: true);
     final asc = e.flow ? (e.currentFreeMidi == null ? e.direction != ScaleDirection.down : _ascOf(e, e.currentFreeMidi!)) : e.ascendingNow;
     return AppCard(
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
@@ -396,8 +406,10 @@ class ScaleExercisePage extends StatelessWidget {
             noteLabel: (m) => app.scaleNoteName(m, ascending: _ascOf(e, m) || (!e.flow && asc), withOctave: true),
             idleTitle: e.flow ? tr('TOQUE UMA NOTA') : tr('TOQUE {0}', [exp == null ? '' : app.scaleNoteName(exp, ascending: asc, withOctave: true).toUpperCase()]),
             idleDetail: e.flow ? tr('Qualquer uma da escala!') : tr('Afine para liberar a próxima.'),
-            tunedTitle: e.flow ? tr('AFINADA!') : tr('AFINADA — SEGURE'),
-            tunedDetail: e.flow ? tr('Muito bem! Pode tocar outra nota.') : tr('Segure até a barra encher.'),
+            tunedTitle: locked ? tr('BOM! SEGURE {0}', [backName.toUpperCase()]) : (e.flow ? tr('AFINADA!') : tr('AFINADA — SEGURE')),
+            tunedDetail: locked ? tr('Depois toque {0} de novo.', [nextName]) : (e.flow ? tr('Muito bem! Pode tocar outra nota.') : tr('Segure até a barra encher.')),
+            backTitle: locked ? tr('VOLTE PARA {0}', [backName.toUpperCase()]) : null,
+            backDetail: locked ? tr('Toque {0} afinada e depois {1} de novo.', [backName, nextName]) : null,
           ),
         ],
       ),

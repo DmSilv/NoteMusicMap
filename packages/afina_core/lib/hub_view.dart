@@ -63,7 +63,9 @@ class HubLayout {
 HubLayout hubLayout(HubView v, {required bool hasTeacherSide}) {
   if (v == HubView.teacher) {
     return const HubLayout(
-      tiles: [HubDest.validate, HubDest.students],
+      // "Para validar" saiu do lobby: o total de tarefas só cresce e não ajuda. Quem espera decisão aparece no bloco de alunos,
+      // na lista de alunos e na ficha de cada um.
+      tiles: [HubDest.students],
       tools: [HubDest.agendaTeacher, HubDest.openSlots, HubDest.metronome, HubDest.scales],
     );
   }

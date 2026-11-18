@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'theme.dart';
 
-enum GuideKind { idle, tuned, raise, lower, other }
+enum GuideKind { idle, tuned, raise, lower, other, back }
 
 /// Banner de orientação do exercício: GRANDE, colorido e que NÃO some
 /// depressa. Diz claramente o que fazer (SUBA / DESÇA / AFINADA) e quanto falta.
@@ -36,6 +36,11 @@ class GuidanceBanner extends StatefulWidget {
   /// Nomes para o aviso de nota errada.
   final String Function(int midi)? noteLabel;
 
+  /// O exercício está travado: o aluno tem de VOLTAR a uma nota antes de seguir. Enquanto ele não está nessa nota, o banner
+  /// mostra este aviso fixo (em vez de "suba/desça" em relação a uma nota que não é a que importa agora).
+  final String? backTitle;
+  final String? backDetail;
+
   /// Versão baixa e de altura fixa (a mesma em todos os estados), para a tela de exercício caber sem rolar.
   final bool compact;
 
@@ -51,6 +56,8 @@ class GuidanceBanner extends StatefulWidget {
     this.tunedTitle,
     this.tunedDetail,
     this.noteLabel,
+    this.backTitle,
+    this.backDetail,
   });
 
   @override
@@ -87,6 +94,11 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
     final cue = widget.cue;
     final c = widget.cents;
     final label = widget.noteLabel;
+    final back = widget.backTitle != null;
+    // Travado e sem a nota certa soando (silêncio ou outra nota): mostra o que fazer, em vez do desvio de uma nota que não é a alvo.
+    if (back && (cue != null || c == null)) {
+      return _Guide(GuideKind.back, widget.backTitle!, widget.backDetail ?? '');
+    }
     if (cue != null) {
       final exp = label?.call(cue.expectedMidi) ?? '${cue.expectedMidi}';
       final heard = label?.call(cue.heardMidi) ?? '${cue.heardMidi}';
@@ -110,9 +122,9 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
     final a = c.abs();
     return c < 0
         ? _Guide(GuideKind.raise, tr('SUBA A AFINAÇÃO'),
-            tr('Está abaixo da nota: suba{0}.', [_amount(a)]))
+            tr('Nota baixa: suba{0}.', [_amount(a)]))
         : _Guide(GuideKind.lower, tr('DESÇA A AFINAÇÃO'),
-            tr('Está acima da nota: desça{0}.', [_amount(a)]));
+            tr('Nota alta: desça{0}.', [_amount(a)]));
   }
 
   @override
@@ -146,6 +158,7 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
       GuideKind.raise => (AppColors.flat, Icons.arrow_upward),
       GuideKind.lower => (AppColors.sharp, Icons.arrow_downward),
       GuideKind.other => (AppColors.textDim, Icons.help_outline),
+      GuideKind.back => (AppColors.sharp, Icons.undo),
       GuideKind.idle => (AppColors.textDim, Icons.hearing),
     };
     final moving = data.kind == GuideKind.raise || data.kind == GuideKind.lower;

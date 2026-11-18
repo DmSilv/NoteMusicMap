@@ -12,6 +12,7 @@ export 'speed_trainer.dart';
 export 'hub.dart';
 export 'identity.dart';
 export 'input_guard.dart';
+export 'instrument_focus.dart';
 export 'lesson.dart';
 export 'link_status.dart';
 export 'lesson_week.dart';

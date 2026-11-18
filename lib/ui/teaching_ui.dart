@@ -14,8 +14,6 @@ Future<void> showTeachingInstrumentsSheet(BuildContext context, AppState app) {
     title: tr('Instrumentos que ensino'),
     listenable: app,
     children: (c) => [
-      Text(tr('Marque o que você ensina. Ao passar uma tarefa, os métodos e o repertório do instrumento aparecem prontos.'), style: Ds.support()),
-      const SizedBox(height: Ds.s16),
       Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
         for (final i in allTeachingInstruments())
           FilterChip(
@@ -30,13 +28,12 @@ Future<void> showTeachingInstrumentsSheet(BuildContext context, AppState app) {
         ),
       ]),
       if (customInstruments.isNotEmpty) ...[
-        const SizedBox(height: Ds.s16),
-        Text(tr('Criados por você'), style: Ds.section()),
+        const SizedBox(height: Ds.s12),
         for (final i in customInstruments)
           ListTile(
             contentPadding: EdgeInsets.zero,
+            minTileHeight: Ds.tap,
             title: Text(i.label, style: const TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: Text(tr('{0} métodos · {1} peças', [i.methods.length, i.repertoire.length]), style: Ds.support()),
             trailing: IconButton(tooltip: tr('Editar'), icon: const Icon(Icons.edit_outlined), onPressed: () => showCustomInstrumentEditor(context, app, existing: i)),
           ),
       ],

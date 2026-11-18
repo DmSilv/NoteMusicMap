@@ -445,7 +445,7 @@ class _ProfilePageState extends State<ProfilePage> {
             if (app.teacherMode)
               _row(Icons.piano_outlined, tr('Instrumentos que ensino'),
                   sub: app.teachInstruments.isEmpty
-                      ? tr('Escolha para ver métodos e repertório prontos')
+                      ? tr('Escolher')
                       : app.teachInstruments.map((id) => teachingById(id)?.label ?? id).join(', '),
                   onTap: () => showTeachingInstrumentsSheet(context, app)),
             if (app.teacherMode)

@@ -84,6 +84,11 @@ void main() {
       expect(studentsTile(1).headline, '1 aluno');
       expect(studentsTile(12).headline, '12 alunos');
       expect(studentsTile(12).needsAction, isFalse);
+      // com gente esperando decisão: conta ALUNOS, não tarefas
+      expect(studentsTile(12, waiting: 3).caption, '3 alunos com tarefa para validar');
+      expect(studentsTile(12, waiting: 1).caption, '1 aluno com tarefa para validar');
+      expect(studentsTile(12, waiting: 3).needsAction, isTrue);
+      expect(studentsTile(0, waiting: 0).headline, 'Nenhum ainda');
     });
 
     test('agenda do aluno', () {

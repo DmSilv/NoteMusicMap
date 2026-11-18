@@ -19,12 +19,14 @@ class StudyPage extends StatelessWidget {
 
   /// Acervo e repertório (só para professores liberados e seus alunos).
   Widget _materialCard(BuildContext context) {
-    final teachers = [for (final t in app.myTeachers) if (app.libraryTeachers.contains(t.code)) t];
-    final both = app.libraryOn && teachers.isNotEmpty;
+    // Na visão de professor o acervo mora no cartão "Organização" do Meu espaço; aqui fica só o material de quem ensina o aluno.
+    final asTeacher = app.hubView == HubView.teacher;
+    final teachers = [for (final t in app.myTeachers) if (!asTeacher && app.libraryTeachers.contains(t.code)) t];
+    final both = app.libraryOn && !asTeacher && teachers.isNotEmpty;
     return AppCard(
       padding: EdgeInsets.zero,
       child: Column(children: [
-        if (app.libraryOn)
+        if (app.libraryOn && !asTeacher)
           _row(Icons.library_books_rounded, tr('Acervo e repertório'), tr('Seus métodos e peças, com link'), () => openLibrary(context, app)),
         if (both) const Divider(height: 1),
         for (final t in teachers)
@@ -66,7 +68,7 @@ class StudyPage extends StatelessWidget {
               // Agenda: próxima aula, as seguintes e os atalhos (marcar, horários livres, agenda completa).
               HubSection(app: app),
               const DsGap(Ds.gap),
-              if (app.libraryVisible) ...[_materialCard(context), const DsGap(Ds.gap)],
+              if (app.libraryVisible && !(app.hubView == HubView.teacher)) ...[_materialCard(context), const DsGap(Ds.gap)],
               FeedbackInviteCard(app: app),
             ],
           ),

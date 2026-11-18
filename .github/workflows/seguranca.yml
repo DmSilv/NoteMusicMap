@@ -9,6 +9,10 @@ on:
   schedule:
     - cron: "17 6 * * 1"
 
+# O Node.js 20 das actions está obsoleto no GitHub: força as actions JavaScript a rodarem no Node 24 (inclusive as de terceiros).
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 permissions:
   contents: read
   security-events: write
@@ -18,8 +22,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: github/codeql-action/init@v3
+      - uses: actions/checkout@v5
+      - uses: github/codeql-action/init@v4
         with:
           languages: javascript-typescript
-      - uses: github/codeql-action/analyze@v3
+      - uses: github/codeql-action/analyze@v4

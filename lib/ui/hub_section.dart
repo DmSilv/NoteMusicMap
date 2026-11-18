@@ -21,6 +21,7 @@ import 'hello_bar.dart';
 import 'link_bar.dart' show confirmTeacherLink;
 import 'meeting_link.dart';
 import 'study_glance.dart';
+import 'library_page.dart' show openLibrary;
 import 'materials_sheet.dart';
 import 'turmas_page.dart';
 import 'widgets.dart' show AppCard;
@@ -85,7 +86,12 @@ class HubSection extends StatelessWidget {
           child: Column(children: [
             DsNavRow(Icons.library_books_outlined, tr('Métodos e repertório'), _materialsSub(), () => showMaterialsSheet(context, app)),
             Divider(height: 1, color: AppColors.outline),
-            DsNavRow(Icons.workspaces_outline, tr('Turmas'), app.turmas.isEmpty ? tr('Separe seus alunos por grupo') : app.turmas.map((x) => x.name).join(', '), () => _push(context, TurmasPage(app: app))),
+            DsNavRow(Icons.workspaces_outline, tr('Turmas'), app.turmas.isEmpty ? tr('Separe seus alunos por grupo') : (app.turmas.length == 1 ? tr('1 turma') : tr('{0} turmas', [app.turmas.length])), () => _push(context, TurmasPage(app: app))),
+            // O acervo (links de métodos e peças) fica junto, com a mesma aparência das outras linhas.
+            if (app.libraryOn) ...[
+              Divider(height: 1, color: AppColors.outline),
+              DsNavRow(Icons.folder_open_rounded, tr('Acervo e repertório'), tr('Seus métodos e peças, com link'), () => openLibrary(context, app)),
+            ],
           ]),
         ),
         const SizedBox(height: Ds.gap),
@@ -169,7 +175,7 @@ class HubSection extends StatelessWidget {
       case HubDest.students:
         return KeyedSubtree(
             key: TourKeys.hubStudents,
-            child: _tile(context, studentsTile(app.students.length), Icons.groups_rounded, () => _push(context, TeacherPage(app: app)),
+            child: _tile(context, studentsTile(app.students.length, waiting: app.students.where((s) => app.awaitingOf(s).isNotEmpty).length), Icons.groups_rounded, () => _push(context, TeacherPage(app: app)),
                 action: (Icons.person_add_alt_1_rounded, tr('Adicionar aluno'), () => showAddStudent(context, app))));
       case HubDest.myTasks:
         final plan = buildWeekPlan(app.myLessons, app.lessonTasksDone, now);

@@ -121,6 +121,65 @@ void main() {
       expect(e.replayNeeded, isFalse);
     });
 
+    test('nota errada logo depois da anterior trava: tem de voltar à nota anterior', () {
+      final e = make();
+      play(e, 67, 1.0); // Sol ok
+      expect(e.expected, 69);
+      // em vez do Lá, toca o Si (71): errou o começo
+      expect(play(e, 71, 0.3), isEmpty);
+      expect(e.replayNeeded, isTrue);
+      expect(e.replayMidi, 67);
+      expect(e.lockWrongMidi, 71);
+      expect(e.wrongStarts, 1);
+      // tocar o Lá afinado, sem voltar ao Sol, não adianta
+      expect(play(e, 69, 1.0), isEmpty);
+      expect(e.index, 1);
+      // volta ao Sol e destrava; o motivo some
+      play(e, 67, 0.4);
+      expect(e.replayNeeded, isFalse);
+      expect(e.lockWrongMidi, isNull);
+      expect(play(e, 69, 1.0), hasLength(1));
+      expect(e.index, 2);
+    });
+
+    test('segurar a nota anterior depois de concluir NÃO é erro (o aluno ainda está nela)', () {
+      final e = make();
+      play(e, 67, 1.0);
+      play(e, 67, 0.6); // ainda no Sol
+      expect(e.replayNeeded, isFalse);
+      expect(e.wrongStarts, 0);
+      expect(play(e, 69, 1.0), hasLength(1));
+    });
+
+    test('um toque curto numa nota errada (menos de 0,15 s) não trava', () {
+      final e = make();
+      play(e, 67, 1.0);
+      play(e, 66, 0.1);
+      expect(e.replayNeeded, isFalse);
+      expect(play(e, 69, 1.0), hasLength(1));
+    });
+
+    test('a regra vale em todas as notas da escala, também descendo', () {
+      final e = ScaleExercise(tonicMidi: 67, type: ScaleType.major, octaves: 1, zone: 10, noSlide: true, direction: ScaleDirection.both);
+      for (var i = 0; i < e.sequence.length - 1; i++) {
+        final next = e.sequence[i + 1];
+        final wrong = next + 3; // uma nota que não é a da vez nem a anterior
+        expect(play(e, e.sequence[i], 1.0).length, 1, reason: 'passo $i');
+        expect(play(e, wrong == e.sequence[i] ? wrong + 1 : wrong, 0.3), isEmpty);
+        expect(e.replayNeeded, isTrue, reason: 'passo $i travou');
+        play(e, e.sequence[i], 0.5);
+        expect(e.replayNeeded, isFalse, reason: 'passo $i destravou');
+      }
+    });
+
+    test('na primeira nota não há para onde voltar: nota errada antes dela não trava', () {
+      final e = make();
+      play(e, 70, 0.5);
+      expect(e.replayNeeded, isFalse);
+      expect(e.wrongStarts, 0);
+      expect(play(e, 67, 1.0), hasLength(1));
+    });
+
     test('pular a nota não trava nada', () {
       final e = make();
       e.skip();

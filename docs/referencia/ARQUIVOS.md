@@ -162,6 +162,7 @@
 | `packages/afina_core/lib/i18n_en_srv.dart` | Dicionário português → inglês, parte srv (ver i18n_en.dart). |
 | `packages/afina_core/lib/identity.dart` | Identidade do perfil (Fase 1): quem é a pessoa, sem cadastro e sem servidor. - [Profile.id]: UUID do perfil. Todos os dados pertencem a ele, não ao aparelho. - [Profile.secret]: 256 bits aleatórios que provam que… |
 | `packages/afina_core/lib/input_guard.dart` | Limpeza e limites de tudo que a pessoa digita, cola ou lê de um QR. Dart puro. O app não monta HTML nem consulta banco com esses textos, mas eles aparecem na tela, vão para backups colados e (em resumo) para a IA.… |
+| `packages/afina_core/lib/instrument_focus.dart` | Foco no instrumento: separa o que o músico toca do que está ao redor (vozes de quem está perto, TV, conversa). O detector de altura acha "nota" em qualquer som com altura, inclusive na fala. Aqui duas regras baratas,… |
 | `packages/afina_core/lib/lesson.dart` | Aulas: o professor começa a aula com um aluno, pode pausar, e ao encerrar o que ele passou nela (tarefas e observações) é empacotado para o aluno receber. Dart puro e testável (o relógio é sempre passado de fora). |
 | `packages/afina_core/lib/lesson_week.dart` | "Esta semana" do aluno: junta as tarefas das aulas recebidas dos últimos 7 dias e as que ficaram em aberto de aulas mais antigas. Dart puro e testável. |
 | `packages/afina_core/lib/library.dart` | Acervo e Repertório do professor: só LINKS (Google Drive, IMSLP, YouTube…), nenhum arquivo é guardado. A mesma lista de sites aceitos existe no servidor (api/_lib/library.js): mantenha as duas iguais. |
@@ -219,6 +220,7 @@
 | `packages/afina_core/test/i18n_test.dart` | "{0} de {1}, {2}" (dia, mês, dia da semana) vira "{2}, {1} {0}" |
 | `packages/afina_core/test/identity_test.dart` | Troca de um caractere por outro diferente do alfabeto. |
 | `packages/afina_core/test/input_guard_test.dart` | Testes do módulo `input_guard`. |
+| `packages/afina_core/test/instrument_focus_test.dart` | Soma de harmônicos de uma altura que varia no tempo ([freqAt] em Hz por segundo), com [noise] de ruído. |
 | `packages/afina_core/test/lesson_delivery_test.dart` | dados antigos (sem a chave) continuam lendo, como "não se aplica" |
 | `packages/afina_core/test/lesson_test.dart` | Testes do módulo `lesson`. |
 | `packages/afina_core/test/lesson_week_test.dart` | Testes do módulo `lesson_week`. |
@@ -376,4 +378,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **333** arquivos mapeados.
+Total: **335** arquivos mapeados.

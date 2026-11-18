@@ -4958,6 +4958,7 @@ class AppState extends ChangeNotifier {
     micOn.value = false;
     if (kDevDemo) FrameMeter.instance.stop();
     _gate.close();
+    _focus.reset();
     current = null;
     shown = null;
     _display.reset();
@@ -4977,7 +4978,11 @@ class AppState extends ChangeNotifier {
     final n = tracker.update(f.result, cfg);
     current = n;
     shown = _display.update(n, now);
-    _registerNote(n, f.dt);
+    // A grade e o placar só registram o que é do instrumento: vozes e sons ao redor (mais fracos e com a altura
+    // escorregando) ficam de fora. O destaque ao vivo do afinador segue imediato.
+    final r = f.result;
+    final mine = r == null || _focusNow.accept(rms: r.rms, clarity: r.clarity, freq: r.frequency, dt: f.dt);
+    _registerNote(mine ? n : null, f.dt);
     if (n != null) _lastNoteSeen = now;
     final sh = shown;
     if (gridFollow && sh != null) _followNote(sh.midi);
@@ -4998,6 +5003,22 @@ class AppState extends ChangeNotifier {
   // para Si o dedo cruza o Lá♯), ruído do arco, e cordas soltas que ressoam por
   // simpatia. O destaque ao vivo não passa por aqui (continua imediato).
   final NoteGate _gate = NoteGate();
+
+  // Foco no instrumento (ignora vozes e sons ao redor na grade). O quanto é rígido segue a sensibilidade do microfone:
+  // Rigoroso ignora mais, Normal é o meio, Livre deixa tudo passar.
+  InstrumentFocus _focus = InstrumentFocus();
+  MicSensitivity? _focusFor;
+  InstrumentFocus get _focusNow {
+    if (_focusFor != sensitivity) {
+      _focusFor = sensitivity;
+      _focus = switch (sensitivity) {
+        MicSensitivity.rigorous => InstrumentFocus(relativeFloor: 0.3),
+        MicSensitivity.normal => InstrumentFocus(),
+        MicSensitivity.free => InstrumentFocus(relativeFloor: 0, wanderRule: false),
+      };
+    }
+    return _focus;
+  }
 
   /// Tempo (s) que uma nota precisa durar para entrar na sessão.
   double get minNoteSeconds => switch (sensitivity) {
@@ -5106,6 +5127,7 @@ class AppState extends ChangeNotifier {
   void resetGrid() {
     grid.clear();
     _gate.reset();
+    _focus.reset();
     tracker.reset();
     current = null;
     shown = null;
