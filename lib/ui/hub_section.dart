@@ -67,6 +67,7 @@ class HubSection extends StatelessWidget {
 
     // O bloco de agenda do aluno já está no destaque: não repete como cartão.
     final tiles = [for (final d in layout.tiles) if (d != HubDest.agendaStudent) _tileFor(context, d, now)];
+    final wide = MediaQuery.sizeOf(context).width >= 640;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       _viewSwitch(context, view),
       _statusChip(context),
@@ -76,26 +77,43 @@ class HubSection extends StatelessWidget {
       // Quem chegou sozinho vê aqui o mesmo "Seu primeiro passo" do Afinador (some ao concluir ou ao esconder).
       if (!isT && app.firstStepVisible) Padding(padding: const EdgeInsets.only(top: Ds.s12), child: FirstStepCard(app: app)),
       const SizedBox(height: Ds.gap),
-      if (tiles.length == 2) _pair(tiles[0], tiles[1]) else if (tiles.length == 1) tiles.first,
-      if (tiles.isNotEmpty) const SizedBox(height: Ds.gap),
-      // Atalhos de quem organiza as aulas: a um toque, sem passar por Minha conta nem pelo menu da lista.
-      if (isT) ...[
-        Padding(padding: const EdgeInsets.only(left: Ds.s4, bottom: Ds.s8), child: Text(tr('Organização'), style: Ds.section())),
-        AppCard(
-          padding: EdgeInsets.zero,
-          child: Column(children: [
-            DsNavRow(Icons.library_books_outlined, tr('Métodos e repertório'), _materialsSub(), () => showMaterialsSheet(context, app)),
-            Divider(height: 1, color: AppColors.outline),
-            DsNavRow(Icons.workspaces_outline, tr('Turmas'), app.turmas.isEmpty ? tr('Separe seus alunos por grupo') : (app.turmas.length == 1 ? tr('1 turma') : tr('{0} turmas', [app.turmas.length])), () => _push(context, TurmasPage(app: app))),
-            // O acervo (links de métodos e peças) fica junto, com a mesma aparência das outras linhas.
-            if (app.libraryOn) ...[
-              Divider(height: 1, color: AppColors.outline),
-              DsNavRow(Icons.folder_open_rounded, tr('Acervo e repertório'), tr('Seus métodos e peças, com link'), () => openLibrary(context, app)),
-            ],
+      // Tela larga (tablet ou computador em pé): o bloco de alunos e a organização ficam lado a lado, em vez de esticar na largura toda.
+      if (isT && wide && tiles.length == 1)
+        IntrinsicHeight(
+          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Expanded(flex: 5, child: tiles.first),
+            const SizedBox(width: Ds.gap),
+            Expanded(flex: 7, child: _organization(context, header: false)),
           ]),
-        ),
-        const SizedBox(height: Ds.gap),
+        )
+      else ...[
+        if (tiles.length == 2) _pair(tiles[0], tiles[1]) else if (tiles.length == 1) tiles.first,
+        if (tiles.isNotEmpty) const SizedBox(height: Ds.gap),
+        // Atalhos de quem organiza as aulas: a um toque, sem passar por Minha conta nem pelo menu da lista.
+        if (isT) _organization(context),
       ],
+      if (isT && wide) const SizedBox(height: Ds.gap),
+    ]);
+  }
+
+  /// O cartão "Organização": métodos e repertório, turmas e acervo, com a mesma aparência.
+  Widget _organization(BuildContext context, {bool header = true}) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (header) Padding(padding: const EdgeInsets.only(left: Ds.s4, bottom: Ds.s8), child: Text(tr('Organização'), style: Ds.section())),
+      AppCard(
+        padding: EdgeInsets.zero,
+        child: Column(children: [
+          DsNavRow(Icons.library_books_outlined, tr('Métodos e repertório'), _materialsSub(), () => showMaterialsSheet(context, app)),
+          Divider(height: 1, color: AppColors.outline),
+          DsNavRow(Icons.workspaces_outline, tr('Turmas'), app.turmas.isEmpty ? tr('Separe seus alunos por grupo') : (app.turmas.length == 1 ? tr('1 turma') : tr('{0} turmas', [app.turmas.length])), () => _push(context, TurmasPage(app: app))),
+          // O acervo (links de métodos e peças) fica junto, com a mesma aparência das outras linhas.
+          if (app.libraryOn) ...[
+            Divider(height: 1, color: AppColors.outline),
+            DsNavRow(Icons.folder_open_rounded, tr('Acervo e repertório'), tr('Seus métodos e peças, com link'), () => openLibrary(context, app)),
+          ],
+        ]),
+      ),
+      if (header) const SizedBox(height: Ds.gap),
     ]);
   }
 

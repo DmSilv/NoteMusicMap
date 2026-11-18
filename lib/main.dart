@@ -326,17 +326,23 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
             builder: (context, child) {
               final tree = KeyedSubtree(key: ValueKey('$dark-${widget.app.langNotifier.value.name}'), child: child!);
               final mq = MediaQuery.of(context);
-              // No navegador/tela larga o app não estica: fica numa coluna de
-              // largura de celular, centralizada, e as laterais ficam escuras.
-              if (mq.size.width <= kMaxAppWidth || isSplitLayout(mq.size)) return tree;
+              // No navegador/tela larga o app não estica: fica numa coluna centralizada e as laterais ficam escuras.
+              // A coluna acompanha a tela: no tablet em pé ocupa quase tudo; no computador em pé fica mais larga que a do celular.
+              final colW = appColumnWidth(mq.size);
+              if (mq.size.width <= colW || isSplitLayout(mq.size)) return tree;
               return ColoredBox(
                 color: Color.lerp(AppColors.bg, Colors.black, dark ? 0.45 : 0.08)!,
                 child: Center(
                   child: SizedBox(
-                    width: kMaxAppWidth,
-                    child: MediaQuery(
-                      data: mq.copyWith(size: Size(kMaxAppWidth, mq.size.height)),
-                      child: ClipRect(child: tree),
+                    width: colW,
+                    child: DecoratedBox(
+                      position: DecorationPosition.foreground,
+                      decoration: BoxDecoration(border: Border.symmetric(vertical: BorderSide(color: AppColors.outline.withValues(alpha: 0.6)))),
+                      child: MediaQuery(
+                        // Computador com a janela em pé: a coluna é larga e a tela grande, então o texto sobe um pouco (12%).
+                        data: mq.copyWith(size: Size(colW, mq.size.height), textScaler: mq.size.width > 1000 ? TextScaler.linear(mq.textScaler.scale(1) * 1.12) : mq.textScaler),
+                        child: ClipRect(child: tree),
+                      ),
                     ),
                   ),
                 ),
@@ -350,8 +356,16 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
   }
 }
 
-/// Largura máxima do app em tela larga (navegador no computador).
+/// Largura máxima do app em tela larga (navegador no computador) quando a janela é só um pouco mais larga que um celular.
 const double kMaxAppWidth = 560;
+
+/// Largura da coluna do app numa tela larga em pé (tablet e computador): até 560 é a tela toda; de 560 a 1000 (tablet em pé) a coluna
+/// ocupa quase tudo (margem de 16 de cada lado, no máximo 720); acima disso (janela alta no computador) fica em 760.
+double appColumnWidth(Size s) {
+  if (s.width <= kMaxAppWidth) return s.width;
+  if (s.width <= 1000) return (s.width - 32).clamp(kMaxAppWidth, 720.0);
+  return 760;
+}
 
 /// Largura a partir da qual, com a tela deitada, o app mostra duas telas lado a lado.
 const double kSplitMinWidth = 900;

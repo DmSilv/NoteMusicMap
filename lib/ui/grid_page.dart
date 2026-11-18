@@ -176,7 +176,8 @@ class _GridPageState extends State<GridPage> {
         const SizedBox(height: 8),
         // A grade em si: 12 colunas (Dó a Si) x oitavas, agudos em cima.
         // Grade pequena (visão geral); "Ampliar" abre em tela cheia para tocar com mais conforto.
-        SizedBox(height: rows * 52.0, child: GridBoard(app: app)),
+        // Em tablet/computador em pé sobra altura: as linhas crescem (até 84) em vez de deixar o fim da tela vazio. No celular fica 52.
+        SizedBox(height: rows * _rowHeight(context, rows), child: GridBoard(app: app)),
         const DsGap(Ds.s12),
         // A ajuda das cores fica junto da legenda das cores.
         Row(children: [
@@ -204,6 +205,12 @@ class _GridPageState extends State<GridPage> {
         ),
       ],
     );
+  }
+
+  double _rowHeight(BuildContext context, int rows) {
+    final s = MediaQuery.sizeOf(context);
+    if (s.width < 600 || rows <= 0) return 52.0;
+    return ((s.height - 440) / rows).clamp(52.0, 84.0);
   }
 
   /// Afinação da grade: Lá de referência e sistema (igual, pitagórico, justo), como nas Escalas.
