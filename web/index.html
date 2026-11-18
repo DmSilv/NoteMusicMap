@@ -64,6 +64,29 @@
       window.dispatchEvent(new Event('nm-installed'));
     });
   </script>
+  <!-- Botão Voltar no celular (Chrome do Android): o motor do Flutter cria, ao abrir, uma entrada extra no histórico do
+       navegador para pegar o "voltar" e entregar ao app. Essa entrada nasce SEM toque da pessoa e o Chrome costuma pular
+       entradas assim: o Voltar sai do site sem o app ver (o app fecha em vez de voltar ao início). Aqui, no primeiro toque,
+       refazemos o par de entradas do motor (a mesma forma que ele usa), agora com toque, para o Chrome não pular. -->
+  <script>
+    (function () {
+      var done = false;
+      function cushion() {
+        if (done) return;
+        done = true;
+        try {
+          var s = history.state;
+          // só se o motor já montou o par ("flutter" em cima): refaz "origin" + "flutter" do jeito dele
+          if (s && s.flutter === true) {
+            history.replaceState({ origin: true, state: null }, '', location.href);
+            history.pushState({ flutter: true }, '', location.href);
+          }
+        } catch (e) { /* sem histórico: segue como estava */ }
+        ['pointerdown', 'touchstart', 'keydown'].forEach(function (n) { window.removeEventListener(n, cushion, true); });
+      }
+      ['pointerdown', 'touchstart', 'keydown'].forEach(function (n) { window.addEventListener(n, cushion, { capture: true, passive: true }); });
+    })();
+  </script>
   <!-- Atualizar o app / apagar tudo: chamadas pelo Dart (sem eval, que a política de segurança do site proíbe). -->
   <script>
     function nmClean(clearData) {

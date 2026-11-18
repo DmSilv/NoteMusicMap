@@ -125,3 +125,13 @@ flowchart LR
 3. **Barato**: consulta de novidade custa ~0 (`rev`); listas só baixam quando um contador mudou.
 4. **Regra no núcleo, tela fina**: o que tem regra tem teste em `packages/afina_core/test`.
 5. **O professor é a fonte oficial** do status das tarefas.
+
+## Fluxo do botão Voltar (celular e navegador)
+Regra: **Voltar nunca fecha o app de repente.** A ordem é sempre a mesma:
+1. **Folha ou janela aberta** (ajustes, aviso, escolha): Voltar fecha só ela.
+2. **Tela empilhada** (Minha conta › Ajustes › Aparelhos, ficha do aluno, Turmas, Escala guiada…): Voltar volta uma tela, até chegar ao início.
+3. **Outra aba** (Afinador, Metrônomo, Grade, Escalas): Voltar leva ao **Meu espaço** (o início).
+4. **No Meu espaço**: Voltar abre **"Já vai embora?"**. Só o botão discreto "Sair do app" fecha; "Continuar no app", tocar fora ou Voltar de novo ficam.
+Onde está no código: `HomeShell._onBack` e o `PopScope` em `lib/main.dart`; `confirmExitApp` em `lib/ui/exit_sheet.dart`; no Android, `enableOnBackInvokedCallback` no manifesto.
+
+**No navegador (Chrome do Android, site ou tela inicial):** o motor do Flutter pega o Voltar criando entradas no histórico do navegador. A entrada criada ao abrir nasce sem toque, e o Chrome costuma **pular** entradas assim, o que fazia o Voltar sair do site sem o app ver. Por isso `web/index.html` refaz esse par de entradas no **primeiro toque** (mesma forma que o motor usa), e o Chrome deixa de pular. Testado no navegador do computador (a ordem acima continua certa, com o mesmo número de entradas); **falta testar no Chrome do Android**.
