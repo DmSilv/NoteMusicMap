@@ -12,9 +12,10 @@
 | `/api/admin` | Painel: indicadores, perfis, bugs, saúde, custos | Painel | Chave de admin (cabeçalho) |
 | `/api/remind` | Dispara o lembrete de aula (Web Push) | QStash | Assinatura do QStash |
 | `/api/coach`, `/api/ai-status` | Análise por IA com fila | App | Cabeçalho do aparelho + limites |
+| `/api/link` (ações `msg_get`, `msg_put`, `msg_ok`) | Conversa particular com o administrador (só o dono do código lê; resposta curta) | App | Texto da conversa (`cv:th`, `cv:ix`), sem dado de aparelho |
 | `/api/news` | Boletim publicado no painel, "Novidades" (GET; o app busca 1 vez por abertura; CDN guarda 5 min; só o que está publicado, sem dado interno) | App | Nenhuma (dado público, sem pessoa) |
 | `/api/fingering` | Dedilhados do violino corrigidos/incluídos no painel (GET; o app busca 1 vez por abertura; CDN guarda 5 min) | App | Nenhuma (dado público, sem pessoa) |
-| `/api/feedback` | Nota do app e pesquisas | App / admin | Aparelho / chave de feedback |
+| `/api/feedback` | Nota do app e pesquisas (POST com `sv` = pesquisa e `pid` = participação; limite de 1 por pesquisa e 3 por mês por aparelho, resposta 429 com `limited`). `GET ?survey=1` devolve a pesquisa ativa (público, CDN 5 min, sem dado pessoal) | App / admin | Aparelho / chave de feedback |
 
 ## Autenticação anônima (`/api/link`)
 Todo pedido leva `{ code, secret, action, ... }`:

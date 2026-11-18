@@ -81,3 +81,8 @@ O guia de uso é sempre opcional (convite no cartão "Comece por aqui" e botão 
 - *Contexto:* a chave antiga (~100 caracteres) é a identidade inteira em texto: ninguém consegue anotá-la, e a maioria não guarda.
 - *Decisão:* uma chave aleatória de 25 símbolos (125 bits) que o servidor guarda só como hash; digitá-la num aparelho novo troca o segredo do perfil. A antiga continua valendo; a nova é a principal. Funciona sem e-mail e sem domínio.
 - *Consequências:* deixa de ser autossuficiente (precisa do servidor e do perfil registrado, o que acontece quando a pessoa gera a chave); o aparelho antigo perde o acesso ao usá-la; quem tem a chave assume a conta.
+
+## D-multiaparelho. Até 5 aparelhos por conta, todos iguais (sem aparelho principal)
+- *Contexto:* a mesma conta passou a abrir em vários aparelhos. Foi considerado um modelo "aparelho principal", como no WhatsApp Web (só o principal adiciona e tira os outros).
+- *Decisão (17/11/2026, Daniel):* **todos os aparelhos são iguais**: qualquer um adiciona ou tira outro, até **5 ao mesmo tempo**. O limite aparece à vista (Minha conta › Aparelhos mostra uma bolinha por vaga e quantas faltam; a tela de entrar numa conta e o aviso de conta cheia dizem o mesmo). Perdeu o aparelho: entra num novo pela chave de 25 caracteres ou pelo e-mail e tira o antigo da lista.
+- *Alternativa descartada:* aparelho principal (um dono que manda nos outros): mais regras, e perder o principal exigiria um caminho de recuperação a mais; o ganho de segurança não compensou agora. Pode voltar se houver abuso (conta compartilhada com estranhos).

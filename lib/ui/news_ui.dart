@@ -5,6 +5,12 @@ import '../app_state.dart';
 import 'design_system.dart';
 import 'theme.dart';
 
+/// Rótulo de uma novidade que veio de feedback; só cita o apelido se a pessoa aceitou (senão, "um usuário").
+String newsFeedbackLabel(NewsItem n) {
+  final who = n.credit.isEmpty ? tr('um usuário') : n.credit;
+  return n.feedback == 'fix' ? tr('Correção feita a partir do feedback de {0}', [who]) : tr('Sugestão de {0} que virou melhoria', [who]);
+}
+
 /// Uma novidade do boletim num aviso pequeno: título, texto curto e um botão só. Marca como vista ao abrir.
 Future<void> showNewsDialog(BuildContext context, AppState app, NewsItem n) {
   app.markNewsSeen(n);
@@ -15,7 +21,14 @@ Future<void> showNewsDialog(BuildContext context, AppState app, NewsItem n) {
       title: Text(n.shownTitle, textAlign: TextAlign.center),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 360),
-        child: SingleChildScrollView(child: Text(n.shownBody, style: TextStyle(height: 1.4, color: AppColors.textDim))),
+        child: SingleChildScrollView(
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (n.feedback.isNotEmpty) ...[
+            Text(newsFeedbackLabel(n), style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700, fontSize: 13)),
+            const SizedBox(height: Ds.s8),
+          ],
+          Text(n.shownBody, style: TextStyle(height: 1.4, color: AppColors.textDim)),
+        ])),
       ),
       actionsAlignment: MainAxisAlignment.center,
       actions: [FilledButton(onPressed: () => Navigator.pop(c), child: Text(tr('Entendi')))],

@@ -40,6 +40,7 @@
 | `lib/ui/app_locale.dart` | O app fala português do Brasil ou inglês: os textos do próprio Flutter (seletor de data e hora, "OK"/"Cancelar", copiar/colar, nomes de mês e dia) seguem o idioma escolhido (veja `Lang` e `tr()` em afina_core). Custo… |
 | `lib/ui/app_logo.dart` | Logo do Notemusic: um mostrador de afinador (arco verde, a cor do app) com uma nota musical branca no centro. Mesma geometria de tools/make_icons.mjs. |
 | `lib/ui/design_system.dart` | Design system do Notemusic. REGRA: toda tela nova ou alterada usa estes valores e estes componentes (ver docs/12_DESIGN_SYSTEM.md). Números soltos de espaçamento, raio ou altura de botão não entram em tela nova.… |
+| `lib/ui/dev_chat_sheet.dart` | Conversa particular com o desenvolvedor: só esta pessoa vê. Mensagens do administrador, resposta curta, e (quando ele pergunta) escolher se o apelido pode ser citado no boletim. O texto vem do servidor ao abrir. |
 | `lib/ui/devices_page.dart` | Nome do sistema como a pessoa reconhece ("Android", "iPhone ou iPad"...). |
 | `lib/ui/dictation_button.dart` | Botão de microfone para ditar num campo de texto. Use como `suffixIcon` do `InputDecoration`. Pisca em vermelho enquanto ouve; tocar de novo para. |
 | `lib/ui/error_ui.dart` | Telas e blocos de erro: tela crítica (APP-99), cartão amigável no lugar de bloco que quebrou e a lista "Problemas recentes". |
@@ -68,7 +69,7 @@
 | `lib/ui/mic_pill.dart` | Aviso fixo na barra superior enquanto o microfone está captando: ponto pulsante + "Ouvindo". Visível em qualquer aba; tocar desliga. |
 | `lib/ui/my_lessons_page.dart` | Minhas aulas (aluno): aulas e tarefas recebidas do professor, com o status oficial (validada, aguardando, refazer) e o botão de treinar. |
 | `lib/ui/needle.dart` | Ponteiro do afinador com movimento fluido. Em vez de reiniciar uma animação a cada leitura do microfone (o que dá trancos), um relógio a 60 fps aproxima o ponteiro do valor alvo com suavização exponencial. O… |
-| `lib/ui/news_ui.dart` | Uma novidade do boletim num aviso pequeno: título, texto curto e um botão só. Marca como vista ao abrir. |
+| `lib/ui/news_ui.dart` | Rótulo de uma novidade que veio de feedback; só cita o apelido se a pessoa aceitou (senão, "um usuário"). |
 | `lib/ui/note_widgets.dart` | Nome de nota com o acidente (♯/♭) DESENHADO, elevado ao lado da letra, e a oitava pequena embaixo, tudo alinhado à linha de base: "Sol" + ♯ + 4. O ♯ e o ♭ são traçados à mão (não vêm da fonte): assim têm sempre o… |
 | `lib/ui/notifications_sheet.dart` | Central de avisos (sino): lista todos os avisos, marca como lidos, limpa e leva ao lugar certo conforme o tipo. |
 | `lib/ui/octave_colors.dart` | Uma cor para cada oitava do exercício (escalas e arpejos), diferente das cores de afinação (azul, verde, laranja): violeta, rosa, dourado e prata. |
@@ -192,6 +193,7 @@
 | `packages/afina_core/lib/start_checklist.dart` | "Comece por aqui": o que o professor novo precisa fazer para o app render (vincular, marcar aula, passar tarefa). Dart puro: o app diz o que já aconteceu e esta lógica diz o que falta e qual é o próximo passo. |
 | `packages/afina_core/lib/study_clock.dart` | Relógios de estudo: CRONÔMETRO (conta para cima) e MINUTERIA (conta para baixo até um tempo escolhido). Dart puro: o relógio de parede é passado de fora (ms), então dá para testar e para retomar depois de fechar o app. |
 | `packages/afina_core/lib/study_streak.dart` | Dias seguidos de estudo (com perdão de 1 dia) e o resumo da semana. Dart puro: o app passa o mapa "dia (AAAA-MM-DD) -> segundos estudados" e a data de hoje; aqui sai o que mostrar. |
+| `packages/afina_core/lib/survey.dart` | Uma pergunta da pesquisa ativa (escrita no painel e lida de GET /api/feedback?survey=1). |
 | `packages/afina_core/lib/system_guide.dart` | Dados para explicar o "Sistema de afinação" na tela: para a tônica escolhida, qual é o ALVO de cada nota no sistema (igual, pitagórico ou justo) e quanto ele difere do temperamento igual, em Hz. Dart puro e testável. |
 | `packages/afina_core/lib/task_status.dart` | Decisão oficial do professor sobre uma tarefa que o aluno marcou como feita. |
 | `packages/afina_core/lib/teacher.dart` | Área do professor (versão local, sem login): alunos, tarefas, observações, relatórios e troca de dados por texto. Dart puro e testável. |
@@ -259,6 +261,7 @@
 | `packages/afina_core/test/student_label_test.dart` | Testes do módulo `student_label`. |
 | `packages/afina_core/test/study_clock_test.dart` | Testes do módulo `study_clock`. |
 | `packages/afina_core/test/study_streak_test.dart` | estudou 0,1,3,5,6: faltaram 2 e 4; o 2º vazio vem logo depois do 1º perdão -> quebra |
+| `packages/afina_core/test/survey_test.dart` | Testes do módulo `survey`. |
 | `packages/afina_core/test/system_guide_test.dart` | em Hz, na oitava 4: Mi justo (5/4 de 261,626) = 327,03 Hz contra 329,63 do igual |
 | `packages/afina_core/test/task_review_test.dart` | Testes do módulo `task_review`. |
 | `packages/afina_core/test/task_status_test.dart` | Testes do módulo `task_status`. |
@@ -299,6 +302,7 @@
 | `api/_lib/errors_lib.js` | Regras dos relatórios de erro (iguais às do app, em `afina_core/errors.dart`): higienização, impressão digital do bug, validação do pacote e nomes das chaves no Redis. |
 | `api/_lib/features.js` | Recursos liberados aos poucos ("chaves"): cada novidade nasce desligada, é liberada por código de perfil, depois por porcentagem e, por fim, para todos. O SERVIDOR decide; o app só esconde o que não está ligado.… |
 | `api/_lib/fingering.js` | Dedilhado do violino (método de Flesch) editado pelo administrador. O app traz as escalas já conferidas (packages/afina_core/lib/violin_fingering.dart). O administrador pode corrigir uma delas ou incluir outra pelo… |
+| `api/_lib/inbox.js` | Conversa particular entre o administrador e cada usuário (aparece em Avisos no app). Dados (Redis, hashes; nada de endpoint novo): cv:th hash código do perfil -> JSON {m:[{i,f,t,x,ref?,ask?}], ok?} a conversa (no… |
 | `api/_lib/library.js` | Acervo e Repertório do professor (só LINKS, nenhum arquivo é guardado aqui). O professor cadastra título, autor e o endereço do material (Google Drive, IMSLP, YouTube…); o aluno vinculado abre o endereço. Liberado só… |
 | `api/_lib/mail.js` | Envio de e-mail (só os códigos de verificação da conta). Usa o serviço de e-mail por API (padrão: Resend); a chave e o remetente vêm das variáveis de ambiente da Vercel (MAIL_API_KEY ou RESEND_API_KEY, e MAIL_FROM).… |
 | `api/_lib/metrics.js` | Métricas anônimas de uso: nomes das chaves, o dia (fuso de Brasília) e o contador que o servidor soma sozinho quando algo acontece (aula enviada, vínculo criado...). Falhar aqui NUNCA pode derrubar o que o usuário… |
@@ -311,6 +315,7 @@
 | `api/_lib/router.js` | REGRA DE NEGÓCIO: qual IA atende cada tipo de pedido, e quando trocar de serviço. - cada tipo de pedido tem uma ordem de preferência e um "nível" de modelo (rápido e barato para resumos; mais capaz para relatórios e… |
 | `api/_lib/store.js` | Contadores, estado de saúde e fila. Usa o Upstash Redis (REST) quando configurado, para valer entre TODAS as instâncias da Vercel; senão cai para a memória da instância. |
 | `api/_lib/store_cmd.js` | Comandos genéricos do Redis (HyperLogLog, conjuntos ordenados, contadores em hash) para as métricas, com um emulador mínimo em memória para os testes. Em produção vai tudo ao Upstash, em lote (`/pipeline`): uma ida e… |
+| `api/_lib/surveys.js` | Pesquisas do app: o administrador cria, libera e retira no painel; o app só LÊ a pesquisa ativa (GET /api/feedback?survey=1, com cache de CDN, como o boletim em /api/news). Dados: sv:items hash id -> JSON {t, te, qs,… |
 | `api/_lib/sweep.js` | Limpeza de perfis abandonados: um perfil SEM vínculo, SEM aluno/professor, SEM horários nem notificações e parado há 60 dias é apagado. Quem tem qualquer vínculo ou agenda, quem ligou e-mail ou gerou chave de… |
 | `api/_lib/unlink.js` | Desfaz o vínculo entre um professor e um aluno e apaga tudo o que dependia dele. Usado pelo app (ação "unlink" de /api/link) e pelo suporte do painel (/api/admin). |
 | `api/_lib/webpush.js` | Web Push (RFC 8030 + VAPID RFC 8292 + criptografia aes128gcm RFC 8291) só com o módulo `crypto` do Node: o projeto não instala pacotes npm, então nada de dependência externa. |
@@ -336,6 +341,7 @@
 | `api/fingering.test.js` | Dedilhado do violino editado no painel: validação, notas de cada escala, ações do admin e a leitura pública. `node --test api/fingering.test.js` |
 | `api/funnel.test.js` | Testes do funil de ativação e da comparação de agendas do painel: `node --test api/funnel.test.js` |
 | `api/guardrails.test.js` | Guardrails de segurança da API: entradas malformadas, gigantes e hostis. Nada pode quebrar, vazar segredo ou gravar lixo. `node --test api/guardrails.test.js` |
+| `api/inbox.test.js` | Testes da conversa particular admin x usuário e do rótulo de feedback no boletim, sem rede: `node --test api/inbox.test.js` |
 | `api/indicators.test.js` | Testes dos indicadores de saúde do uso no painel, sem rede: `node --test api/indicators.test.js` |
 | `api/library.test.js` | Testes do Acervo e Repertório do professor (só links): `node --test api/library.test.js` |
 | `api/link.test.js` | Testes do vínculo professor-aluno, sem rede: `node --test api/link.test.js` |
@@ -378,4 +384,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **335** arquivos mapeados.
+Total: **341** arquivos mapeados.

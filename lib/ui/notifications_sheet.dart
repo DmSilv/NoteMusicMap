@@ -6,6 +6,7 @@ import 'my_lessons_page.dart' show openMyLessons;
 import 'profile_page.dart';
 import 'teacher_page.dart';
 import 'design_system.dart';
+import 'dev_chat_sheet.dart';
 import 'news_ui.dart';
 import 'suggestions.dart';
 import 'theme.dart';
@@ -18,6 +19,7 @@ IconData noticeIcon(String kind) => switch (kind) {
       'done' => Icons.task_alt,
       'pick' => Icons.event_available_outlined,
       'support' => Icons.support_agent,
+      'dev' => Icons.forum_outlined,
       _ => Icons.school_outlined,
     };
 
@@ -42,6 +44,8 @@ void openNoticeTarget(BuildContext context, AppState app, AppNotice n) {
       openMyLessons(context, app);
     case 'pick':
       nav.push(MaterialPageRoute<void>(builder: (_) => AgendaPage(app: app)));
+    case 'dev':
+      showDevChatSheet(context, app);
     case 'done':
       nav.push(MaterialPageRoute<void>(builder: (_) => TeacherPage(app: app)));
     default:

@@ -9,11 +9,15 @@
 const crypto = require('node:crypto');
 const { config } = require('./_lib/config');
 const { createStore } = require('./_lib/store');
+const surveys = require('./_lib/surveys');
 
 const LIST_KEY = 'fb:v1';
 const ID_KEY = 'fb:ids'; // hash: aparelho (embaralhado) -> { c: código do perfil, t }  (liga respostas antigas e novas ao perfil)
 const CODE_RE = /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$/;
 const DAILY_LIMIT = 30; // envios por aparelho+IP por dia
+const PID_RE = /^[a-z0-9]{8,24}$/; // id da participação (um por envio da pesquisa), gerado pelo app
+const SV_RE = /^[a-z0-9_]{1,32}$/; // id da pesquisa
+const OWNER_TTL = 400 * 86400; // lembra por mais de um ano que o aparelho já respondeu a esta pesquisa
 
 function clientIp(req) {
   const xf = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
@@ -51,6 +55,10 @@ function parse(body, deviceHash, now) {
   const rec = { t: new Date(now).toISOString(), d: deviceHash, k: kind, v: clean(body.version, 40), p: clean(body.platform, 20) };
   const profile = clean(body.profile, 9).toUpperCase();
   if (CODE_RE.test(profile)) rec.u = profile; // o código do perfil de quem enviou (o painel mostra de quem é)
+  const pid = clean(body.pid, 24).toLowerCase();
+  if (PID_RE.test(pid)) rec.pid = pid; // junta as respostas do mesmo envio (apps antigos não mandam)
+  const sv = clean(body.sv, 32);
+  if (kind === 'survey' && SV_RE.test(sv)) rec.sv = sv;
   if (kind === 'identify') return rec.u ? { rec } : { error: 'Falta o perfil.' };
   if (kind === 'rating') {
     const r = Number(body.rating);
@@ -108,6 +116,24 @@ function summarize(rows) {
   };
 }
 
+/**
+ * Limite de participações: 1 por pesquisa e no máximo MONTH_MAX por mês, por aparelho (embaralhado).
+ * Só vale quando o app manda o id da pesquisa (sv) e o da participação (pid); apps antigos seguem como antes.
+ * As várias respostas do MESMO envio (mesmo pid) passam. Devolve null se pode ou { limited } se não.
+ */
+async function checkQuota(store, rec, now) {
+  if (rec.k !== 'survey' || !rec.sv || !rec.pid) return null;
+  const owner = `fbs:${rec.d}:${rec.sv}`;
+  const cur = await store.get(owner);
+  if (cur === rec.pid) return null; // continuação do mesmo envio
+  if (cur) return { limited: 'dup', error: 'Você já respondeu a esta pesquisa.' };
+  const d = new Date(now);
+  const month = await store.incr(`fbm:${rec.d}:${d.getUTCFullYear()}${d.getUTCMonth() + 1}`, 35 * 86400);
+  if (month.n > surveys.MONTH_MAX) return { limited: 'month', error: 'Você já respondeu pesquisas demais este mês.' };
+  await store.set(owner, rec.pid, OWNER_TTL);
+  return null;
+}
+
 function makeHandler(deps = {}) {
   const fetchImpl = deps.fetch || globalThis.fetch;
   const getCfg = deps.config || (() => config());
@@ -117,6 +143,17 @@ function makeHandler(deps = {}) {
     res.setHeader('Cache-Control', 'no-store');
     const cfg = getCfg();
     const store = createStore(cfg, fetchImpl, clock, { allowMemory: !!deps.allowMemory });
+
+    if (req.method === 'GET' && /(^|[?&])survey=1(&|$)/.test(String(req.url || ''))) {
+      // Público, sem dado pessoal: a pesquisa ativa (ver _lib/surveys.js). A CDN guarda por 5 minutos, então o Redis quase não é tocado.
+      let survey = null;
+      let ok = true;
+      try { survey = surveys.publicSurvey(await surveys.listAll(store, clock())); } catch (_) { ok = false; }
+      res.setHeader('Cache-Control', ok ? 'public, max-age=60, s-maxage=300, stale-while-revalidate=3600' : 'no-store');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.statusCode = ok ? 200 : 503;
+      return res.end(JSON.stringify({ v: 1, survey }));
+    }
 
     if (req.method === 'GET') {
       if (!cfg.feedbackKey) {
@@ -160,6 +197,11 @@ function makeHandler(deps = {}) {
       res.statusCode = 400;
       return res.end(JSON.stringify({ error }));
     }
+    const quota = await checkQuota(store, rec, clock());
+    if (quota) {
+      res.statusCode = 429;
+      return res.end(JSON.stringify({ error: quota.error, limited: quota.limited }));
+    }
     // Liga este aparelho (embaralhado) ao perfil: vale para as respostas de agora e para as antigas deste aparelho.
     if (rec.u) {
       try {
@@ -180,4 +222,4 @@ function makeHandler(deps = {}) {
 
 module.exports = makeHandler();
 module.exports.makeHandler = makeHandler;
-module.exports._internal = { parse, summarize, clean, LIST_KEY, ID_KEY };
+module.exports._internal = { checkQuota, parse, summarize, clean, LIST_KEY, ID_KEY };

@@ -182,6 +182,42 @@ class _DevicesBodyState extends State<DevicesBody> {
     );
   }
 
+  /// O limite à vista: uma bolinha por vaga (cheia = aparelho na conta) e uma frase dizendo quantas faltam ou o que fazer quando lota.
+  /// Todos os aparelhos da conta são iguais: qualquer um pode adicionar ou tirar outro.
+  Widget _slots(int used) {
+    final max = app.maxDevices;
+    final free = (max - used).clamp(0, max);
+    return AppCard(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(tr('No máximo {0} aparelhos ao mesmo tempo', [max]), style: const TextStyle(fontSize: Ds.fontBody, fontWeight: FontWeight.w800)),
+        const SizedBox(height: Ds.s12),
+        Row(children: [
+          for (var i = 0; i < max; i++)
+            Container(
+              width: 28,
+              height: 28,
+              margin: const EdgeInsets.only(right: Ds.s8),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: i < used ? AppColors.accent : Colors.transparent,
+                border: Border.all(color: i < used ? AppColors.accent : AppColors.outline, width: 2),
+              ),
+              child: i < used ? Icon(Icons.smartphone, size: 16, color: AppColors.bg) : null,
+            ),
+        ]),
+        const SizedBox(height: Ds.s12),
+        Text(
+          free == 0
+              ? tr('Limite atingido. Para adicionar outro, tire um aparelho da lista abaixo.')
+              : (free == 1 ? tr('Dá para adicionar mais 1 aparelho.') : tr('Dá para adicionar mais {0} aparelhos.', [free])),
+          style: Ds.support(),
+        ),
+        const SizedBox(height: Ds.s4),
+        Text(tr('Todos os aparelhos são iguais: qualquer um pode adicionar ou tirar outro.'), style: Ds.support()),
+      ]),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -193,7 +229,7 @@ class _DevicesBodyState extends State<DevicesBody> {
           });
         final now = DateTime.now();
         return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Text(tr('Sua conta pode ficar aberta em até {0} aparelhos.', [app.maxDevices]), style: Ds.support()),
+          _slots(list.length),
           const SizedBox(height: Ds.s16),
           if (list.length < app.maxDevices) ...[
             SizedBox(

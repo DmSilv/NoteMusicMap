@@ -225,7 +225,6 @@ const Map<String, String> kEnB05 = {
   'Mostra de novo os guias de como usar.': 'Shows the how-to guides again.',
   'Sua nota: {0}/5': 'Your rating: {0}/5',
   'Avaliar o app': 'Rate the app',
-  'Pesquisa rápida': 'Quick survey',
   'Link e QR code.': 'Link and QR code.',
   'Licenças': 'Licenses',
   'Atualizada em novembro de 2026': 'Updated in November 2026',

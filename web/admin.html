@@ -52,6 +52,17 @@
     @media (max-width: 560px) { #liveAge { display: none; } }
     .sub { color: var(--dim); font-size: 13px; padding: var(--s8) var(--s16) 0; }
 
+    /* Duas fileiras: as ÁREAS (poucas, grandes) e, embaixo, as telas da área escolhida. */
+    .navwrap { max-width: 1100px; margin: 0 auto; }
+    .groups { display: flex; gap: var(--s8); padding: var(--s8) var(--s12) var(--s4); overflow-x: auto; scrollbar-width: none; }
+    .groups::-webkit-scrollbar { display: none; }
+    .groups button { flex: 1 0 auto; border: 1px solid var(--outline); background: var(--surface); color: var(--dim); font-weight: 800; padding: var(--s8) var(--s16); display: inline-flex; align-items: center; justify-content: center; gap: var(--s8); white-space: nowrap; border-radius: var(--r-pill); min-height: 44px; transition: color .2s, background .2s, border-color .2s; }
+    .groups button:hover { color: var(--text); }
+    .groups button.on { color: var(--accent-ink); background: var(--accent); border-color: transparent; }
+    .groups button .tag { margin: 0; }
+    .groupdesc { color: var(--dim); font-size: 13px; padding: var(--s4) var(--s16) var(--s8); }
+    .tabs button[hidden] { display: none; }
+    .tabs.single { display: none; }
     .tabs { position: relative; display: flex; gap: var(--s4); padding: 0 var(--s12); overflow-x: auto; scrollbar-width: none; max-width: 1100px; margin: 0 auto; }
     .tabs::-webkit-scrollbar { display: none; }
     .tabs button { border: 0; background: transparent; color: var(--dim); font-weight: 700; padding: var(--s12); display: inline-flex; align-items: center; gap: var(--s8); white-space: nowrap; border-radius: var(--r-ctl) var(--r-ctl) 0 0; min-height: 48px; transition: color .2s, background .2s; }
@@ -65,7 +76,8 @@
       .status { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-right: calc(var(--s16) * -1); padding-right: var(--s16); }
       .status::-webkit-scrollbar { display: none; }
       .status .pill { flex: none; }
-      .tabs { position: sticky; top: 0; z-index: 10; max-width: none; margin: 0; background: rgba(15,20,25,.94); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--outline); }
+      .navwrap { position: sticky; top: 0; z-index: 10; max-width: none; margin: 0; background: rgba(15,20,25,.94); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--outline); }
+      .groupdesc { display: none; }
     }
 
     /* ---------- botões e campos ---------- */
@@ -275,6 +287,12 @@
     .ffc .badge.all { color: var(--accent); border-color: rgba(31,230,143,.5); }
     .ffc .badge.off { color: var(--bad); border-color: rgba(255,107,107,.5); }
     .ffc .badge.pct { color: var(--sharp); border-color: rgba(255,146,38,.5); }
+    .helpg { background: var(--surface); border: 1px solid var(--outline); border-radius: var(--r-card); padding: var(--s20); margin-bottom: var(--s16); }
+    .helpg h3 { margin: 0 0 var(--s8); font-size: 17px; }
+    .helpg dl { margin: 0; } .helpg dt { font-weight: 800; margin-top: var(--s12); } .helpg dd { margin: var(--s4) 0 0; color: var(--dim); font-size: 14.5px; }
+    .helpg details { border-top: 1px solid var(--outline); } .helpg details:first-of-type { border-top: 0; }
+    .helpg summary { cursor: pointer; font-weight: 700; min-height: 48px; display: flex; align-items: center; }
+    .helpg details p { margin: 0 0 var(--s12); color: var(--dim); font-size: 14.5px; }
     .nwl { display: block; font-size: 13px; color: var(--dim); margin: var(--s12) 0 var(--s4); }
     #nwForm input[type=text], #nwForm textarea { width: 100%; box-sizing: border-box; }
     .nwen { margin: var(--s12) 0; } .nwen summary { cursor: pointer; color: var(--dim); font-size: 14px; min-height: var(--tap); display: flex; align-items: center; }
@@ -312,6 +330,20 @@
     .cfm li { margin: var(--s4) 0; }
     .cfm input { width: 100%; margin-top: var(--s8); font-weight: 700; letter-spacing: .5px; }
     .cfm input.okk { border-color: var(--accent); }
+    .svrow { cursor: pointer; }
+    .svrow:hover, .svrow:focus-visible { background: var(--surface2); outline: none; }
+    .svrow td:last-child { max-width: 320px; overflow: hidden; text-overflow: ellipsis; }
+    .cfm .svfacts { margin-bottom: var(--s12); }
+    .cfm .svf { display: flex; gap: var(--s12); padding: var(--s4) 0; font-size: 14px; }
+    .cfm .svk { color: var(--dim); min-width: 84px; }
+    .cfm .svans { border-top: 1px solid var(--outline); padding: var(--s12) 0; }
+    .cfm .svq { color: var(--dim); font-size: 13px; margin-bottom: var(--s4); }
+    .cfm .sva { font-size: 15px; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .cfm .svqbox { border: 1px solid var(--outline); border-radius: var(--r-ctl); padding: var(--s12); margin: var(--s12) 0; }
+    .cfm .svqtop { display: flex; gap: var(--s8); align-items: center; flex-wrap: wrap; margin-bottom: var(--s8); }
+    .cfm input[type=text], .cfm textarea, .cfm input[type=datetime-local] { width: 100%; box-sizing: border-box; font-weight: 400; letter-spacing: 0; margin-top: var(--s4); }
+    .cfm input[type=checkbox] { width: auto; margin: 0; }
+    .cfm .nwl { display: block; margin-top: var(--s12); font-size: 13px; color: var(--dim); }
     .cfm .acts { display: flex; gap: var(--s12); margin-top: var(--s20); }
     .cfm .acts button { flex: 1; min-height: 48px; font-weight: 700; border-radius: 14px; position: relative; overflow: hidden; }
     .cfm .acts button.go { background: var(--accent); color: var(--accent-ink); border-color: transparent; transition: opacity .2s, transform .1s; }
@@ -360,7 +392,7 @@
   </style>
 </head>
 <body>
-  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol><symbol id="i-home" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol><symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-chart" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></symbol><symbol id="i-phone" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></symbol><symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol><symbol id="i-bug" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol><symbol id="i-toggle" viewBox="0 0 24 24"><rect x="1" y="5" width="22" height="14" rx="7" ry="7"/><circle cx="16" cy="12" r="3"/></symbol><symbol id="i-coin" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></symbol><symbol id="i-server" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></symbol><symbol id="i-news" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></symbol><symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol><symbol id="i-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol></defs></svg>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol><symbol id="i-home" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol><symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-chart" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></symbol><symbol id="i-phone" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></symbol><symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol><symbol id="i-bug" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol><symbol id="i-toggle" viewBox="0 0 24 24"><rect x="1" y="5" width="22" height="14" rx="7" ry="7"/><circle cx="16" cy="12" r="3"/></symbol><symbol id="i-coin" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></symbol><symbol id="i-server" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></symbol><symbol id="i-news" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></symbol><symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol><symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol><symbol id="i-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol></defs></svg>
   <section id="login">
     <div class="card">
       <div class="logo"><svg class="i" aria-hidden="true"><use href="#i-music"/></svg></div>
@@ -394,21 +426,34 @@
           <button id="out" title="Sair do painel" aria-label="Sair"><svg class="i" aria-hidden="true"><use href="#i-out"/></svg></button>
         </div>
       </header>
-      <nav class="tabs" id="tabs" role="tablist" aria-label="Seções do painel">
+      <div class="navwrap">
+      <div class="groups" id="groups" role="tablist" aria-label="Áreas do painel">
+        <button data-group="inicio" class="on" role="tab" aria-selected="true" title="O resumo do dia: quem está usando agora e se está tudo bem"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg><span>Início</span></button>
+        <button data-group="publico" role="tab" aria-selected="false" title="Quantas pessoas abrem o app, de onde vêm, em que aparelhos e o que mais usam"><svg class="i" aria-hidden="true"><use href="#i-chart"/></svg><span>Quem usa</span></button>
+        <button data-group="pessoas" role="tab" aria-selected="false" title="Cada usuário: perfis e vínculos, respostas da pesquisa e conversas particulares"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg><span>Pessoas</span></button>
+        <button data-group="publicar" role="tab" aria-selected="false" title="O que os usuários veem: boletim de novidades, recursos liberados aos poucos e dedilhados"><svg class="i" aria-hidden="true"><use href="#i-news"/></svg><span>Publicar</span></button>
+        <button data-group="saude" role="tab" aria-selected="false" title="Erros do app, quanto custa manter e o estado do servidor"><svg class="i" aria-hidden="true"><use href="#i-server"/></svg><span>Saúde e custos</span> <span id="bugBadge2" class="tag x" hidden></span></button>
+        <button data-group="ajuda" role="tab" aria-selected="false" title="Para que serve cada tela e respostas para as dúvidas mais comuns"><svg class="i" aria-hidden="true"><use href="#i-help"/></svg><span>Ajuda</span></button>
+      </div>
+      <div class="groupdesc" id="groupDesc"></div>
+      <nav class="tabs" id="tabs" role="tablist" aria-label="Telas da área">
       <button data-tab="overview" class="on" role="tab" aria-selected="true" title="O resumo de tudo: quem usa agora, evolução e saúde do app"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg><span>Visão geral</span></button>
       <button data-tab="visitors" role="tab" aria-selected="false" title="Quem abriu o app hoje, de onde veio e o que fez"><svg class="i" aria-hidden="true"><use href="#i-eye"/></svg><span>Visitantes</span></button>
       <button data-tab="usage" role="tab" aria-selected="false" title="Telas mais usadas e horários mais cheios"><svg class="i" aria-hidden="true"><use href="#i-chart"/></svg><span>Uso</span></button>
       <button data-tab="devices" role="tab" aria-selected="false" title="Celulares, sistemas e navegadores dos usuários"><svg class="i" aria-hidden="true"><use href="#i-phone"/></svg><span>Aparelhos</span></button>
       <button data-tab="people" role="tab" aria-selected="false" title="Perfis, vínculos, suporte e acervo"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg><span>Pessoas</span></button>
       <button data-tab="survey" role="tab" aria-selected="false" title="Notas e respostas da pesquisa rápida: de quem e de qual aparelho"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg><span>Pesquisa</span></button>
+      <button data-tab="chat" role="tab" aria-selected="false" title="Conversas particulares com cada usuário: ele lê em Avisos no app e responde curto"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg><span>Conversas</span> <span id="chBadge" class="tag x" hidden></span></button>
       <button data-tab="bugs" role="tab" aria-selected="false" title="Erros do app e avisos de problema grave"><svg class="i" aria-hidden="true"><use href="#i-bug"/></svg><span>Bugs</span> <span id="bugBadge" class="tag x" hidden></span></button>
       <button data-tab="features" role="tab" aria-selected="false" title="Liberar novidades aos poucos"><svg class="i" aria-hidden="true"><use href="#i-toggle"/></svg><span>Recursos</span></button>
       <button data-tab="news" role="tab" aria-selected="false" title="Boletim do app: escreva, publique, oculte e veja o histórico das novidades que os usuários leem"><svg class="i" aria-hidden="true"><use href="#i-news"/></svg><span>Publicações</span></button>
       <button data-tab="fing" role="tab" aria-selected="false" title="Corrigir ou incluir o dedilhado do violino (método de Flesch) que o app mostra nas partituras"><svg class="i" aria-hidden="true"><use href="#i-music"/></svg><span>Partituras</span></button>
       <button data-tab="costs" role="tab" aria-selected="false" title="Quanto custa manter o app e projeções"><svg class="i" aria-hidden="true"><use href="#i-coin"/></svg><span>Custos</span></button>
       <button data-tab="system" role="tab" aria-selected="false" title="Banco de dados, servidor e chaves configuradas"><svg class="i" aria-hidden="true"><use href="#i-server"/></svg><span>Sistema</span></button>
+        <button data-tab="help" role="tab" aria-selected="false" title="Guia do painel: para que serve cada tela e as dúvidas mais comuns"><svg class="i" aria-hidden="true"><use href="#i-help"/></svg><span>Guia</span></button>
         <span class="tab-ind" id="tabInd"></span>
       </nav>
+      </div>
     </div>
 
     <!-- ===== Visão geral ===== -->
@@ -570,19 +615,49 @@
     <!-- ===== Pesquisa ===== -->
     <main id="tab-survey" hidden>
       <h2>Pesquisa e notas</h2>
-      <p class="lead">O que as pessoas responderam na pesquisa rápida e na nota do app, de quem veio (perfil) e de qual aparelho. Respostas antigas ganham o dono quando o aparelho abre o app de novo.</p>
-      <div class="toolbar">
-        <label class="empty">Mostrar <select id="svKind"><option value="">Tudo</option><option value="survey">Só pesquisa</option><option value="rating">Só notas</option></select></label>
-        <label class="empty">Pergunta <select id="svQ"><option value="">Todas</option></select></label>
-        <label class="empty"><input type="checkbox" id="svOwner"> só com dono</label>
-        <button id="svReload">Atualizar</button><span class="empty" id="svNote"></span>
-      </div>
+      <p class="lead">Cada envio de pesquisa é UMA participação, com tudo o que a pessoa respondeu. Toque numa linha para abrir. Aqui também você cria as pesquisas e escolhe quando liberar e quando retirar do app.</p>
       <div class="two">
-        <div class="card"><div class="k">Respostas</div><div class="v" id="svTotal">–</div><div class="s" id="svOwned"></div></div>
+        <div class="card"><div class="k">Participações</div><div class="v" id="svTotal">–</div><div class="s" id="svOwned"></div></div>
         <div class="card"><div class="k">Nota média</div><div class="v" id="svAvg">–</div><div class="s" id="svAvgS"></div></div>
       </div>
-      <div class="card"><div class="k">O que mais usam (pesquisa)</div><div id="svMost"></div></div>
-      <div class="card"><div class="k">Respostas</div><div style="overflow-x:auto"><table id="svTable"><thead><tr><th>Quando</th><th>Quem</th><th>Aparelho</th><th>Resposta</th></tr></thead><tbody></tbody></table></div></div>
+      <h2>Pesquisas no app</h2>
+      <p class="lead">O app mostra só a pesquisa ativa (uma de cada vez). Liberar e retirar chegam aos aparelhos em até 5 minutos. Cada aparelho responde 1 vez a cada pesquisa e no máximo 3 pesquisas por mês.</p>
+      <div class="toolbar"><button class="primary" id="svNew">Nova pesquisa</button><span class="empty" id="svNote"></span></div>
+      <div id="svDefs"></div>
+      <h2>Participações</h2>
+      <p class="lead">O que cada pessoa respondeu, de quem veio (perfil) e de qual aparelho. Respostas antigas ganham o dono quando o aparelho abre o app de novo.</p>
+      <div class="toolbar">
+        <label class="empty">Mostrar <select id="svKind"><option value="">Tudo</option><option value="survey">Só pesquisa</option><option value="rating">Só notas</option></select></label>
+        <label class="empty">Pesquisa <select id="svQ"><option value="">Todas</option></select></label>
+        <label class="empty"><input type="checkbox" id="svOwner"> só com dono</label>
+        <button id="svReload">Atualizar</button>
+      </div>
+      <div class="card"><div class="k">O que mais usam (pesquisa rápida)</div><div id="svMost"></div></div>
+      <div class="card"><div class="k">Toque numa linha para ver tudo</div><div style="overflow-x:auto"><table id="svTable"><thead><tr><th>Quando</th><th>Quem</th><th>Aparelho</th><th>Resumo</th></tr></thead><tbody></tbody></table></div></div>
+    </main>
+
+    <!-- ===== Conversas com usuários ===== -->
+    <main id="tab-chat" hidden>
+      <h2>Conversas com usuários</h2>
+      <p class="lead">Escreva para um usuário: a mensagem aparece só para ele, em Avisos no app (chega na próxima sincronização, sem custo extra). Ele responde curto e a resposta volta aqui. O usuário não puxa conversa: só responde ao que você escreveu. Para responder uma sugestão, toque em "Responder" na participação (aba Pesquisa) ou em "Conversar" na ficha da pessoa (aba Pessoas).</p>
+      <div class="toolbar">
+        <input type="text" id="chCode" placeholder="Código do perfil, ex.: K7QM-4TXD" maxlength="9" autocomplete="off" aria-label="Código do perfil" style="max-width:260px">
+        <button class="primary" id="chNew">Escrever</button>
+        <button id="chReload">Atualizar</button>
+        <span class="empty" id="chNote"></span>
+      </div>
+      <div class="ffc" id="chThread" hidden>
+        <h3 id="chHead"></h3>
+        <div class="d" id="chSub"></div>
+        <div id="chMsgs"></div>
+        <label class="nwl" for="chText">Mensagem (até 600 letras)</label>
+        <div class="empty" id="chRef" hidden></div>
+        <textarea id="chText" maxlength="600" rows="4"></textarea>
+        <div class="sub" style="padding:0" id="chCount">0 / 600</div>
+        <label class="empty"><input type="checkbox" id="chAsk"> Pedir licença para citar o apelido da pessoa no boletim (ela escolhe no app)</label>
+        <div class="add"><button class="primary" id="chSend">Enviar</button><button id="chResolve">Marcar como resolvida</button><button class="danger" id="chDel">Apagar conversa</button><button id="chClose">Fechar</button></div>
+      </div>
+      <div id="chBox"><div class="empty">Carregando…</div></div>
     </main>
 
     <!-- ===== Aparelhos ===== -->
@@ -643,6 +718,34 @@
       <div id="ffBox"><div class="empty">Carregando…</div></div>
     </main>
 
+    <!-- ===== Guia do painel ===== -->
+    <main id="tab-help" hidden>
+      <h2>Guia do painel</h2>
+      <p class="lead">O painel tem 5 áreas. Cada uma responde a uma pergunta. Se bater dúvida, procure aqui a pergunta que você tem em mente.</p>
+      <div class="helpg">
+        <h3>Para que serve cada área</h3>
+        <dl>
+          <dt>Início</dt><dd>"Está tudo bem?" O resumo do dia: quem está usando agora, quantos usuários e os sinais de alerta.</dd>
+          <dt>Quem usa</dt><dd>"Quem é o meu público?" <b>Visitantes</b> (quem abriu hoje e de onde veio), <b>Uso</b> (telas mais usadas e horários cheios) e <b>Aparelhos</b> (celulares, sistemas, navegadores e versão do app).</dd>
+          <dt>Pessoas</dt><dd>"Quem é fulano e o que ele disse?" <b>Pessoas</b> (achar um perfil pelo código, vínculos, suporte, bloquear ou excluir), <b>Pesquisa</b> (notas e respostas, de quem e de qual aparelho) e <b>Conversas</b> (mensagem particular com um usuário).</dd>
+          <dt>Publicar</dt><dd>"O que eu mostro aos usuários?" <b>Publicações</b> (o boletim de novidades), <b>Recursos</b> (liberar funções novas aos poucos) e <b>Partituras</b> (corrigir o dedilhado do violino).</dd>
+          <dt>Saúde e custos</dt><dd>"O app está bem e quanto custa?" <b>Bugs</b> (erros e avisos graves), <b>Custos</b> (gasto do mês e projeções) e <b>Sistema</b> (banco de dados, servidor e chaves).</dd>
+        </dl>
+      </div>
+      <div class="helpg">
+        <h3>Dúvidas comuns</h3>
+        <details><summary>Quero avisar todo mundo de uma novidade</summary><p>Publicar › Publicações. Escreva o texto (ou use uma sugestão pronta, que vira rascunho), confira e toque em Publicar. Chega aos aparelhos em até 5 minutos. Nada é publicado sozinho. Se errar, use Ocultar (fica guardado no histórico) ou Excluir (some de vez).</p></details>
+        <details><summary>Quero falar só com uma pessoa</summary><p>Pessoas › Conversas. A mensagem aparece só para ela, em Avisos dentro do app, e ela responde curto. A resposta volta para a mesma conversa.</p></details>
+        <details><summary>Um usuário disse que deu erro</summary><p>Saúde e custos › Bugs. Peça o código que o app mostra no aviso de erro e procure por ele. Erros graves também mostram um número vermelho na área Saúde e custos.</p></details>
+        <details><summary>Quero liberar uma função nova só para um professor</summary><p>Publicar › Recursos. Deixe o recurso em "Só liberados" e digite o código do professor (com os alunos vinculados, se quiser). "Desligado" vale para todos, até para quem está na lista.</p></details>
+        <details><summary>Quanto estou gastando e vai caber no plano grátis?</summary><p>Saúde e custos › Custos. Mostra o uso do mês do banco de dados e o que mudaria com mais usuários.</p></details>
+        <details><summary>Alguém perdeu o celular ou a conta</summary><p>A conta abre em até 5 aparelhos e a pessoa mesma tira o antigo em Minha conta › Aparelhos. Entrando de novo pela chave de recuperação ou pelo e-mail, ela volta a ter acesso. Em Pessoas você acha o perfil pelo código e vê o estado dele.</p></details>
+        <details><summary>O que quer dizer "online agora"?</summary><p>É quem mandou sinal do app nos últimos 12 minutos. Quem fechou o app sai da conta aos poucos.</p></details>
+        <details><summary>Quero saber quem respondeu a pesquisa</summary><p>Pessoas › Pesquisa. Cada resposta mostra o perfil, o aparelho e quando foi enviada.</p></details>
+        <details><summary>Não sei qual tela usar</summary><p>Passe o dedo (ou o mouse) sobre o nome de cada área e de cada tela: aparece uma frase dizendo o que ela mostra. Embaixo do título de cada tela também há uma frase explicando.</p></details>
+      </div>
+    </main>
+
     <!-- ===== Publicações (boletim do app) ===== -->
     <main id="tab-news" hidden>
       <h2>Boletim do app</h2>
@@ -654,6 +757,13 @@
         <label class="nwl" for="nwB">Texto (curto, até 420 letras)</label>
         <textarea id="nwB" maxlength="420" rows="4"></textarea>
         <div class="sub" style="padding:0" id="nwCount">0 / 420</div>
+        <label class="nwl" for="nwFb">Rótulo de feedback (opcional)</label>
+        <select id="nwFb"><option value="">Nenhum</option><option value="idea">Sugestão de usuário que virou melhoria</option><option value="fix">Correção feita a partir de feedback</option></select>
+        <div id="nwFbBox" hidden>
+          <label class="nwl" for="nwFbc">Código de quem sugeriu (só para citar o apelido; vazio = "um usuário")</label>
+          <input type="text" id="nwFbc" maxlength="9" autocomplete="off" placeholder="K7QM-4TXD">
+          <div class="sub" style="padding:0">O apelido só sai se a pessoa aceitou na conversa (pedido de licença). Sem aceite o painel recusa e a publicação fica anônima.</div>
+        </div>
         <details class="nwen"><summary>Versão em inglês (opcional)</summary>
           <label class="nwl" for="nwTe">Título em inglês</label>
           <input type="text" id="nwTe" maxlength="60" autocomplete="off">
@@ -908,6 +1018,7 @@
     nwEdit = it ? it.id : null;
     $('nwT').value = it ? it.t : ''; $('nwB').value = it ? it.b : '';
     $('nwTe').value = it ? it.te || '' : ''; $('nwBe').value = it ? it.be || '' : '';
+    $('nwFb').value = it ? it.fb || '' : ''; $('nwFbc').value = ''; $('nwFbBox').hidden = !$('nwFb').value;
     $('nwFormTitle').textContent = it ? 'Editando "' + it.t + '"' : 'Nova publicação';
     $('nwSave').textContent = it ? 'Salvar alterações' : 'Salvar rascunho';
     $('nwCancel').hidden = !it;
@@ -926,7 +1037,7 @@
     var h = document.createElement('h3'); h.appendChild(document.createTextNode(it.t));
     var bd = document.createElement('span'); bd.className = 'badge ' + (it.st === 'live' ? 'live' : it.st === 'off' ? 'off' : ''); bd.textContent = NW_ST[it.st]; h.appendChild(bd); c.appendChild(h);
     var d = document.createElement('div'); d.className = 'd';
-    d.textContent = (it.p ? 'Publicada em ' + nwDate(it.p) + ' · ' : 'Nunca publicada · ') + 'alterada em ' + nwDate(it.u) + (it.te ? ' · tem versão em inglês' : ''); c.appendChild(d);
+    d.textContent = (it.p ? 'Publicada em ' + nwDate(it.p) + ' · ' : 'Nunca publicada · ') + 'alterada em ' + nwDate(it.u) + (it.te ? ' · tem versão em inglês' : '') + (it.fb ? ' · rótulo: ' + (it.fb === 'fix' ? 'correção a partir de feedback' : 'sugestão que virou melhoria') + ' (' + (it.fn ? 'cita ' + it.fn : 'anônimo, "um usuário"') + ')' : ''); c.appendChild(d);
     var body = document.createElement('div'); body.className = 'body'; body.textContent = it.b; c.appendChild(body);
     var a = document.createElement('div'); a.className = 'acts';
     if (it.st !== 'live') a.appendChild(nwBtn(it.st === 'off' ? 'Publicar de novo' : 'Publicar', 'primary', function () {
@@ -972,8 +1083,11 @@
   }
   $('nwB').oninput = function () { $('nwCount').textContent = $('nwB').value.length + ' / 420'; };
   $('nwCancel').onclick = function () { nwFill(null); };
+  $('nwFb').onchange = function () { $('nwFbBox').hidden = !$('nwFb').value; };
   $('nwSave').onclick = function () {
-    var body = { action: 'news_save', t: $('nwT').value, b: $('nwB').value, te: $('nwTe').value, be: $('nwBe').value };
+    var body = { action: 'news_save', t: $('nwT').value, b: $('nwB').value, te: $('nwTe').value, be: $('nwBe').value, fb: $('nwFb').value };
+    if ($('nwFb').value && $('nwFbc').value.trim()) body.fbc = $('nwFbc').value.trim().toUpperCase();
+    else if (nwEdit && !$('nwFb').value) body.fbc = '';
     if (nwEdit) body.id = nwEdit;
     if (!body.t.trim() || !body.b.trim()) { toast('Escreva o título e o texto.', 'bad'); return; }
     nwDo(body, nwEdit ? 'Alterações salvas.' : 'Rascunho salvo.').then(function (ok) { if (ok) nwFill(null); });
@@ -1478,6 +1592,7 @@
     var main = el('div', 'phm');
     main.appendChild(el('h3', '', p.name || 'Sem apelido'));
     var cd = el('button', 'codechip', p.code); cd.title = 'Copiar o código'; cd.onclick = function () { copyText(p.code); }; main.appendChild(cd);
+    var cv = el('button', 'codechip', 'Conversar'); cv.title = 'Escrever para esta pessoa (aparece só para ela, em Avisos no app)'; cv.onclick = function () { window.openChat(p.code, ''); }; main.appendChild(cv);
     var tags = el('div', 'phtags');
     if (d.students.length) tags.appendChild(tag('Professor', 't'));
     if (d.teachers.length) tags.appendChild(tag(d.students.length ? 'Também é aluno' : 'Aluno', 's'));
@@ -1715,7 +1830,7 @@
     $('bRate').textContent = sm.opensToday >= 20 ? (Math.round((sm.today.total / sm.opensToday) * 1000) / 10).toLocaleString('pt-BR') : '–';
     setNum('bTwoH', sm.last2h);
     $('bSpike').textContent = sm.last2h >= 5 && sm.last2h > (sm.today.total / 24) * 4 ? 'Pico: bem acima da média de hoje' : 'Dentro do normal';
-    var alerts = sm.criticalOpen + sm.reopened, bb = $('bugBadge'); bb.hidden = alerts === 0; bb.textContent = String(alerts);
+    var alerts = sm.criticalOpen + sm.reopened, bb = $('bugBadge'); bb.hidden = alerts === 0; bb.textContent = String(alerts); var bb2 = $('bugBadge2'); if (bb2) { bb2.hidden = alerts === 0; bb2.textContent = String(alerts); }
     bars($('bHours'), sm.hours, sm.hours.map(function (v, i) { return i + 'h'; }), false);
     fill($('fVer'), j.filters.versions, 'Toda versão'); fill($('fPlat'), j.filters.platforms, 'Toda plataforma'); fill($('fCode'), j.filters.codes, 'Todo código');
     var body = $('bRows'); body.innerHTML = '';
@@ -1971,6 +2086,8 @@
     }).catch(function () { $('svNote').textContent = 'Sem conexão com o servidor.'; });
   }
   var QNAME = { mais_usa: 'O que mais usa', melhorar: 'O que melhorar' };
+  var SV_ST = { draft: 'Rascunho', scheduled: 'Agendada', active: 'Ativa no app', closed: 'Encerrada' };
+  var SV_EV = { create: 'Criada', edit: 'Alterada', draft: 'Voltou a rascunho', live: 'Liberada', off: 'Encerrada' };
   function svWho(x) {
     if (!x.code) return 'aparelho anônimo (' + x.dev.slice(0, 6) + ')';
     var w = x.who, s = (w && w.name ? w.name + ' · ' : '') + x.code;
@@ -1982,19 +2099,156 @@
     var parts = [w.md || (w.mob ? 'celular' : 'computador'), w.os, w.br && w.br.replace(/\d+$/, ''), w.city || w.region].filter(Boolean);
     return (parts.length ? parts.join(' · ') : (x.plat || '—')) + (x.ver ? ' · v' + x.ver : '');
   }
+  function svWhen(ms) { return ms ? new Date(ms).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : ''; }
+  function svTitle(x) { return x.kind === 'rating' ? 'Nota do app' : (x.svt || (x.sv ? 'Pesquisa ' + x.sv : 'Pesquisa rápida')); }
+  function svSummary(x) {
+    if (x.kind === 'rating') return '★'.repeat(x.r) + (x.c ? ' — ' + x.c : '');
+    return x.answers.map(function (y) { return y.a; }).join(' · ');
+  }
+  function svEl(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  /* Janela (mesmo visual da confirmação) para ver a participação e editar a pesquisa. */
+  function svModal(title, build) {
+    var back = svEl('div', 'cfm-back'); back.setAttribute('role', 'dialog'); back.setAttribute('aria-modal', 'true');
+    var m = svEl('div', 'cfm'); back.appendChild(m);
+    m.appendChild(svEl('h3', '', title));
+    var closed = false;
+    function close() { if (closed) return; closed = true; document.removeEventListener('keydown', onKey, true); back.classList.remove('on'); setTimeout(function () { if (back.parentNode) back.parentNode.removeChild(back); }, 220); }
+    function onKey(e) { if (e.key === 'Escape') { e.preventDefault(); close(); } }
+    document.addEventListener('keydown', onKey, true);
+    back.onclick = function (e) { if (e.target === back) close(); };
+    build(m, close);
+    document.body.appendChild(back);
+    requestAnimationFrame(function () { back.classList.add('on'); });
+    return close;
+  }
+  function svOpenPart(x) {
+    svModal(svTitle(x), function (m, close) {
+      var facts = svEl('div', 'svfacts');
+      [['Quando', svWhen(Date.parse(x.t))], ['Quem', svWho(x)], ['Aparelho', svDev(x)], ['Pesquisa', x.kind === 'rating' ? 'Nota do app' : svTitle(x)]].forEach(function (p) {
+        var r = svEl('div', 'svf'); r.appendChild(svEl('span', 'svk', p[0])); r.appendChild(svEl('span', '', p[1])); facts.appendChild(r);
+      });
+      m.appendChild(facts);
+      if (x.kind === 'rating') {
+        var b = svEl('div', 'svans'); b.appendChild(svEl('div', 'svq', 'Nota')); b.appendChild(svEl('div', 'sva', '★'.repeat(x.r) + ' (' + x.r + ' de 5)')); m.appendChild(b);
+        if (x.c) { var c = svEl('div', 'svans'); c.appendChild(svEl('div', 'svq', 'Comentário')); c.appendChild(svEl('div', 'sva', x.c)); m.appendChild(c); }
+      }
+      x.answers.forEach(function (y) {
+        var b = svEl('div', 'svans'); b.appendChild(svEl('div', 'svq', y.qt || QNAME[y.q] || y.q)); b.appendChild(svEl('div', 'sva', y.a)); m.appendChild(b);
+      });
+      var acts = svEl('div', 'acts');
+      if (x.code) {
+        var ans = x.answers.filter(function (y) { return y.a && y.a.length > 20; }).pop();
+        var rb = svEl('button', '', 'Responder'); rb.title = 'Escrever para esta pessoa (só ela vê, em Avisos no app)';
+        rb.onclick = function () { close(); window.openChat(x.code, x.c || (ans && ans.a) || ''); }; acts.appendChild(rb);
+      }
+      var ok = svEl('button', 'go', 'Fechar'); ok.onclick = close; acts.appendChild(ok); m.appendChild(acts);
+    });
+  }
+  function svDo(body, okMsg) {
+    return post(body).then(function (r) {
+      if (r.status === 200) { toast(okMsg, 'ok'); loadSurvey(); loadLog(); return true; }
+      toast('Não foi possível: ' + why(r), 'bad'); return false;
+    }).catch(function () { toast('Sem conexão com o servidor. Nada foi alterado.', 'bad'); return false; });
+  }
+  function svBtn(label, cls, fn) { var b = svEl('button', cls || '', label); b.onclick = fn; return b; }
+  function svCard(d) {
+    var c = svEl('div', 'ffc nwi');
+    var h = svEl('h3', '', d.t);
+    h.appendChild(svEl('span', 'badge ' + (d.status === 'active' ? 'live' : d.status === 'closed' ? 'off' : ''), SV_ST[d.status]));
+    c.appendChild(h);
+    var parts = [d.qs.length + ' pergunta(s)', d.count + ' participação(ões)'];
+    if (d.status === 'scheduled') parts.push('libera em ' + svWhen(d.from));
+    else if (d.from && d.status === 'active') parts.push('liberada em ' + svWhen(d.from));
+    if (d.to && d.st === 'live') parts.push((d.status === 'closed' ? 'retirada em ' : 'retira em ') + svWhen(d.to));
+    c.appendChild(svEl('div', 'd', parts.join(' · ')));
+    var a = svEl('div', 'acts');
+    if (d.st !== 'live') a.appendChild(svBtn(d.st === 'off' ? 'Liberar de novo' : 'Liberar', 'primary', function () {
+      askConfirm({ title: 'Liberar "' + d.t + '"?', body: d.from && d.from > Date.now() ? 'Ela aparece no app a partir de ' + svWhen(d.from) + '.' : 'Os usuários passam a ver o convite no app.', facts: ['Chega aos aparelhos em até 5 minutos.', 'Se outra pesquisa estiver ativa, vale a liberada por último.', 'Dá para encerrar quando quiser.'], ok: 'Liberar' }).then(function (y) { if (y) svDo({ action: 'sv_state', id: d.id, st: 'live' }, 'Liberada.'); });
+    }));
+    if (d.st === 'live') a.appendChild(svBtn('Retirar do app', '', function () {
+      askConfirm({ title: 'Retirar "' + d.t + '" do app?', body: 'Ela deixa de aparecer. As respostas e o histórico continuam aqui.', facts: ['Quem já está com a janela aberta ainda consegue enviar.', 'Dá para liberar de novo.'], ok: 'Retirar' }).then(function (y) { if (y) svDo({ action: 'sv_state', id: d.id, st: 'off' }, 'Retirada.'); });
+    }));
+    a.appendChild(svBtn('Editar', '', function () { svEditor(d); }));
+    a.appendChild(svBtn('Histórico', '', function () { svHistory(d); }));
+    a.appendChild(svBtn('Excluir', '', function () {
+      askConfirm({ title: 'Excluir "' + d.t + '"?', body: 'Some do app e do histórico. As respostas já enviadas continuam em Participações.', facts: ['Não dá para desfazer.'], ok: 'Excluir', danger: true }).then(function (y) { if (y) svDo({ action: 'sv_delete', id: d.id }, 'Excluída.'); });
+    }));
+    c.appendChild(a); return c;
+  }
+  function svHistory(d) {
+    svModal('Histórico de "' + d.t + '"', function (m, close) {
+      var h = (d.h || []).slice().reverse();
+      if (!h.length) m.appendChild(svEl('p', 'why', 'Sem eventos ainda.'));
+      h.forEach(function (e) { var r = svEl('div', 'svf'); r.appendChild(svEl('span', 'svk', svWhen(e.t))); r.appendChild(svEl('span', '', SV_EV[e.e] || e.e)); m.appendChild(r); });
+      var acts = svEl('div', 'acts'); var ok = svEl('button', 'go', 'Fechar'); ok.onclick = close; acts.appendChild(ok); m.appendChild(acts);
+    });
+  }
+  function svLocal(ms) { if (!ms) return ''; var d = new Date(ms - new Date(ms).getTimezoneOffset() * 60000); return d.toISOString().slice(0, 16); }
+  function svEditor(d) {
+    var lim = svData.limits, isNew = !d.id;
+    svModal(isNew ? 'Nova pesquisa' : 'Editar "' + d.t + '"', function (m, close) {
+      function field(label, el) { var l = svEl('label', 'nwl', label); m.appendChild(l); m.appendChild(el); return el; }
+      function txt(v, max) { var i = svEl('input'); i.type = 'text'; i.maxLength = max; i.value = v || ''; i.autocomplete = 'off'; return i; }
+      var t = field('Título (até ' + lim.title + ' letras)', txt(d.t, lim.title));
+      var te = field('Título em inglês (opcional)', txt(d.te, lim.title));
+      var box = svEl('div'); m.appendChild(box);
+      var rows = [];
+      function addQ(q) {
+        var w = svEl('div', 'svqbox'); var r = {};
+        var top = svEl('div', 'svqtop'); w.appendChild(top);
+        r.k = svEl('select'); [['choice', 'Escolher uma opção'], ['text', 'Texto livre']].forEach(function (o) { var op = svEl('option', '', o[1]); op.value = o[0]; r.k.appendChild(op); });
+        r.k.value = q.k || 'choice'; top.appendChild(r.k);
+        var rl = svEl('label', 'empty'); r.r = svEl('input'); r.r.type = 'checkbox'; r.r.checked = !!q.r; rl.appendChild(r.r); rl.appendChild(document.createTextNode(' obrigatória')); top.appendChild(rl);
+        var del = svEl('button', '', 'Remover'); top.appendChild(del);
+        r.id = q.id || '';
+        r.q = txt(q.q, lim.q); r.q.placeholder = 'Pergunta'; w.appendChild(r.q);
+        r.qe = txt(q.qe, lim.q); r.qe.placeholder = 'Pergunta em inglês (opcional)'; w.appendChild(r.qe);
+        r.o = svEl('textarea'); r.o.rows = 4; r.o.placeholder = 'Uma opção por linha. Em inglês: opção | english'; r.o.value = (q.o || []).map(function (o) { return o.e ? o.v + ' | ' + o.e : o.v; }).join('\n'); w.appendChild(r.o);
+        function sync() { r.o.hidden = r.k.value !== 'choice'; }
+        r.k.onchange = sync; sync();
+        del.onclick = function () { rows.splice(rows.indexOf(r), 1); box.removeChild(w); };
+        rows.push(r); box.appendChild(w);
+      }
+      (d.qs && d.qs.length ? d.qs : [{ k: 'choice' }]).forEach(addQ);
+      var add = svEl('button', '', 'Adicionar pergunta'); add.onclick = function () { if (rows.length >= lim.questions) { toast('O limite é ' + lim.questions + ' perguntas.', 'bad'); return; } addQ({ k: 'text' }); };
+      m.appendChild(add);
+      var from = field('Liberar em (opcional; vazio = ao tocar em Liberar)', svEl('input')); from.type = 'datetime-local'; from.value = svLocal(d.from);
+      var to = field('Retirar em (opcional)', svEl('input')); to.type = 'datetime-local'; to.value = svLocal(d.to);
+      m.appendChild(svEl('p', 'why', 'As datas só valem depois de tocar em Liberar. Chegam aos aparelhos em até 5 minutos de diferença.'));
+      var acts = svEl('div', 'acts'); m.appendChild(acts);
+      var no = svEl('button', '', 'Cancelar'); no.onclick = close; acts.appendChild(no);
+      var go = svEl('button', 'go', isNew ? 'Salvar rascunho' : 'Salvar'); acts.appendChild(go);
+      go.onclick = function () {
+        var qs = rows.map(function (r) {
+          var o = r.k.value === 'choice' ? r.o.value.split('\n').map(function (l) { var p = l.split('|'); return { v: p[0].trim(), e: (p[1] || '').trim() }; }).filter(function (x) { return x.v; }) : [];
+          return { id: r.id, k: r.k.value, q: r.q.value, qe: r.qe.value, r: r.r.checked, o: o };
+        });
+        if (!t.value.trim()) { toast('Escreva o título.', 'bad'); return; }
+        var body = { action: 'sv_save', t: t.value, te: te.value, qs: qs, from: from.value ? new Date(from.value).getTime() : 0, to: to.value ? new Date(to.value).getTime() : 0 };
+        if (d.id) body.id = d.id; else if (d.k) body.k = d.k;
+        svDo(body, d.id ? 'Alterações salvas.' : 'Rascunho salvo.').then(function (ok) { if (ok) close(); });
+      };
+    });
+  }
   function renderSurvey() {
     if (!svData) return;
     var kind = $('svKind').value, q = $('svQ').value, own = $('svOwner').checked;
-    var qs = {}; svData.rows.forEach(function (x) { if (x.kind === 'survey') qs[x.q] = 1; });
     var sel = $('svQ'), keep = sel.value;
-    if (sel.options.length - 1 !== Object.keys(qs).length) {
-      sel.innerHTML = ''; var o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Todas'; sel.appendChild(o0);
-      Object.keys(qs).forEach(function (k) { var o = document.createElement('option'); o.value = k; o.textContent = QNAME[k] || k; sel.appendChild(o); });
-      sel.value = keep;
-    }
-    var rows = svData.rows.filter(function (x) { return (!kind || x.kind === kind) && (!q || x.q === q) && (!own || x.code); });
-    $('svTotal').textContent = fmt(svData.total);
-    $('svOwned').textContent = fmt(svData.withOwner) + ' com dono nas últimas ' + fmt(svData.rows.length);
+    var defs = svData.defs || [];
+    sel.innerHTML = ''; var o0 = document.createElement('option'); o0.value = ''; o0.textContent = 'Todas'; sel.appendChild(o0);
+    defs.forEach(function (d) { var o = document.createElement('option'); o.value = d.id; o.textContent = d.t; sel.appendChild(o); });
+    sel.value = keep;
+    var box = $('svDefs'); box.innerHTML = '';
+    (svData.suggestions || []).forEach(function (sg) {
+      var c = svEl('div', 'ffc nwi'); c.appendChild(svEl('h3', '', sg.t + ' (modelo pronto)'));
+      c.appendChild(svEl('div', 'd', 'A pesquisa rápida que o app já usava (o que mais usa e o que melhorar). Só vira rascunho quando você tocar em Usar.'));
+      var a = svEl('div', 'acts'); a.appendChild(svBtn('Usar como rascunho', 'primary', function () { svDo({ action: 'sv_save', t: sg.t, te: sg.te, qs: sg.qs, k: sg.k }, 'Virou rascunho.'); })); c.appendChild(a); box.appendChild(c);
+    });
+    if (!defs.length && !(svData.suggestions || []).length) box.appendChild(svEl('div', 'empty', 'Nenhuma pesquisa criada. Sem pesquisa ativa, o app não mostra o convite.'));
+    defs.forEach(function (d) { box.appendChild(svCard(d)); });
+    var rows = svData.parts.filter(function (x) { return (!kind || x.kind === kind) && (!q || x.sv === q) && (!own || x.code); });
+    $('svTotal').textContent = fmt(svData.totalParts);
+    $('svOwned').textContent = fmt(svData.withOwner) + ' com dono nas últimas ' + fmt(svData.parts.length);
     var rt = svData.summary.rating;
     $('svAvg').textContent = rt.average == null ? '–' : String(rt.average).replace('.', ',') + ' ★';
     $('svAvgS').textContent = rt.count + ' aparelho(s) deram nota';
@@ -2007,17 +2261,20 @@
     var tb = $('svTable').querySelector('tbody'); tb.innerHTML = '';
     if (!rows.length) { var tr0 = document.createElement('tr'); var td0 = document.createElement('td'); td0.colSpan = 4; td0.className = 'empty'; td0.textContent = 'Nada por aqui com estes filtros.'; tr0.appendChild(td0); tb.appendChild(tr0); }
     rows.forEach(function (x) {
-      var tr = document.createElement('tr');
-      var c1 = document.createElement('td'); c1.textContent = new Date(x.t).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-      var c2 = document.createElement('td'); c2.textContent = svWho(x);
-      var c3 = document.createElement('td'); c3.textContent = svDev(x);
-      var c4 = document.createElement('td');
-      c4.textContent = x.kind === 'rating' ? ('★'.repeat(x.r) + (x.c ? ' — ' + x.c : '')) : ((QNAME[x.q] || x.q) + ': ' + x.a);
-      tr.appendChild(c1); tr.appendChild(c2); tr.appendChild(c3); tr.appendChild(c4); tb.appendChild(tr);
+      var tr = document.createElement('tr'); tr.className = 'svrow'; tr.tabIndex = 0; tr.setAttribute('role', 'button');
+      var c1 = svEl('td', '', svWhen(Date.parse(x.t)));
+      var c2 = svEl('td', '', svWho(x));
+      var c3 = svEl('td', '', svDev(x));
+      var c4 = svEl('td', '', (x.kind === 'rating' ? '' : svTitle(x) + ': ') + svSummary(x));
+      tr.appendChild(c1); tr.appendChild(c2); tr.appendChild(c3); tr.appendChild(c4);
+      tr.onclick = function () { svOpenPart(x); };
+      tr.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); svOpenPart(x); } };
+      tb.appendChild(tr);
     });
   }
   ['svKind', 'svQ', 'svOwner'].forEach(function (id) { $(id).onchange = renderSurvey; });
   $('svReload').onclick = loadSurvey;
+  $('svNew').onclick = function () { if (svData) svEditor({ t: '', qs: [] }); };
 
   function loadDevices() {
     var days = $('devDays').value;
@@ -2305,11 +2562,124 @@
   }
   $('fgLoad').onclick = function () { fgLoadRows(false); };
 
+  // ---------------- Conversas com usuários ----------------
+  var chCur = null, chRefText = '';
+  var CH_CODE = /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$/;
+  function chBadge(n) { var b = $('chBadge'); b.hidden = !n; b.textContent = n ? String(n) : ''; }
+  function loadChat() {
+    var box = $('chBox'); $('chNote').textContent = 'Carregando…';
+    post({ action: 'inbox_list' }).then(function (r) {
+      if (r.status !== 200) { if (!fail(r.status)) $('chNote').textContent = 'Não foi possível carregar: ' + why(r); return; }
+      $('chNote').textContent = r.j.total + ' conversa(s)' + (r.j.unread ? ' · ' + r.j.unread + ' com resposta nova' : '');
+      chBadge(r.j.unread); box.innerHTML = '';
+      if (!r.j.items.length) { box.appendChild(el('div', 'empty', 'Nenhuma conversa ainda. Escreva um código acima ou toque em "Responder" numa participação da aba Pesquisa.')); return; }
+      r.j.items.forEach(function (it) {
+        var c = el('div', 'ffc nwi'); c.style.cursor = 'pointer'; c.tabIndex = 0; c.setAttribute('role', 'button');
+        var h = el('h3', '', it.name || 'Sem apelido');
+        h.appendChild(el('span', 'badge', it.code));
+        if (it.n > 0) h.appendChild(tag(it.n + ' resposta(s) nova(s)', 'x'));
+        h.appendChild(el('span', 'badge ' + (it.s === 'done' ? 'off' : 'live'), it.s === 'done' ? 'Resolvida' : 'Aberta'));
+        if (it.c === 1) h.appendChild(tag('Aceitou ser citado', 'ok')); else if (it.c === 0) h.appendChild(tag('Prefere anônimo'));
+        c.appendChild(h);
+        c.appendChild(el('div', 'd', (it.f === 'u' ? 'Respondeu: ' : 'Você: ') + it.x + ' · ' + ago(it.t)));
+        c.onclick = function () { chOpen(it.code, ''); };
+        c.onkeydown = function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); chOpen(it.code, ''); } };
+        box.appendChild(c);
+      });
+    }).catch(function () { $('chNote').textContent = 'Sem conexão com o servidor.'; });
+  }
+  function chRender(j) {
+    chCur = j.code;
+    var t = $('chThread'); t.hidden = false;
+    $('chHead').textContent = (j.name || 'Sem apelido') + ' · ' + j.code;
+    $('chSub').textContent = (j.s === 'done' ? 'Resolvida' : 'Aberta') + (j.ok === 1 ? ' · aceitou ser citado no boletim' : j.ok === 0 ? ' · prefere ficar anônimo' : '') + ' · só esta pessoa vê o que você escreve aqui.';
+    $('chResolve').textContent = j.s === 'done' ? 'Reabrir' : 'Marcar como resolvida';
+    var m = $('chMsgs'); m.innerHTML = '';
+    if (!j.m.length) m.appendChild(el('div', 'empty', 'Ainda sem mensagens. Escreva a primeira abaixo.'));
+    j.m.forEach(function (x) {
+      var b = el('div', 'body'); b.style.margin = '0 0 8px'; b.style.textAlign = x.f === 'a' ? 'left' : 'right';
+      if (x.ref) b.appendChild(el('div', 'empty', 'Sobre: "' + x.ref + '"'));
+      b.appendChild(el('div', '', x.x));
+      b.appendChild(el('div', 'empty', (x.f === 'a' ? 'Você' : 'Usuário') + ' · ' + dt(x.t) + (x.ask ? ' · pediu licença para citar' : '')));
+      m.appendChild(b);
+    });
+    var r = $('chRef'); r.hidden = !chRefText; r.textContent = chRefText ? 'Respondendo a: "' + chRefText + '"' : '';
+    t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function chOpen(code, ref) {
+    code = String(code || '').toUpperCase().trim();
+    if (!CH_CODE.test(code)) { toast('Código inválido. Ex.: K7QM-4TXD.', 'bad'); return; }
+    chRefText = String(ref || '').slice(0, 90);
+    post({ action: 'inbox_thread', code: code }).then(function (r) {
+      if (r.status === 200) { $('chText').value = ''; $('chCount').textContent = '0 / 600'; $('chAsk').checked = false; chRender(r.j); loadChat(); }
+      else if (!fail(r.status)) toast('Não foi possível abrir: ' + why(r), 'bad');
+    }).catch(function () { toast('Sem conexão com o servidor.', 'bad'); });
+  }
+  // Usado pelas outras abas (Pesquisa e Pessoas): abre a conversa com o código, citando o trecho da sugestão.
+  window.openChat = function (code, ref) { showTab('chat'); chOpen(code, ref); };
+  $('chNew').onclick = function () { chOpen($('chCode').value, ''); };
+  $('chReload').onclick = loadChat;
+  $('chClose').onclick = function () { $('chThread').hidden = true; chCur = null; };
+  $('chText').oninput = function () { $('chCount').textContent = $('chText').value.length + ' / 600'; };
+  $('chSend').onclick = function () {
+    if (!chCur) return;
+    var x = $('chText').value; if (!x.trim()) { toast('Escreva a mensagem.', 'bad'); return; }
+    var ask = $('chAsk').checked;
+    askConfirm({ title: 'Enviar para ' + chCur + '?', body: 'Só esta pessoa vê, em Avisos no app.' + (ask ? ' A mensagem pergunta se o apelido pode ser citado no boletim.' : ''), facts: ['Chega na próxima atualização do app dela.', 'Limite de 10 mensagens por dia para o mesmo perfil.'], ok: 'Enviar' }).then(function (y) {
+      if (!y) return;
+      post({ action: 'inbox_send', code: chCur, x: x, ref: chRefText, ask: ask }).then(function (r) {
+        if (r.status === 200) { toast('Enviada.', 'ok'); $('chText').value = ''; $('chCount').textContent = '0 / 600'; $('chAsk').checked = false; chRefText = ''; r.j.code = chCur; r.j.name = r.j.name || ''; chRender(r.j); loadChat(); loadLog(); }
+        else if (!fail(r.status)) toast('Não foi possível: ' + why(r), 'bad');
+      }).catch(function () { toast('Sem conexão com o servidor. Nada foi enviado.', 'bad'); });
+    });
+  };
+  $('chResolve').onclick = function () {
+    if (!chCur) return;
+    var done = $('chResolve').textContent !== 'Reabrir';
+    post({ action: 'inbox_resolve', code: chCur, done: done }).then(function (r) {
+      if (r.status === 200) { toast(done ? 'Marcada como resolvida.' : 'Reaberta.', 'ok'); chOpen(chCur, chRefText); loadLog(); }
+      else if (!fail(r.status)) toast('Não foi possível: ' + why(r), 'bad');
+    }).catch(function () { toast('Sem conexão com o servidor.', 'bad'); });
+  };
+  $('chDel').onclick = function () {
+    if (!chCur) return; var c = chCur;
+    askConfirm({ title: 'Apagar a conversa com ' + c + '?', body: 'Some do painel e do app dela.', facts: ['Não dá para desfazer.'], ok: 'Apagar', danger: true }).then(function (y) {
+      if (!y) return;
+      post({ action: 'inbox_delete', code: c }).then(function (r) {
+        if (r.status === 200) { toast('Conversa apagada.', 'ok'); $('chThread').hidden = true; chCur = null; loadChat(); loadLog(); }
+        else if (!fail(r.status)) toast('Não foi possível: ' + why(r), 'bad');
+      }).catch(function () { toast('Sem conexão com o servidor.', 'bad'); });
+    });
+  };
+
   // ---------------- Abas ----------------
   var current = 'overview', loaded = {};
+  // As telas ficam agrupadas em poucas áreas: cada área mostra só as suas telas na segunda fileira.
+  var GROUPS = {
+    inicio: { tabs: ['overview'], desc: 'O resumo do dia: quem está usando agora e se está tudo bem.' },
+    publico: { tabs: ['visitors', 'usage', 'devices'], desc: 'Quantas pessoas abrem o app, de onde vêm, em que aparelhos e o que mais usam.' },
+    pessoas: { tabs: ['people', 'survey', 'chat'], desc: 'Cada usuário: perfis e vínculos, o que responderam na pesquisa e as conversas particulares.' },
+    publicar: { tabs: ['news', 'features', 'fing'], desc: 'O que os usuários veem: boletim de novidades, recursos liberados aos poucos e dedilhados.' },
+    saude: { tabs: ['bugs', 'costs', 'system'], desc: 'Erros do app, quanto custa mantê-lo e o estado do servidor.' },
+    ajuda: { tabs: ['help'], desc: 'Para que serve cada tela e respostas para as dúvidas mais comuns.' }
+  };
+  var lastInGroup = {};
+  function groupOf(tab) { for (var g in GROUPS) { if (GROUPS[g].tabs.indexOf(tab) >= 0) return g; } return 'inicio'; }
+  function paintGroups(tab) {
+    var g = groupOf(tab), def = GROUPS[g];
+    lastInGroup[g] = tab;
+    var gb = $('groups').querySelectorAll('button');
+    for (var i = 0; i < gb.length; i++) { var on = gb[i].getAttribute('data-group') === g; gb[i].className = on ? 'on' : ''; gb[i].setAttribute('aria-selected', on ? 'true' : 'false'); }
+    var tb = $('tabs').querySelectorAll('button[data-tab]');
+    for (var j = 0; j < tb.length; j++) tb[j].hidden = def.tabs.indexOf(tb[j].getAttribute('data-tab')) < 0;
+    $('tabs').className = 'tabs' + (def.tabs.length < 2 ? ' single' : '');
+    $('groupDesc').textContent = def.desc;
+    var gbOn = $('groups').querySelector('button.on'); if (gbOn && gbOn.scrollIntoView) { try { gbOn.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }); } catch (e) { /* sem rolagem suave */ } }
+  }
   function showTab(name) {
     current = name;
-    ['overview', 'visitors', 'usage', 'devices', 'people', 'survey', 'bugs', 'features', 'news', 'fing', 'costs', 'system'].forEach(function (t) { $('tab-' + t).hidden = t !== name; });
+    paintGroups(name);
+    ['overview', 'visitors', 'usage', 'devices', 'people', 'survey', 'chat', 'bugs', 'features', 'news', 'fing', 'costs', 'system', 'help'].forEach(function (t) { $('tab-' + t).hidden = t !== name; });
     var bs = $('tabs').querySelectorAll('button'); for (var i = 0; i < bs.length; i++) { var isOn = bs[i].getAttribute('data-tab') === name; bs[i].className = isOn ? 'on' : ''; bs[i].setAttribute('aria-selected', isOn ? 'true' : 'false'); }
     var mainEl = $('tab-' + name); mainEl.classList.add('enter'); setTimeout(function () { mainEl.classList.remove('enter'); }, 1200);
     moveInd();
@@ -2325,6 +2695,7 @@
     if (name === 'fing') loadFing();
     if (name === 'devices') loadDevices();
     if (name === 'survey') loadSurvey();
+    if (name === 'chat') loadChat();
     if (name === 'visitors') loadVisitors();
     if (name === 'system') loadSystem();
   }
@@ -2337,6 +2708,7 @@
     try { tabsEl.scrollTo({ left: Math.max(0, on.offsetLeft - (tabsEl.clientWidth - on.offsetWidth) / 2), behavior: 'smooth' }); } catch (e) { /* sem rolagem suave: segue */ }
   }
   window.addEventListener('resize', moveInd);
+  $('groups').onclick = function (e) { var b = e.target && e.target.closest ? e.target.closest('button[data-group]') : null; if (!b) return; var g = b.getAttribute('data-group'); showTab(lastInGroup[g] || GROUPS[g].tabs[0]); };
   $('tabs').onclick = function (e) { var t = e.target && e.target.closest ? e.target.closest('button[data-tab]') : null; if (t) showTab(t.getAttribute('data-tab')); };
 
   function setUpd(t, bad) { var e = $('updated'); e.textContent = t; e.style.color = bad ? 'var(--bad)' : ''; e.style.cursor = bad ? 'pointer' : ''; }

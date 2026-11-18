@@ -19,6 +19,7 @@
 //   sched_put-> PROFESSOR marca/muda/cancela uma aula { other, slot } e agenda o lembrete (QStash)
 //   sched    -> ALUNO busca as aulas marcadas pelos professores
 //   push_key / push_sub / push_unsub -> notificações (Web Push) deste aparelho
+//   msg_get / msg_put / msg_ok -> conversa particular com o administrador: ler, responder curto, aceitar ou recusar ser citado no boletim
 //   dones    -> PROFESSOR busca o que os alunos marcaram como feito (e a revisão dr no sync)
 //
 // Precisa do Upstash Redis. Sem ele devolve 503 e o app segue só neste aparelho.
@@ -39,6 +40,7 @@ const { unlinkPair } = require('./_lib/unlink');
 const { serverError } = require('./_lib/error_store');
 const library = require('./_lib/library');
 const features = require('./_lib/features');
+const inbox = require('./_lib/inbox');
 
 const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const MAX_LINKS = 300;
@@ -329,7 +331,7 @@ function makeHandler(deps = {}) {
       }
 
       const action = String(b.action || 'sync');
-      const noticeOf = (p) => { const n = parseNotice(p.sn); return n ? { sn: n } : {}; };
+      const noticeOf = (p) => { const n = parseNotice(p.sn); const cr = Number(p.cr) || 0; return { ...(n ? { sn: n } : {}), ...(cr ? { cr } : {}) }; };
 
       if (action === 'sync') {
         // Mudou o apelido: avisa quem está vinculado (o nome fica dentro de cada vínculo).
@@ -396,6 +398,19 @@ function makeHandler(deps = {}) {
         // Conta 1 em cada 10 consultas (barato) para o painel estimar o custo do polling.
         if (Math.random() < 0.1) await metric('rev10');
         return send(200, { ok: true, lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...mirrorFlags(prof), ...noticeOf(prof) });
+      }
+
+      // ---------------- conversa particular com o administrador (api/_lib/inbox.js) ----------------
+      //   msg_get {}      -> { m: [mensagens], askOpen }   a conversa deste perfil (1 comando; o app só chama quando "cr" muda)
+      //   msg_put { x }   -> resposta curta (só depois de o administrador escrever; limites por hora e por sequência)
+      //   msg_ok { yes }  -> aceita ou recusa ser citado pelo apelido no boletim
+      if (action === 'msg_get' || action === 'msg_put' || action === 'msg_ok') {
+        const q = await store.incr(`cvq:${me}:${hour}`, 3600);
+        if (q.n > 40) return send(429, { error: 'Muitas consultas. Tente mais tarde.' });
+        if (action === 'msg_get') return send(200, { ok: true, ...(await inbox.userView(store, me)) });
+        const r = action === 'msg_put' ? await inbox.userReply(store, me, b.x, clock()) : await inbox.userConsent(store, me, b.yes === true || b.yes === 1);
+        if (r.error) return send(409, { error: r.error });
+        return send(200, { ok: true, ...(await inbox.userView(store, me)) });
       }
 
       // O ALUNO vê os horários disponíveis de um professor a que está vinculado (só os que ainda dá para pegar).

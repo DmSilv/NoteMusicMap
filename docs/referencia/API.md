@@ -100,6 +100,17 @@ Custo: ~6 comandos por pedido de código, ~8 ao confirmar; só quando a pessoa u
   news_save {id?, t, b, te?, be?, k?}  cria um rascunho (sem id) ou altera o texto (com id)
   news_state {id, st}        draft | live (publica) | off (oculta; continua no histórico)
   news_delete {id}           exclui de vez
+Pesquisas do app (ver api/_lib/surveys.js):
+  survey                     participações (uma por envio, com tudo o que a pessoa respondeu) + as pesquisas e o estado de cada uma
+  sv_save {id?, t, te?, qs, from?, to?, k?}  cria um rascunho (sem id) ou altera (com id)
+  sv_state {id, st}          draft | live (libera; com from/to agenda) | off (encerra; continua no histórico)
+  sv_delete {id}             exclui de vez
+ Conversas com os usuários (aparecem em Avisos no app; ver api/_lib/inbox.js):
+  inbox_list                 caixa de entrada: uma linha por usuário (quem respondeu primeiro), com apelido (1 comando + 1 por página)
+  inbox_thread {code}        a conversa de um perfil (zera as "não lidas")
+  inbox_send {code, x, ref?, ask?}  escreve para o usuário (ref = trecho da sugestão respondida; ask = pede licença para citar o apelido)
+  inbox_resolve {code, done} marca como resolvida (ou reabre)
+  inbox_delete {code}        apaga a conversa
  Dedilhado do violino (Flesch), editado à mão (docs/07_PAINEL_ADMIN.md):
   fing_list                  o que vem no app (seed) e o que foi corrigido/incluído aqui (1 comando no Redis)
   fing_rows {pc,alt,type,oct} as notas da escala (nome, 8va, corda solta) e o que está salvo para ela (0 ou 1 comando)
@@ -131,6 +142,11 @@ Custo: só quando o admin abre o painel (kpis ~35 comandos; lista de 25 = ~27; d
 | `feature_grant` | — |
 | `news_list` | Boletim do app (Publicações) |
 | `news_save` | — |
+| `inbox_list` | Conversas com os usuários |
+| `inbox_thread` | — |
+| `inbox_send` | — |
+| `inbox_resolve` | — |
+| `inbox_delete` | — |
 | `news_state` | — |
 | `news_delete` | — |
 | `fing_list` | — |
@@ -150,6 +166,9 @@ Custo: só quando o admin abre o painel (kpis ~35 comandos; lista de 25 = ~27; d
 | `support_code` | Suporte: código para liberar a conta em outro aparelho |
 | `support_cancel` | — |
 | `survey` | Bugs (relatórios de erro do app) Respostas da pesquisa rápida e notas do app, uma por linha: quando, de quem (perfil), qual aparelho, o que respondeu. As antigas só têm o aparelho embaralhado; o app manda a identificação do perfil na próxima abertura e aí elas ganham dono. |
+| `sv_save` | — |
+| `sv_state` | — |
+| `sv_delete` | — |
 | `bugs` | — |
 | `health` | Saúde (semáforo do painel) |
 | `system` | Sistema: banco, servidor, variáveis e limites Custo: 3 comandos de teste + 14 leituras de erros (só quando o admin abre a aba Sistema). |
@@ -217,6 +236,7 @@ memória da instância (e vão para o log da Vercel); com Upstash Redis ficam gu
 | Ação / tipo | Descrição (comentário do código) |
 |---|---|
 | `rating` | — |
+| `survey` | — |
 | `identify` | — |
 
 ## `/api/fingering`
@@ -251,6 +271,7 @@ Ações (todas POST, com { code, secret }):
   sched_put-> PROFESSOR marca/muda/cancela uma aula { other, slot } e agenda o lembrete (QStash)
   sched    -> ALUNO busca as aulas marcadas pelos professores
   push_key / push_sub / push_unsub -> notificações (Web Push) deste aparelho
+  msg_get / msg_put / msg_ok -> conversa particular com o administrador: ler, responder curto, aceitar ou recusar ser citado no boletim
   dones    -> PROFESSOR busca o que os alunos marcaram como feito (e a revisão dr no sync)
 
 Precisa do Upstash Redis. Sem ele devolve 503 e o app segue só neste aparelho.
@@ -267,6 +288,8 @@ Precisa do Upstash Redis. Sem ele devolve 503 e o app segue só neste aparelho.
 | `photo_put` | foto do perfil (só aparece para quem está vinculado e só se a pessoa escolheu mostrar) photo_put { photo }  -> guarda (ou, vazia, apaga) a foto e avisa quem está vinculado (a versão "pv" vai em cada vínculo) photo_get { other }  -> a foto de quem está vinculado a você (nunca a de um desconhecido) |
 | `photo_get` | — |
 | `rev` | Consulta barata: o perfil já foi lido na autenticação, então não custa nenhum comando a mais. lr = aulas novas, dr = tarefas marcadas pelos alunos, kr = vínculos mudaram. |
+| `msg_get` | msg_get {}      -> { m: [mensagens], askOpen }   a conversa deste perfil (1 comando; o app só chama quando "cr" muda) msg_put { x }   -> resposta curta (só depois de o administrador escrever; limites por hora e por sequência) msg_ok { yes }  -> aceita ou recusa ser citado pelo apelido no boletim |
+| `msg_put` | — |
 | `avail` | O ALUNO vê os horários disponíveis de um professor a que está vinculado (só os que ainda dá para pegar). |
 | `picks` | O PROFESSOR vê as aulas que os alunos pegaram (para entrarem na agenda dele). |
 | `verdicts` | O ALUNO busca o que o professor decidiu (validou ou devolveu) sobre as suas tarefas. |

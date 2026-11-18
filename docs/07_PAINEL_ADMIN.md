@@ -7,10 +7,34 @@ Página estática (`web/admin.html`, JavaScript puro, sem bibliotecas) que fala 
 - Errou a chave 10 vezes na hora → bloqueio temporário (429).
 - Sem `ADMIN_KEY`/`FEEDBACK_ADMIN_KEY` configuradas, o painel responde 404 ("falta a variável").
 
+## Mapa do painel: 5 áreas, cada uma responde a uma pergunta
+O painel tem **duas fileiras de navegação**: em cima as **áreas** (poucas e grandes), embaixo as **telas** da área escolhida (a frase embaixo das áreas diz para que serve a área). Há ainda a área **Ajuda**, com o **Guia do painel** dentro da própria tela.
+
+| Área | Pergunta que responde | Telas |
+|---|---|---|
+| **Início** | "Está tudo bem?" | Visão geral |
+| **Quem usa** | "Quem é o meu público?" | Visitantes, Uso, Aparelhos |
+| **Pessoas** | "Quem é fulano e o que ele disse?" | Pessoas, Pesquisa, Conversas |
+| **Publicar** | "O que eu mostro aos usuários?" | Publicações, Recursos, Partituras |
+| **Saúde e custos** | "O app está bem e quanto custa?" | Bugs (com selo vermelho quando há erro grave), Custos, Sistema |
+
+### Dúvidas comuns (o mesmo texto está na aba Ajuda do painel)
+- **Avisar todo mundo de uma novidade:** Publicar › Publicações. Escreva (ou use uma sugestão pronta), publique; chega em até 5 minutos. Errou? Ocultar (fica no histórico) ou Excluir (some de vez).
+- **Falar só com uma pessoa:** Pessoas › Conversas. A mensagem aparece só para ela, em Avisos no app.
+- **Um usuário disse que deu erro:** Saúde e custos › Bugs; procure pelo código que o app mostrou no aviso de erro.
+- **Liberar uma função só para um professor:** Publicar › Recursos, "Só liberados", digitando o código dele (e, se quiser, os alunos vinculados).
+- **Quanto gasto e se cabe no plano grátis:** Saúde e custos › Custos.
+- **Alguém perdeu o celular ou a conta:** a conta abre em até 5 aparelhos e a pessoa tira o antigo em Minha conta › Aparelhos; entrando pela chave de recuperação ou pelo e-mail ela volta. Em Pessoas você acha o perfil pelo código.
+- **"Online agora":** quem mandou sinal do app nos últimos 12 minutos.
+- **Quem respondeu a pesquisa:** Pessoas › Pesquisa (perfil, aparelho e quando).
+- **Não sei qual tela usar:** passe o mouse (ou segure o dedo) sobre o nome da área ou da tela: aparece uma frase do que ela mostra.
+
+Quando criar uma tela nova: ela entra em UMA das áreas acima (mapa `GROUPS` no `<script>` de `web/admin.html`), ganha ícone, dica e uma frase de apoio sob o título, e a **Ajuda** é atualizada na mesma mudança.
+
 ## Visual e como ler (mesmo padrão do app)
 O painel (`web/admin.html`) usa o **design system do app** (ver `12_DESIGN_SYSTEM.md`, seção "Painel"): as mesmas cores, a escala de espaço de 8 em 8, cartões de 20 px de raio e movimento suave (que se desliga com "reduzir movimento"). Para ficar fácil de entender:
 - **Cada título tem uma frase de apoio** em linguagem simples ("Quantas pessoas estão usando o app neste momento…"), e o "?" abre a explicação completa.
-- **As abas têm ícone, nome e uma dica** (passe o mouse ou segure o dedo). Um traço verde desliza até a aba escolhida.
+- **As áreas e as telas têm ícone, nome e uma dica** (passe o mouse ou segure o dedo). Um traço verde desliza até a tela escolhida.
 - **Visão geral:** primeiro "Agora mesmo" (quem usa), depois "Saúde do uso" (sinais de problema).
 - **Números** contam até o valor ao carregar; as barras e os medidores crescem ao entrar na aba.
 - **Cores com o mesmo sentido do app:** verde = bom ou ligado, laranja = atenção, vermelho = problema, azul = informação.
@@ -36,7 +60,9 @@ O painel (`web/admin.html`) usa o **design system do app** (ver `12_DESIGN_SYSTE
 Toda ação que altera algo abre um modal que sobe de baixo (função `askConfirm` em `web/admin.html`): diz o que vai acontecer, quem é afetado e se dá para desfazer. O botão de confirmar só libera depois de ~0,7 s. As ações sem volta pedem **segurar o botão por 1,5 s** (encerrar vínculo, gerar código de liberação, apagar item de agenda) ou **digitar o código** do perfil (excluir dados). Esc ou toque fora cancela. Cobre: limpar perfis, avisos de bug grave (ativar, desativar, teste), esconder item do acervo, encerrar vínculo, código de liberação (gerar e cancelar), apagar item de agenda, bloquear e liberar, excluir dados e mudar o status de um bug. Um teste de proteção (`api/guardrails.test.js`) falha se voltar `confirm()`/`prompt()` ou se uma dessas ações perder o modal.
 
 ## Publicações (boletim do app)
-Aba **Publicações** (`api/_lib/news.js`, `api/news.js`): o boletim que o usuário lê no app. **Nada é publicado sozinho.** Você escreve um texto curto (título até 60 e texto até 420 letras, com versão em inglês opcional) ou usa uma **sugestão pronta** (escritas a partir do que o app ganhou, em `api/_lib/news_seed.json`; só viram rascunho quando você toca em Usar). Cada publicação tem três estados: **Rascunho**, **Publicada** e **Oculta** (continua no histórico). Dá para editar, publicar (com confirmação), ocultar e excluir de vez. O app recebe as 10 publicadas mais recentes; publicar ou ocultar chega aos aparelhos em até 5 minutos (cache da CDN). No app: um aviso pequeno com a novidade mais recente ainda não vista (uma por abertura, nunca por cima da apresentação) e a lista em **Avisos › Novidades**. Custo: 1 comando no Redis a cada 5 minutos por região, nada por usuário. Ações da API: `news_list`, `news_save`, `news_state`, `news_delete`.
+Aba **Publicações** (`api/_lib/news.js`, `api/news.js`): o boletim que o usuário lê no app. **Nada é publicado sozinho.** Você escreve um texto curto (título até 60 e texto até 420 letras, com versão em inglês opcional) ou usa uma **sugestão pronta** (escritas a partir do que o app ganhou, em `api/_lib/news_seed.json`; só viram rascunho quando você toca em Usar). Cada publicação tem três estados: **Rascunho**, **Publicada** e **Oculta** (continua no histórico). Dá para editar, publicar (com confirmação), ocultar e excluir de vez. O app recebe as 10 publicadas mais recentes; publicar ou ocultar chega aos aparelhos em até 5 minutos (cache da CDN). No app: um aviso pequeno com a novidade mais recente ainda não vista (uma por abertura, nunca por cima da apresentação) e a lista em **Avisos › Novidades**. Custo: 1 comando no Redis a cada 5 minutos por região, nada por usuário. Ações da API: `news_list`, `news_save`, `news_state`, `news_delete`. Uma publicação pode levar o **rótulo de feedback** (opcional): "Sugestão de usuário que virou melhoria" ou "Correção feita a partir de feedback". O apelido só é citado se a pessoa aceitou na conversa (campo "Código de quem sugeriu"); sem aceite o painel recusa e o app mostra "um usuário".
+
+Aba **Conversas** (`api/_lib/inbox.js`, ações `inbox_list`, `inbox_thread`, `inbox_send`, `inbox_resolve`, `inbox_delete`): o administrador escreve para um usuário (por código de perfil, ou tocando em **Responder** numa participação da aba Pesquisa, ou em **Conversar** na ficha da pessoa). A mensagem aparece só para ele, em **Avisos** no app; ele responde curto (280 letras) e a resposta volta para a caixa de entrada, com histórico, "não lidas" primeiro e **Marcar como resolvida**. A mensagem pode pedir licença para citar o apelido no boletim (o usuário escolhe no app). Limites: 10 mensagens por dia do administrador para o mesmo perfil; o usuário só responde se o administrador escreveu primeiro, no máximo 3 respostas seguidas e 6 por hora; conversa de até 30 mensagens; até 800 conversas. Custo: a mensagem viaja como um carimbo `cr` na sincronização que o app já faz (0 comando a mais); o texto só é lido quando a pessoa abre a conversa (1 comando). Apagar o perfil apaga a conversa.
 
 ## Recursos (liberação aos poucos)
 Aba **Recursos**: um cartão por novidade (`api/_lib/features.js`). Estados: **Desligado** (vale para todos, inclusive quem está na lista, e chega em até 1 minuto), **Só liberados** (lista de códigos; no acervo, também os de `LIBRARY_TESTERS`), **Parte dos usuários** (1 a 99%, sempre os mesmos usuários, pelo código; a lista continua valendo) e **Todos**. Dá para liberar um código e, se o recurso vale para os alunos, **os alunos vinculados a ele** (até 200). Todas as mudanças passam pelo modal de confirmação (Todos e Desligado pedem digitar o nome do recurso) e entram no registro. Ações da API: `features`, `feature_set`, `feature_grant`, `feature_revoke`.

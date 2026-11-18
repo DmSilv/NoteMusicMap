@@ -34,6 +34,17 @@
 //   news_save {id?, t, b, te?, be?, k?}  cria um rascunho (sem id) ou altera o texto (com id)
 //   news_state {id, st}        draft | live (publica) | off (oculta; continua no histórico)
 //   news_delete {id}           exclui de vez
+// Pesquisas do app (ver api/_lib/surveys.js):
+//   survey                     participações (uma por envio, com tudo o que a pessoa respondeu) + as pesquisas e o estado de cada uma
+//   sv_save {id?, t, te?, qs, from?, to?, k?}  cria um rascunho (sem id) ou altera (com id)
+//   sv_state {id, st}          draft | live (libera; com from/to agenda) | off (encerra; continua no histórico)
+//   sv_delete {id}             exclui de vez
+//  Conversas com os usuários (aparecem em Avisos no app; ver api/_lib/inbox.js):
+//   inbox_list                 caixa de entrada: uma linha por usuário (quem respondeu primeiro), com apelido (1 comando + 1 por página)
+//   inbox_thread {code}        a conversa de um perfil (zera as "não lidas")
+//   inbox_send {code, x, ref?, ask?}  escreve para o usuário (ref = trecho da sugestão respondida; ask = pede licença para citar o apelido)
+//   inbox_resolve {code, done} marca como resolvida (ou reabre)
+//   inbox_delete {code}        apaga a conversa
 //  Dedilhado do violino (Flesch), editado à mão (docs/07_PAINEL_ADMIN.md):
 //   fing_list                  o que vem no app (seed) e o que foi corrigido/incluído aqui (1 comando no Redis)
 //   fing_rows {pc,alt,type,oct} as notas da escala (nome, 8va, corda solta) e o que está salvo para ela (0 ou 1 comando)
@@ -56,11 +67,13 @@ const { sweepEmpty, STALE_MS } = require('./_lib/sweep');
 const { serverError } = require('./_lib/error_store');
 const { unlinkPair } = require('./_lib/unlink');
 const adminPush = require('./_lib/admin_push');
+const inbox = require('./_lib/inbox');
 const { validSubscription } = require('./_lib/webpush');
 const { K: EK, day: errDay, hour: errHour, sanitize } = require('./_lib/errors_lib');
 const features = require('./_lib/features');
 const costModel = require('./_lib/cost_model');
 const news = require('./_lib/news');
+const surveys = require('./_lib/surveys');
 const newsSeed = require('./_lib/news_seed.json');
 const fing = require('./_lib/fingering');
 const fingSeed = require('./_lib/fingering_seed.json');
@@ -363,6 +376,7 @@ function makeHandler(deps = {}) {
         for (const key of [T, S, SL, SS, UL, DN, VD, AV, TK, PS, LB, (c) => `ph:${c}`, (c) => `mi:${c}`, (c) => `mm:${c}`, U]) {
           for (const f of Object.keys(await store.hgetall(key(code)))) await store.hdel(key(code), f);
         }
+        await inbox.adminDelete(store, code); // a conversa particular some junto com o perfil
         await profiles.forget(cmd, code);
         await cmd.cmd(['SREM', BLOCKED, code]);
         await cmd.cmd(['HINCRBY', K.total, 'profiles', '-1']);
@@ -604,6 +618,16 @@ function makeHandler(deps = {}) {
       if (action === 'news_save') {
         const v = news.validate(b);
         if (v.error) return send(400, { error: v.error });
+        // Crédito a um usuário: só com o aceite dele (pergunta feita pela conversa do painel). Sem aceite, fica anônimo.
+        if (v.v.fb !== undefined) {
+          const fbc = String(b.fbc || '').toUpperCase();
+          if (!v.v.fb || b.fbc === '') v.v.fn = '';
+          else if (fbc) {
+            if (!CODE_RE.test(fbc)) return send(400, { error: 'Código do usuário inválido.' });
+            if ((await inbox.consentOf(store, fbc)) !== 1) return send(409, { error: 'Este usuário não aceitou ser citado. A publicação sai como "um usuário".' });
+            v.v.fn = news.clean((await store.hget(U(fbc), 'n')) || '', 40, false);
+          }
+        }
         let key = '';
         if (!b.id && b.k) {
           const seed = newsSeed.items.find((s) => s.k === String(b.k));
@@ -614,6 +638,41 @@ function makeHandler(deps = {}) {
         await log(b.id ? 'news_edit' : 'news_new', r.id, v.v.t.slice(0, 40));
         return send(200, { ok: true, id: r.id, item: { id: r.id, ...r.item } });
       }
+      // ---------------- Conversas com os usuários ----------------
+      if (action === 'inbox_list') {
+        const all = await inbox.adminList(store);
+        const page = all.slice(0, 100);
+        const got = page.length ? await cmd.pipeline(page.map((r) => ['HGET', U(r.code), 'n'])) : [];
+        return send(200, { ok: true, total: all.length, unread: all.filter((r) => r.n > 0).length, items: page.map((r, i) => ({ ...r, name: (got[i] && String(got[i])) || '' })) });
+      }
+      if (action === 'inbox_thread') {
+        if (needCode()) return;
+        const prof = await store.hgetall(U(code));
+        if (!prof.h) return send(404, { error: 'Perfil não encontrado.' });
+        return send(200, { ok: true, code, name: prof.n || '', ...(await inbox.adminThread(store, code)) });
+      }
+      if (action === 'inbox_send') {
+        if (needCode()) return;
+        if (!(await store.hget(U(code), 'h'))) return send(404, { error: 'Perfil não encontrado.' });
+        const r = await inbox.adminSend(store, code, b.x, now, { ref: b.ref, ask: b.ask === true });
+        if (r.error) return send(r.error.startsWith('Já são') ? 429 : 400, { error: r.error });
+        await log('inbox_send', code, b.ask === true ? 'com pedido de crédito' : '');
+        return send(200, { ok: true, ...(await inbox.adminThread(store, code)) });
+      }
+      if (action === 'inbox_resolve') {
+        if (needCode()) return;
+        const r = await inbox.adminResolve(store, code, b.done !== false);
+        if (r.error) return send(404, { error: r.error });
+        await log(b.done === false ? 'inbox_reopen' : 'inbox_resolve', code);
+        return send(200, { ok: true });
+      }
+      if (action === 'inbox_delete') {
+        if (needCode()) return;
+        await inbox.adminDelete(store, code);
+        await log('inbox_delete', code);
+        return send(200, { ok: true });
+      }
+
       if (action === 'news_state') {
         const r = await news.setState(store, String(b.id || ''), String(b.st || ''), now);
         if (r.error) return send(400, { error: r.error });
@@ -849,15 +908,20 @@ function makeHandler(deps = {}) {
         for (const line of await store.recent('fb:v1', 3000)) {
           try { rows.push(JSON.parse(line)); } catch (_) { /* linha ruim */ }
         }
-        const shown = rows.slice().reverse().slice(0, 1000); // o que o painel mostra: as mais novas
-        // Só os aparelhos das linhas mostradas (e sem dono gravado na resposta) são consultados, não a lista inteira.
-        const devs = [...new Set(shown.filter((r) => !r.u && r.d).map((r) => r.d))];
+        const defs = await surveys.listAll(store, now);
+        const titleOf = Object.fromEntries(defs.map((d) => [d.id, d.t]));
+        const qText = {};
+        for (const d of defs) for (const q of d.qs) qText[q.id] = q.q;
+        const all = surveys.groupParticipations(rows);
+        const shown = all.slice(0, 500); // o que o painel mostra: as mais novas
+        // Só os aparelhos das participações mostradas (e sem dono gravado na resposta) são consultados, não a lista inteira.
+        const devs = [...new Set(shown.filter((r) => !r.code && r.dev).map((r) => r.dev))];
         const ids = {};
         if (devs.length) {
           const got = (await cmd.pipeline([['HMGET', 'fb:ids', ...devs]]))[0] || [];
           devs.forEach((d, i) => { if (got[i]) ids[d] = got[i]; });
         }
-        const codeOf = (r) => r.u || (ids[r.d] ? (() => { try { return JSON.parse(ids[r.d]).c; } catch (_) { return ''; } })() : '');
+        const codeOf = (r) => r.code || (ids[r.dev] ? (() => { try { return JSON.parse(ids[r.dev]).c; } catch (_) { return ''; } })() : '');
         const codes = [...new Set(shown.map(codeOf).filter((c) => CODE_RE.test(c)))].slice(0, 300);
         const profs = {};
         if (codes.length) {
@@ -869,12 +933,38 @@ function makeHandler(deps = {}) {
             profs[c] = { name: n || '', os: d.ou || '', br: d.br || '', md: d.md || '', city: d.ct || '', region: d.g || '', mob: d.mob === '1', last: Number(la) || 0, teacher: rt === '1', student: rs === '1' };
           });
         }
-        const out = shown.map((r) => {
+        const parts = shown.map((r) => {
           const c = codeOf(r);
-          return { t: r.t, kind: r.k, q: r.q || '', a: r.a || '', r: r.r || 0, c: r.c || '', ver: r.v || '', plat: r.p || '', dev: r.d, code: c, who: profs[c] || null };
+          return { id: r.id, t: r.t, kind: r.kind, sv: r.sv, svt: titleOf[r.sv] || '', answers: r.answers.map((x) => ({ q: x.q, qt: qText[x.q] || '', a: x.a })), r: r.r, c: r.c, ver: r.ver, plat: r.plat, dev: r.dev, code: c, who: profs[c] || null };
         });
+        const count = {};
+        for (const p of all) if (p.sv) count[p.sv] = (count[p.sv] || 0) + 1;
         const { summarize } = require('./feedback')._internal;
-        return send(200, { ok: true, total: rows.length, withOwner: out.filter((x) => x.code).length, rows: out, summary: summarize(rows) });
+        return send(200, {
+          ok: true, total: rows.length, totalParts: all.length, withOwner: parts.filter((x) => x.code).length, parts, summary: summarize(rows),
+          defs: defs.map((d) => ({ ...d, count: count[d.id] || 0 })), suggestions: defs.some((d) => d.k === surveys.SEED_KEY) ? [] : [surveys.SEED],
+          limits: { title: surveys.MAX_TITLE, questions: surveys.MAX_QUESTIONS, q: surveys.MAX_Q, options: surveys.MAX_OPTIONS, option: surveys.MAX_OPTION, items: surveys.MAX_ITEMS, month: surveys.MONTH_MAX },
+        });
+      }
+      if (action === 'sv_save') {
+        const v = surveys.validate(b, b.id ? String(b.id) : '');
+        if (v.error) return send(400, { error: v.error });
+        const r = await surveys.save(store, b.id ? String(b.id) : '', v.v, now, !b.id && b.k === surveys.SEED_KEY ? surveys.SEED_KEY : '');
+        if (r.error) return send(400, { error: r.error });
+        await log(b.id ? 'survey_edit' : 'survey_new', r.id, v.v.t.slice(0, 40));
+        return send(200, { ok: true, id: r.id });
+      }
+      if (action === 'sv_state') {
+        const r = await surveys.setState(store, String(b.id || ''), String(b.st || ''), now);
+        if (r.error) return send(400, { error: r.error });
+        await log('survey_state', r.id, r.before + ' -> ' + r.item.st);
+        return send(200, { ok: true });
+      }
+      if (action === 'sv_delete') {
+        const r = await surveys.remove(store, String(b.id || ''));
+        if (r.error) return send(400, { error: r.error });
+        await log('survey_delete', String(b.id));
+        return send(200, { ok: true });
       }
 
       if (action === 'bugs') {

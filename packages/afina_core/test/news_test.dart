@@ -59,4 +59,15 @@ void main() {
     expect(pendingNews(items, {'a', 'b', 'c'}), isNull);
     expect(pendingNews(const [], {}), isNull);
   });
+
+  test('rótulo de feedback: só idea/fix; o apelido só vem com o rótulo', () {
+    final r = parseNews('{"items":[{"id":"a","t":"A","b":"x","fb":"idea","fn":"Ana"},{"id":"b","t":"B","b":"x","fb":"fix"},{"id":"c","t":"C","b":"x","fb":"outro","fn":"Eu"},{"id":"d","t":"D","b":"x","fn":"Eu"}]}')!;
+    expect(r[0].feedback, 'idea');
+    expect(r[0].credit, 'Ana');
+    expect(r[1].feedback, 'fix');
+    expect(r[1].credit, '');
+    expect(r[2].feedback, '');
+    expect(r[2].credit, '');
+    expect(r[3].credit, '');
+  });
 }

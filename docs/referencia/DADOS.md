@@ -99,18 +99,24 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `clock_sw` | app_state.dart |
 | `custom_inst` | app_state.dart |
 | `customMin` | app_state.dart |
+| `cv_seen` | app_state.dart |
 | `dictation_ok` | dictation.dart |
 | `done_outbox` | app_state.dart |
 | `done_rev` | app_state.dart |
 | `error_log` | app_state.dart |
 | `exFlow` | app_state.dart |
 | `fb_answered` | feedback_service.dart |
+| `fb_done` | feedback_service.dart |
 | `fb_first` | feedback_service.dart |
 | `fb_ident` | feedback_service.dart |
+| `fb_mcount` | feedback_service.dart |
+| `fb_mkey` | feedback_service.dart |
 | `fb_pending` | feedback_service.dart |
 | `fb_rating` | feedback_service.dart |
 | `fb_snooze_until` | feedback_service.dart |
 | `fb_snoozes` | feedback_service.dart |
+| `fb_snz_sid` | feedback_service.dart |
+| `fb_survey` | feedback_service.dart |
 | `fing_json` | app_state.dart |
 | `flash` | app_state.dart |
 | `flats` | app_state.dart |
@@ -217,4 +223,4 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `verdict_rev` | app_state.dart |
 | `verdicts` | app_state.dart |
 
-Total: **141** chaves locais.
+Total: **147** chaves locais.

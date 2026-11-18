@@ -13,8 +13,10 @@ import 'package:afina_core/afina_core.dart';
 ///
 /// - Só envia quando a pessoa toca em "Enviar". Vai a resposta, a versão do app
 ///   e um código do aparelho que o servidor embaralha. Sem nome, e-mail ou áudio.
-/// - A pesquisa aparece de forma automática no máximo 3 vezes por aparelho (o
-///   convite pode ser dispensado) e some para sempre depois de respondida.
+/// - A pesquisa ativa vem do servidor (GET /api/feedback?survey=1, com cache de CDN): o administrador escolhe quando liberar e retirar.
+///   O convite aparece de forma automática no máximo 3 vezes por pesquisa (pode ser dispensado), some depois de respondida
+///   e cada aparelho participa de no máximo 3 pesquisas por mês (o servidor também confere).
+/// - Cada envio leva um id de participação (pid) e o id da pesquisa (sv), para o painel juntar as respostas.
 /// - Sem internet, a resposta fica numa fila e é enviada depois.
 class FeedbackService extends ChangeNotifier {
   FeedbackService({http.Client? client}) : _http = client ?? http.Client();
@@ -25,22 +27,17 @@ class FeedbackService extends ChangeNotifier {
   /// O código do perfil de quem responde (o painel do dono mostra de quem é a resposta). Definido pelo app.
   String Function()? profileCode;
 
-  /// Identificador da pesquisa (a resposta da pergunta 1 usa este id).
-  static const String surveyId = 'mais_usa';
-  static const String improveId = 'melhorar';
   static const int maxSnoozes = 2;
   static const int _maxPending = 20;
 
-  /// Perguntas da pesquisa rápida.
-  static final List<String> featureOptions = [
-    tr('Afinador'),
-    tr('Metrônomo'),
-    tr('Grade de notas'),
-    tr('Escalas e exercícios'),
-    tr('Estudo (timer)'),
-  ];
+  /// A pesquisa ativa agora (a última resposta boa do servidor) ou null.
+  SurveyDef? survey;
 
-  bool surveyAnswered = false;
+  /// Respondeu à pesquisa rápida antiga (anterior às pesquisas do painel): não é convidado de novo à versão nova dela.
+  bool legacyAnswered = false;
+  Set<String> _done = {};
+  String _monthKey = '';
+  int _monthCount = 0;
   int snoozes = 0;
   DateTime? snoozeUntil;
   DateTime? firstSeen;
@@ -52,7 +49,17 @@ class FeedbackService extends ChangeNotifier {
 
   Future<void> load(SharedPreferences p) async {
     _prefs = p;
-    surveyAnswered = p.getBool('fb_answered') ?? false;
+    legacyAnswered = p.getBool('fb_answered') ?? false;
+    _done = (p.getStringList('fb_done') ?? const <String>[]).toSet();
+    _monthKey = p.getString('fb_mkey') ?? '';
+    _monthCount = p.getInt('fb_mcount') ?? 0;
+    survey = parseSurvey(jsonEncode({'survey': _tryJson(p.getString('fb_survey'))})).survey;
+    if (p.getString('fb_snz_sid') != (survey?.id ?? '')) {
+      // Pesquisa nova: o "agora não" da anterior não vale para ela.
+      await p.setInt('fb_snoozes', 0);
+      await p.remove('fb_snooze_until');
+      await p.setString('fb_snz_sid', survey?.id ?? '');
+    }
     snoozes = p.getInt('fb_snoozes') ?? 0;
     snoozeUntil = DateTime.tryParse(p.getString('fb_snooze_until') ?? '');
     rating = p.getInt('fb_rating') ?? 0;
@@ -71,14 +78,39 @@ class FeedbackService extends ChangeNotifier {
     }
     notifyListeners();
     unawaited(flushPending());
+    unawaited(syncSurvey());
+  }
+
+  static Object? _tryJson(String? raw) {
+    try {
+      return raw == null ? null : jsonDecode(raw);
+    } catch (_) {
+      return null;
+    }
   }
 
   int get pendingCount => _pending.length;
 
+  static String _monthOf(DateTime t) => '${t.year}${t.month}';
+
+  /// A pesquisa ativa já foi respondida neste aparelho?
+  bool get surveyAnswered {
+    final s = survey;
+    return s != null && (_done.contains(s.id) || (s.key == 'rapida' && legacyAnswered));
+  }
+
+  /// Dá para responder agora: há pesquisa ativa, ainda não respondida, e o limite do mês não foi atingido.
+  bool canAnswer({DateTime? now}) {
+    final s = survey;
+    if (s == null || surveyAnswered) return false;
+    final t = now ?? DateTime.now();
+    return !(_monthKey == _monthOf(t) && _monthCount >= s.monthMax);
+  }
+
   /// Hora de convidar para a pesquisa? Depois de alguns exercícios ou de 3 dias de uso.
   bool surveyDue({required int sessions, DateTime? now}) {
     final t = now ?? DateTime.now();
-    if (surveyAnswered || snoozes > maxSnoozes) return false;
+    if (!canAnswer(now: t) || snoozes > maxSnoozes) return false;
     if (snoozeUntil != null && t.isBefore(snoozeUntil!)) return false;
     final days = firstSeen == null ? 0 : t.difference(firstSeen!).inDays;
     return sessions >= 2 || days >= 3;
@@ -91,6 +123,40 @@ class FeedbackService extends ChangeNotifier {
     await _prefs?.setInt('fb_snoozes', snoozes);
     await _prefs?.setString('fb_snooze_until', snoozeUntil!.toIso8601String());
     notifyListeners();
+  }
+
+  /// Um GET por abertura (a CDN guarda por 5 minutos, então o banco quase não é tocado). Sem rede ou com resposta estranha,
+  /// fica a pesquisa que já havia; com resposta boa e sem pesquisa ativa, o convite some.
+  Future<void> syncSurvey() async {
+    final base = _endpoint();
+    if (base == null) return;
+    try {
+      final r = await _http.get(base.replace(queryParameters: {'survey': '1'})).timeout(const Duration(seconds: 8));
+      if (r.statusCode != 200) return;
+      final res = parseSurvey(r.body);
+      if (!res.ok) return;
+      final novo = res.survey;
+      if (novo?.id == survey?.id && jsonEncode(novo?.toJson()) == jsonEncode(survey?.toJson())) return;
+      survey = novo;
+      final p = _prefs;
+      if (p != null) {
+        if (novo == null) {
+          await p.remove('fb_survey');
+        } else {
+          await p.setString('fb_survey', jsonEncode(novo.toJson()));
+        }
+        if (p.getString('fb_snz_sid') != (novo?.id ?? '')) {
+          snoozes = 0;
+          snoozeUntil = null;
+          await p.setInt('fb_snoozes', 0);
+          await p.remove('fb_snooze_until');
+          await p.setString('fb_snz_sid', novo?.id ?? '');
+        }
+      }
+      notifyListeners();
+    } catch (_) {
+      // sem rede: fica o que já valia
+    }
   }
 
   // ---------------- envio ----------------
@@ -185,13 +251,30 @@ class FeedbackService extends ChangeNotifier {
     return _deliver([body]);
   }
 
-  /// Pesquisa rápida: [feature] (obrigatória) e [improve] (opcional).
-  Future<bool> sendSurvey(String feature, String improve, {required String version, required String platform}) async {
-    surveyAnswered = true;
-    await _prefs?.setBool('fb_answered', true);
+  String _newPid() {
+    final r = math.Random.secure();
+    return List.generate(16, (_) => r.nextInt(36).toRadixString(36)).join();
+  }
+
+  /// Envia as respostas da pesquisa ativa ([answers]: id da pergunta -> resposta, na língua do painel/português).
+  /// Todas as respostas deste envio levam o mesmo `pid`, e o painel mostra como UMA participação.
+  Future<bool> sendSurvey(Map<String, String> answers, {required String version, required String platform}) async {
+    final s = survey;
+    if (s == null) return false;
+    final pid = _newPid();
+    final now = DateTime.now();
+    _done.add(s.id);
+    if (_monthKey != _monthOf(now)) {
+      _monthKey = _monthOf(now);
+      _monthCount = 0;
+    }
+    _monthCount += 1;
+    await _prefs?.setStringList('fb_done', _done.toList());
+    await _prefs?.setString('fb_mkey', _monthKey);
+    await _prefs?.setInt('fb_mcount', _monthCount);
     final items = [
-      {..._base('survey', version, platform), 'qid': surveyId, 'answer': feature},
-      if (improve.trim().isNotEmpty) {..._base('survey', version, platform), 'qid': improveId, 'answer': improve.trim()},
+      for (final q in s.questions)
+        if ((answers[q.id] ?? '').trim().isNotEmpty) {..._base('survey', version, platform), 'qid': q.id, 'answer': answers[q.id]!.trim(), 'sv': s.id, 'pid': pid},
     ];
     return _deliver(items);
   }

@@ -99,6 +99,11 @@ class LinkReply {
   final String snKind;
   final String snText;
 
+  /// Conversa particular com o administrador: hora da última mensagem dele (`cr`; 0 = nenhuma), as mensagens (`msg_get`) e se há pedido de crédito sem resposta.
+  final int cr;
+  final List<DevMsg> msgs;
+  final bool askOpen;
+
   /// Acervo: este perfil está liberado (lb), professores vinculados com acervo (lbT) e os itens (lib_list).
   final bool lb;
   final List<String> lbT;
@@ -153,6 +158,9 @@ class LinkReply {
     this.snAt = 0,
     this.snKind = '',
     this.snText = '',
+    this.cr = 0,
+    this.msgs = const [],
+    this.askOpen = false,
     this.lb = false,
     this.lbT = const [],
     this.libItems = const [],
@@ -168,6 +176,36 @@ class LinkReply {
     this.mirrorOff = false,
   });
 }
+
+/// Uma mensagem da conversa com o administrador (`admin` = veio dele).
+class DevMsg {
+  final String id;
+  final bool admin;
+  final int atMs;
+  final String text;
+
+  /// Trecho da sugestão a que o administrador está respondendo (opcional).
+  final String ref;
+  final bool asksCredit;
+  const DevMsg({required this.id, required this.admin, required this.atMs, required this.text, this.ref = '', this.asksCredit = false});
+  static DevMsg? tryFrom(Object? x) {
+    if (x is! Map) return null;
+    final t = cleanText(x['x'] as String?, max: kMaxDevAdminText, multiline: true);
+    if (t.isEmpty) return null;
+    return DevMsg(
+      id: cleanText(x['i'] as String?, max: 16),
+      admin: x['f'] == 'a',
+      atMs: ((x['t'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
+      text: t,
+      ref: cleanText(x['ref'] as String?, max: 90),
+      asksCredit: x['ask'] == 1,
+    );
+  }
+}
+
+const int kMaxDevMsgs = 30;
+const int kMaxDevAdminText = 600;
+const int kMaxDevReply = 280;
 
 /// Fala com `/api/link`: registra o vínculo professor-aluno dos dois lados e traz
 /// as listas atualizadas. Nada além de códigos, apelidos e datas passa por aqui.
@@ -242,6 +280,9 @@ class LinkService {
         snAt: j['sn'] is Map ? (((j['sn'] as Map)['t'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000) : 0,
         snKind: j['sn'] is Map && ((j['sn'] as Map)['k'] == 'unlink' || (j['sn'] as Map)['k'] == 'agenda') ? (j['sn'] as Map)['k'] as String : '',
         snText: j['sn'] is Map ? cleanText(((j['sn'] as Map)['x'] as String?), max: 60) : '',
+        cr: ((j['cr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
+        msgs: [for (final x in ((j['m'] as List?) ?? const []).take(kMaxDevMsgs)) ?DevMsg.tryFrom(x)],
+        askOpen: j['askOpen'] == true,
         slots: [for (final x in ((j['slots'] as List?) ?? const []).take(kMaxSlotsPerTeacher)) ?_slotFrom(x)],
         kr: ((j['kr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
         dones: [
@@ -376,6 +417,11 @@ class LinkService {
       _post({..._auth(code, secret, null), 'action': 'claim', 'support': support});
 
   Future<LinkReply> rev(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'rev'});
+
+  /// Conversa particular com o administrador: lê, responde (curto) e aceita/recusa ser citado no boletim.
+  Future<LinkReply> msgGet(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'msg_get'});
+  Future<LinkReply> msgPut(String code, String secret, String text) => _post({..._auth(code, secret, null), 'action': 'msg_put', 'x': text});
+  Future<LinkReply> msgOk(String code, String secret, bool yes) => _post({..._auth(code, secret, null), 'action': 'msg_ok', 'yes': yes});
 
   /// ALUNO: avisa que fez (ou desmarcou) a tarefa [task] da aula [lesson] do professor [teacher].
   Future<LinkReply> markDone(String code, String secret,

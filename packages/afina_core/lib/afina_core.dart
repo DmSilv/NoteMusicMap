@@ -28,6 +28,7 @@ export 'error_report.dart';
 export 'methods.dart';
 export 'mirror.dart';
 export 'news.dart';
+export 'survey.dart';
 export 'library.dart';
 export 'metronome_engine.dart';
 export 'rhythm_challenge.dart';

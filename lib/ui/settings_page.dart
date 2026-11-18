@@ -533,7 +533,7 @@ class SettingsPage extends StatelessWidget {
           app.say(tr('Pronto: o "Comece por aqui" volta ao Meu espaço e os tutoriais podem ser vistos de novo.'));
         }, sub: tr('Mostra de novo os guias de como usar.')),
         tile(app.feedback.rating > 0 ? Icons.star_rounded : Icons.star_outline_rounded, app.feedback.rating > 0 ? tr('Sua nota: {0}/5', [app.feedback.rating]) : tr('Avaliar o app'), () => showRatingSheet(context, app)),
-        if (!app.feedback.surveyAnswered) tile(Icons.poll_outlined, tr('Pesquisa rápida'), () => showSurveySheet(context, app)),
+        if (app.feedback.canAnswer()) tile(Icons.poll_outlined, app.feedback.survey!.shownTitle, () => showSurveySheet(context, app)),
         tile(Icons.qr_code_2, tr('Compartilhar o app'), () => showShareSheet(context), sub: tr('Link e QR code.')),
         tile(
             Icons.description_outlined,

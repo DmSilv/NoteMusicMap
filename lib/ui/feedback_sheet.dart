@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'safe_input.dart';
-import '../feedback/feedback_service.dart';
 import 'dictation_button.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -141,20 +140,45 @@ class _SurveySheet extends StatefulWidget {
 }
 
 class _SurveySheetState extends State<_SurveySheet> {
-  String? _feature;
-  final _improve = TextEditingController();
+  /// A pesquisa que estava ativa ao abrir (não muda debaixo da pessoa se o painel a retirar).
+  late final SurveyDef? _survey = widget.app.feedback.survey;
+  final Map<String, String> _choice = {};
+  final Map<String, TextEditingController> _text = {};
   bool _busy = false;
 
   @override
+  void initState() {
+    super.initState();
+    for (final q in _survey?.questions ?? const <SurveyQuestion>[]) {
+      if (!q.isChoice) _text[q.id] = TextEditingController();
+    }
+  }
+
+  @override
   void dispose() {
-    _improve.dispose();
+    for (final c in _text.values) {
+      c.dispose();
+    }
     super.dispose();
+  }
+
+  Map<String, String> _answers() => {
+        ..._choice,
+        for (final e in _text.entries)
+          if (e.value.text.trim().isNotEmpty) e.key: e.value.text.trim(),
+      };
+
+  bool get _ready {
+    final s = _survey;
+    if (s == null) return false;
+    final a = _answers();
+    if (a.isEmpty) return false;
+    return s.questions.every((q) => !q.required || (a[q.id] ?? '').isNotEmpty);
   }
 
   Future<void> _send() async {
     setState(() => _busy = true);
-    final ok = await widget.app.feedback
-        .sendSurvey(_feature!, _improve.text, version: _version(), platform: _platform());
+    final ok = await widget.app.feedback.sendSurvey(_answers(), version: _version(), platform: _platform());
     if (!mounted) return;
     Navigator.pop(context);
     _afterSend(widget.app, ok, tr('Obrigado! Sua opinião ajuda a melhorar o app.'));
@@ -162,6 +186,13 @@ class _SurveySheetState extends State<_SurveySheet> {
 
   @override
   Widget build(BuildContext context) {
+    final s = _survey;
+    if (s == null) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 28),
+        child: Text(tr('Não há pesquisa aberta agora. Obrigado!'), style: TextStyle(color: AppColors.textDim)),
+      );
+    }
     return Padding(
       padding: EdgeInsets.fromLTRB(20, 0, 20, 20 + MediaQuery.of(context).viewInsets.bottom),
       child: SingleChildScrollView(
@@ -169,43 +200,45 @@ class _SurveySheetState extends State<_SurveySheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(tr('Pesquisa rápida · 2 perguntas'),
-                style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
-            const SizedBox(height: 14),
-            Text(tr('1. Qual recurso você mais usa?'), style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: [
-                for (final o in FeedbackService.featureOptions)
-                  ChoiceChip(
-                    label: Text(o),
-                    selected: _feature == o,
-                    onSelected: (_) => setState(() => _feature = o),
+            Text(s.shownTitle, style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+            for (var i = 0; i < s.questions.length; i++) ...[
+              const SizedBox(height: 16),
+              Text('${i + 1}. ${s.questions[i].shownText}', style: TextStyle(fontWeight: FontWeight.w700)),
+              const SizedBox(height: 8),
+              if (s.questions[i].isChoice)
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    for (final o in s.questions[i].options)
+                      ChoiceChip(
+                        label: Text(o.shown),
+                        selected: _choice[s.questions[i].id] == o.value,
+                        onSelected: (_) => setState(() => _choice[s.questions[i].id] = o.value),
+                      ),
+                  ],
+                )
+              else
+                TextField(
+                  controller: _text[s.questions[i].id],
+                  inputFormatters: const [SafeText.note()],
+                  maxLength: 200,
+                  minLines: 2,
+                  maxLines: 4,
+                  onChanged: (_) => setState(() {}),
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    hintText: tr('Escreva em poucas palavras'),
+                    suffixIcon: DictationButton(app: widget.app, controller: _text[s.questions[i].id]!),
                   ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Text(tr('2. O que poderia melhorar? (opcional)'), style: TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 6),
-            TextField(
-              controller: _improve,
-              inputFormatters: const [SafeText.note()],
-              maxLength: 200,
-              minLines: 2,
-              maxLines: 4,
-              textCapitalization: TextCapitalization.sentences,
-              decoration: InputDecoration(
-                hintText: tr('Escreva em poucas palavras'),
-                suffixIcon: DictationButton(app: widget.app, controller: _improve),
-              ),
-            ),
+                ),
+            ],
+            const SizedBox(height: 4),
             Text(_privacy, style: TextStyle(color: AppColors.textDim, fontSize: 12)),
             const SizedBox(height: 12),
             FilledButton(
               style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
-              onPressed: _feature == null || _busy ? null : _send,
+              onPressed: !_ready || _busy ? null : _send,
               child: Text(_busy ? tr('Enviando…') : tr('Enviar respostas')),
             ),
           ],
@@ -227,6 +260,7 @@ class FeedbackInviteCard extends StatelessWidget {
       listenable: app.feedback,
       builder: (context, _) {
         if (!app.feedback.surveyDue(sessions: app.sessionRecords.length)) return const SizedBox.shrink();
+        final n = app.feedback.survey?.questions.length ?? 0;
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: AppCard(
@@ -241,7 +275,7 @@ class FeedbackInviteCard extends StatelessWidget {
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800))),
                 ]),
                 const SizedBox(height: 4),
-                Text(tr('São 2 perguntas rápidas, de menos de 1 minuto. Sem e-mail nem áudio.'),
+                Text(n == 1 ? tr('É 1 pergunta rápida, de menos de 1 minuto. Sem e-mail nem áudio.') : tr('São {0} perguntas rápidas, de menos de 1 minuto. Sem e-mail nem áudio.', [n]),
                     style: TextStyle(color: AppColors.textDim, fontSize: 13)),
                 const SizedBox(height: 10),
                 Row(children: [

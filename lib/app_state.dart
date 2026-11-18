@@ -84,7 +84,7 @@ enum MicSensitivity {
 
 /// Tipos de aviso: teacher (um professor te adicionou), lesson (aula/agenda nova), task (decisão do
 /// professor), done (aluno marcou tarefa), pick (aluno pegou horário).
-const kNoticeKinds = ['teacher', 'lesson', 'task', 'done', 'pick', 'support'];
+const kNoticeKinds = ['teacher', 'lesson', 'task', 'done', 'pick', 'support', 'dev'];
 
 /// Aviso para o usuário (aluno ou professor).
 class AppNotice {
@@ -1485,6 +1485,7 @@ class AppState extends ChangeNotifier {
 
   /// Aviso do suporte do painel (vínculo encerrado, item de agenda apagado): mostra uma vez só.
   void _supportNotice(LinkReply r) {
+    _devNotice(r);
     if (r.snAt <= 0 || r.snKind.isEmpty) return;
     final seen = _prefs?.getInt('sn_seen') ?? 0;
     if (r.snAt <= seen) return;
@@ -1496,6 +1497,33 @@ class AppState extends ChangeNotifier {
             ? tr('O suporte encerrou o seu vínculo com {0}.', [who])
             : tr('O suporte removeu {0} da sua agenda.', [who]));
     notifyListeners();
+  }
+
+  /// Mensagem nova do administrador (a hora vem junto da sincronização, sem pedido extra): vira um aviso;
+  /// o texto só é buscado quando a pessoa abre a conversa.
+  void _devNotice(LinkReply r) {
+    if (r.cr <= 0) return;
+    final seen = _prefs?.getInt('cv_seen') ?? 0;
+    if (r.cr <= seen) return;
+    _prefs?.setInt('cv_seen', r.cr);
+    addNotice('dev', tr('Mensagem do desenvolvedor. Toque para ler e responder.'));
+    notifyListeners();
+  }
+
+  /// Conversa com o administrador: lê, responde ou aceita/recusa o crédito no boletim.
+  /// `msgs` nulo = não deu (veja `error`).
+  Future<({List<DevMsg>? msgs, bool askOpen, String? error})> devChat({String? reply, bool? credit}) async {
+    if (!linkEnabled || linkUnavailable) return (msgs: null, askOpen: false, error: tr('Sem conexão agora.'));
+    final LinkReply r;
+    if (reply != null) {
+      r = await links.msgPut(profile.shareCode, profile.secret, cleanText(reply, max: kMaxDevReply));
+    } else if (credit != null) {
+      r = await links.msgOk(profile.shareCode, profile.secret, credit);
+    } else {
+      r = await links.msgGet(profile.shareCode, profile.secret);
+    }
+    if (!r.ok) return (msgs: null, askOpen: false, error: r.error ?? tr('Sem conexão agora.'));
+    return (msgs: r.msgs, askOpen: r.askOpen, error: null);
   }
 
   void addNotice(String kind, String text) {

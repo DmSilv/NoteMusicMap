@@ -81,6 +81,8 @@ class _JoinAccountPageState extends State<JoinAccountPage> {
           padding: Ds.screen,
           children: [
             Text(tr('Já usa o {0} em outro aparelho? Ligue este à mesma conta e traga alunos, aulas e tarefas.', [kAppName]), style: Ds.support()),
+            const SizedBox(height: Ds.s8),
+            Text(tr('Cada conta cabe em até {0} aparelhos ao mesmo tempo. Se estiver cheia, você escolhe qual tirar.', [app.maxDevices]), style: Ds.support()),
             const SizedBox(height: Ds.gap),
             AppCard(
               child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
