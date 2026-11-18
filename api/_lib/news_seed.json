@@ -1,0 +1,40 @@
+{
+  "note": "Sugestões prontas de boletim, escritas a partir do que o app ganhou. Aparecem no painel (Publicações) como 'Sugestões' e só viram rascunho quando o administrador toca em 'Usar'. Nada é publicado sozinho.",
+  "items": [
+    {
+      "k": "boas-vindas",
+      "t": "Boas-vindas ao Notemusic",
+      "b": "Afine o violino, treine escalas com o metrônomo e acompanhe seu estudo, tudo no mesmo lugar. Aqui você vai ver, de vez em quando, uma novidade curta do app. Bons estudos!",
+      "te": "Welcome to Notemusic",
+      "be": "Tune your violin, practice scales with the metronome and track your study, all in one place. From time to time you will see a short news item here. Happy practicing!"
+    },
+    {
+      "k": "varios-aparelhos",
+      "t": "Sua conta em até 5 aparelhos",
+      "b": "Agora você entra com a mesma conta em até 5 aparelhos e vê alunos, aulas e agenda iguais em todos. Em Minha conta, toque em Aparelhos para adicionar um novo com um código ou QR.",
+      "te": "Your account on up to 5 devices",
+      "be": "You can now use the same account on up to 5 devices and see the same students, lessons and agenda on all of them. In My account, tap Devices to add a new one with a code or QR."
+    },
+    {
+      "k": "foto-perfil",
+      "t": "Foto no perfil",
+      "b": "Você pode colocar uma foto no seu perfil, ajustar e recortar do jeito que quiser. Ela só aparece para quem está vinculado a você, e só se você escolher mostrar.",
+      "te": "Profile photo",
+      "be": "You can add a photo to your profile, then adjust and crop it. It only appears to people linked to you, and only if you choose to show it."
+    },
+    {
+      "k": "sem-escorregar",
+      "t": "Escala guiada sem escorregar",
+      "b": "Na escala guiada, a nota precisa chegar afinada. Se chegar fora, volte à nota anterior e toque de novo. Assim o ouvido e a mão aprendem a acertar de primeira. Dá para desligar nos ajustes.",
+      "te": "Guided scales, no sliding",
+      "be": "In guided scales, each note has to arrive in tune. If it does not, go back to the previous note and play again. That way your ear and hand learn to land it first time. You can turn it off in settings."
+    },
+    {
+      "k": "turmas",
+      "t": "Turmas e métodos para o professor",
+      "b": "Professor: monte sua lista de métodos e repertório (um por linha) e organize seus alunos em turmas. Dali você passa a mesma tarefa para vários de uma vez. Está no Meu espaço, em Organização.",
+      "te": "Groups and methods for teachers",
+      "be": "Teachers: build your list of methods and repertoire (one per line) and organise students into groups. From there you can give the same task to several at once. Find it in My space, under Organization."
+    }
+  ]
+}

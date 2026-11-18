@@ -275,7 +275,15 @@
     .ffc .badge.all { color: var(--accent); border-color: rgba(31,230,143,.5); }
     .ffc .badge.off { color: var(--bad); border-color: rgba(255,107,107,.5); }
     .ffc .badge.pct { color: var(--sharp); border-color: rgba(255,146,38,.5); }
-    .seg { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s8); margin: 0 0 var(--s12); }
+    .nwl { display: block; font-size: 13px; color: var(--dim); margin: var(--s12) 0 var(--s4); }
+    #nwForm input[type=text], #nwForm textarea { width: 100%; box-sizing: border-box; }
+    .nwen { margin: var(--s12) 0; } .nwen summary { cursor: pointer; color: var(--dim); font-size: 14px; min-height: var(--tap); display: flex; align-items: center; }
+    .nwi .body { white-space: pre-wrap; margin: var(--s8) 0 var(--s12); font-size: 15px; }
+    .nwi .acts { display: flex; flex-wrap: wrap; gap: var(--s8); }
+    .nwi .acts button { min-height: var(--tap); padding: var(--s8) var(--s16); border-radius: var(--r-ctl); font-weight: 700; }
+    .ffc .badge.live { color: var(--accent); border-color: rgba(31,230,143,.5); }
+    .nwg { margin: var(--s20) 0 var(--s8); font-size: 15px; color: var(--dim); font-weight: 700; }
+    .seg { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s8); margin: 0 0 var(--s12); }
     @media (min-width: 640px) { .seg { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
     .seg button { padding: var(--s8) var(--s12); min-height: var(--tap); border-radius: var(--r-ctl); font-weight: 700; }
     .pctrow { display: flex; align-items: center; gap: var(--s8); flex-wrap: wrap; margin: 0 0 var(--s16); color: var(--dim); font-size: 13.5px; }
@@ -352,7 +360,7 @@
   </style>
 </head>
 <body>
-  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol><symbol id="i-home" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol><symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-chart" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></symbol><symbol id="i-phone" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></symbol><symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol><symbol id="i-bug" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol><symbol id="i-toggle" viewBox="0 0 24 24"><rect x="1" y="5" width="22" height="14" rx="7" ry="7"/><circle cx="16" cy="12" r="3"/></symbol><symbol id="i-coin" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></symbol><symbol id="i-server" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></symbol><symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol><symbol id="i-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol></defs></svg>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><symbol id="i-music" viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></symbol><symbol id="i-home" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol><symbol id="i-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-chart" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></symbol><symbol id="i-phone" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></symbol><symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol><symbol id="i-bug" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol><symbol id="i-toggle" viewBox="0 0 24 24"><rect x="1" y="5" width="22" height="14" rx="7" ry="7"/><circle cx="16" cy="12" r="3"/></symbol><symbol id="i-coin" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></symbol><symbol id="i-server" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></symbol><symbol id="i-news" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="13" y2="16"/></symbol><symbol id="i-refresh" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></symbol><symbol id="i-out" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol></defs></svg>
   <section id="login">
     <div class="card">
       <div class="logo"><svg class="i" aria-hidden="true"><use href="#i-music"/></svg></div>
@@ -395,6 +403,7 @@
       <button data-tab="survey" role="tab" aria-selected="false" title="Notas e respostas da pesquisa rápida: de quem e de qual aparelho"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg><span>Pesquisa</span></button>
       <button data-tab="bugs" role="tab" aria-selected="false" title="Erros do app e avisos de problema grave"><svg class="i" aria-hidden="true"><use href="#i-bug"/></svg><span>Bugs</span> <span id="bugBadge" class="tag x" hidden></span></button>
       <button data-tab="features" role="tab" aria-selected="false" title="Liberar novidades aos poucos"><svg class="i" aria-hidden="true"><use href="#i-toggle"/></svg><span>Recursos</span></button>
+      <button data-tab="news" role="tab" aria-selected="false" title="Boletim do app: escreva, publique, oculte e veja o histórico das novidades que os usuários leem"><svg class="i" aria-hidden="true"><use href="#i-news"/></svg><span>Publicações</span></button>
       <button data-tab="fing" role="tab" aria-selected="false" title="Corrigir ou incluir o dedilhado do violino (método de Flesch) que o app mostra nas partituras"><svg class="i" aria-hidden="true"><use href="#i-music"/></svg><span>Partituras</span></button>
       <button data-tab="costs" role="tab" aria-selected="false" title="Quanto custa manter o app e projeções"><svg class="i" aria-hidden="true"><use href="#i-coin"/></svg><span>Custos</span></button>
       <button data-tab="system" role="tab" aria-selected="false" title="Banco de dados, servidor e chaves configuradas"><svg class="i" aria-hidden="true"><use href="#i-server"/></svg><span>Sistema</span></button>
@@ -634,6 +643,28 @@
       <div id="ffBox"><div class="empty">Carregando…</div></div>
     </main>
 
+    <!-- ===== Publicações (boletim do app) ===== -->
+    <main id="tab-news" hidden>
+      <h2>Boletim do app</h2>
+      <p class="lead">Novidades curtas que os usuários leem num aviso dentro do app. Nada é publicado sozinho: você escreve (ou usa uma sugestão), publica quando quiser e pode ocultar ou excluir. Ao publicar ou ocultar, chega aos aparelhos em até 5 minutos.</p>
+      <div class="ffc" id="nwForm">
+        <h3 id="nwFormTitle">Nova publicação</h3>
+        <label class="nwl" for="nwT">Título (até 60 letras)</label>
+        <input type="text" id="nwT" maxlength="60" autocomplete="off">
+        <label class="nwl" for="nwB">Texto (curto, até 420 letras)</label>
+        <textarea id="nwB" maxlength="420" rows="4"></textarea>
+        <div class="sub" style="padding:0" id="nwCount">0 / 420</div>
+        <details class="nwen"><summary>Versão em inglês (opcional)</summary>
+          <label class="nwl" for="nwTe">Título em inglês</label>
+          <input type="text" id="nwTe" maxlength="60" autocomplete="off">
+          <label class="nwl" for="nwBe">Texto em inglês</label>
+          <textarea id="nwBe" maxlength="420" rows="3"></textarea>
+        </details>
+        <div class="add"><button class="primary" id="nwSave">Salvar rascunho</button><button id="nwCancel" hidden>Cancelar edição</button></div>
+      </div>
+      <div id="nwBox"><div class="empty">Carregando…</div></div>
+    </main>
+
     <!-- ===== Partituras (dedilhado do violino) ===== -->
     <main id="tab-fing" hidden>
       <h2>Dedilhado do violino (Flesch)</h2>
@@ -869,6 +900,85 @@
       requestAnimationFrame(function () { back.classList.add('on'); no.focus(); });
     });
   }
+  // ---------------- Publicações (boletim do app) ----------------
+  var NW_ST = { draft: 'Rascunho', live: 'Publicada', off: 'Oculta' };
+  var nwEdit = null;
+  function nwDate(ms) { return ms ? new Date(ms).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }) : ''; }
+  function nwFill(it) {
+    nwEdit = it ? it.id : null;
+    $('nwT').value = it ? it.t : ''; $('nwB').value = it ? it.b : '';
+    $('nwTe').value = it ? it.te || '' : ''; $('nwBe').value = it ? it.be || '' : '';
+    $('nwFormTitle').textContent = it ? 'Editando "' + it.t + '"' : 'Nova publicação';
+    $('nwSave').textContent = it ? 'Salvar alterações' : 'Salvar rascunho';
+    $('nwCancel').hidden = !it;
+    $('nwCount').textContent = $('nwB').value.length + ' / 420';
+    if (it) $('nwForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function nwDo(body, okMsg) {
+    return post(body).then(function (r) {
+      if (r.status === 200) { toast(okMsg, 'ok'); loadNews(); loadLog(); return true; }
+      toast('Não foi possível: ' + why(r), 'bad'); return false;
+    }).catch(function () { toast('Sem conexão com o servidor. Nada foi alterado.', 'bad'); return false; });
+  }
+  function nwBtn(label, cls, fn) { var b = document.createElement('button'); b.textContent = label; if (cls) b.className = cls; b.onclick = fn; return b; }
+  function nwCard(it) {
+    var c = document.createElement('div'); c.className = 'ffc nwi';
+    var h = document.createElement('h3'); h.appendChild(document.createTextNode(it.t));
+    var bd = document.createElement('span'); bd.className = 'badge ' + (it.st === 'live' ? 'live' : it.st === 'off' ? 'off' : ''); bd.textContent = NW_ST[it.st]; h.appendChild(bd); c.appendChild(h);
+    var d = document.createElement('div'); d.className = 'd';
+    d.textContent = (it.p ? 'Publicada em ' + nwDate(it.p) + ' · ' : 'Nunca publicada · ') + 'alterada em ' + nwDate(it.u) + (it.te ? ' · tem versão em inglês' : ''); c.appendChild(d);
+    var body = document.createElement('div'); body.className = 'body'; body.textContent = it.b; c.appendChild(body);
+    var a = document.createElement('div'); a.className = 'acts';
+    if (it.st !== 'live') a.appendChild(nwBtn(it.st === 'off' ? 'Publicar de novo' : 'Publicar', 'primary', function () {
+      askConfirm({ title: 'Publicar "' + it.t + '"?', body: 'Os usuários passam a ver este aviso no app.', facts: ['Chega aos aparelhos em até 5 minutos.', 'Dá para ocultar ou excluir depois.'], ok: 'Publicar' }).then(function (y) { if (y) nwDo({ action: 'news_state', id: it.id, st: 'live' }, 'Publicada.'); });
+    }));
+    if (it.st === 'live') a.appendChild(nwBtn('Ocultar', '', function () {
+      askConfirm({ title: 'Ocultar "' + it.t + '"?', body: 'Ele sai do app e fica guardado no histórico.', facts: ['Dá para publicar de novo.'], ok: 'Ocultar' }).then(function (y) { if (y) nwDo({ action: 'news_state', id: it.id, st: 'off' }, 'Oculta.'); });
+    }));
+    a.appendChild(nwBtn('Editar', '', function () { nwFill(it); }));
+    a.appendChild(nwBtn('Excluir', 'danger', function () {
+      askConfirm({ title: 'Excluir "' + it.t + '"?', body: 'Some do app e do histórico.', facts: ['Não dá para desfazer.'], ok: 'Excluir', danger: true }).then(function (y) { if (y) { if (nwEdit === it.id) nwFill(null); nwDo({ action: 'news_delete', id: it.id }, 'Excluída.'); } });
+    }));
+    c.appendChild(a);
+    return c;
+  }
+  function nwGroup(box, title, items, empty) {
+    var g = document.createElement('div'); g.className = 'nwg'; g.textContent = title + ' (' + items.length + ')'; box.appendChild(g);
+    if (!items.length) { var e = document.createElement('div'); e.className = 'empty'; e.textContent = empty; box.appendChild(e); }
+    items.forEach(function (it) { box.appendChild(nwCard(it)); });
+  }
+  function loadNews() {
+    var box = $('nwBox');
+    post({ action: 'news_list' }).then(function (r) {
+      if (r.status !== 200) { box.textContent = 'Não foi possível carregar as publicações: ' + why(r); return; }
+      box.innerHTML = '';
+      var items = r.j.items, sug = r.j.suggestions || [];
+      if (sug.length) {
+        var g = document.createElement('div'); g.className = 'nwg'; g.textContent = 'Sugestões prontas (' + sug.length + ')'; box.appendChild(g);
+        sug.forEach(function (s) {
+          var c = document.createElement('div'); c.className = 'ffc nwi';
+          var h = document.createElement('h3'); h.appendChild(document.createTextNode(s.t)); c.appendChild(h);
+          var d = document.createElement('div'); d.className = 'd'; d.textContent = 'Escrita a partir do que o app ganhou. Só vira rascunho quando você tocar em Usar.'; c.appendChild(d);
+          var body = document.createElement('div'); body.className = 'body'; body.textContent = s.b; c.appendChild(body);
+          var a = document.createElement('div'); a.className = 'acts';
+          a.appendChild(nwBtn('Usar como rascunho', 'primary', function () { nwDo({ action: 'news_save', t: s.t, b: s.b, te: s.te, be: s.be, k: s.k }, 'Virou rascunho.'); }));
+          c.appendChild(a); box.appendChild(c);
+        });
+      }
+      nwGroup(box, 'Publicadas', items.filter(function (i) { return i.st === 'live'; }), 'Nada publicado agora.');
+      nwGroup(box, 'Rascunhos', items.filter(function (i) { return i.st === 'draft'; }), 'Nenhum rascunho.');
+      nwGroup(box, 'Histórico (ocultas)', items.filter(function (i) { return i.st === 'off'; }), 'Nada oculto.');
+    }).catch(function () { box.textContent = 'Sem conexão com o servidor.'; });
+  }
+  $('nwB').oninput = function () { $('nwCount').textContent = $('nwB').value.length + ' / 420'; };
+  $('nwCancel').onclick = function () { nwFill(null); };
+  $('nwSave').onclick = function () {
+    var body = { action: 'news_save', t: $('nwT').value, b: $('nwB').value, te: $('nwTe').value, be: $('nwBe').value };
+    if (nwEdit) body.id = nwEdit;
+    if (!body.t.trim() || !body.b.trim()) { toast('Escreva o título e o texto.', 'bad'); return; }
+    nwDo(body, nwEdit ? 'Alterações salvas.' : 'Rascunho salvo.').then(function (ok) { if (ok) nwFill(null); });
+  };
+
   // ---------------- Recursos liberados aos poucos ----------------
   var FF_MODE = { off: 'Desligado', list: 'Só liberados', pct: 'Parte dos usuários', all: 'Todos' };
   function loadFeatures() {
@@ -2199,7 +2309,7 @@
   var current = 'overview', loaded = {};
   function showTab(name) {
     current = name;
-    ['overview', 'visitors', 'usage', 'devices', 'people', 'survey', 'bugs', 'features', 'fing', 'costs', 'system'].forEach(function (t) { $('tab-' + t).hidden = t !== name; });
+    ['overview', 'visitors', 'usage', 'devices', 'people', 'survey', 'bugs', 'features', 'news', 'fing', 'costs', 'system'].forEach(function (t) { $('tab-' + t).hidden = t !== name; });
     var bs = $('tabs').querySelectorAll('button'); for (var i = 0; i < bs.length; i++) { var isOn = bs[i].getAttribute('data-tab') === name; bs[i].className = isOn ? 'on' : ''; bs[i].setAttribute('aria-selected', isOn ? 'true' : 'false'); }
     var mainEl = $('tab-' + name); mainEl.classList.add('enter'); setTimeout(function () { mainEl.classList.remove('enter'); }, 1200);
     moveInd();
@@ -2211,6 +2321,7 @@
     if (name === 'bugs') { loadBugs(); loadPush(); }
     if (name === 'costs') loadCosts();
     if (name === 'features') loadFeatures();
+    if (name === 'news') loadNews();
     if (name === 'fing') loadFing();
     if (name === 'devices') loadDevices();
     if (name === 'survey') loadSurvey();

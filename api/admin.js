@@ -29,6 +29,11 @@
 //   feature_set {id, mode, pct?}        off | list | pct | all
 //   feature_grant {id, code, students?} libera um código (e, se students, os alunos vinculados a ele)
 //   feature_revoke {id, code, students?} tira da lista
+//  Boletim do app ("Novidades"; ver api/_lib/news.js):
+//   news_list                  todas as publicações (rascunho, publicadas, ocultas) e as sugestões prontas ainda não usadas (1 comando)
+//   news_save {id?, t, b, te?, be?, k?}  cria um rascunho (sem id) ou altera o texto (com id)
+//   news_state {id, st}        draft | live (publica) | off (oculta; continua no histórico)
+//   news_delete {id}           exclui de vez
 //  Dedilhado do violino (Flesch), editado à mão (docs/07_PAINEL_ADMIN.md):
 //   fing_list                  o que vem no app (seed) e o que foi corrigido/incluído aqui (1 comando no Redis)
 //   fing_rows {pc,alt,type,oct} as notas da escala (nome, 8va, corda solta) e o que está salvo para ela (0 ou 1 comando)
@@ -55,6 +60,8 @@ const { validSubscription } = require('./_lib/webpush');
 const { K: EK, day: errDay, hour: errHour, sanitize } = require('./_lib/errors_lib');
 const features = require('./_lib/features');
 const costModel = require('./_lib/cost_model');
+const news = require('./_lib/news');
+const newsSeed = require('./_lib/news_seed.json');
 const fing = require('./_lib/fingering');
 const fingSeed = require('./_lib/fingering_seed.json');
 
@@ -585,6 +592,39 @@ function makeHandler(deps = {}) {
         for (const c of targets) await (on ? features.grant : features.revoke)(store, cmd, id, c);
         await log(action, code, `${id}${targets.length > 1 ? ' +' + (targets.length - 1) + ' alunos' : ''}`);
         return send(200, { ok: true, changed: targets.length });
+      }
+
+      // ---------------- Boletim do app (Publicações) ----------------
+      if (action === 'news_list') {
+        const items = await news.listAll(store);
+        const used = new Set(items.map((i) => i.k).filter(Boolean));
+        const suggestions = newsSeed.items.filter((s) => !used.has(s.k)).map(({ k, t, b, te, be }) => ({ k, t, b, te, be }));
+        return send(200, { ok: true, items, suggestions, limits: { title: news.MAX_TITLE, body: news.MAX_BODY, live: news.MAX_LIVE, items: news.MAX_ITEMS } });
+      }
+      if (action === 'news_save') {
+        const v = news.validate(b);
+        if (v.error) return send(400, { error: v.error });
+        let key = '';
+        if (!b.id && b.k) {
+          const seed = newsSeed.items.find((s) => s.k === String(b.k));
+          if (seed) key = seed.k;
+        }
+        const r = await news.save(store, b.id ? String(b.id) : '', v.v, now, key);
+        if (r.error) return send(400, { error: r.error });
+        await log(b.id ? 'news_edit' : 'news_new', r.id, v.v.t.slice(0, 40));
+        return send(200, { ok: true, id: r.id, item: { id: r.id, ...r.item } });
+      }
+      if (action === 'news_state') {
+        const r = await news.setState(store, String(b.id || ''), String(b.st || ''), now);
+        if (r.error) return send(400, { error: r.error });
+        await log('news_state', r.id, r.before + ' -> ' + r.item.st);
+        return send(200, { ok: true, item: { id: r.id, ...r.item } });
+      }
+      if (action === 'news_delete') {
+        const r = await news.remove(store, String(b.id || ''));
+        if (r.error) return send(400, { error: r.error });
+        await log('news_delete', String(b.id));
+        return send(200, { ok: true });
       }
 
       if (action === 'fing_list') {

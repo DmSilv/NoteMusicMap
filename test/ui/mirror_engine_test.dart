@@ -159,7 +159,7 @@ void main() {
     await a.engine.round();
     await b.engine.round();
     expect(b.student(code)!.tasks, hasLength(1));
-    a.student(code)!.notes.addAll([for (var i = 0; i < 3000; i++) TeacherNote(DateTime(2026, 11, 3), 'nota longa número $i ' + 'x' * 60)]);
+    a.student(code)!.notes.addAll([for (var i = 0; i < 3000; i++) TeacherNote(DateTime(2026, 11, 3), 'nota longa número $i ${'x' * 60}')]);
     expect(studentToSection(a.student(code)!).length, greaterThan(kMaxSectionChars));
     await a.engine.round();
     await a.engine.round();

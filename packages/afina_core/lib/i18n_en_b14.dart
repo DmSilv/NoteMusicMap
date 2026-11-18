@@ -12,6 +12,7 @@ const Map<String, String> kEnB14 = {
   'Manter ligado': 'Keep on',
   'Desligar': 'Turn off',
   'Dicas': 'Tips',
+  'Novidades': 'News',
   'Toque para ver, desligar ou reconectar': 'Tap to view, turn off or reconnect',
   'Com o vínculo online ligado, só código, apelido e tarefas das aulas vão ao servidor.': 'With the online link on, only code, nickname and lesson tasks go to the server.',
   'Aulas com professor': 'Lessons with a teacher',

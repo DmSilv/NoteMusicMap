@@ -19,6 +19,7 @@ import 'ui/home_tabs.dart';
 import 'ui/link_bar.dart';
 import 'ui/error_ui.dart';
 import 'ui/status_strip.dart';
+import 'ui/news_ui.dart' show showNewsDialog;
 import 'ui/teacher_page.dart' show handleIncomingStudentCode;
 import 'ui/grid_page.dart';
 import 'platform/web_install.dart' show webOnInstallEvents;
@@ -147,6 +148,31 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
     }
   }
 
+  bool _newsBusy = false;
+  bool _newsShown = false; // no máximo uma por abertura do app
+
+  /// Novidade em cartaz: um aviso pequeno, uma vez para cada novidade, só com o app parado na tela principal
+  /// (nunca por cima da apresentação, de uma conversa em andamento ou de outra tela aberta).
+  void _maybeShowNews() {
+    if (_newsBusy || _newsShown || !mounted || widget.app.pendingNewsItem == null) return;
+    _newsBusy = true;
+    Future<void>.delayed(const Duration(seconds: 3), () async {
+      try {
+        final ctx = _navKey.currentContext;
+        final n = widget.app.pendingNewsItem;
+        if (!mounted || ctx == null || n == null) return;
+        // ignore: use_build_context_synchronously
+        if (Navigator.of(ctx).canPop()) return; // há outra tela aberta: fica para a próxima mudança
+        if (widget.app.incomingStudentCode != null || widget.app.incomingTeacherCode != null || widget.app.incomingPairCode != null) return;
+        _newsShown = true;
+        // ignore: use_build_context_synchronously
+        await showNewsDialog(ctx, widget.app, n);
+      } finally {
+        _newsBusy = false;
+      }
+    });
+  }
+
   /// Explica para que o microfone é usado antes do primeiro pedido do sistema.
   Future<bool> _micRationale() async {
     final ctx = _navKey.currentContext;
@@ -187,6 +213,7 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     widget.app.markTab('tuner');
     widget.app.askMicRationale = _micRationale;
+    widget.app.addListener(_maybeShowNews);
     // Primeiro uso: apresentação curta (sem pedir nada).
     if (!widget.app.onboarded) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _onboarding());
@@ -253,6 +280,7 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.app.removeListener(_maybeShowNews);
     super.dispose();
   }
 

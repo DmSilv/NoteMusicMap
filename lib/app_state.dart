@@ -4587,6 +4587,8 @@ class AppState extends ChangeNotifier {
     scalePaper = StaffPaper.values[(p.getInt('scale_paper') ?? StaffPaper.light.index).clamp(0, StaffPaper.values.length - 1)];
     // Dedilhados que o administrador corrigiu: o último que o app recebeu vale já na abertura (e funciona sem internet).
     setViolinFingeringFromJson(p.getString('fing_json'));
+    news = parseNews(p.getString('news_json') ?? '') ?? [];
+    _newsSeen = (p.getStringList('news_seen') ?? const <String>[]).toSet();
     scaleNames = StaffNames.values[(p.getInt('scale_names') ?? StaffNames.none.index).clamp(0, StaffNames.values.length - 1)];
     // Meta simples para quem chega agora (5 min); quem já usava e nunca mexeu continua com 20.
     dailyGoalMinutes = p.getDouble('goal') ?? ((p.getBool('onboarded') ?? false) ? 20 : 5);
@@ -4706,7 +4708,44 @@ class AppState extends ChangeNotifier {
     grid = PitchGrid(history: history, holdSeconds: holdSeconds <= 0 ? null : holdSeconds);
     _studyTimer = Timer.periodic(const Duration(seconds: 1), (_) => _studyTick());
     unawaited(syncFingering());
+    unawaited(syncNews());
     notifyListeners();
+  }
+
+  // ---------------- Novidades (boletim do app) ----------------
+  /// As novidades publicadas no painel, a mais nova primeiro (a última resposta boa do servidor).
+  List<NewsItem> news = [];
+  Set<String> _newsSeen = {};
+
+  bool isNewsSeen(NewsItem n) => _newsSeen.contains(n.id);
+
+  /// A novidade que aparece sozinha: só depois da apresentação do app, e uma vez para cada uma.
+  NewsItem? get pendingNewsItem => onboarded ? pendingNews(news, _newsSeen) : null;
+
+  void markNewsSeen(NewsItem n) {
+    if (!_newsSeen.add(n.id)) return;
+    final keep = _newsSeen.toList();
+    _prefs?.setStringList('news_seen', keep.length > 60 ? keep.sublist(keep.length - 60) : keep);
+    notifyListeners();
+  }
+
+  /// Um GET por abertura (a CDN guarda por 5 minutos). Sem rede ou com resposta estranha, fica o que já havia.
+  Future<void> syncNews() async {
+    final Uri? ep = kApiBase.isNotEmpty ? Uri.parse('$kApiBase/api/news') : (kIsWeb ? Uri.base.resolve('/api/news') : null);
+    if (ep == null) return;
+    try {
+      final r = await http.get(ep).timeout(const Duration(seconds: 8));
+      if (r.statusCode != 200) return;
+      final items = parseNews(r.body);
+      if (items == null) return;
+      final same = items.length == news.length && [for (var i = 0; i < items.length; i++) items[i].id == news[i].id && items[i].title == news[i].title && items[i].body == news[i].body].every((e) => e);
+      if (same) return;
+      news = items;
+      _prefs?.setString('news_json', jsonEncode({'items': [for (final n in items) n.toJson()]}));
+      notifyListeners();
+    } catch (_) {
+      // sem rede: fica o que já valia
+    }
   }
 
   /// Busca os dedilhados que o administrador corrigiu ou incluiu no painel: um GET por abertura (a CDN guarda a resposta por 5 minutos,

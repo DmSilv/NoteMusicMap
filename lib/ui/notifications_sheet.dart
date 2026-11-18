@@ -6,6 +6,7 @@ import 'my_lessons_page.dart' show openMyLessons;
 import 'profile_page.dart';
 import 'teacher_page.dart';
 import 'design_system.dart';
+import 'news_ui.dart';
 import 'suggestions.dart';
 import 'theme.dart';
 import 'package:afina_core/afina_core.dart';
@@ -70,10 +71,11 @@ Future<void> showNotificationsSheet(BuildContext context, AppState app) {
                   if (list.isNotEmpty) TextButton.icon(onPressed: app.clearNotices, icon: const Icon(Icons.delete_sweep, size: 18), label: Text(tr('Limpar'))),
                 ]),
                 const DsGap.small(),
+                if (app.news.isNotEmpty) Flexible(flex: 0, child: NewsTiles(app: app)),
                 if (suggestionCount(app) > 0) Padding(padding: const EdgeInsets.only(bottom: Ds.s4), child: Text(tr('Dicas'), style: Ds.section())),
                 SuggestionTiles(app: app, closeSheet: () => Navigator.of(c).pop()),
                 if (suggestionCount(app) > 0 && list.isNotEmpty) Padding(padding: const EdgeInsets.only(top: Ds.s12, bottom: Ds.s4), child: Text(tr('Avisos'), style: Ds.section())),
-                if (list.isEmpty && suggestionCount(app) == 0)
+                if (list.isEmpty && suggestionCount(app) == 0 && app.news.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 28),
                     child: Text(tr('Nenhum aviso por enquanto. Aulas novas, tarefas validadas e horários aparecem aqui.'),

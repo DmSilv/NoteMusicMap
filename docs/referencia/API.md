@@ -3,7 +3,7 @@
 > **Gerado automaticamente** por `scripts/gen_docs.js` a partir do código. Não edite à mão: rode `node scripts/gen_docs.js`.
 > Cada endpoint é um arquivo em `api/` (uma função da Vercel). O limite do plano Hobby é **12 funções**; arquivos de teste ficam fora do deploy.
 
-Funções hoje: **10 de 12**.
+Funções hoje: **11 de 12**.
 
 ## `/api/account`
 
@@ -95,6 +95,11 @@ Custo: ~6 comandos por pedido de código, ~8 ao confirmar; só quando a pessoa u
   feature_set {id, mode, pct?}        off | list | pct | all
   feature_grant {id, code, students?} libera um código (e, se students, os alunos vinculados a ele)
   feature_revoke {id, code, students?} tira da lista
+ Boletim do app ("Novidades"; ver api/_lib/news.js):
+  news_list                  todas as publicações (rascunho, publicadas, ocultas) e as sugestões prontas ainda não usadas (1 comando)
+  news_save {id?, t, b, te?, be?, k?}  cria um rascunho (sem id) ou altera o texto (com id)
+  news_state {id, st}        draft | live (publica) | off (oculta; continua no histórico)
+  news_delete {id}           exclui de vez
  Dedilhado do violino (Flesch), editado à mão (docs/07_PAINEL_ADMIN.md):
   fing_list                  o que vem no app (seed) e o que foi corrigido/incluído aqui (1 comando no Redis)
   fing_rows {pc,alt,type,oct} as notas da escala (nome, 8va, corda solta) e o que está salvo para ela (0 ou 1 comando)
@@ -124,6 +129,10 @@ Custo: só quando o admin abre o painel (kpis ~35 comandos; lista de 25 = ~27; d
 | `features` | Recursos liberados aos poucos |
 | `feature_set` | — |
 | `feature_grant` | — |
+| `news_list` | Boletim do app (Publicações) |
+| `news_save` | — |
+| `news_state` | — |
+| `news_delete` | — |
 | `fing_list` | — |
 | `fing_rows` | — |
 | `fing_suggest` | — |
@@ -279,6 +288,14 @@ Precisa do Upstash Redis. Sem ele devolve 503 e o app segue só neste aparelho.
 | `verdict` | O PROFESSOR decide sobre uma tarefa de um aluno vinculado: 'ok' valida, 'back' devolve, vazio apaga a decisão. O aluno vê isso como o status oficial. |
 | `link` | — |
 | `unlink` | — |
+
+## `/api/news`
+
+```text
+GET /api/news: o boletim publicado (ver _lib/news.js). Público e sem dado pessoal.
+O app busca uma vez por abertura; a CDN guarda a resposta por 5 minutos, então o Redis quase não é tocado
+(no máximo 1 comando a cada 5 minutos por região). Ocultar ou excluir no painel chega aos aparelhos em até ~5 minutos.
+```
 
 ## `/api/remind`
 

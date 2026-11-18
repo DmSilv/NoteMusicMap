@@ -68,6 +68,7 @@
 | `lib/ui/mic_pill.dart` | Aviso fixo na barra superior enquanto o microfone está captando: ponto pulsante + "Ouvindo". Visível em qualquer aba; tocar desliga. |
 | `lib/ui/my_lessons_page.dart` | Minhas aulas (aluno): aulas e tarefas recebidas do professor, com o status oficial (validada, aguardando, refazer) e o botão de treinar. |
 | `lib/ui/needle.dart` | Ponteiro do afinador com movimento fluido. Em vez de reiniciar uma animação a cada leitura do microfone (o que dá trancos), um relógio a 60 fps aproxima o ponteiro do valor alvo com suavização exponencial. O… |
+| `lib/ui/news_ui.dart` | Uma novidade do boletim num aviso pequeno: título, texto curto e um botão só. Marca como vista ao abrir. |
 | `lib/ui/note_widgets.dart` | Nome de nota com o acidente (♯/♭) DESENHADO, elevado ao lado da letra, e a oitava pequena embaixo, tudo alinhado à linha de base: "Sol" + ♯ + 4. O ♯ e o ♭ são traçados à mão (não vêm da fonte): assim têm sempre o… |
 | `lib/ui/notifications_sheet.dart` | Central de avisos (sino): lista todos os avisos, marca como lidos, limpa e leva ao lugar certo conforme o tipo. |
 | `lib/ui/octave_colors.dart` | Uma cor para cada oitava do exercício (escalas e arpejos), diferente das cores de afinação (azul, verde, laranja): violeta, rosa, dourado e prata. |
@@ -171,6 +172,7 @@
 | `packages/afina_core/lib/metronome_engine.dart` | Motor do metrônomo: gera PCM com cliques posicionados em AMOSTRAS exatas. Por que assim: o app não agenda cliques com Timer (que oscila 5-20 ms). Em vez disso, gera o áudio contínuo e coloca cada clique na amostra… |
 | `packages/afina_core/lib/mirror.dart` | Espelho da conta entre aparelhos: as regras de COMO juntar o que dois aparelhos da mesma conta guardam, sem perder nada. O servidor só guarda seções de texto (api/_lib/mirror.js); aqui está a parte que entende o… |
 | `packages/afina_core/lib/needle_spring.dart` | Movimento natural de ponteiro: mola amortecida e mapeamento de ângulo. Fica no núcleo (Dart puro) para poder ser testado sem a interface. |
+| `packages/afina_core/lib/news.dart` | Uma novidade do boletim do app (escrita pelo administrador e lida de GET /api/news). |
 | `packages/afina_core/lib/note_display.dart` | Estabilizador da nota EXIBIDA (a que fica em destaque na tela). A grade continua registrando cada nota que o microfone ouve (as cores são fiéis ao que foi tocado). Só o DESTAQUE ao vivo (nome da nota, ponteiro e… |
 | `packages/afina_core/lib/note_gate.dart` | Porta de registro da sessão: só vira nota da grade (cor, ×N, placar) o que se mantém por um tempo mínimo. Corta o que o músico não tocou de verdade: a passagem entre duas notas (de Lá para Si o dedo cruza o Lá♯),… |
 | `packages/afina_core/lib/open_slots.dart` | Horários disponíveis do professor e o aluno que "pega" um deles. Dart puro e testável. Um horário disponível usa o mesmo formato de [ClassSlot] (data, duração, semanal ou avulso). Quando o aluno pega um, o servidor o… |
@@ -229,6 +231,7 @@
 | `packages/afina_core/test/metronome_engine_test.dart` | Renderiza [total] amostras em blocos de [chunk] e junta tudo. |
 | `packages/afina_core/test/mirror_test.dart` | Testes do módulo `mirror`. |
 | `packages/afina_core/test/needle_spring_test.dart` | Simula [seconds] com passos de [dt] e devolve a trajetória (posições). |
+| `packages/afina_core/test/news_test.dart` | Testes do módulo `news`. |
 | `packages/afina_core/test/note_display_test.dart` | Alimenta o filtro com [n] por [seconds], num quadro a cada 30 ms, a partir de [t0]. Devolve a lista do que foi exibido em cada quadro. |
 | `packages/afina_core/test/note_gate_test.dart` | Alimenta a porta com [n] por [seconds], um quadro a cada 17 ms, desde [t0]. Devolve o instante final. |
 | `packages/afina_core/test/open_slots_test.dart` | Testes do módulo `open_slots`. |
@@ -277,6 +280,7 @@
 | `api/feedback.js` | POST /api/feedback: nota do app e respostas das pesquisas rápidas (anônimas). GET /api/feedback: resumo para o dono do app (exige FEEDBACK_ADMIN_KEY). Privacidade: guarda só a resposta, a versão e um código do… |
 | `api/fingering.js` | GET /api/fingering: dedilhados do violino que o administrador corrigiu ou incluiu (ver _lib/fingering.js). Público e sem dado pessoal. O app busca uma vez por abertura; a CDN guarda a resposta por 5 minutos, então o… |
 | `api/link.js` | POST /api/link: vínculo entre professor e aluno, registrado dos dois lados. Quem lê o QR (ou digita o código) do outro cria o vínculo; ele passa a valer para os dois, e cada um vê o outro na sua lista na próxima… |
+| `api/news.js` | GET /api/news: o boletim publicado (ver _lib/news.js). Público e sem dado pessoal. O app busca uma vez por abertura; a CDN guarda a resposta por 5 minutos, então o Redis quase não é tocado (no máximo 1 comando a cada… |
 | `api/remind.js` | POST /api/remind: chamado pelo QStash 15 minutos antes de uma aula. Envia a notificação ao professor e ao aluno (Web Push) e agenda o lembrete da próxima aula (se a aula é semanal). Só aceita mensagens que o próprio… |
 | `api/stats.js` | /api/stats: métricas ANÔNIMAS de uso do app. POST (o app, sem chave): { t: 'open'\|'beat'\|'ev', id, d?: { pl, in, v, o?, x?: { os, sc, lg, th, tc, mic, nt } }, tabs?: [...] } 'ev' = evento de ativação ("primeira… |
 
@@ -297,6 +301,7 @@
 | `api/_lib/mail.js` | Envio de e-mail (só os códigos de verificação da conta). Usa o serviço de e-mail por API (padrão: Resend); a chave e o remetente vêm das variáveis de ambiente da Vercel (MAIL_API_KEY ou RESEND_API_KEY, e MAIL_FROM).… |
 | `api/_lib/metrics.js` | Métricas anônimas de uso: nomes das chaves, o dia (fuso de Brasília) e o contador que o servidor soma sozinho quando algo acontece (aula enviada, vínculo criado...). Falhar aqui NUNCA pode derrubar o que o usuário… |
 | `api/_lib/mirror.js` | Espelho da conta entre aparelhos: o que o professor (e a pessoa) guarda só no aparelho — alunos com tarefas, observações e aulas, agenda, métodos, histórico de estudo — passa a ficar também no servidor, para o outro… |
+| `api/_lib/news.js` | Boletim do app ("Novidades"): textos curtos que o administrador escreve, publica, oculta ou exclui no painel. O app só LÊ a lista publicada (GET /api/news, com cache de CDN), então o custo por usuário é praticamente… |
 | `api/_lib/profiles.js` | Índice dos perfis anônimos (código + apelido) para o painel do administrador: quando entrou, última atividade, papel (professor / aluno) e bloqueio. NÃO há cadastro nem login. Custo: 3 comandos quando o perfil nasce;… |
 | `api/_lib/prompts.js` | Instruções de cada tipo de pedido. O texto recebido é DADO, nunca instrução. |
 | `api/_lib/providers.js` | Um adaptador por serviço de IA. Todos recebem {system, prompt} e devolvem {status: 'ok'\|'busy'\|'auth'\|'error', text?, model?, retryAfterMs?}. |
@@ -333,6 +338,7 @@
 | `api/library.test.js` | Testes do Acervo e Repertório do professor (só links): `node --test api/library.test.js` |
 | `api/link.test.js` | Testes do vínculo professor-aluno, sem rede: `node --test api/link.test.js` |
 | `api/mirror.test.js` | Espelho da conta entre aparelhos, sem rede: `node --test api/mirror.test.js` |
+| `api/news.test.js` | Boletim do app: o painel escreve, publica, oculta e exclui; o app só lê o que está publicado. `node --test api/news.test.js` |
 | `api/online.test.js` | Testes da aula online (link da aula, modo online/presencial, link padrão): `node --test api/online.test.js` |
 | `api/painel_precisao.test.js` | Painel mais preciso: saúde, custos, coortes, período anterior, horas, limpeza e erros do servidor. `node --test api/painel_precisao.test.js` |
 | `api/photo.test.js` | Foto de perfil mostrada a quem está vinculado, sem rede: `node --test api/photo.test.js` |
@@ -370,4 +376,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **327** arquivos mapeados.
+Total: **333** arquivos mapeados.
