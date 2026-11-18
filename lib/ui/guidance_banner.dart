@@ -41,6 +41,10 @@ class GuidanceBanner extends StatefulWidget {
   final String? backTitle;
   final String? backDetail;
 
+  /// Modo calmo (escala guiada): a troca de mensagem é mais lenta e a mensagem fica mais tempo na tela, o estado de espera
+  /// não usa o ícone de "ouvido" (que ficava trocando a cada pausa) e o texto tem duas linhas e mais respiro.
+  final bool calm;
+
   /// Versão baixa e de altura fixa (a mesma em todos os estados), para a tela de exercício caber sem rolar.
   final bool compact;
 
@@ -58,6 +62,7 @@ class GuidanceBanner extends StatefulWidget {
     this.noteLabel,
     this.backTitle,
     this.backDetail,
+    this.calm = false,
   });
 
   @override
@@ -72,8 +77,8 @@ class _Guide {
 }
 
 class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProviderStateMixin {
-  static const Duration minShow = Duration(milliseconds: 1400);
-  static const Duration linger = Duration(milliseconds: 3200);
+  Duration get minShow => Duration(milliseconds: widget.calm ? 2200 : 1400);
+  Duration get linger => Duration(milliseconds: widget.calm ? 4500 : 3200);
 
   late final AnimationController _bounce =
       AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..repeat(reverse: true);
@@ -103,28 +108,28 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
       final exp = label?.call(cue.expectedMidi) ?? '${cue.expectedMidi}';
       final heard = label?.call(cue.heardMidi) ?? '${cue.heardMidi}';
       if (!cue.inScale) {
-        return _Guide(GuideKind.other, tr('FORA DA ESCALA'), tr('{0} não é desta escala. Procure {1}.', [heard, exp]));
+        return _Guide(GuideKind.other, tr('NOTA FORA DA ESCALA'), tr('{0} não faz parte desta escala. Procure {1}.', [heard, exp]));
       }
       if (!cue.near) {
-        return _Guide(GuideKind.other, tr('OUTRA NOTA'), tr('Você está em {0}. Procure {1}.', [heard, exp]));
+        return _Guide(GuideKind.other, tr('OUTRA NOTA'), tr('Você tocou {0}. Procure {1}.', [heard, exp]));
       }
       final how = cue.amount == 0 ? tr(' um pouco') : (cue.amount == 1 ? '' : tr(' bastante'));
       return _Guide(
         cue.goUp ? GuideKind.raise : GuideKind.lower,
-        cue.goUp ? tr('SUBA A AFINAÇÃO') : tr('DESÇA A AFINAÇÃO'),
-        tr('Ainda não é {0}: {1}{2}.', [exp, cue.goUp ? tr('suba') : tr('desça'), how]),
+        cue.goUp ? tr('A NOTA ESTÁ BAIXA') : tr('A NOTA ESTÁ ALTA'),
+        cue.goUp ? tr('Ainda não é {0}. Suba{1}.', [exp, how]) : tr('Ainda não é {0}. Desça{1}.', [exp, how]),
       );
     }
     if (c == null) return null;
     if (c.abs() <= widget.zone) {
-      return _Guide(GuideKind.tuned, widget.tunedTitle ?? tr('AFINADA!'), widget.tunedDetail ?? tr('Segure assim.'));
+      return _Guide(GuideKind.tuned, widget.tunedTitle ?? tr('MUITO BEM!'), widget.tunedDetail ?? tr('Segure assim.'));
     }
     final a = c.abs();
     return c < 0
-        ? _Guide(GuideKind.raise, tr('SUBA A AFINAÇÃO'),
-            tr('Nota baixa: suba{0}.', [_amount(a)]))
-        : _Guide(GuideKind.lower, tr('DESÇA A AFINAÇÃO'),
-            tr('Nota alta: desça{0}.', [_amount(a)]));
+        ? _Guide(GuideKind.raise, tr('A NOTA ESTÁ BAIXA'),
+            tr('Suba{0} até ficar afinada.', [_amount(a)]))
+        : _Guide(GuideKind.lower, tr('A NOTA ESTÁ ALTA'),
+            tr('Desça{0} até ficar afinada.', [_amount(a)]));
   }
 
   @override
@@ -159,7 +164,7 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
       GuideKind.lower => (AppColors.sharp, Icons.arrow_downward),
       GuideKind.other => (AppColors.textDim, Icons.help_outline),
       GuideKind.back => (AppColors.sharp, Icons.undo),
-      GuideKind.idle => (AppColors.textDim, Icons.hearing),
+      GuideKind.idle => (AppColors.textDim, widget.calm ? Icons.music_note_rounded : Icons.hearing),
     };
     final moving = data.kind == GuideKind.raise || data.kind == GuideKind.lower;
 
@@ -172,9 +177,9 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOutCubic,
-          height: widget.compact ? 60 : (data.kind == GuideKind.idle ? 68 : 92),
+          height: widget.compact ? (widget.calm ? 80 : 60) : (data.kind == GuideKind.idle ? 68 : 92),
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+          padding: EdgeInsets.symmetric(horizontal: widget.calm ? 16 : 14, vertical: widget.calm ? 8 : 0),
           decoration: BoxDecoration(
             color: color.withValues(alpha: data.kind == GuideKind.idle ? 0.08 : 0.2),
             borderRadius: BorderRadius.circular(20),
@@ -184,7 +189,7 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
           ),
           // Ícone e textos trocam JUNTOS (mesma chave): nunca ficam defasados.
           child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 200),
+            duration: Duration(milliseconds: widget.calm ? 380 : 200),
             child: Row(
               key: ValueKey('${data.kind}-${data.title}'),
               children: [
@@ -221,12 +226,10 @@ class _GuidanceBannerState extends State<GuidanceBanner> with SingleTickerProvid
                           ),
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: widget.calm ? 4 : 2),
                       Text(
-                        stale && data.kind != GuideKind.idle
-                            ? tr('Última orientação: {0}', [data.detail])
-                            : data.detail,
-                        maxLines: widget.compact ? 1 : 2,
+                        data.detail,
+                        maxLines: widget.compact && !widget.calm ? 1 : 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(color: data.kind == GuideKind.idle ? AppColors.textDim : AppColors.text, fontSize: widget.compact ? 12 : (data.kind == GuideKind.idle ? 13 : 14.5), height: 1.2),
                       ),

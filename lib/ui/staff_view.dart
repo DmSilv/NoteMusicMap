@@ -78,6 +78,11 @@ class StaffView extends StatefulWidget {
   final Map<int, StaffMark> marks;
   final StaffNames names;
 
+  /// Índice da nota para a qual o aluno precisa VOLTAR (exercício travado no "sem escorregar"): ganha um destaque laranja
+  /// com o rótulo [backLabel] em cima. null = nenhuma.
+  final int? backTo;
+  final String backLabel;
+
   /// Altura máxima em pixels; null = mostra tudo.
   final double? maxHeight;
   final String semanticLabel;
@@ -100,6 +105,8 @@ class StaffView extends StatefulWidget {
     this.current,
     this.marks = const {},
     this.names = StaffNames.none,
+    this.backTo,
+    this.backLabel = '',
     this.maxHeight,
     this.semanticLabel = '',
     this.colors,
@@ -152,7 +159,7 @@ class _StaffViewState extends State<StaffView> {
       for (var i = first; i < last; i++) {
         total += layout.systems[i].height * sp + (i > first ? gapSp * sp : 0);
       }
-      final painter = _StaffPainter(layout, first, last, w.current, w.marks, w.names, cols, gapSp, w.hintNow);
+      final painter = _StaffPainter(layout, first, last, w.current, w.marks, w.names, cols, gapSp, w.hintNow, w.backTo, w.backLabel);
       final label = Text('${page + 1} / $pages', style: TextStyle(fontSize: 13, color: cols.dim, fontWeight: FontWeight.w700));
       return Semantics(
         label: w.semanticLabel,
@@ -202,7 +209,9 @@ class _StaffPainter extends CustomPainter {
   final StaffColors colors;
   final double gapSp;
   final bool hintNow;
-  _StaffPainter(this.layout, this.from, this.to, this.current, this.marks, this.names, this.colors, this.gapSp, this.hintNow);
+  final int? backTo;
+  final String backLabel;
+  _StaffPainter(this.layout, this.from, this.to, this.current, this.marks, this.names, this.colors, this.gapSp, this.hintNow, this.backTo, this.backLabel);
 
   double get sp => layout.sp;
 
@@ -314,6 +323,32 @@ class _StaffPainter extends CustomPainter {
               ..color = ink.withValues(alpha: 0.55)
               ..style = PaintingStyle.stroke
               ..strokeWidth = 1.5);
+      }
+    }
+    // a nota para onde voltar (laranja, com o rótulo em cima): some assim que o aluno volta a ela
+    if (backTo != null) {
+      for (final e in s.events) {
+        if (e.e.index != backTo) continue;
+        final cx = ((e.accX ?? e.x) + e.x + e.headW) / 2;
+        final half = (e.slotX1 - e.slotX0 - 0.25) / 2;
+        final cy = py(e.y);
+        final reach = 3.4 * sp;
+        const orange = Color(0xFFFF9226);
+        final r = RRect.fromLTRBR(px(cx - half), cy - reach, px(cx + half), cy + reach, Radius.circular(sp * 0.7));
+        canvas.drawRRect(r, Paint()..color = orange.withValues(alpha: 0.18));
+        canvas.drawRRect(
+            r,
+            Paint()
+              ..color = orange
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 2);
+        if (backLabel.isNotEmpty) {
+          final fs = (sp * 1.35).clamp(11.5, 16.0);
+          final lp = _tp(backLabel, orange, fs, family: null, weight: FontWeight.w800);
+          // o rótulo fica logo acima do quadrado, centralizado nele, sem sair da página
+          final lx = (px(cx) - lp.width / 2).clamp(0.0, (px(layout.widthSp) - lp.width).clamp(0.0, double.infinity));
+          lp.paint(canvas, Offset(lx, (cy - reach - lp.height - 1).clamp(0.0, double.infinity)));
+        }
       }
     }
     // pauta

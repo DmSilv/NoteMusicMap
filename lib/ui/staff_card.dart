@@ -23,6 +23,10 @@ class StaffCard extends StatefulWidget {
   final StaffNames names;
   final int? current;
   final Map<int, StaffMark> marks;
+
+  /// Nota para a qual o aluno precisa voltar (exercício travado) e o rótulo que a marca na partitura.
+  final int? backTo;
+  final String backLabel;
   final double? maxHeight;
   final String semanticLabel;
   final bool hints;
@@ -48,6 +52,8 @@ class StaffCard extends StatefulWidget {
     this.names = StaffNames.ledger,
     this.current,
     this.marks = const {},
+    this.backTo,
+    this.backLabel = '',
     this.maxHeight,
     this.semanticLabel = '',
     this.hints = false,
@@ -95,6 +101,8 @@ class _StaffCardState extends State<StaffCard> {
         score: _build(),
         current: w.current,
         marks: w.marks,
+        backTo: w.backTo,
+        backLabel: w.backLabel,
         names: w.names,
         maxHeight: maxH,
         fill: height != null,

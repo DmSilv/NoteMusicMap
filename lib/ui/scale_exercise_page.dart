@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app_state.dart';
+import 'beat_bar.dart';
 import 'design_system.dart';
 import 'guidance_banner.dart';
 import 'needle.dart';
@@ -53,13 +54,13 @@ class ScaleExercisePage extends StatelessWidget {
               children: [
                 if (!app.listening) _needMic(context) else if (!e.finished) ...[
                   _target(e),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   _live(e),
                 ],
                 if (e.finished) _result(context, e),
-                const SizedBox(height: 10),
+                const SizedBox(height: 16),
                 _header(e),
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
                 // A partitura usa a altura que sobra na tela (a linha "Cor da partitura" mora nos Ajustes do exercício).
                 _notation(e, (MediaQuery.sizeOf(context).height - 540).clamp(200.0, 520.0)),
                 const SizedBox(height: 10),
@@ -106,6 +107,9 @@ class ScaleExercisePage extends StatelessWidget {
       names: app.scaleNames,
       current: cur,
       marks: marks,
+      // travado no "sem escorregar": a nota anterior fica marcada em laranja na partitura ("Volte aqui")
+      backTo: (!e.flow && !e.finished && e.replayNeeded && e.replayMidi != null) ? e.index - 1 : null,
+      backLabel: tr('Volte aqui'),
       maxHeight: maxHeight,
       semanticLabel: (!e.flow && !e.finished && e.expected != null)
           ? tr('Partitura do exercício. Nota de agora: {0}', [app.scaleNoteName(e.expected!, ascending: e.ascendingAt(e.index), withOctave: true)])
@@ -223,50 +227,41 @@ class ScaleExercisePage extends StatelessWidget {
     return parts.isEmpty ? null : parts.join(' · ');
   }
 
-  /// Modo guiado: uma nota por vez; a próxima só vem quando esta ficar afinada.
+  /// Modo guiado: uma nota por vez; a próxima só vem quando esta ficar afinada. Só mostra a nota e o que vem depois; o que
+  /// fazer (suba, desça, volte) fica num lugar só, no aviso logo abaixo ([_live]).
   Widget _guidedCard(ScaleExercise e) {
     final back = e.replayMidi; // travado: precisa voltar à nota anterior
     final m = back ?? e.expected!;
     final asc = e.ascendingAt(e.index);
     final hz = targetFreq(m, app.cfg);
-    final cur = app.current;
-    final onTarget = cur?.midi == m;
     final next = [
       for (var k = 1; k <= 3; k++)
         if (e.index + k < e.sequence.length) (e.sequence[e.index + k], e.ascendingAt(e.index + k))
     ];
-    final backName = back == null ? '' : app.scaleNoteName(back, ascending: e.ascendingAt(e.index - 1), withOctave: true);
-    final nextName = app.scaleNoteName(e.expected!, ascending: asc, withOctave: true);
-    final wrong = e.lockWrongMidi;
-    final status = e.replayNeeded
-        ? (back != null
-            ? (wrong != null
-                ? tr('Você tocou {0}, mas a vez é de {1}. Volte para {2} e toque {1} de novo.', [app.scaleNoteName(wrong, ascending: asc, withOctave: true), nextName, backName])
-                : tr('A nota chegou fora do ponto. Volte para {0} e toque {1} de novo, já afinada.', [backName, nextName]))
-            : tr('Chegou desafinada. Solte a nota e toque de novo, direto na altura.'))
-        : e.tunedNow
-        ? tr('Afinada! Segure só mais um instante…')
-        : (onTarget ? tr('Quase: ajuste a afinação. A barra só enche quando estiver afinada.') : tr('Aguardando a nota certa'));
+    final locked = e.replayNeeded && back != null;
     return AppCard(
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
       child: Column(
         children: [
           Row(children: [
             // A frequência fica junto do rótulo, à esquerda: o ♭/♯ grande do nome sobe no centro e não pode encostar nela.
-            Text('${e.replayNeeded && back != null ? tr('Volte para') : tr('Toque agora')} · ${hz.toStringAsFixed(1)} Hz', style: TextStyle(color: e.replayNeeded ? AppColors.sharp : AppColors.textDim, fontSize: 13)),
+            Text(locked ? tr('Volte para') : tr('Toque agora'),
+                style: TextStyle(color: locked ? AppColors.sharp : AppColors.text, fontSize: 14, fontWeight: FontWeight.w800)),
+            const SizedBox(width: 8),
+            Text('${hz.toStringAsFixed(1)} Hz', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
             const Spacer(),
             _dirTag(asc),
           ]),
           // Altura folgada: o ♭/♯ grande sobe e não pode encostar na frequência da linha de cima.
           SizedBox(
-            height: 88,
+            height: 96,
             child: Center(
               child: AnimatedSwitcher(
                 duration: const Duration(milliseconds: 260),
                 transitionBuilder: (c, a) => fadeThroughTransition(c, a),
                 child: KeyedSubtree(
                   key: ValueKey('${e.index}-$m'),
-                  child: _bigNote(m, asc: asc, size: 66, color: e.tunedNow ? AppColors.inTune : AppColors.text),
+                  child: _bigNote(m, asc: asc, size: 66, color: locked ? AppColors.sharp : (e.tunedNow ? AppColors.inTune : AppColors.text)),
                 ),
               ),
             ),
@@ -274,48 +269,43 @@ class ScaleExercisePage extends StatelessWidget {
           // Dedilhado do livro (altura fixa só quando esta escala tem tabela, para a tela não pular de nota em nota).
           if (app.scaleFingering != null)
             SizedBox(
-              height: 22,
+              height: 26,
               child: Center(child: Text(_fingerNow(e) ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700))),
             ),
-          // Altura fixa: perto do fim a prévia tem menos notas, sem mexer na tela.
-          SizedBox(
-            height: 30,
+          const SizedBox(height: 12),
+          // As próximas notas, num bloco só delas e com respiro. Altura fixa: perto do fim há menos notas, sem mexer na tela.
+          Container(
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(color: AppColors.surface2.withValues(alpha: 0.55), borderRadius: BorderRadius.circular(14)),
             child: next.isEmpty
                 ? null
                 : Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(tr('Depois'), style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
-                      const SizedBox(width: 8),
-                      for (final n in next) _miniNote(app.scaleNoteName(n.$1, ascending: n.$2, withOctave: true)),
+                      Text(tr('Depois'), style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+                      const SizedBox(width: 12),
+                      for (final n in next) ...[_miniNote(app.scaleNoteName(n.$1, ascending: n.$2, withOctave: true)), const SizedBox(width: 6)],
                     ],
                   ),
           ),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              minHeight: 8,
-              value: e.holdProgress,
-              backgroundColor: AppColors.surface2,
-              color: AppColors.inTune,
-            ),
-          ),
-          SizedBox(
-            height: 40,
-            child: Center(
-              child: Text(status,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      color: e.replayNeeded ? AppColors.sharp : (e.tunedNow ? AppColors.inTune : AppColors.textDim),
-                      fontSize: 12.5,
-                      fontWeight: e.tunedNow ? FontWeight.w700 : FontWeight.w400)),
-            ),
-          ),
+          const SizedBox(height: 18),
+          BeatBar(app: app, value: e.holdProgress, color: AppColors.inTune),
         ],
       ),
     );
+  }
+
+  /// O que aconteceu e o que fazer, em uma ou duas frases (vai no aviso quando o exercício está travado).
+  String _lockDetail(ScaleExercise e) {
+    final back = e.replayMidi;
+    if (back == null) return tr('A nota entrou fora do ponto. Solte e toque de novo.');
+    final backName = app.scaleNoteName(back, ascending: e.ascendingAt(e.index - 1), withOctave: true);
+    final nextName = app.scaleNoteName(e.expected!, ascending: e.ascendingNow, withOctave: true);
+    final wrong = e.lockWrongMidi;
+    return wrong != null
+        ? tr('Ops! Você tocou {0}, mas a próxima é {1}. Volte para {2} e tente {1} de novo.', [app.scaleNoteName(wrong, ascending: e.ascendingNow, withOctave: true), nextName, backName])
+        : tr('A nota entrou fora do ponto. Volte para {0} e tente {1} de novo.', [backName, nextName]);
   }
 
   /// Modo livre: qualquer nota da escala, em qualquer ordem.
@@ -387,29 +377,32 @@ class ScaleExercisePage extends StatelessWidget {
     // Travado: o que vale agora é a nota ANTERIOR. O desvio e os avisos são em relação a ela, não à nota da vez.
     final back = e.replayMidi;
     final locked = e.replayNeeded && back != null;
-    final cue = locked ? e.cueTo(back, cur?.midi, cur?.cents ?? 0) : e.cue(cur?.midi, cur?.cents ?? 0);
+    // A nota anterior ainda soando (o aluno não largou o arco/dedo) não é erro: o aviso fica quieto até ele tocar outra coisa.
+    final holdingPrev = !locked && !e.flow && e.index > 0 && cur?.midi == e.sequence[e.index - 1];
+    final cue = locked ? e.cueTo(back, cur?.midi, cur?.cents ?? 0) : (holdingPrev ? null : e.cue(cur?.midi, cur?.cents ?? 0));
     final exp = e.expected;
     final backName = back == null ? '' : app.scaleNoteName(back, ascending: e.ascendingAt(e.index - 1), withOctave: true);
     final nextName = exp == null ? '' : app.scaleNoteName(exp, ascending: e.ascendingNow, withOctave: true);
     final asc = e.flow ? (e.currentFreeMidi == null ? e.direction != ScaleDirection.down : _ascOf(e, e.currentFreeMidi!)) : e.ascendingNow;
     return AppCard(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
       child: Column(
         children: [
           SmoothNeedle(cents: cents, zone: zone),
-          const SizedBox(height: 4),
+          const SizedBox(height: 12),
           GuidanceBanner(
             compact: true,
+            calm: !e.flow,
             cents: cents,
             zone: zone,
             cue: cue,
             noteLabel: (m) => app.scaleNoteName(m, ascending: _ascOf(e, m) || (!e.flow && asc), withOctave: true),
-            idleTitle: e.flow ? tr('TOQUE UMA NOTA') : tr('TOQUE {0}', [exp == null ? '' : app.scaleNoteName(exp, ascending: asc, withOctave: true).toUpperCase()]),
-            idleDetail: e.flow ? tr('Qualquer uma da escala!') : tr('Afine para liberar a próxima.'),
-            tunedTitle: locked ? tr('BOM! SEGURE {0}', [backName.toUpperCase()]) : (e.flow ? tr('AFINADA!') : tr('AFINADA — SEGURE')),
-            tunedDetail: locked ? tr('Depois toque {0} de novo.', [nextName]) : (e.flow ? tr('Muito bem! Pode tocar outra nota.') : tr('Segure até a barra encher.')),
+            idleTitle: e.flow ? tr('TOQUE UMA NOTA') : tr('Toque a nota e segure'),
+            idleDetail: e.flow ? tr('Qualquer uma da escala!') : tr('Segure a nota até a barra encher.'),
+            tunedTitle: locked ? tr('ISSO! SEGURE {0}', [backName.toUpperCase()]) : tr('MUITO BEM!'),
+            tunedDetail: locked ? tr('Agora tente {0} de novo.', [nextName]) : (e.flow ? tr('Pode tocar outra nota.') : tr('Segure até a barra encher.')),
             backTitle: locked ? tr('VOLTE PARA {0}', [backName.toUpperCase()]) : null,
-            backDetail: locked ? tr('Toque {0} afinada e depois {1} de novo.', [backName, nextName]) : null,
+            backDetail: locked ? _lockDetail(e) : null,
           ),
         ],
       ),
