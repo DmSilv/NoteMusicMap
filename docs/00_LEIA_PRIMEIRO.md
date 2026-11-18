@@ -35,6 +35,8 @@ Roda no **navegador** (PWA instalável, hospedado na Vercel) e tem projetos Andr
 
 Documentos de planejamento antigos (`ROADMAP_ETAPAS.md`, `PLANO_*.md`, `ARQUITETURA_PROFESSOR_ALUNO.md`, `CUSTOS_E_REGRESSAO.md`, `MATRIZ_BOTOES.md`) continuam na pasta como **histórico e roteiro**; a verdade atual está nos documentos numerados acima e em `referencia/`.
 
+**Roteiro atual (novembro/2026):** [`PLANO_MELHORIAS_PRODUCAO.md`](PLANO_MELHORIAS_PRODUCAO.md): análise crítica das melhorias pedidas, prioridades, dependências, riscos, testes e o caminho até a Google Play.
+
 ## Glossário
 | Termo | Significado |
 |---|---|
