@@ -13,6 +13,7 @@ const Map<String, String> kEnB14 = {
   'Desligar': 'Turn off',
   'Dicas': 'Tips',
   'Novidades': 'News',
+  'Detalhe: {0}': 'Detail: {0}',
   'Usar a câmera?': 'Use the camera?',
   'Usar as suas fotos?': 'Use your photos?',
   'O Notemusic usa a câmera só para tirar a foto do seu perfil. Nada é gravado nem enviado sem você escolher mostrar a foto.': 'Notemusic uses the camera only to take your profile photo. Nothing is saved or sent unless you choose to show the photo.',

@@ -51,7 +51,8 @@ Future<String?> pickPersonPhoto(BuildContext context, AppState app, {required bo
   if (choice == _PhotoChoice.remove) return '';
   // Primeira vez com a câmera ou com as fotos: explica o que o app faz antes de o sistema pedir a permissão.
   final kind = choice == _PhotoChoice.camera ? 'camera' : 'gallery';
-  if (!app.photoRationaleSeen(kind)) {
+  // No navegador não: lá o pedido é do próprio navegador e o seletor de arquivos só abre logo depois do toque (uma janela no meio o bloquearia).
+  if (!kIsWeb && !app.photoRationaleSeen(kind)) {
     if (!context.mounted) return null;
     final go = await _rationale(context, camera: choice == _PhotoChoice.camera);
     if (go != true) return null;
@@ -60,11 +61,23 @@ Future<String?> pickPersonPhoto(BuildContext context, AppState app, {required bo
   Uint8List? bytes;
   try {
     final source = choice == _PhotoChoice.camera ? ImageSource.camera : ImageSource.gallery;
-    // Pede a imagem num tamanho de trabalho (no iPhone isso já converte HEIC para JPEG); o recorte e a redução final são do editor.
-    final f = await ImagePicker().pickImage(source: source, maxWidth: 1600, maxHeight: 1600, imageQuality: 92, requestFullMetadata: false);
+    final picker = ImagePicker();
+    XFile? f;
+    try {
+      // No aparelho, pede a imagem num tamanho de trabalho (no iPhone isso já converte HEIC para JPEG). No navegador NÃO: o
+      // redimensionamento de lá falha com várias fotos de celular e dava "não consegui abrir"; o recorte e a redução são do editor.
+      f = kIsWeb
+          ? await picker.pickImage(source: source)
+          : await picker.pickImage(source: source, maxWidth: 1600, maxHeight: 1600, imageQuality: 92, requestFullMetadata: false);
+    } on PlatformException catch (e) {
+      // Permissão negada e afins seguem para a explicação abaixo; qualquer outro erro do seletor ganha uma segunda tentativa, sem ajustes.
+      if (e.code.contains('denied') || e.code.contains('restricted') || e.code == 'already_active') rethrow;
+      f = await picker.pickImage(source: source);
+    }
     if (f == null) return null; // desistiu
     bytes = await f.readAsBytes();
-  } catch (e) {
+  } catch (e, st) {
+    app.reportError(e, st, where: 'foto de perfil');
     if (!context.mounted) return null;
     // Permissão negada: diz qual (câmera ou fotos) e onde ligar. Outro erro: o aviso geral.
     final code = e is PlatformException ? e.code : '';
@@ -76,7 +89,8 @@ Future<String?> pickPersonPhoto(BuildContext context, AppState app, {required bo
             ? tr('O Notemusic não tem permissão para usar a câmera. Ative em Configurações do aparelho, em Notemusic, e tente de novo. Ou escolha uma foto da galeria.')
             : photosDenied
                 ? tr('O Notemusic não tem permissão para ver as fotos. Ative em Configurações do aparelho, em Notemusic, e tente de novo.')
-                : tr('Não consegui abrir a câmera ou a galeria. Confira se o Notemusic tem permissão para fotos nas configurações do aparelho.'));
+                : tr('Não consegui abrir a câmera ou a galeria. Confira se o Notemusic tem permissão para fotos nas configurações do aparelho.'),
+        detail: _short(e));
     return null;
   }
   if (!context.mounted) return null;
@@ -89,13 +103,20 @@ Future<String?> pickPersonPhoto(BuildContext context, AppState app, {required bo
 }
 
 /// Explica o que houve com a foto, por inteiro e com o que fazer (um aviso rápido cortava o texto).
-Future<void> _explain(BuildContext context, String text) {
+Future<void> _explain(BuildContext context, String text, {String? detail}) {
   return showDialog<void>(
     context: context,
     builder: (c) => AlertDialog(
       icon: Icon(Icons.photo_camera_back_outlined, color: AppColors.sharp, size: 32),
       title: Text(tr('Não deu para usar a foto')),
-      content: Text(text),
+      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(text),
+        // A causa técnica, curta, para a pessoa poder dizer qual foi (e para o registro de problemas).
+        if (detail != null && detail.isNotEmpty) ...[
+          const SizedBox(height: Ds.s12),
+          Text(tr('Detalhe: {0}', [detail]), style: Ds.support()),
+        ],
+      ]),
       actions: [FilledButton(onPressed: () => Navigator.pop(c), child: Text(tr('Entendi')))],
     ),
   );
@@ -120,4 +141,11 @@ Future<bool?> _rationale(BuildContext context, {required bool camera}) {
       ],
     ),
   );
+}
+
+/// A causa do erro em poucas palavras (código do sistema ou o começo da mensagem).
+String _short(Object e) {
+  final s = e is PlatformException ? '${e.code}: ${e.message ?? ''}' : e.toString();
+  final one = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+  return one.length > 120 ? one.substring(0, 120) : one;
 }
