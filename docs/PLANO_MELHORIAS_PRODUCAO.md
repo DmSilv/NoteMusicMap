@@ -591,6 +591,9 @@ Página de ajuda (2.15) ──► endereço de exclusão de conta ──► fich
 15. **Cópia das fichas do professor no servidor com 1 aparelho** (hoje só com 2+)? Aumenta custo e exige o consentimento claro de que os dados ficam na nuvem.
 16. **Advogado:** quem contratar para revisar privacidade, termos, menores e o relatório de impacto antes do teste fechado?
 
+### Respostas do Daniel (21/11/2026)
+1. **Aba própria** para as dicas. 2. Usuário **não abre conversa**: pode **enviar um feedback de problema**, e o Daniel decide se abre conversa ou fecha. 3 e 4: pendentes (explicar). 5. **Para todos** (uso supervisionado). 6. A monetização é **do professor**, com **cota grátis de 2 alunos na agenda**. 7. Ficha nova testada com **Vinícius e Daniel Mingoranse**. 9. **Sim** (e-mail obrigatório ao professor antes do 1º aluno). 10. De acordo: **deixar claro em algum lugar como o fluxo funciona**. 11. **Sem** seleção de idade nem experiência reduzida; só **não pode ser professor quem é menor de idade**. 12. Suporte **dentro do app**. 13. **Não precisa** de aceite do professor. 14. **Juntar funções só quando faltar vaga**. 15 e 16: pendentes (explicar). **Cuidado extra com quem já está cadastrado** (migração sem impacto).
+
 ## 8. Como validar cada entrega (resumo)
 
 | Tipo | Como |
