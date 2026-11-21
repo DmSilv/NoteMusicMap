@@ -4617,6 +4617,11 @@ class AppState extends ChangeNotifier {
       octaves: scaleOctaves,
       zone: scaleTolerance.cents,
       holdSeconds: scaleHoldSeconds,
+      // Jeito calmo: o anel fecha por inteiro antes de seguir, e voltar à nota anterior exige segurá-la de verdade e uma pausa.
+      completeSeconds: 0.5,
+      backHoldSeconds: 0.8,
+      backPauseSeconds: 0.7,
+      backFollowsHold: true,
       arrivalSeconds: scaleTolerance.arrivalSeconds,
       arrivalSpread: scaleTolerance.spread,
       flow: exerciseFlow,

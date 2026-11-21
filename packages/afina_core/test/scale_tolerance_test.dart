@@ -161,6 +161,67 @@ void main() {
     });
   });
 
+  group('modo calmo: círculo completo e voltar com calma', () {
+    ScaleExercise calm({double hold = 0.5}) => ScaleExercise(
+          tonicMidi: 67,
+          type: ScaleType.major,
+          octaves: 1,
+          zone: 20,
+          holdSeconds: hold,
+          noSlide: true,
+          direction: ScaleDirection.up,
+          completeSeconds: 0.5,
+          backHoldSeconds: 0.8,
+          backPauseSeconds: 0.7,
+          backFollowsHold: true,
+        );
+
+    test('o anel fica cheio por um instante antes de passar para a próxima nota', () {
+      final e = calm();
+      expect(play(e, 67, 0.7), isEmpty);
+      expect(e.completing, isTrue);
+      expect(e.holdProgress, 1.0);
+      expect(e.index, 0, reason: 'ainda na mesma nota, com o círculo completo');
+      final done = play(e, 67, 0.6);
+      expect(done, isNotEmpty);
+      expect(e.index, 1);
+      expect(e.completing, isFalse);
+    });
+
+    test('depois de errar, a nota anterior precisa ser segurada de verdade e há uma pausa antes de pedir a que errou', () {
+      final e = calm();
+      play(e, 67, 1.5); // Sol vale
+      play(e, 69, 1.0, center: 28); // Lá chega alto: trava
+      expect(e.replayNeeded, isTrue);
+      play(e, 67, 0.3); // um toque rápido na anterior NÃO basta
+      expect(e.replayNeeded, isTrue);
+      expect(e.backProgress, greaterThan(0));
+      expect(e.backProgress, lessThan(1));
+      play(e, 67, 0.7); // completa o tempo seguro (0,8 s no total, mais o já feito)
+      expect(e.backDone, isTrue);
+      expect(e.replayNeeded, isTrue, reason: 'ainda em pausa: não pede a nota que errou já');
+      expect(e.backProgress, 1.0);
+      play(e, 67, 0.8); // a pausa de 0,7 s passa
+      expect(e.replayNeeded, isFalse);
+      expect(e.expected, 69);
+    });
+
+    test('a nota anterior segue o tempo de segurar quando ele é maior (2 tempos)', () {
+      final e = calm(hold: 1.5);
+      play(e, 67, 2.5);
+      play(e, 69, 1.0, center: 28);
+      play(e, 67, 1.0);
+      expect(e.backDone, isFalse, reason: '1 s ainda não completa 1,5 s');
+      play(e, 67, 0.7);
+      expect(e.backDone, isTrue);
+    });
+
+    test('sem o modo calmo (padrão do núcleo) o jeito de antes continua', () {
+      final e = make(ScaleTolerance.standard);
+      expect(play(e, 67, 0.6), isNotEmpty, reason: 'avança na hora, sem esperar');
+    });
+  });
+
   group('voltar à nota anterior, de forma mais gentil', () {
     ScaleExercise lockedOnce() {
       final e = make(ScaleTolerance.strict);

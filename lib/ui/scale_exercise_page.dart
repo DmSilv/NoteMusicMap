@@ -339,7 +339,7 @@ class ScaleExercisePage extends StatelessWidget {
           SizedBox(
             height: 24,
             child: Center(
-              child: e.justCompleted && !locked
+              child: (e.completing || e.justCompleted || e.backDone)
                   ? Row(mainAxisSize: MainAxisSize.min, children: [
                       Icon(Icons.check_circle_rounded, size: 22, color: AppColors.inTune),
                       const SizedBox(width: 6),
@@ -357,11 +357,11 @@ class ScaleExercisePage extends StatelessWidget {
               clipBehavior: Clip.none,
               children: [
                 TweenAnimationBuilder<double>(
-                  tween: Tween<double>(end: locked ? 0 : e.holdProgress),
+                  tween: Tween<double>(end: locked ? e.backProgress : e.holdProgress),
                   duration: const Duration(milliseconds: 140),
                   builder: (c, v, _) => CustomPaint(
                     size: const Size(140, 140),
-                    painter: _RingPainter(progress: v, color: locked ? AppColors.sharp : AppColors.inTune, track: AppColors.surface2),
+                    painter: _RingPainter(progress: v, color: (locked && !e.backDone) ? AppColors.sharp : AppColors.inTune, track: AppColors.surface2),
                   ),
                 ),
                 Column(mainAxisSize: MainAxisSize.min, children: [
@@ -371,7 +371,7 @@ class ScaleExercisePage extends StatelessWidget {
                     child: KeyedSubtree(key: ValueKey('${e.index}-$m'), child: _bigNote(m, asc: asc, size: 46, color: noteColor)),
                   ),
                   const SizedBox(height: 2),
-                  Text(locked ? tr('volte') : tr('segure'), style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+                  Text(locked ? (e.backDone ? tr('pronto') : (e.backProgress > 0 ? tr('segure') : tr('volte'))) : tr('segure'), style: TextStyle(color: AppColors.textDim, fontSize: 12)),
                 ]),
                 if (off != 0 && !locked)
                   Positioned(
@@ -680,15 +680,15 @@ class ScaleExercisePage extends StatelessWidget {
           height: ring,
           child: Stack(alignment: Alignment.center, clipBehavior: Clip.none, children: [
             TweenAnimationBuilder<double>(
-              tween: Tween<double>(end: locked ? 0 : e.holdProgress),
+              tween: Tween<double>(end: locked ? e.backProgress : e.holdProgress),
               duration: const Duration(milliseconds: 140),
               builder: (c, v, _) => CustomPaint(
                 size: Size(ring, ring),
-                painter: _RingPainter(progress: v, color: locked ? AppColors.sharp : AppColors.inTune, track: AppColors.surface2),
+                painter: _RingPainter(progress: v, color: (locked && !e.backDone) ? AppColors.sharp : AppColors.inTune, track: AppColors.surface2),
               ),
             ),
             KeyedSubtree(key: ValueKey('c${e.index}-$m'), child: _bigNote(m, asc: asc, size: ring >= 120 ? 44 : 36, color: noteColor)),
-            if (e.justCompleted && !locked) Positioned(right: -2, top: -2, child: Icon(Icons.check_circle_rounded, size: 26, color: AppColors.inTune, semanticLabel: tr('Afinado'))),
+            if (e.completing || e.justCompleted || e.backDone) Positioned(right: -2, top: -2, child: Icon(Icons.check_circle_rounded, size: 26, color: AppColors.inTune, semanticLabel: tr('Afinado'))),
           ]),
         ),
         const SizedBox(width: 12),
@@ -731,11 +731,10 @@ class ScaleExercisePage extends StatelessWidget {
 
     if (locked) {
       // Travado: o que vale é a nota anterior; o cartão abaixo diz o que fazer, aqui só o ajuste fino dela.
+      if (e.backDone) return (tr('Isso! Agora toque {0}.', [nextName]), AppColors.inTune);
       if (cents == null) return ('', dim);
-      if (cents.abs() <= zone * 1.5) {
-        final backName = backMidi == null ? '' : app.scaleNoteName(backMidi, ascending: e.ascendingAt(e.index - 1), withOctave: true);
-        return (tr('Isso! Segure {0}.', [backName]), AppColors.inTune);
-      }
+      final backName = backMidi == null ? '' : app.scaleNoteName(backMidi, ascending: e.ascendingAt(e.index - 1), withOctave: true);
+      if (cents.abs() <= zone * 1.5) return (tr('Segure {0} até o anel fechar.', [backName]), AppColors.inTune);
       return (dir(cents), dim);
     }
     if (e.justCompleted) {

@@ -21,15 +21,6 @@ void showScaleSettings(BuildContext context, AppState app, {required bool exerci
   );
 }
 
-Widget _section(String t) => Padding(
-      padding: const EdgeInsets.only(top: Ds.s4, bottom: Ds.s12),
-      child: Row(children: [
-        Text(t.toUpperCase(), style: TextStyle(color: AppColors.accent, fontSize: 13, letterSpacing: 1.2, fontWeight: FontWeight.w800)),
-        const SizedBox(width: Ds.s12),
-        Expanded(child: Divider(height: 1, color: AppColors.outline)),
-      ]),
-    );
-
 /// A tônica como o músico pensa: a LETRA (Dó Ré Mi Fá Sol Lá Si) e o acidente (♭ ♮ ♯). Em duas linhas, em vez de uma lista de 17 botões; os
 /// acidentes que não existem para aquela letra ficam apagados (não há Mi♯ maior) e a outra grafia (Sol♭ ou Fá♯) é só questão de escolher o acidente.
 class _TonicPicker extends StatelessWidget {
@@ -269,155 +260,246 @@ class _SimpleKeyPicker extends StatelessWidget {
   }
 }
 
+/// Um assunto da folha de ajustes: contêiner com borda, ícone e título; a etiqueta diz se o assunto SEGUE o metrônomo ou não.
+Widget _group({required IconData icon, required String title, String? tag, IconData? tagIcon, required List<Widget> children}) {
+  return Container(
+    width: double.infinity,
+    margin: const EdgeInsets.only(bottom: Ds.s12),
+    padding: const EdgeInsets.fromLTRB(Ds.s12, Ds.s12, Ds.s12, Ds.s4),
+    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.outline, width: 1)),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        Icon(icon, size: 20, color: AppColors.accent),
+        const SizedBox(width: Ds.s8),
+        Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+        if (tag != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(999)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              if (tagIcon != null) ...[Icon(tagIcon, size: 13, color: AppColors.textDim), const SizedBox(width: 4)],
+              Text(tag, style: TextStyle(color: AppColors.textDim, fontSize: 11.5, fontWeight: FontWeight.w700)),
+            ]),
+          ),
+      ]),
+      const SizedBox(height: Ds.s12),
+      ...children,
+    ]),
+  );
+}
+
+/// Uma linha de ajuste dentro de um assunto (mais enxuta que a [DsSettingRow] solta).
+Widget _row(String label, Widget child) => Padding(
+      padding: const EdgeInsets.only(bottom: Ds.s16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody)),
+        const SizedBox(height: Ds.s8),
+        child,
+      ]),
+    );
+
+/// Liga/desliga com título e uma frase, dentro de um assunto.
+Widget _switch(String title, String sub, bool value, ValueChanged<bool> onChanged) => Padding(
+      padding: const EdgeInsets.only(bottom: Ds.s8),
+      child: SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody)),
+        subtitle: Text(sub, style: Ds.support()),
+        value: value,
+        onChanged: onChanged,
+      ),
+    );
+
 List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required bool exercise, VoidCallback? onReport}) {
   final e = app.exercise;
+  final flow = e?.flow ?? app.exerciseFlow;
+  final arp = app.scaleType.arpeggio;
+  final bpm = app.metro.bpm.round();
   return [
-    if (!exercise) ...[
-      _section(app.scaleType.arpeggio ? tr('Arpejo') : tr('Escala')),
-      ...[
-        // versão simples: quem só quer "Dó menor" ou "Mi♭ maior" escolhe direto, sem letra + acidente + tipo
-        DsSettingRow(label: app.scaleType.arpeggio ? tr('Qual arpejo?') : tr('Qual escala?'), child: _SimpleKeyPicker(app: app)),
-        Theme(
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            key: ValueKey(_needsAdvanced(app)),
-            initiallyExpanded: _needsAdvanced(app),
-            tilePadding: EdgeInsets.zero,
-            childrenPadding: EdgeInsets.zero,
-            shape: const Border(),
-            collapsedShape: const Border(),
-            title: Text(tr('Mais opções'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: Ds.fontBody)),
-            subtitle: Text(app.scaleType.arpeggio ? tr('Tônica por letra e acidente e todos os tipos de arpejo.') : tr('Outro nome da tônica (Lá♭ em vez de Sol♯) e outros tipos de escala.'), style: Ds.support()),
-            children: [const DsGap(Ds.s12), ..._advancedScaleRows(app)],
+    // 1) O que tocar
+    _group(
+      icon: Icons.music_note_rounded,
+      title: exercise ? tr('O que tocar') : (arp ? tr('O que tocar: arpejo') : tr('O que tocar: escala')),
+      children: [
+        if (!exercise) ...[
+          // versão simples: quem só quer "Dó menor" ou "Mi♭ maior" escolhe direto, sem letra + acidente + tipo
+          _row(arp ? tr('Qual arpejo?') : tr('Qual escala?'), _SimpleKeyPicker(app: app)),
+          Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              key: ValueKey(_needsAdvanced(app)),
+              initiallyExpanded: _needsAdvanced(app),
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: EdgeInsets.zero,
+              shape: const Border(),
+              collapsedShape: const Border(),
+              title: Text(tr('Mais opções'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: Ds.fontBody)),
+              subtitle: Text(arp ? tr('Tônica por letra e acidente e todos os tipos de arpejo.') : tr('Outro nome da tônica (Lá♭ em vez de Sol♯) e outros tipos de escala.'), style: Ds.support()),
+              children: [const DsGap(Ds.s12), ..._advancedScaleRows(app)],
+            ),
           ),
-        ),
-        const DsGap(Ds.s12),
-      ],
-      DsSettingRow(
-        label: tr('Oitavas'),
-        child: SizedBox(
-          width: double.infinity,
-          child: SegmentedButton<int>(
-            showSelectedIcon: false,
-            segments: [for (var o = 1; o <= 4; o++) ButtonSegment(value: o, label: Text('$o'))],
-            selected: {app.scaleOctaves},
-            onSelectionChanged: (v) => app.setScale(octaves: v.first),
+          const DsGap(Ds.s12),
+          _row(
+            tr('Oitavas'),
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<int>(
+                showSelectedIcon: false,
+                segments: [for (var o = 1; o <= 4; o++) ButtonSegment(value: o, label: Text('$o'))],
+                selected: {app.scaleOctaves},
+                onSelectionChanged: (v) => app.setScale(octaves: v.first),
+              ),
+            ),
           ),
-        ),
-      ),
-    ],
-    DsSettingRow(
-      label: tr('Direção'),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(width: double.infinity, child: directionPicker(app, onChanged: exercise ? () => app.startExercise(demoMode: app.demo) : null)),
-        if (exercise) ...[
-          const DsGap(Ds.s8),
-          Text(tr('Muda a ordem das notas e recomeça o exercício.'), style: Ds.support()),
         ],
-      ]),
-    ),
-    _section(tr('Como tocar')),
-    DsSettingRow(
-      label: tr('Jeito de tocar'),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        SizedBox(
-          width: double.infinity,
-          child: SegmentedButton<bool>(
-            showSelectedIcon: false,
-            segments: [
-              ButtonSegment(value: true, icon: const Icon(Icons.shuffle_rounded, size: 18), label: Text(tr('Livre'))),
-              ButtonSegment(value: false, icon: const Icon(Icons.format_list_numbered_rounded, size: 18), label: Text(tr('Guiado'))),
+        _row(
+          tr('Direção'),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            SizedBox(width: double.infinity, child: directionPicker(app, onChanged: exercise ? () => app.startExercise(demoMode: app.demo) : null)),
+            if (exercise) ...[
+              const DsGap(Ds.s8),
+              Text(tr('Muda a ordem das notas e recomeça o exercício.'), style: Ds.support()),
             ],
-            selected: {e?.flow ?? app.exerciseFlow},
-            onSelectionChanged: (v) => app.setExerciseFlow(v.first),
-          ),
+          ]),
         ),
-        const DsGap(Ds.s8),
-        Text((e?.flow ?? app.exerciseFlow) ? tr('Toque as notas na ordem que quiser.') : tr('Uma nota de cada vez, na ordem.'), style: Ds.support()),
-      ]),
+      ],
     ),
-    if (!(e?.flow ?? app.exerciseFlow))
-      DsSettingRow(
-        label: tr('Tolerância'),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<ScaleTolerance>(
-              showSelectedIcon: false,
-              segments: [
-                ButtonSegment(value: ScaleTolerance.strict, label: Text(tr('Rigoroso'))),
-                ButtonSegment(value: ScaleTolerance.standard, label: Text(tr('Padrão'))),
-                ButtonSegment(value: ScaleTolerance.easy, label: Text(tr('Iniciante'))),
-              ],
-              selected: {app.scaleTolerance},
-              onSelectionChanged: (v) => app.setScaleTolerance(v.first),
+    // 2) Como estudar: nada aqui depende do metrônomo
+    _group(
+      icon: Icons.school_rounded,
+      title: tr('Como estudar'),
+      tag: tr('Sem metrônomo'),
+      tagIcon: Icons.timer_off_outlined,
+      children: [
+        _row(
+          tr('Jeito de tocar'),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            SizedBox(
+              width: double.infinity,
+              child: SegmentedButton<bool>(
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: true, icon: const Icon(Icons.shuffle_rounded, size: 18), label: Text(tr('Livre'))),
+                  ButtonSegment(value: false, icon: const Icon(Icons.format_list_numbered_rounded, size: 18), label: Text(tr('Guiado'))),
+                ],
+                selected: {flow},
+                onSelectionChanged: (v) => app.setExerciseFlow(v.first),
+              ),
             ),
-          ),
-          const DsGap(Ds.s8),
-          Text(tr('Até quantos cents a nota pode estar fora para valer: ±{0}.', [app.scaleTolerance.cents.round()]), style: Ds.support()),
-        ]),
-      ),
-    if (!(e?.flow ?? app.exerciseFlow))
-      DsSettingRow(
-        label: tr('Segurar a nota'),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          SizedBox(
-            width: double.infinity,
-            child: SegmentedButton<ScaleHold>(
-              showSelectedIcon: false,
-              segments: [
-                ButtonSegment(value: ScaleHold.seconds, label: Text(tr('0,5 s'))),
-                ButtonSegment(value: ScaleHold.beat1, label: Text(tr('1 tempo'))),
-                ButtonSegment(value: ScaleHold.beat2, label: Text(tr('2 tempos'))),
-              ],
-              selected: {app.scaleHold},
-              onSelectionChanged: (v) => app.setScaleHold(v.first),
-            ),
-          ),
-          const DsGap(Ds.s8),
-          Text(
-            app.scaleHold == ScaleHold.seconds
-                ? tr('A nota vale depois de meio segundo afinada.')
-                : tr('Com o metrônomo em {0} bpm, a nota vale depois de {1} s afinada.', [app.metro.bpm.round(), app.scaleHoldSeconds.toStringAsFixed(1)]),
-            style: Ds.support(),
-          ),
-        ]),
-      ),
-    if (!(e?.flow ?? app.exerciseFlow))
-      SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        title: Text(tr('Sem escorregar o dedo'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: Ds.fontBody)),
-        subtitle: Text(tr('A nota tem de chegar afinada. Se não, volte à anterior e toque de novo.'), style: Ds.support()),
-        value: app.scaleNoSlide,
-        onChanged: app.setScaleNoSlide,
-      ),
-    if (!exercise) ...[
-      // o mesmo desenho de todo liga/desliga da folha: título, uma frase e a chave
-      SwitchListTile(
-        contentPadding: EdgeInsets.zero,
-        title: Text(tr('Marcar a escala na grade'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: Ds.fontBody)),
-        subtitle: Text(tr('Destaca as notas na aba Grade.'), style: Ds.support()),
-        value: app.scaleMode,
-        onChanged: (v) => app.setScale(enabled: v),
-      ),
-      if (app.scaleMode && onReport != null)
-        Padding(
-          padding: const EdgeInsets.only(bottom: Ds.s12),
-          child: Align(alignment: Alignment.centerLeft, child: OutlinedButton.icon(onPressed: onReport, icon: const Icon(Icons.assessment_outlined), label: Text(tr('Ver relatório do que toquei')))),
+            const DsGap(Ds.s8),
+            Text(flow ? tr('Toque as notas na ordem que quiser.') : tr('Uma nota de cada vez, na ordem.'), style: Ds.support()),
+          ]),
         ),
-    ],
-    _section(tr('Partitura')),
-    ...staffSettingRows(app),
-    // Na tela do exercício a cor da partitura mora aqui (a linha solta ocupava espaço da partitura).
-    if (exercise && app.scaleStaff && app.cfg.transpose == 0) PaperToggleRow(value: app.scalePaper, onChanged: (p) => app.setStaff(paper: p)),
-    _section(tr('Afinação')),
-    DsSettingRow(
-      label: tr('Afinação'),
-      child: OutlinedButton.icon(
-        onPressed: () => pickTuningSystem(context, app, tonicPc: app.scaleTonicMidi % 12),
-        icon: const Icon(Icons.straighten, size: 20),
-        label: Text(tuningSummary(app)),
+        if (!flow) ...[
+          _row(
+            tr('Quão exigente'),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<ScaleTolerance>(
+                  showSelectedIcon: false,
+                  segments: [
+                    ButtonSegment(value: ScaleTolerance.strict, label: Text(tr('Rigoroso'))),
+                    ButtonSegment(value: ScaleTolerance.standard, label: Text(tr('Padrão'))),
+                    ButtonSegment(value: ScaleTolerance.easy, label: Text(tr('Iniciante'))),
+                  ],
+                  selected: {app.scaleTolerance},
+                  onSelectionChanged: (v) => app.setScaleTolerance(v.first),
+                ),
+              ),
+              const DsGap(Ds.s8),
+              Text(tr('Até quantos cents a nota pode estar fora para valer: ±{0}.', [app.scaleTolerance.cents.round()]), style: Ds.support()),
+            ]),
+          ),
+          _switch(tr('Sem escorregar o dedo'), tr('A nota tem de chegar afinada. Se não, volte à anterior, segure-a e toque de novo.'), app.scaleNoSlide, app.setScaleNoSlide),
+        ],
+      ],
+    ),
+    // 3) Tempo: aqui o metrônomo manda
+    if (!flow)
+      _group(
+        icon: Icons.timer_outlined,
+        title: tr('Tempo'),
+        tag: tr('Com metrônomo'),
+        tagIcon: Icons.av_timer_rounded,
+        children: [
+          _row(
+            tr('Metrônomo'),
+            Row(children: [
+              IconButton.outlined(tooltip: tr('Mais devagar'), onPressed: () => app.setBpm(app.metro.bpm - 4), icon: const Icon(Icons.remove_rounded)),
+              Expanded(child: Center(child: Text('$bpm bpm', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)))),
+              IconButton.outlined(tooltip: tr('Mais rápido'), onPressed: () => app.setBpm(app.metro.bpm + 4), icon: const Icon(Icons.add_rounded)),
+            ]),
+          ),
+          _switch(tr('Som do clique'), tr('Desligue para ver só o pulso na tela (o microfone não escuta o clique).'), !app.scaleMetroSilent, app.setScaleMetroSound),
+          _row(
+            tr('Quanto tempo segurar cada nota'),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<ScaleHold>(
+                  showSelectedIcon: false,
+                  segments: [
+                    ButtonSegment(value: ScaleHold.seconds, label: Text(tr('0,5 s'))),
+                    ButtonSegment(value: ScaleHold.beat1, label: Text(tr('1 tempo'))),
+                    ButtonSegment(value: ScaleHold.beat2, label: Text(tr('2 tempos'))),
+                  ],
+                  selected: {app.scaleHold},
+                  onSelectionChanged: (v) => app.setScaleHold(v.first),
+                ),
+              ),
+              const DsGap(Ds.s8),
+              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Icon(app.scaleHold == ScaleHold.seconds ? Icons.lock_clock_rounded : Icons.av_timer_rounded, size: 18, color: AppColors.textDim),
+                const SizedBox(width: Ds.s8),
+                Expanded(
+                  child: Text(
+                    app.scaleHold == ScaleHold.seconds
+                        ? tr('Fixo: o anel fecha em 0,5 s, não importa o metrônomo.')
+                        : tr('Segue o metrônomo: a {0} bpm, o anel fecha em {1} s.', [bpm, app.scaleHoldSeconds.toStringAsFixed(1)]),
+                    style: Ds.support(),
+                  ),
+                ),
+              ]),
+            ]),
+          ),
+        ],
       ),
+    if (!exercise)
+      _group(
+        icon: Icons.grid_view_rounded,
+        title: tr('Na aba Grade'),
+        children: [
+          _switch(tr('Marcar a escala na grade'), tr('Destaca as notas na aba Grade.'), app.scaleMode, (v) => app.setScale(enabled: v)),
+          if (app.scaleMode && onReport != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: Ds.s12),
+              child: Align(alignment: Alignment.centerLeft, child: OutlinedButton.icon(onPressed: onReport, icon: const Icon(Icons.assessment_outlined), label: Text(tr('Ver relatório do que toquei')))),
+            ),
+        ],
+      ),
+    _group(
+      icon: Icons.queue_music_rounded,
+      title: tr('Partitura'),
+      children: [
+        ...staffSettingRows(app),
+        // Na tela do exercício a cor da partitura mora aqui (a linha solta ocupava espaço da partitura).
+        if (exercise && app.scaleStaff && app.cfg.transpose == 0) PaperToggleRow(value: app.scalePaper, onChanged: (p) => app.setStaff(paper: p)),
+      ],
+    ),
+    _group(
+      icon: Icons.straighten_rounded,
+      title: tr('Afinação'),
+      children: [
+        _row(
+          tr('Sistema de afinação'),
+          OutlinedButton.icon(
+            onPressed: () => pickTuningSystem(context, app, tonicPc: app.scaleTonicMidi % 12),
+            icon: const Icon(Icons.straighten, size: 20),
+            label: Text(tuningSummary(app)),
+          ),
+        ),
+      ],
     ),
   ];
 }

@@ -181,6 +181,18 @@ class ScaleExercise {
   /// Oscilação aceita na janela de chegada, em múltiplos da zona.
   double arrivalSpread;
 
+  /// Depois de segurar a nota o tempo todo, o anel fica CHEIO por este tempo (s) antes de seguir para a próxima nota:
+  /// o aluno vê o círculo completar e sabe quanto tempo vale segurar.
+  final double completeSeconds;
+
+  /// Voltando à nota anterior (depois de errar): ela precisa ser segurada por este tempo (s) no mínimo, afinada, e depois há
+  /// uma pausa ([backPauseSeconds]) antes de pedir a nota que errou. O aluno refaz o movimento com calma.
+  final double backHoldSeconds;
+  final double backPauseSeconds;
+
+  /// A nota anterior precisa ser segurada pelo menos o mesmo tempo da nota normal ([holdSeconds]), se for maior.
+  final bool backFollowsHold;
+
   /// Modo guiado: tempo (s) SEGUIDO dentro da faixa "afinado" para a nota valer.
   double holdSeconds;
 
@@ -213,6 +225,11 @@ class ScaleExercise {
   bool _wasOn = false; // o quadro anterior estava na nota da vez
   double _offT = 99; // s seguidos fora da nota da vez (99 = ainda não começou)
   double _backHeld = 0; // s tocando a nota anterior afinada, para destravar
+  bool _backDone = false; // a nota anterior foi segurada o tempo todo: falta só a pausa
+  double _backPauseT = 0;
+  bool _completing = false; // o anel já fechou: mostra o círculo cheio antes de seguir
+  double _completeT = 0;
+  StepResult? _pending;
   double _gapT = 0; // s soltos (primeira nota: basta soltar e tocar de novo)
   final List<_Sample> _arrival = [];
 
@@ -280,6 +297,8 @@ class ScaleExercise {
     lockWrongMidi = null;
     lockReason = null;
     _backHeld = 0;
+    _backDone = false;
+    _backPauseT = 0;
     _gapT = 0;
     _offT = 99;
     _wasOn = false;
@@ -293,6 +312,8 @@ class ScaleExercise {
     lockCents = cents;
     lockSpread = spread;
     _backHeld = 0;
+    _backDone = false;
+    _backPauseT = 0;
     _gapT = 0;
     switch (reason) {
       case LockReason.sharp:
@@ -343,6 +364,10 @@ class ScaleExercise {
     this.noSlide = false,
     this.arrivalSeconds = 0.2,
     this.arrivalSpread = 1.2,
+    this.completeSeconds = 0,
+    this.backHoldSeconds = 0.25,
+    this.backPauseSeconds = 0,
+    this.backFollowsHold = false,
     this.wrongSeconds = 0.15,
     this.flowMinSeconds = 0.05,
     this.flowReleaseSeconds = 0.22,
@@ -389,7 +414,18 @@ class ScaleExercise {
   double get waitingSeconds => _flow ? 0 : _waiting;
 
   /// 0..1 de quanto já foi segurado AFINADO (modo guiado).
-  double get holdProgress => _flow ? 0 : (_run / holdSeconds).clamp(0.0, 1.0);
+  double get holdProgress => _flow ? 0 : (_completing ? 1.0 : (_run / holdSeconds).clamp(0.0, 1.0));
+
+  /// O anel fechou e o círculo cheio está sendo mostrado antes de passar para a próxima nota.
+  bool get completing => !_flow && _completing;
+
+  double get _backNeed => backFollowsHold && holdSeconds > backHoldSeconds ? holdSeconds : backHoldSeconds;
+
+  /// Travado voltando à nota anterior: 0..1 de quanto dela já foi segurado afinado (1 = pronto, esperando a pausa).
+  double get backProgress => replayNeeded && index > 0 ? (_backDone ? 1.0 : (_backHeld / _backNeed).clamp(0.0, 1.0)) : 0;
+
+  /// A nota anterior foi segurada o tempo todo; a pausa antes de pedir a nota que errou está correndo.
+  bool get backDone => replayNeeded && _backDone;
 
   /// Modo guiado: o último quadro estava na nota certa E dentro da faixa afinada.
   bool get tunedNow => !_flow && _tunedNow;
@@ -459,6 +495,16 @@ class ScaleExercise {
     _tunedNow = false;
     _waiting += dt;
     _clock += dt;
+    if (_completing) {
+      // O anel já fechou: espera um instante com o círculo cheio e só então segue (nada do que se toca agora muda o resultado).
+      _tunedNow = true;
+      _completeT += dt;
+      if (_completeT < completeSeconds) return null;
+      final r = _pending!;
+      _completing = false;
+      _pending = null;
+      return _complete(r);
+    }
     if (noSlide && _locked) return _feedLocked(midi, cents, dt);
     if (midi != expected) {
       // Largou a nota antes de a barra encher (por mais que um instante): avisa que é para segurar mais.
@@ -548,8 +594,16 @@ class ScaleExercise {
     }
     if (_run < holdSeconds) return null;
     final land = _landing.isNotEmpty ? _weightedMedian(_landing) : cents;
-    return _complete(StepResult(
-        sequence[index], ascendingNow, _octaveOf(sequence[index]), land, _time, false));
+    _pending = StepResult(sequence[index], ascendingNow, _octaveOf(sequence[index]), land, _time, false);
+    _run = holdSeconds;
+    if (completeSeconds <= 0) {
+      final r = _pending!;
+      _pending = null;
+      return _complete(r);
+    }
+    _completing = true;
+    _completeT = 0;
+    return null;
   }
 
   /// Travado: a nota da vez chegou desafinada. Destrava tocando a nota ANTERIOR afinada por um instante
@@ -557,9 +611,22 @@ class ScaleExercise {
   StepResult? _feedLocked(int? midi, double cents, double dt) {
     final prev = index > 0 ? sequence[index - 1] : null;
     if (prev != null) {
+      if (_backDone) {
+        // Segurou a nota anterior o tempo todo: uma pausa antes de pedir a nota que errou (refazer o movimento com calma).
+        _backPauseT += dt;
+        if (_backPauseT >= backPauseSeconds) _unlock();
+        return null;
+      }
       if (midi == prev && cents.abs() <= zone * 1.5) {
         _backHeld += dt;
-        if (_backHeld >= 0.25) _unlock();
+        if (_backHeld >= _backNeed) {
+          if (backPauseSeconds <= 0) {
+            _unlock();
+          } else {
+            _backDone = true;
+            _backPauseT = 0;
+          }
+        }
       } else {
         _backHeld = (_backHeld - dt).clamp(0.0, double.infinity);
       }
@@ -567,7 +634,7 @@ class ScaleExercise {
     }
     if (midi != expected) {
       _gapT += dt;
-      if (_gapT >= 0.3) _unlock();
+      if (_gapT >= (backPauseSeconds > 0 ? backPauseSeconds : 0.3)) _unlock();
     } else {
       _gapT = 0;
     }
@@ -651,6 +718,9 @@ class ScaleExercise {
     _endRun();
     _silence = 0;
     _wrongT = 0;
+    _completing = false;
+    _completeT = 0;
+    _pending = null;
   }
 
   StepResult _complete(StepResult r) {
