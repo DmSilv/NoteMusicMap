@@ -191,44 +191,400 @@ class StudentPage extends StatelessWidget {
     }
   }
 
-  /// Ficha nova (chave ficha_nova): três blocos, do que se faz agora ao que se combina uma vez.
-  Widget _novaFicha(BuildContext context, Student s, StudentSummary sum, List<Insight> tips) {
-    final header = AppCard(
-      child: StudentIdentity(app: app, student: s, large: true),
+  // ---------------- Ficha nova (chave ficha_nova) ----------------
+  // Regras visuais: bloco = contêiner com borda; botão = quadrado com ícone; aviso = faixa colorida com borda;
+  // informação = texto cinza com ícone e, se der, um link; linha que abre = contêiner com seta.
+
+  Widget _box({required Widget child, EdgeInsets padding = const EdgeInsets.all(Ds.s12), Color? border, Color? fill}) => Container(
+        width: double.infinity,
+        padding: padding,
+        decoration: BoxDecoration(
+          color: fill ?? AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: border ?? AppColors.outline, width: 1),
+        ),
+        child: child,
+      );
+
+  /// Aviso: faixa colorida com ícone, sem cara de botão; a ação (se houver) é uma pílula pequena com ícone.
+  Widget _notice({required IconData icon, required String text, required Color color, String? actionLabel, IconData? actionIcon, VoidCallback? onAction}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.65), width: 1),
+      ),
+      child: Row(children: [
+        Icon(icon, size: 20, color: color),
+        const SizedBox(width: 8),
+        Expanded(child: Text(text, style: TextStyle(color: color, fontSize: 13.5, fontWeight: FontWeight.w700, height: 1.2))),
+        if (onAction != null) ...[
+          const SizedBox(width: 8),
+          InkWell(
+            onTap: onAction,
+            borderRadius: BorderRadius.circular(999),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 40),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(999), border: Border.all(color: color.withValues(alpha: 0.7))),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                if (actionIcon != null) ...[Icon(actionIcon, size: 16, color: color), const SizedBox(width: 4)],
+                Text(actionLabel ?? '', style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
+              ]),
+            ),
+          ),
+        ],
+      ]),
     );
-    return _FichaTabs(
-      header: header,
-      tabs: [
-        (tr('Agora'), Icons.bolt_rounded, () => [
-              _LessonCard(app: app, student: s, onNewTask: () => _taskDialog(context, s), onNewNote: () => _newNote(context, s)),
-              const SizedBox(height: Ds.gap),
-              ValidationCard(app: app, student: s),
-              _deliveryCard(context, s),
-              _tasks(context, s),
+  }
+
+  /// Informação: texto cinza com ícone pequeno e um link opcional (não é botão nem aviso).
+  Widget _infoLine(IconData icon, String text, {String? link, VoidCallback? onLink, Color? color}) {
+    final c = color ?? AppColors.textDim;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(children: [
+        Icon(icon, size: 16, color: c),
+        const SizedBox(width: 6),
+        Expanded(child: Text(text, style: TextStyle(color: c, fontSize: 12.5, height: 1.25))),
+        if (link != null)
+          TextButton(
+            style: TextButton.styleFrom(minimumSize: const Size(0, 40), padding: const EdgeInsets.symmetric(horizontal: 8), tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+            onPressed: onLink,
+            child: Text(link, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+          ),
+      ]),
+    );
+  }
+
+  /// Linha que abre algo: contêiner com ícone, título, resumo e seta.
+  Widget _openLine(IconData icon, String title, String sub, VoidCallback onTap, {bool alert = false}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: _box(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(children: [
+          Icon(icon, size: 22, color: alert ? AppColors.sharp : AppColors.text),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5)),
+              Text(sub, maxLines: 1, overflow: TextOverflow.ellipsis, style: Ds.support()),
             ]),
-        (tr('Caminho'), Icons.timeline_rounded, () => _caminho(context, s, sum, tips)),
-        (tr('Combinados'), Icons.handshake_outlined, () => _combinados(context, s)),
+          ),
+          Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
+        ]),
+      ),
+    );
+  }
+
+  /// "Aula aaaa" quando há uma aula deste aluno por perto; senão null.
+  String? _momentLessonText(Student s) {
+    final code = s.code;
+    if (code == null) return null;
+    final now = DateTime.now();
+    final o = lessonForAbsence(app.slotsOf(code), now.millisecondsSinceEpoch);
+    if (o == null) return null;
+    final hm = '${o.start.hour.toString().padLeft(2, '0')}:${o.start.minute.toString().padLeft(2, '0')}';
+    final today = o.start.year == now.year && o.start.month == now.month && o.start.day == now.day;
+    return today ? tr('Aula de hoje às {0}', [hm]) : tr('Aula às {0}', [hm]);
+  }
+
+  /// O que impede a aula de chegar ao aluno: frase curta na ficha e a explicação inteira ao tocar em "Ver por quê".
+  ({String short, String full, bool needsCode})? _lessonIssue(Student s) {
+    if (s.code == null) {
+      final t = tr('Sem o código do aluno, a aula fica só neste aparelho.');
+      return (short: t, full: t, needsCode: true);
+    }
+    if (!app.linkEnabled) {
+      return (short: tr('Vínculo online desligado: a aula fica na fila.'), full: tr('O vínculo online está desligado: a aula fica guardada e é enviada quando você ligá-lo (Minha conta).'), needsCode: false);
+    }
+    if (app.linkUnavailable) {
+      return (short: tr('Servidor sem receber aulas: fica na fila.'), full: tr('O servidor ainda não recebe aulas: ela fica guardada e vai quando ficar disponível.'), needsCode: false);
+    }
+    if (s.linkState != 'active') {
+      return (short: tr('Aluno ainda sem vínculo: a aula fica na fila.'), full: tr('O aluno ainda não está vinculado: a aula fica guardada e vai quando ele se vincular.'), needsCode: false);
+    }
+    if (app.deliveryIssue[s.code] == 'not_ready') {
+      return (
+        short: tr('O app do aluno não ligou o vínculo: a aula fica na fila.'),
+        full: tr('O app de {0} ainda não ligou o "Vínculo online": a aula fica na fila e chega assim que ele ligar. Você pode mandar um convite pela ficha.', [s.name]),
+        needsCode: false
+      );
+    }
+    return null;
+  }
+
+  Future<void> _explain(BuildContext context, String text) => showDialog<void>(
+        context: context,
+        builder: (c) => AlertDialog(
+          content: Text(text),
+          actions: [TextButton(onPressed: () => Navigator.pop(c), child: Text(tr('Entendi')))],
+        ),
+      );
+
+  Widget _novaFicha(BuildContext context, Student s, StudentSummary sum, List<Insight> tips) {
+    final l = app.lesson;
+    final mine = l != null && l.studentId == s.id;
+    final other = (l != null && !mine) ? app.studentById(l.studentId) : null;
+    final awaiting = app.awaitingOf(s);
+    final awaitIds = {for (final x in awaiting) x.id};
+    final open = [for (final x in s.tasks) if (!x.done && !awaitIds.contains(x.id)) x];
+    final done = [for (final x in s.tasks) if (x.done) x];
+    final issue = _lessonIssue(s);
+    final moment = _momentLessonText(s);
+    final waiting = s.lessons.where((r) => r.sent == false).length;
+    final deliveryShown = waiting > 0 && s.code != null && s.linkState != 'ended';
+    final n = s.lessons.length;
+    final notePreview = s.notes.isEmpty ? tr('Anote pontos de atenção, elogios e combinados.') : s.notes.first.text;
+    return ListView(
+      padding: Ds.screen,
+      children: [
+        _box(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            StudentIdentity(app: app, student: s),
+            const SizedBox(height: Ds.s12),
+            if (mine)
+              _LessonCard(app: app, student: s, strip: true, onNewTask: () => _taskDialog(context, s), onNewNote: () => _newNote(context, s))
+            else
+              Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                _ActBtn(
+                  icon: Icons.play_arrow_rounded,
+                  label: tr('Aula'),
+                  primary: true,
+                  onTap: () async {
+                    if (other != null) {
+                      app.say(tr('Há uma aula em andamento com {0}. Encerre-a para começar outra.', [other.name]));
+                      return;
+                    }
+                    // Primeiro confere o que o aluno marcou como feito desde a última aula.
+                    await showValidationDialog(context, app, s);
+                    final err = app.startLesson(s);
+                    app.say(err ?? tr('Aula começou. As tarefas e observações que você passar agora vão para {0} ao encerrar.', [s.name]));
+                  },
+                ),
+                _ActBtn(icon: Icons.person_off_outlined, label: tr('Faltou'), onTap: () => absenceFlow(context, app, s)),
+                _ActBtn(icon: Icons.add_task_rounded, label: tr('Tarefa'), onTap: () => _taskDialog(context, s)),
+                _ActBtn(icon: Icons.edit_note_rounded, label: tr('Anotar'), onTap: () => _newNote(context, s)),
+              ]),
+          ]),
+        ),
+        if (!mine && other != null) ...[
+          const SizedBox(height: Ds.s8),
+          _notice(
+            icon: Icons.school_outlined,
+            text: tr('Há uma aula em andamento com {0}.', [other.name]),
+            color: AppColors.flat,
+            actionLabel: tr('Ir'),
+            actionIcon: Icons.arrow_forward_rounded,
+            onAction: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => StudentPage(app: app, studentId: other.id))),
+          ),
+        ],
+        if (awaiting.isNotEmpty) ...[
+          const SizedBox(height: Ds.s8),
+          _notice(
+            icon: Icons.checklist_rounded,
+            text: awaiting.length == 1 ? tr('1 tarefa para avaliar') : tr('{0} tarefas para avaliar', [awaiting.length]),
+            color: AppColors.sharp,
+            actionLabel: tr('Avaliar'),
+            actionIcon: Icons.check_rounded,
+            onAction: () => showValidationDialog(context, app, s),
+          ),
+        ],
+        const SizedBox(height: Ds.s8),
+        if (!mine && moment != null) _infoLine(Icons.schedule, moment, color: AppColors.accent),
+        if (issue != null && !mine)
+          _infoLine(Icons.info_outline_rounded, issue.short,
+              link: issue.needsCode ? tr('Informar') : tr('Ver por quê'),
+              onLink: issue.needsCode ? () => editStudentCode(context, app, s) : () => _explain(context, issue.full)),
+        if (deliveryShown)
+          _infoLine(Icons.cloud_off_outlined, tr('Aguardando envio para {0}', [s.name]),
+              link: tr('Ver por quê'),
+              onLink: () => showDsSheet(context, title: tr('Envio para {0}', [s.name]), listenable: app, children: (c) => [_deliveryCard(context, s)])),
+        if (s.absences.isNotEmpty && !mine)
+          _infoLine(Icons.person_off_outlined, tr('{0} falta{1} registrada{2} · última em {3}', [
+            s.absences.length,
+            s.absences.length == 1 ? '' : 's',
+            s.absences.length == 1 ? '' : 's',
+            fmtDayMonth(DateTime.fromMillisecondsSinceEpoch(s.absences.first.lessonMs))
+          ]),
+              link: tr('Desfazer última'),
+              onLink: () {
+                if (app.undoLastAbsence(s)) app.say(tr('Registro desfeito.'));
+              }),
+        const SizedBox(height: Ds.s8),
+        _openBox(context, s, open),
+        if (done.isNotEmpty) ...[const SizedBox(height: Ds.s12), _doneBox(context, s, done)],
+        const SizedBox(height: Ds.s12),
+        _openLine(Icons.insights_rounded, tr('Desempenho'),
+            sum.sessions == 0 ? tr('Ainda sem exercícios') : tr('{0} sessões · média {1}%', [sum.sessions, (sum.recentAverage! * 100).round()]), () => _openPerformance(context, s, sum, tips)),
+        const SizedBox(height: Ds.s8),
+        _openLine(Icons.edit_note_rounded, tr('Observações'), notePreview, () => _openNotes(context, s)),
+        if (n > 0) ...[
+          const SizedBox(height: Ds.s8),
+          _openLine(Icons.history_rounded, tr('Aulas dadas'), n == 1 ? tr('1 aula') : tr('{0} aulas', [n]), () => _openLessons(context, s), alert: s.lessons.any((r) => r.sent == false)),
+        ],
+        const SizedBox(height: Ds.s8),
+        _openLine(Icons.badge_outlined, tr('Dados do aluno'), tr('Código, instrumento, relatório'),
+            () => showDsSheet(context, title: tr('Dados do aluno'), listenable: app, children: (c) => _combinados(context, s))),
+        const SizedBox(height: Ds.s16),
       ],
     );
   }
 
-  List<Widget> _caminho(BuildContext context, Student s, StudentSummary sum, List<Insight> tips) {
-    final n = s.lessons.length;
-    return [
-      Text(tr('Desempenho'), style: Ds.section()),
-      const SizedBox(height: Ds.s8),
-      AppCard(child: sum.sessions == 0 ? Text(tr('Ainda sem exercícios'), style: Ds.support()) : _summary(sum, s)),
-      if (tips.isNotEmpty) ...[
-        const SizedBox(height: Ds.gap),
-        Text(tr('Orientações do treinador'), style: Ds.section()),
-        const SizedBox(height: Ds.s8),
-        for (final t in tips) InsightTile(insight: t),
-      ],
-      const SizedBox(height: Ds.gap),
-      Text(tr('Observações'), style: Ds.section()),
-      const SizedBox(height: Ds.s8),
-      AppCard(
+  /// "Em aberto": o que ainda não foi concluído. Mostra 5; "Ver as N" abre o resto na própria lista.
+  Widget _openBox(BuildContext context, Student s, List<Assignment> open) {
+    return _box(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(Icons.checklist_rounded, size: 20, color: AppColors.text),
+          const SizedBox(width: 8),
+          Expanded(child: Text(tr('Em aberto · {0}', [open.length]), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15))),
+          _SquareIcon(icon: Icons.add_rounded, tooltip: tr('Nova tarefa'), onTap: () => _taskDialog(context, s)),
+        ]),
+        if (open.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: Ds.s8),
+            child: Text(tr('Nenhuma tarefa em aberto. Toque em + para passar escala, lição ou repertório.'), style: Ds.support()),
+          )
+        else
+          _Fold(builder: (all, toggle) {
+            final shown = all ? open : open.take(5).toList();
+            return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              for (var i = 0; i < shown.length; i++) _taskRow(context, s, shown[i], first: i == 0),
+              if (open.length > 5)
+                TextButton.icon(
+                  style: TextButton.styleFrom(minimumSize: const Size(0, 40), padding: EdgeInsets.zero),
+                  onPressed: toggle,
+                  icon: Icon(all ? Icons.expand_less_rounded : Icons.arrow_forward_rounded, size: 18),
+                  label: Text(all ? tr('Mostrar menos') : tr('Ver as {0} em aberto', [open.length])),
+                ),
+            ]);
+          }),
+      ]),
+    );
+  }
+
+  /// "Concluídas": recolhidas, só com o número; abrir mostra as últimas.
+  Widget _doneBox(BuildContext context, Student s, List<Assignment> done) {
+    return _Fold(builder: (all, toggle) {
+      return _box(
+        padding: EdgeInsets.zero,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          InkWell(
+            onTap: toggle,
+            borderRadius: BorderRadius.circular(14),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              child: Row(children: [
+                Icon(Icons.check_circle_outline_rounded, size: 20, color: AppColors.inTune),
+                const SizedBox(width: 8),
+                Expanded(child: Text(tr('Concluídas · {0}', [done.length]), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5))),
+                Icon(all ? Icons.expand_less_rounded : Icons.expand_more_rounded, color: AppColors.textDim),
+              ]),
+            ),
+          ),
+          if (all)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+              child: Column(children: [for (var i = 0; i < done.length && i < 15; i++) _taskRow(context, s, done[i], first: i == 0)]),
+            ),
+        ]),
+      );
+    });
+  }
+
+  /// Uma tarefa: ícone do tipo, título e uma frase; à direita, tocar (escala em aberto) ou o estado em ícone. Tocar na linha abre as opções.
+  Widget _taskRow(BuildContext context, Student s, Assignment t, {bool first = false}) {
+    final st = _statusFor(s, t);
+    final play = t.isScale && !t.done;
+    return InkWell(
+      onTap: () => _taskOptions(context, s, t),
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: Ds.tap),
+        decoration: first ? null : BoxDecoration(border: Border(top: BorderSide(color: AppColors.outline.withValues(alpha: 0.5)))),
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(9)),
+            child: Icon(_kindIcon(t.kind), size: 18, color: AppColors.text),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(t.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              Text(t.isScale ? tr('Meta {0}% de acerto', [(t.goal * 100).round()]) : t.kind.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: Ds.support()),
+            ]),
+          ),
+          if (play)
+            _SquareIcon(icon: Icons.play_arrow_rounded, tooltip: tr('Iniciar'), onTap: () => _startTask(context, s, t))
+          else
+            Tooltip(
+              message: st?.text ?? (t.done ? tr('validada') : tr('pendente')),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Icon(st?.icon ?? (t.done ? Icons.verified_rounded : Icons.schedule_rounded), size: 20, color: st?.color ?? (t.done ? AppColors.inTune : AppColors.textDim)),
+              ),
+            ),
+        ]),
+      ),
+    );
+  }
+
+  void _taskOptions(BuildContext context, Student s, Assignment t) {
+    showDsSheet(context, title: t.title, listenable: app, children: (c) => [
+          AppCard(
+            padding: EdgeInsets.zero,
+            child: Column(children: [
+              DsNavRow(Icons.fact_check_outlined, tr('Ver e avaliar'), t.kind.label, () {
+                Navigator.of(c).pop();
+                showReviewSheet(context, app, s, t);
+              }),
+              const Divider(height: 1),
+              DsNavRow(Icons.edit_outlined, tr('Editar'), tr('Mudar título, meta ou detalhes'), () {
+                Navigator.of(c).pop();
+                _taskDialog(context, s, edit: t);
+              }),
+              const Divider(height: 1),
+              DsNavRow(Icons.delete_outline_rounded, tr('Apagar'), tr('Tira a tarefa da ficha'), () {
+                Navigator.of(c).pop();
+                app.removeAssignment(s, t.id);
+              }),
+            ]),
+          ),
+        ]);
+  }
+
+  void _openPerformance(BuildContext context, Student s, StudentSummary sum, List<Insight> tips) {
+    showDsSheet(context, title: tr('Desempenho'), listenable: app, children: (c) => [
+          FramelessScope(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              _summary(sum, s),
+              if (tips.isNotEmpty) ...[
+                const SizedBox(height: Ds.s20),
+                Text(tr('Orientações do treinador'), style: Ds.section()),
+                const SizedBox(height: Ds.s8),
+                for (final t in tips) InsightTile(insight: t),
+              ],
+              const SizedBox(height: Ds.s20),
+              Text(tr('Últimos exercícios'), style: Ds.section()),
+              const SizedBox(height: Ds.s8),
+              _sessionsBody(s),
+            ]),
+          ),
+        ]);
+  }
+
+  void _openNotes(BuildContext context, Student s) {
+    showDsSheet(context, title: tr('Observações'), listenable: app, children: (c) => [
+          DsPrimaryButton(onPressed: () => _newNote(context, s), icon: Icons.edit_note, label: tr('Anotar')),
+          const SizedBox(height: Ds.s20),
           if (s.notes.isEmpty) Text(tr('Anote pontos de atenção, elogios e combinados.'), style: Ds.support()),
           for (final note in s.notes.take(10))
             Padding(
@@ -238,28 +594,11 @@ class StudentPage extends StatelessWidget {
                 Expanded(child: Text(note.text, style: const TextStyle(fontSize: Ds.fontBody, height: 1.35))),
               ]),
             ),
-          const SizedBox(height: Ds.s8),
-          OutlinedButton.icon(
-            style: OutlinedButton.styleFrom(minimumSize: const Size(0, Ds.tap)),
-            onPressed: () => _newNote(context, s),
-            icon: const Icon(Icons.edit_note, size: 20),
-            label: Text(tr('Anotar')),
-          ),
-        ]),
-      ),
-      if (n > 0) ...[
-        const SizedBox(height: Ds.gap),
-        Text(tr('Aulas dadas'), style: Ds.section()),
-        const SizedBox(height: Ds.s8),
-        AppCard(child: _lessonHistoryBody(s)),
-      ],
-      if (s.sessions.isNotEmpty) ...[
-        const SizedBox(height: Ds.gap),
-        Text(tr('Últimos exercícios'), style: Ds.section()),
-        const SizedBox(height: Ds.s8),
-        AppCard(child: _sessionsBody(s)),
-      ],
-    ];
+        ]);
+  }
+
+  void _openLessons(BuildContext context, Student s) {
+    showDsSheet(context, title: tr('Aulas dadas'), listenable: app, children: (c) => [FramelessScope(child: _lessonHistoryBody(s))]);
   }
 
   List<Widget> _combinados(BuildContext context, Student s) {
@@ -769,7 +1108,10 @@ class _LessonCard extends StatefulWidget {
   final Student student;
   final VoidCallback onNewTask;
   final VoidCallback onNewNote;
-  const _LessonCard({required this.app, required this.student, required this.onNewTask, required this.onNewNote});
+
+  /// Faixa da ficha nova: só o estado da aula e os quatro botões (tarefa, anotar, pausar, encerrar).
+  final bool strip;
+  const _LessonCard({required this.app, required this.student, required this.onNewTask, required this.onNewNote, this.strip = false});
 
   @override
   State<_LessonCard> createState() => _LessonCardState();
@@ -988,6 +1330,40 @@ class _LessonCardState extends State<_LessonCard> {
         }
         final paused = l.paused;
         final tally = app.lessonTally();
+        if (widget.strip) {
+          final c = paused ? AppColors.flat : AppColors.inTune;
+          final issue = _destinationIssue();
+          return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              decoration: BoxDecoration(color: c.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(12), border: Border.all(color: c.withValues(alpha: 0.65))),
+              child: Row(children: [
+                Icon(paused ? Icons.pause_circle_outline_rounded : Icons.fiber_manual_record, color: c, size: paused ? 22 : 14),
+                const SizedBox(width: 8),
+                Expanded(child: Text(paused ? tr('Aula pausada') : tr('Aula em andamento'), style: TextStyle(color: c, fontWeight: FontWeight.w800, fontSize: 14.5))),
+                Text(_clock(l.elapsed(DateTime.now())), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, fontFeatures: [FontFeature.tabularFigures()])),
+              ]),
+            ),
+            const SizedBox(height: Ds.s12),
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              _ActBtn(icon: Icons.add_task_rounded, label: tally.tasks > 0 ? '${tr('Tarefa')} · ${tally.tasks}' : tr('Tarefa'), onTap: widget.onNewTask),
+              _ActBtn(icon: Icons.edit_note_rounded, label: tally.notes > 0 ? '${tr('Anotar')} · ${tally.notes}' : tr('Anotar'), onTap: widget.onNewNote),
+              _ActBtn(icon: paused ? Icons.play_arrow_rounded : Icons.pause_rounded, label: paused ? tr('Retomar') : tr('Pausar'), onTap: paused ? app.resumeLesson : app.pauseLesson),
+              _ActBtn(icon: Icons.stop_rounded, label: tr('Encerrar'), danger: true, onTap: _end),
+            ]),
+            const SizedBox(height: Ds.s8),
+            Row(children: [
+              Expanded(
+                child: Text(issue ?? tr('As tarefas e observações vão para {0} quando você encerrar.', [s.name]), style: TextStyle(color: AppColors.textDim, fontSize: 12.5, height: 1.25)),
+              ),
+              TextButton(
+                style: TextButton.styleFrom(minimumSize: const Size(0, 40), padding: const EdgeInsets.symmetric(horizontal: 8)),
+                onPressed: _discard,
+                child: Text(tr('Descartar'), style: const TextStyle(fontSize: 12.5)),
+              ),
+            ]),
+          ]);
+        }
         return AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1164,39 +1540,83 @@ class LessonBannerState extends State<LessonBanner> {
   }
 }
 
-/// Três blocos da ficha nova: o bloco escolhido fica guardado entre as atualizações da tela.
-class _FichaTabs extends StatefulWidget {
-  final Widget header;
-  final List<(String, IconData, List<Widget> Function())> tabs;
-  const _FichaTabs({required this.header, required this.tabs});
-
-  @override
-  State<_FichaTabs> createState() => _FichaTabsState();
-}
-
-class _FichaTabsState extends State<_FichaTabs> {
-  int _i = 0;
+/// Quadrado com ícone e o nome embaixo: o botão de ação da ficha nova (o principal vem cheio, só um por tela).
+class _ActBtn extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  final bool primary;
+  final bool danger;
+  const _ActBtn({required this.icon, required this.label, required this.onTap, this.primary = false, this.danger = false});
 
   @override
   Widget build(BuildContext context) {
-    final i = _i.clamp(0, widget.tabs.length - 1);
-    return ListView(
-      padding: Ds.screen,
-      children: [
-        widget.header,
-        const SizedBox(height: Ds.gap),
-        SegmentedButton<int>(
-          showSelectedIcon: false,
-          style: SegmentedButton.styleFrom(minimumSize: const Size.fromHeight(Ds.tap)),
-          segments: [
-            for (var k = 0; k < widget.tabs.length; k++) ButtonSegment<int>(value: k, label: Text(widget.tabs[k].$1, maxLines: 1, overflow: TextOverflow.ellipsis)),
-          ],
-          selected: {i},
-          onSelectionChanged: (v) => setState(() => _i = v.first),
+    final fill = danger ? AppColors.wrong : (primary ? AppColors.accent : AppColors.surface2);
+    final fg = (danger || primary) ? AppColors.onAccent : AppColors.text;
+    return Semantics(
+      button: true,
+      label: label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: SizedBox(
+          width: 68,
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: fill,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: (danger || primary) ? Colors.transparent : AppColors.outline, width: 1),
+              ),
+              child: Icon(icon, size: 26, color: fg),
+            ),
+            const SizedBox(height: 4),
+            Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, fontWeight: primary ? FontWeight.w800 : FontWeight.w600, color: primary ? AppColors.text : AppColors.textDim)),
+          ]),
         ),
-        const SizedBox(height: Ds.gap),
-        ...widget.tabs[i].$3(),
-      ],
+      ),
     );
   }
 }
+
+/// Quadradinho só com ícone (adicionar, tocar): 40 px, com dica de ferramenta.
+class _SquareIcon extends StatelessWidget {
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  const _SquareIcon({required this.icon, required this.tooltip, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => Tooltip(
+        message: tooltip,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.outline, width: 1)),
+            child: Icon(icon, size: 22, color: AppColors.text),
+          ),
+        ),
+      );
+}
+
+/// Lista que mostra um pedaço e abre o resto no mesmo lugar (o estado de aberto fica aqui).
+class _Fold extends StatefulWidget {
+  final Widget Function(bool open, VoidCallback toggle) builder;
+  const _Fold({required this.builder});
+
+  @override
+  State<_Fold> createState() => _FoldState();
+}
+
+class _FoldState extends State<_Fold> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) => widget.builder(_open, () => setState(() => _open = !_open));
+}
+
