@@ -86,7 +86,7 @@ const Map<String, String> kEnB05 = {
   'Faltam': 'Missing',
   'TOQUE UMA NOTA': 'PLAY A NOTE',
   'Qualquer uma da escala!': 'Any one of the scale!',
-  'Segure até a barra encher.': 'Hold until the bar fills.',
+  'Segure até o anel fechar.': 'Hold until the ring closes.',
   'Pular nota': 'Skip note',
   'Recomeçar': 'Start over',
   'taxa de acerto': 'accuracy rate',

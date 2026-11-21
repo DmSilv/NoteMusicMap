@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../app_state.dart';
-import 'beat_bar.dart';
 import 'design_system.dart';
 import 'guidance_banner.dart';
 import 'needle.dart';
@@ -43,12 +42,39 @@ class ScaleExercisePage extends StatelessWidget {
           },
         ),
       ),
+      bottomNavigationBar: ListenableBuilder(
+        listenable: app.live,
+        builder: (context, _) {
+          final e = app.exercise;
+          if (e == null || e.flow || e.finished || !app.listening) return const SizedBox.shrink();
+          return DecoratedBox(
+            decoration: BoxDecoration(border: Border(top: BorderSide(color: AppColors.surface2))),
+            child: SafeArea(top: false, child: Padding(padding: const EdgeInsets.fromLTRB(14, 8, 14, 8), child: _controls(context, e))),
+          );
+        },
+      ),
       body: SafeArea(
         child: ListenableBuilder(
           listenable: app.live,
           builder: (context, _) {
             final e = app.exercise;
             if (e == null) return const SizedBox.shrink();
+            // Guiado ouvindo: a partitura vai para cima (é o que se lê), depois a nota no anel e a régua; os botões ficam no rodapé.
+            final guided = app.listening && !e.flow && !e.finished;
+            if (guided) {
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(14, 4, 14, 16),
+                children: [
+                  _header(e),
+                  const SizedBox(height: 8),
+                  _notation(e, (MediaQuery.sizeOf(context).height - 600).clamp(150.0, 230.0)),
+                  const SizedBox(height: 12),
+                  _guidedCard(e),
+                  const SizedBox(height: 12),
+                  _live(e),
+                ],
+              );
+            }
             return ListView(
               padding: const EdgeInsets.fromLTRB(14, 4, 14, 24),
               children: [
@@ -199,20 +225,6 @@ class ScaleExercisePage extends StatelessWidget {
     return NoteLabel(name: p.name, octave: p.octave, size: size, color: color);
   }
 
-  /// Etiqueta "▲ Subindo" / "▼ Descendo": o músico sempre sabe para onde a escala vai.
-  Widget _dirTag(bool asc) {
-    final color = asc ? AppColors.flat : AppColors.sharp;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(999)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(asc ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, size: 16, color: color),
-        const SizedBox(width: 4),
-        Text(asc ? tr('subindo') : tr('descendo'), style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w800)),
-      ]),
-    );
-  }
-
   /// Dedo (e, na 1ª nota, a corda e a posição) da nota de agora, como o livro marca. Só no violino e nas escalas com tabela;
   /// nas notas que o livro não marca, fica vazio.
   String? _fingerNow(ScaleExercise e) {
@@ -227,61 +239,72 @@ class ScaleExercisePage extends StatelessWidget {
     return parts.isEmpty ? null : parts.join(' · ');
   }
 
-  /// Modo guiado: uma nota por vez; a próxima só vem quando esta ficar afinada. Só mostra a nota e o que vem depois; o que
-  /// fazer (suba, desça, volte) fica num lugar só, no aviso logo abaixo ([_live]).
+  /// Modo guiado: a nota da vez dentro de um anel que enche enquanto ela é segurada afinada. O que fazer (suba, desça, volte)
+  /// fica num lugar só, no aviso logo abaixo ([_live]); a seta ao lado da nota só diz para que lado ajustar.
   Widget _guidedCard(ScaleExercise e) {
     final back = e.replayMidi; // travado: precisa voltar à nota anterior
     final m = back ?? e.expected!;
-    final asc = e.ascendingAt(e.index);
-    final hz = targetFreq(m, app.cfg);
+    final asc = e.ascendingAt(back != null ? e.index - 1 : e.index);
     final next = [
       for (var k = 1; k <= 3; k++)
         if (e.index + k < e.sequence.length) (e.sequence[e.index + k], e.ascendingAt(e.index + k))
     ];
     final locked = e.replayNeeded && back != null;
+    final cur = app.current;
+    final cents = (cur != null && cur.midi == m) ? cur.cents : null;
+    final off = cents == null ? 0 : (cents > e.zone ? 1 : (cents < -e.zone ? -1 : 0)); // 1 = alto (desça), -1 = baixo (suba)
+    final noteColor = locked ? AppColors.sharp : (e.tunedNow ? AppColors.inTune : AppColors.text);
+    final finger = _fingerNow(e);
     return AppCard(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: Column(
         children: [
-          Row(children: [
-            // A frequência fica junto do rótulo, à esquerda: o ♭/♯ grande do nome sobe no centro e não pode encostar nela.
-            Text(locked ? tr('Volte para') : tr('Toque agora'),
-                style: TextStyle(color: locked ? AppColors.sharp : AppColors.text, fontSize: 14, fontWeight: FontWeight.w800)),
-            const SizedBox(width: 8),
-            Text('${hz.toStringAsFixed(1)} Hz', style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-            const Spacer(),
-            _dirTag(asc),
-          ]),
-          // Altura folgada: o ♭/♯ grande sobe e não pode encostar na frequência da linha de cima.
+          Text(locked ? tr('Volte para') : tr('Toque agora'),
+              style: TextStyle(color: locked ? AppColors.sharp : AppColors.textDim, fontSize: 13, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
           SizedBox(
-            height: 96,
-            child: Center(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 260),
-                transitionBuilder: (c, a) => fadeThroughTransition(c, a),
-                child: KeyedSubtree(
-                  key: ValueKey('${e.index}-$m'),
-                  // cresce um pouco enquanto está afinada (e volta ao tamanho quando sai da faixa)
-                  child: AnimatedScale(
-                    scale: e.tunedNow ? 1.08 : 1.0,
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOutBack,
-                    child: _bigNote(m, asc: asc, size: 66, color: locked ? AppColors.sharp : (e.tunedNow ? AppColors.inTune : AppColors.text)),
+            width: 140,
+            height: 140,
+            child: Stack(
+              alignment: Alignment.center,
+              clipBehavior: Clip.none,
+              children: [
+                TweenAnimationBuilder<double>(
+                  tween: Tween<double>(end: locked ? 0 : e.holdProgress),
+                  duration: const Duration(milliseconds: 140),
+                  builder: (c, v, _) => CustomPaint(
+                    size: const Size(140, 140),
+                    painter: _RingPainter(progress: v, color: locked ? AppColors.sharp : AppColors.inTune, track: AppColors.surface2),
                   ),
                 ),
-              ),
+                Column(mainAxisSize: MainAxisSize.min, children: [
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 260),
+                    transitionBuilder: (c, a) => fadeThroughTransition(c, a),
+                    child: KeyedSubtree(key: ValueKey('${e.index}-$m'), child: _bigNote(m, asc: asc, size: 46, color: noteColor)),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(locked ? tr('volte') : tr('segure'), style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+                ]),
+                if (off != 0 && !locked)
+                  Positioned(
+                    right: -8,
+                    top: 54,
+                    child: Icon(off > 0 ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded, size: 30, color: AppColors.text, semanticLabel: off > 0 ? tr('desça') : tr('suba')),
+                  ),
+              ],
             ),
           ),
-          // Dedilhado do livro (altura fixa só quando esta escala tem tabela, para a tela não pular de nota em nota).
+          // Dedo do livro (altura fixa só quando esta escala tem tabela, para a tela não pular de nota em nota).
           if (app.scaleFingering != null)
             SizedBox(
-              height: 26,
-              child: Center(child: Text(_fingerNow(e) ?? '', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700))),
+              height: 24,
+              child: Center(child: Text(finger ?? '', style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700))),
             ),
-          const SizedBox(height: 12),
-          // As próximas notas, num bloco só delas e com respiro. Altura fixa: perto do fim há menos notas, sem mexer na tela.
+          const SizedBox(height: 6),
+          // As próximas notas, num bloco só delas. Altura fixa: perto do fim há menos notas, sem mexer na tela.
           Container(
-            height: 48,
+            height: 40,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(color: AppColors.surface2.withValues(alpha: 0.55), borderRadius: BorderRadius.circular(14)),
             child: next.isEmpty
@@ -295,10 +318,63 @@ class ScaleExercisePage extends StatelessWidget {
                     ],
                   ),
           ),
-          const SizedBox(height: 18),
-          BeatBar(app: app, value: e.holdProgress, color: AppColors.inTune),
         ],
       ),
+    );
+  }
+
+  /// Régua do desvio: a faixa verde é a tolerância do nível escolhido; a marca mostra onde a nota está agora.
+  Widget _zoneMeter(double? cents, double zone) {
+    const range = 50.0;
+    final inZone = cents != null && cents.abs() <= zone;
+    final c = (cents ?? 0).clamp(-range, range).toDouble();
+    return Semantics(
+      label: cents == null ? tr('Régua de afinação, sem nota') : tr('Régua de afinação: {0} cents', [cents.round()]),
+      child: Column(children: [
+        SizedBox(
+          height: 26,
+          child: LayoutBuilder(builder: (ctx, bc) {
+            final w = bc.maxWidth;
+            final zl = w * (0.5 - zone / (2 * range));
+            final zw = w * zone / range;
+            final x = w * (0.5 + c / (2 * range));
+            return Stack(clipBehavior: Clip.none, children: [
+              Positioned(left: 0, right: 0, top: 6, height: 14, child: DecoratedBox(decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(7)))),
+              Positioned(
+                left: zl,
+                width: zw,
+                top: 6,
+                height: 14,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.inTune.withValues(alpha: 0.26),
+                    border: Border.all(color: AppColors.inTune.withValues(alpha: 0.75), width: 1),
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                ),
+              ),
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 120),
+                left: x - 2.5,
+                top: 1,
+                width: 5,
+                height: 24,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 150),
+                  opacity: cents == null ? 0 : 1,
+                  child: DecoratedBox(decoration: BoxDecoration(color: inZone ? AppColors.inTune : AppColors.text, borderRadius: BorderRadius.circular(3))),
+                ),
+              ),
+            ]);
+          }),
+        ),
+        const SizedBox(height: 2),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text(tr('baixo'), style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+          Text(tr('zona ±{0}', [zone.round()]), style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+          Text(tr('alto'), style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+        ]),
+      ]),
     );
   }
 
@@ -331,7 +407,7 @@ class ScaleExercisePage extends StatelessWidget {
     }
   }
 
-  /// Linha curta sob o aviso: a última chegada (por uns 2 s) ou o lembrete de segurar a nota até a barra encher.
+  /// Linha curta sob o aviso: a última chegada (por uns 2 s) ou o lembrete de segurar a nota até o anel fechar.
   Widget _arrivalLine(ScaleExercise e) {
     String? text;
     var color = AppColors.textDim;
@@ -346,7 +422,7 @@ class ScaleExercisePage extends StatelessWidget {
           : tr('Chegada: {0} cents (limite ±{1}).', [c > 0 ? '+$c' : '$c', e.zone.round()]);
       color = a.ok ? AppColors.inTune : AppColors.sharp;
     } else if (e.recentShort && !e.flow) {
-      text = tr('Segure um pouco mais: a barra precisa encher.');
+      text = tr('Segure um pouco mais: o anel precisa fechar.');
       color = AppColors.flat;
     }
     return SizedBox(
@@ -435,7 +511,7 @@ class ScaleExercisePage extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
       child: Column(
         children: [
-          SmoothNeedle(cents: cents, zone: zone),
+          if (e.flow) SmoothNeedle(cents: cents, zone: zone) else _zoneMeter(cents, zone),
           const SizedBox(height: 12),
           GuidanceBanner(
             compact: true,
@@ -445,9 +521,9 @@ class ScaleExercisePage extends StatelessWidget {
             cue: cue,
             noteLabel: (m) => app.scaleNoteName(m, ascending: _ascOf(e, m) || (!e.flow && asc), withOctave: true),
             idleTitle: e.flow ? tr('TOQUE UMA NOTA') : tr('Toque a nota e segure'),
-            idleDetail: e.flow ? tr('Qualquer uma da escala!') : tr('Segure a nota até a barra encher.'),
+            idleDetail: e.flow ? tr('Qualquer uma da escala!') : tr('Segure a nota até o anel fechar.'),
             tunedTitle: locked ? tr('ISSO! SEGURE {0}', [backName.toUpperCase()]) : tr('MUITO BEM!'),
-            tunedDetail: locked ? tr('Agora tente {0} de novo.', [nextName]) : (e.flow ? tr('Pode tocar outra nota.') : tr('Segure até a barra encher.')),
+            tunedDetail: locked ? tr('Agora tente {0} de novo.', [nextName]) : (e.flow ? tr('Pode tocar outra nota.') : tr('Segure até o anel fechar.')),
             backTitle: locked ? tr('VOLTE PARA {0}', [backName.toUpperCase()]) : null,
             backDetail: locked ? _lockDetail(e) : null,
           ),
@@ -728,3 +804,32 @@ Widget directionPicker(AppState app, {VoidCallback? onChanged}) => SegmentedButt
         onChanged?.call();
       },
     );
+
+/// Anel de progresso ao redor da nota: o trecho preenchido é o tempo já segurado afinado.
+class _RingPainter extends CustomPainter {
+  final double progress;
+  final Color color;
+  final Color track;
+  const _RingPainter({required this.progress, required this.color, required this.track});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final r = size.shortestSide / 2 - 6;
+    final c = size.center(Offset.zero);
+    final base = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 8
+      ..color = track;
+    canvas.drawCircle(c, r, base);
+    if (progress <= 0) return;
+    final arc = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 8
+      ..strokeCap = StrokeCap.round
+      ..color = color;
+    canvas.drawArc(Rect.fromCircle(center: c, radius: r), -3.14159265 / 2, 2 * 3.14159265 * progress.clamp(0.0, 1.0), false, arc);
+  }
+
+  @override
+  bool shouldRepaint(_RingPainter old) => old.progress != progress || old.color != color || old.track != track;
+}
