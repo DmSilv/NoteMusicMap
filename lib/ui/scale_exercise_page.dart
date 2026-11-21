@@ -259,8 +259,20 @@ class ScaleExercisePage extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: Column(
         children: [
-          Text(locked ? ' ' : tr('Toque agora'), style: TextStyle(color: AppColors.textDim, fontSize: 13, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 6),
+          // Em cima do anel: a legenda "Toque agora" vira o visto de "Afinado" por um instante (mesma altura, a tela não pula).
+          SizedBox(
+            height: 24,
+            child: Center(
+              child: e.justCompleted && !locked
+                  ? Row(mainAxisSize: MainAxisSize.min, children: [
+                      Icon(Icons.check_circle_rounded, size: 22, color: AppColors.inTune),
+                      const SizedBox(width: 6),
+                      Text(tr('Afinado'), style: TextStyle(color: AppColors.inTune, fontSize: 14, fontWeight: FontWeight.w800)),
+                    ])
+                  : Text(locked ? ' ' : tr('Toque agora'), style: TextStyle(color: AppColors.textDim, fontSize: 13, fontWeight: FontWeight.w800)),
+            ),
+          ),
+          const SizedBox(height: 2),
           SizedBox(
             width: 140,
             height: 140,
@@ -285,8 +297,6 @@ class ScaleExercisePage extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(locked ? tr('volte') : tr('segure'), style: TextStyle(color: AppColors.textDim, fontSize: 12)),
                 ]),
-                if (e.justCompleted && !locked)
-                  Positioned(right: 4, top: 2, child: Icon(Icons.check_circle_rounded, size: 30, color: AppColors.inTune, semanticLabel: tr('Afinado'))),
                 if (off != 0 && !locked)
                   Positioned(
                     right: -8,
