@@ -569,15 +569,42 @@ class _LiveWatch extends StatefulWidget {
   State<_LiveWatch> createState() => _LiveWatchState();
 }
 
-class _LiveWatchState extends State<_LiveWatch> {
+class _LiveWatchState extends State<_LiveWatch> with WidgetsBindingObserver {
   Timer? _t;
+  Timer? _slow;
   int _mode = 0; // 0 parado, 1 consulta normal, 2 consulta rápida
+  int _peeks = 0;
+
+  /// Espiada lenta fora do horário de aula: depois de 2 min e de mais 4 min com a tela aberta, e para (2 comandos por visita
+  /// no máximo; voltar ao app ou mexer na tela recomeça). Assim uma aula marcada ou tarefa nova aparece sozinha sem pesar.
+  static const _peekDelays = [Duration(minutes: 2), Duration(minutes: 4)];
+
+  void _schedulePeek() {
+    _slow?.cancel();
+    if (_mode != 0 || widget.app.myTeachers.isEmpty || _peeks >= _peekDelays.length) return;
+    _slow = Timer(_peekDelays[_peeks], () async {
+      _peeks++;
+      if (!mounted || _mode != 0) return;
+      await widget.app.peekLinks();
+      _schedulePeek();
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _peeks = 0;
+      _schedulePeek();
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _apply();
     _t = Timer.periodic(const Duration(seconds: 30), (_) => _apply());
+    _schedulePeek();
   }
 
   void _apply() {
@@ -587,10 +614,18 @@ class _LiveWatchState extends State<_LiveWatch> {
     if (_mode > 0) app.unwatchLinks(fast: _mode == 2);
     _mode = m;
     if (m > 0) app.watchLinks(fast: m == 2);
+    if (m == 0) {
+      _peeks = 0;
+      _schedulePeek();
+    } else {
+      _slow?.cancel();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _slow?.cancel();
     _t?.cancel();
     if (_mode > 0) widget.app.unwatchLinks(fast: _mode == 2);
     super.dispose();

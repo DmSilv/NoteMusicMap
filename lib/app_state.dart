@@ -2305,6 +2305,17 @@ class AppState extends ChangeNotifier {
       }
       return;
     }
+    await _revCheck();
+  }
+
+  /// Uma espiada barata para a tela do aluno parada: 1 comando no servidor (`rev`). Só busca de verdade se algo mudou.
+  /// Usada pela espiada lenta do Meu espaço (ver `_LiveWatch`); respeita primeiro plano e vínculo ligado.
+  Future<void> peekLinks() async {
+    if (!_foreground || !linkEnabled || linkUnavailable || _linkSyncing) return;
+    await _revCheck();
+  }
+
+  Future<void> _revCheck() async {
     final r = await links.rev(profile.shareCode, profile.secret);
     if (r.unavailable) return _markLinkUnavailable();
     if (!r.ok) {
