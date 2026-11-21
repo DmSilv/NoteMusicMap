@@ -24,6 +24,7 @@ class _TeacherSetupPageState extends State<TeacherSetupPage> {
   late final _name = TextEditingController(text: widget.app.profile.name ?? '');
   int _step = 0;
   String? _error;
+  bool _adult = false;
 
   AppState get app => widget.app;
 
@@ -38,6 +39,10 @@ class _TeacherSetupPageState extends State<TeacherSetupPage> {
       final n = _name.text.trim();
       if (n.isEmpty) {
         setState(() => _error = tr('Digite o seu nome.'));
+        return;
+      }
+      if (!_adult) {
+        setState(() => _error = tr('Confirme que você tem 18 anos ou mais.'));
         return;
       }
       app.setProfileName(n);
@@ -113,6 +118,18 @@ class _TeacherSetupPageState extends State<TeacherSetupPage> {
           maxLength: 40,
           decoration: InputDecoration(labelText: tr('Seu nome'), errorText: _error, counterText: ''),
           onChanged: (_) => setState(() => _error = null),
+        ),
+        const SizedBox(height: Ds.s8),
+        CheckboxListTile(
+          contentPadding: EdgeInsets.zero,
+          controlAffinity: ListTileControlAffinity.leading,
+          value: _adult,
+          onChanged: (v) => setState(() {
+            _adult = v ?? false;
+            _error = null;
+          }),
+          title: Text(tr('Tenho 18 anos ou mais')),
+          subtitle: Text(tr('Só maiores de idade podem ser professores no app.'), style: Ds.support()),
         ),
       ];
 

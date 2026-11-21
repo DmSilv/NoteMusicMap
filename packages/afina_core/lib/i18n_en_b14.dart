@@ -412,4 +412,7 @@ const Map<String, String> kEnB14 = {
   'O que aconteceu?': 'What happened?',
   'Vão o seu texto, a versão do app e, com o vínculo ligado, o código do perfil. Sem e-mail nem áudio.': 'Your text, the app version and, with the link on, your profile code are sent. No email, no audio.',
   'Enviar relato': 'Send report',
+  'Confirme que você tem 18 anos ou mais.': 'Confirm that you are 18 or older.',
+  'Tenho 18 anos ou mais': 'I am 18 or older',
+  'Só maiores de idade podem ser professores no app.': 'Only adults can be teachers in the app.',
 };
