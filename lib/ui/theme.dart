@@ -25,6 +25,8 @@ class AppColors {
   static Color get inTuneBright => dark ? const Color(0xFF5CFFB8) : const Color(0xFF1AA676);
   static Color get flat => dark ? const Color(0xFF2E9BFF) : const Color(0xFF1E62BD);
   static Color get sharp => dark ? const Color(0xFFFF9226) : const Color(0xFFB05400);
+  /// Nota errada (o único uso do vermelho nos avisos da escala guiada).
+  static Color get wrong => dark ? const Color(0xFFFF6B6B) : const Color(0xFFB3261E);
   static Color get accent => inTune;
 
   /// Texto/ícone sobre botões na cor de destaque.

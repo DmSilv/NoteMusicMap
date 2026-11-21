@@ -122,6 +122,33 @@ void main() {
     });
   });
 
+  group('acerto e contagem para os avisos', () {
+    test('concluir uma nota marca o "muito bem" por ~1 s, com a medida', () {
+      final e = make(ScaleTolerance.standard);
+      expect(e.justCompleted, isFalse);
+      play(e, 67, 1.0, center: 4);
+      expect(e.justCompleted, isTrue);
+      expect(e.lastDoneCents, closeTo(4, 2));
+      play(e, null, 1.5);
+      expect(e.justCompleted, isFalse);
+    });
+
+    test('locksHere conta as travas na mesma nota e zera ao avançar', () {
+      final e = make(ScaleTolerance.strict);
+      play(e, 67, 1.0);
+      play(e, 69, 1.0, center: 16);
+      expect(e.locksHere, 1);
+      play(e, 67, 0.6);
+      play(e, null, 0.3);
+      play(e, 69, 1.0, center: 16);
+      expect(e.locksHere, 2);
+      e.skipReplay();
+      play(e, null, 0.3);
+      play(e, 69, 1.0);
+      expect(e.locksHere, 0);
+    });
+  });
+
   group('voltar à nota anterior, de forma mais gentil', () {
     ScaleExercise lockedOnce() {
       final e = make(ScaleTolerance.strict);

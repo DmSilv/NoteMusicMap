@@ -259,8 +259,7 @@ class ScaleExercisePage extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
       child: Column(
         children: [
-          Text(locked ? tr('Volte para') : tr('Toque agora'),
-              style: TextStyle(color: locked ? AppColors.sharp : AppColors.textDim, fontSize: 13, fontWeight: FontWeight.w800)),
+          Text(locked ? ' ' : tr('Toque agora'), style: TextStyle(color: AppColors.textDim, fontSize: 13, fontWeight: FontWeight.w800)),
           const SizedBox(height: 6),
           SizedBox(
             width: 140,
@@ -286,6 +285,8 @@ class ScaleExercisePage extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(locked ? tr('volte') : tr('segure'), style: TextStyle(color: AppColors.textDim, fontSize: 12)),
                 ]),
+                if (e.justCompleted && !locked)
+                  Positioned(right: 4, top: 2, child: Icon(Icons.check_circle_rounded, size: 30, color: AppColors.inTune, semanticLabel: tr('Afinado'))),
                 if (off != 0 && !locked)
                   Positioned(
                     right: -8,
@@ -378,16 +379,6 @@ class ScaleExercisePage extends StatelessWidget {
     );
   }
 
-  /// O que aconteceu (alto, baixo, oscilou ou nota errada), com a medida, e o que fazer: tudo em duas frases curtas.
-  String _lockDetail(ScaleExercise e) {
-    final back = e.replayMidi;
-    if (back == null) return tr('A nota entrou fora do ponto. Solte e toque de novo.');
-    final backName = app.scaleNoteName(back, ascending: e.ascendingAt(e.index - 1), withOctave: true);
-    final nextName = app.scaleNoteName(e.expected!, ascending: e.ascendingNow, withOctave: true);
-    final what = _lockWhat(e, nextName);
-    return '$what ${tr('Volte para {0} e tente {1} de novo.', [backName, nextName])}';
-  }
-
   /// A primeira frase do aviso de volta: o que o app ouviu na chegada.
   String _lockWhat(ScaleExercise e, String nextName) {
     final c = e.lockCents.round();
@@ -405,30 +396,6 @@ class ScaleExercisePage extends StatelessWidget {
       case null:
         return tr('A nota entrou fora do ponto.');
     }
-  }
-
-  /// Linha curta sob o aviso: a última chegada (por uns 2 s) ou o lembrete de segurar a nota até o anel fechar.
-  Widget _arrivalLine(ScaleExercise e) {
-    String? text;
-    var color = AppColors.textDim;
-    final a = e.recentArrival;
-    // Travado: o aviso de volta já diz o que aconteceu; a linha da chegada ficaria sobre outra nota.
-    if (e.replayNeeded) {
-      text = null;
-    } else if (a != null && !e.flow) {
-      final c = a.cents.round();
-      text = a.ok
-          ? tr('Chegada boa: {0} cents (limite ±{1}).', [c > 0 ? '+$c' : '$c', e.zone.round()])
-          : tr('Chegada: {0} cents (limite ±{1}).', [c > 0 ? '+$c' : '$c', e.zone.round()]);
-      color = a.ok ? AppColors.inTune : AppColors.sharp;
-    } else if (e.recentShort && !e.flow) {
-      text = tr('Segure um pouco mais: o anel precisa fechar.');
-      color = AppColors.flat;
-    }
-    return SizedBox(
-      height: 22,
-      child: Center(child: text == null ? null : Text(text, textAlign: TextAlign.center, style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.w600))),
-    );
   }
 
   /// Modo livre: qualquer nota da escala, em qualquer ordem.
@@ -492,52 +459,185 @@ class ScaleExercisePage extends StatelessWidget {
         child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
       );
 
+  /// Livre: agulha e aviso em caixa. Guiado: régua e frase curta, e um cartão só quando algo exige uma ação ([_guidedFeedback]).
   Widget _live(ScaleExercise e) {
+    if (!e.flow) return _guidedFeedback(e);
     final cur = app.current;
-    final zone = e.flow ? app.zoneCents : e.zone;
-    final valid = cur != null && (e.flow ? e.freeNotes.contains(cur.midi) : cur.midi == (e.replayMidi ?? e.expected));
+    final zone = app.zoneCents;
+    final valid = cur != null && e.freeNotes.contains(cur.midi);
     final cents = valid ? cur.cents : null;
-    // Travado: o que vale agora é a nota ANTERIOR. O desvio e os avisos são em relação a ela, não à nota da vez.
-    final back = e.replayMidi;
-    final locked = e.replayNeeded && back != null;
-    // A nota anterior ainda soando (o aluno não largou o arco/dedo) não é erro: o aviso fica quieto até ele tocar outra coisa.
-    final holdingPrev = !locked && !e.flow && e.index > 0 && cur?.midi == e.sequence[e.index - 1];
-    final cue = locked ? e.cueTo(back, cur?.midi, cur?.cents ?? 0) : (holdingPrev ? null : e.cue(cur?.midi, cur?.cents ?? 0));
-    final exp = e.expected;
-    final backName = back == null ? '' : app.scaleNoteName(back, ascending: e.ascendingAt(e.index - 1), withOctave: true);
-    final nextName = exp == null ? '' : app.scaleNoteName(exp, ascending: e.ascendingNow, withOctave: true);
-    final asc = e.flow ? (e.currentFreeMidi == null ? e.direction != ScaleDirection.down : _ascOf(e, e.currentFreeMidi!)) : e.ascendingNow;
+    final cue = e.cue(cur?.midi, cur?.cents ?? 0);
     return AppCard(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 14),
       child: Column(
         children: [
-          if (e.flow) SmoothNeedle(cents: cents, zone: zone) else _zoneMeter(cents, zone),
+          SmoothNeedle(cents: cents, zone: zone),
           const SizedBox(height: 12),
           GuidanceBanner(
             compact: true,
-            calm: !e.flow,
             cents: cents,
             zone: zone,
             cue: cue,
-            noteLabel: (m) => app.scaleNoteName(m, ascending: _ascOf(e, m) || (!e.flow && asc), withOctave: true),
-            idleTitle: e.flow ? tr('TOQUE UMA NOTA') : tr('Toque a nota e segure'),
-            idleDetail: e.flow ? tr('Qualquer uma da escala!') : tr('Segure a nota até o anel fechar.'),
-            tunedTitle: locked ? tr('ISSO! SEGURE {0}', [backName.toUpperCase()]) : tr('MUITO BEM!'),
-            tunedDetail: locked ? tr('Agora tente {0} de novo.', [nextName]) : (e.flow ? tr('Pode tocar outra nota.') : tr('Segure até o anel fechar.')),
-            backTitle: locked ? tr('VOLTE PARA {0}', [backName.toUpperCase()]) : null,
-            backDetail: locked ? _lockDetail(e) : null,
+            noteLabel: (m) => app.scaleNoteName(m, ascending: _ascOf(e, m), withOctave: true),
+            idleTitle: tr('TOQUE UMA NOTA'),
+            idleDetail: tr('Qualquer uma da escala!'),
+            tunedDetail: tr('Pode tocar outra nota.'),
           ),
-          if (!e.flow) _arrivalLine(e),
-          if (e.canSkipReplay)
-            TextButton.icon(
-              style: TextButton.styleFrom(minimumSize: const Size(0, Ds.tap)),
-              onPressed: e.skipReplay,
-              icon: const Icon(Icons.redo_rounded, size: 18),
-              label: Text(tr('Tentar de novo sem voltar')),
-            ),
         ],
       ),
     );
+  }
+
+  /// Guiado: a régua e UMA frase curta, sem atraso, dizem como ajustar a nota agora. Só quando algo exige uma ação (voltar,
+  /// nota errada) aparece o cartão colorido logo abaixo. Verde = afinado, laranja = volte, vermelho = nota errada.
+  Widget _guidedFeedback(ScaleExercise e) {
+    final cur = app.current;
+    final zone = e.zone;
+    final back = e.replayMidi;
+    final locked = e.replayNeeded && back != null;
+    final target = back ?? e.expected;
+    final cents = (cur != null && cur.midi == target) ? cur.cents : null;
+    // A nota anterior ainda soando (o aluno não largou o arco/dedo) não é erro: o aviso fica quieto até ele tocar outra coisa.
+    final holdingPrev = !locked && e.index > 0 && cur?.midi == e.sequence[e.index - 1];
+    final cue = locked ? e.cueTo(back, cur?.midi, cur?.cents ?? 0) : (holdingPrev ? null : e.cue(cur?.midi, cur?.cents ?? 0));
+    final (hint, hintColor) = _hintFor(e, cents: cents, zone: zone, cue: cue, locked: locked);
+    return Column(
+      children: [
+        AppCard(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+          child: Column(children: [
+            _zoneMeter(cents, zone),
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 22,
+              child: Center(
+                child: Text(hint, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: TextStyle(color: hintColor, fontSize: 14.5, fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ]),
+        ),
+        if (e.replayNeeded) ...[const SizedBox(height: 12), _eventCard(e)],
+      ],
+    );
+  }
+
+  /// A frase sob a régua, na hora (sem segurar a mensagem anterior): o que fazer com a nota que está soando.
+  (String, Color) _hintFor(ScaleExercise e, {required double? cents, required double zone, required NoteCue? cue, required bool locked}) {
+    final dim = AppColors.textDim;
+    final backMidi = e.replayMidi;
+    final nextName = e.expected == null ? '' : app.scaleNoteName(e.expected!, ascending: e.ascendingNow, withOctave: true);
+    String dir(double c) {
+      final little = c.abs() <= zone * 1.7;
+      final n = c > 0 ? '+${c.round()}' : '${c.round()}';
+      if (c > 0) return little ? tr('Alto: desça um pouco ({0} cents).', [n]) : tr('Alto: desça ({0} cents).', [n]);
+      return little ? tr('Baixo: suba um pouco ({0} cents).', [n]) : tr('Baixo: suba ({0} cents).', [n]);
+    }
+
+    if (locked) {
+      // Travado: o que vale é a nota anterior; o cartão abaixo diz o que fazer, aqui só o ajuste fino dela.
+      if (cents == null) return ('', dim);
+      if (cents.abs() <= zone * 1.5) {
+        final backName = backMidi == null ? '' : app.scaleNoteName(backMidi, ascending: e.ascendingAt(e.index - 1), withOctave: true);
+        return (tr('Isso! Segure {0}.', [backName]), AppColors.inTune);
+      }
+      return (dir(cents), dim);
+    }
+    if (e.justCompleted) {
+      final c = e.lastDoneCents;
+      final n = c == null ? '' : (c > 0 ? '+${c.round()}' : '${c.round()}');
+      return (c == null ? tr('Muito bem!') : tr('Muito bem! Chegou com {0} cents.', [n]), AppColors.inTune);
+    }
+    if (cents != null) {
+      return cents.abs() <= zone ? (tr('Afinado: segure.'), AppColors.inTune) : (dir(cents), AppColors.text);
+    }
+    if (cue != null) {
+      final exp = app.scaleNoteName(cue.expectedMidi, ascending: e.ascendingNow, withOctave: true);
+      final heard = app.scaleNoteName(cue.heardMidi, ascending: e.ascendingNow, withOctave: true);
+      if (!cue.inScale) return (tr('{0} não faz parte desta escala. Procure {1}.', [heard, exp]), dim);
+      if (!cue.near) return (tr('Você tocou {0}. Procure {1}.', [heard, exp]), dim);
+      final how = cue.amount == 0 ? tr(' um pouco') : (cue.amount == 1 ? '' : tr(' bastante'));
+      return (cue.goUp ? tr('Ainda não é {0}. Suba{1}.', [exp, how]) : tr('Ainda não é {0}. Desça{1}.', [exp, how]), AppColors.text);
+    }
+    if (e.recentShort) return (tr('Segure um pouco mais: o anel precisa fechar.'), AppColors.text);
+    return (tr('Toque {0} e segure até o anel fechar.', [nextName]), dim);
+  }
+
+  /// O único aviso em caixa: o exercício travou e pede uma ação. Laranja = volte; vermelho = tocou outra nota.
+  Widget _eventCard(ScaleExercise e) {
+    final back = e.replayMidi;
+    final reason = e.lockReason;
+    final wrong = reason == LockReason.wrongNote;
+    final color = wrong ? AppColors.wrong : AppColors.sharp;
+    final nextName = app.scaleNoteName(e.expected!, ascending: e.ascendingNow, withOctave: true);
+    final backName = back == null ? '' : app.scaleNoteName(back, ascending: e.ascendingAt(e.index - 1), withOctave: true);
+    final String title;
+    final String detail;
+    if (back == null) {
+      title = tr('Solte e toque de novo');
+      detail = _lockWhat(e, nextName);
+    } else if (wrong) {
+      final heard = e.lockWrongMidi;
+      title = tr('Você tocou {0}, e a próxima é {1}', [heard == null ? '?' : app.scaleNoteName(heard, ascending: e.ascendingNow, withOctave: true), nextName]);
+      detail = tr('Volte para {0} e toque {1} de novo.', [backName, nextName]);
+    } else {
+      title = tr('Volte para {0} e toque {1} de novo', [backName, nextName]);
+      detail = _lockWhat(e, nextName);
+    }
+    final tip = e.locksHere >= 2 ? _tipFor(reason) : null;
+    return Semantics(
+      liveRegion: true,
+      label: '$title. $detail',
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.13),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.6), width: 1.2),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(wrong ? Icons.close_rounded : Icons.undo_rounded, color: color, size: 24),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w800, height: 1.2)),
+                const SizedBox(height: 4),
+                Text(detail, style: const TextStyle(fontSize: 14, height: 1.3)),
+                if (tip != null) ...[
+                  const SizedBox(height: 8),
+                  Text(tip, style: TextStyle(color: AppColors.textDim, fontSize: 13, height: 1.3)),
+                ],
+              ]),
+            ),
+          ]),
+          if (e.canSkipReplay)
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                style: TextButton.styleFrom(minimumSize: const Size(0, Ds.tap)),
+                onPressed: e.skipReplay,
+                icon: const Icon(Icons.redo_rounded, size: 18),
+                label: Text(tr('Tentar de novo sem voltar')),
+              ),
+            ),
+        ]),
+      ),
+    );
+  }
+
+  /// Dica curta depois de repetir o mesmo tipo de erro. Textos provisórios, a validar com quem ensina: ficam todos aqui.
+  String? _tipFor(LockReason? r) {
+    switch (r) {
+      case LockReason.sharp:
+      case LockReason.flat:
+        return tr('Dica: escute a nota antes de tocar e leve o dedo direto até ela, sem procurar.');
+      case LockReason.unstable:
+        return tr('Dica: firme o dedo e o arco no começo da nota, antes de segurar.');
+      case LockReason.wrongNote:
+        return tr('Dica: confira o nome da próxima nota na partitura antes de tocar.');
+      case null:
+        return null;
+    }
   }
 
   /// MAPA DA ESCALA: uma linha por oitava, com o nome da primeira nota ("Sol3") e todas as notas dela, cada

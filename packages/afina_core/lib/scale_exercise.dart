@@ -245,6 +245,8 @@ class ScaleExercise {
   ArrivalInfo? _lastArrival;
   double _arrivalAt = -99;
   double _shortAt = -99;
+  double _doneAt = -99;
+  double? _lastDoneCents;
   bool _onPrev = false;
   double _offShort = 0;
 
@@ -253,6 +255,15 @@ class ScaleExercise {
 
   /// O aluno largou a nota antes de a barra encher (mostrado por ~2,5 s).
   bool get recentShort => _clock - _shortAt <= 2.5;
+
+  /// Quantas vezes travou nesta mesma nota (zera ao avançar): serve para dar uma dica depois de repetir o mesmo erro.
+  int get locksHere => _locksHere;
+
+  /// Acabou de concluir uma nota (por ~1 s): a tela mostra o "muito bem".
+  bool get justCompleted => _clock - _doneAt <= 1.0;
+
+  /// Com quantos cents a última nota concluída chegou (a mediana da "primeira tentativa"); null se ainda não concluiu nenhuma.
+  double? get lastDoneCents => _lastDoneCents;
 
   /// Travado pela segunda vez (ou mais) na mesma nota: pode tentar de novo sem voltar à anterior.
   bool get canSkipReplay => replayNeeded && _locksHere >= 2;
@@ -644,6 +655,8 @@ class ScaleExercise {
 
   StepResult _complete(StepResult r) {
     results.add(r);
+    _doneAt = _clock;
+    _lastDoneCents = r.skipped ? null : r.cents;
     index++;
     _locksHere = 0;
     _onPrev = false;

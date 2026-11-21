@@ -4614,12 +4614,15 @@ class AppState extends ChangeNotifier {
   void _feedExercise(TrackedNote? n, double dt) {
     final e = exercise;
     if (e == null || e.finished) return;
+    final slipsBefore = e.slips;
     final r = e.feed(
       midi: n?.midi,
       cents: n?.cents ?? 0,
       clarity: n?.clarity ?? 0,
       dt: dt,
     );
+    // Travou e mandou voltar: duas batidinhas (o acerto continua sendo uma só, curta).
+    if (r == null && e.slips != slipsBefore && hapticEnabled) buzz(pattern: const [0, 40, 70, 40]);
     if (r != null) {
       if (hapticEnabled) buzz(ms: 18);
       if (e.finished) _finishExercise();
