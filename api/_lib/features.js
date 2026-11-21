@@ -38,6 +38,12 @@ const FEATURES = {
     scope: 'professor',
     students: true,
   },
+  ficha_nova: {
+    name: 'Ficha do aluno nova',
+    desc: 'A ficha do aluno em três blocos: Agora, Caminho e Combinados (no lugar da tela única com o menu).',
+    scope: 'professor',
+    students: false,
+  },
 };
 
 const MODES = ['off', 'list', 'pct', 'all'];

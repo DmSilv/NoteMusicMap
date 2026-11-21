@@ -115,32 +115,9 @@ class StudentPage extends StatelessWidget {
               Text(tr('Alunos'), style: TextStyle(fontSize: 12, color: AppColors.textDim, fontWeight: FontWeight.w600)),
               Text(app.labelOf(s), maxLines: 1, overflow: TextOverflow.ellipsis),
             ]),
-            actions: [
+            actions: app.fichaNovaOn ? const [] : [
               PopupMenuButton<String>(
-                onSelected: (v) async {
-                  switch (v) {
-                    case 'report':
-                      await Clipboard.setData(ClipboardData(text: studentReport(s, flats: app.flatsForText)));
-                      app.say(tr('Relatório copiado: cole numa conversa ou e-mail'));
-                    case 'ai':
-                      await _aiReport(context, s);
-                    case 'data':
-                      await Clipboard.setData(ClipboardData(text: exportStudent(s)));
-                      app.say(tr('Dados copiados: use "Importar" no outro aparelho'));
-                    case 'code':
-                      await editStudentCode(context, app, s);
-                    case 'rename':
-                      await renameStudent(context, app, s);
-                    case 'delete':
-                      final ok = await confirmDelete(context, tr('Excluir {0}?', [app.labelOf(s)]),
-                          tr('Apaga o histórico, as tarefas e as observações deste aluno neste aparelho{0}. Não dá para desfazer.', [app.hasLessonWith(s.id) ? tr(', e descarta a aula em andamento com ele') : '']));
-                      if (ok) {
-                        app.removeStudent(s.id);
-                        app.say(tr('{0} foi excluído.', [s.name]));
-                        if (context.mounted) Navigator.of(context).pop();
-                      }
-                  }
-                },
+                onSelected: (v) => _menu(context, s, v),
                 itemBuilder: (c) => [
                   PopupMenuItem(value: 'report', child: Text(tr('Copiar relatório'))),
                   PopupMenuItem(value: 'ai', child: Text(tr('Relatório com IA'))),
@@ -153,7 +130,7 @@ class StudentPage extends StatelessWidget {
             ],
           ),
           body: DsPageSafe(
-            child: ListView(
+            child: app.fichaNovaOn ? _novaFicha(context, s, sum, tips) : ListView(
               padding: Ds.screen,
               children: [
                 AppCard(
@@ -186,6 +163,138 @@ class StudentPage extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// As ações do menu da barra (e, na ficha nova, das linhas de Combinados).
+  Future<void> _menu(BuildContext context, Student s, String v) async {
+    switch (v) {
+      case 'report':
+        await Clipboard.setData(ClipboardData(text: studentReport(s, flats: app.flatsForText)));
+        app.say(tr('Relatório copiado: cole numa conversa ou e-mail'));
+      case 'ai':
+        await _aiReport(context, s);
+      case 'data':
+        await Clipboard.setData(ClipboardData(text: exportStudent(s)));
+        app.say(tr('Dados copiados: use "Importar" no outro aparelho'));
+      case 'code':
+        await editStudentCode(context, app, s);
+      case 'rename':
+        await renameStudent(context, app, s);
+      case 'delete':
+        final ok = await confirmDelete(context, tr('Excluir {0}?', [app.labelOf(s)]),
+            tr('Apaga o histórico, as tarefas e as observações deste aluno neste aparelho{0}. Não dá para desfazer.', [app.hasLessonWith(s.id) ? tr(', e descarta a aula em andamento com ele') : '']));
+        if (ok) {
+          app.removeStudent(s.id);
+          app.say(tr('{0} foi excluído.', [s.name]));
+          if (context.mounted) Navigator.of(context).pop();
+        }
+    }
+  }
+
+  /// Ficha nova (chave ficha_nova): três blocos, do que se faz agora ao que se combina uma vez.
+  Widget _novaFicha(BuildContext context, Student s, StudentSummary sum, List<Insight> tips) {
+    final header = AppCard(
+      child: StudentIdentity(app: app, student: s, large: true),
+    );
+    return _FichaTabs(
+      header: header,
+      tabs: [
+        (tr('Agora'), Icons.bolt_rounded, () => [
+              _LessonCard(app: app, student: s, onNewTask: () => _taskDialog(context, s), onNewNote: () => _newNote(context, s)),
+              const SizedBox(height: Ds.gap),
+              ValidationCard(app: app, student: s),
+              _deliveryCard(context, s),
+              _tasks(context, s),
+            ]),
+        (tr('Caminho'), Icons.timeline_rounded, () => _caminho(context, s, sum, tips)),
+        (tr('Combinados'), Icons.handshake_outlined, () => _combinados(context, s)),
+      ],
+    );
+  }
+
+  List<Widget> _caminho(BuildContext context, Student s, StudentSummary sum, List<Insight> tips) {
+    final n = s.lessons.length;
+    return [
+      Text(tr('Desempenho'), style: Ds.section()),
+      const SizedBox(height: Ds.s8),
+      AppCard(child: sum.sessions == 0 ? Text(tr('Ainda sem exercícios'), style: Ds.support()) : _summary(sum, s)),
+      if (tips.isNotEmpty) ...[
+        const SizedBox(height: Ds.gap),
+        Text(tr('Orientações do treinador'), style: Ds.section()),
+        const SizedBox(height: Ds.s8),
+        for (final t in tips) InsightTile(insight: t),
+      ],
+      const SizedBox(height: Ds.gap),
+      Text(tr('Observações'), style: Ds.section()),
+      const SizedBox(height: Ds.s8),
+      AppCard(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          if (s.notes.isEmpty) Text(tr('Anote pontos de atenção, elogios e combinados.'), style: Ds.support()),
+          for (final note in s.notes.take(10))
+            Padding(
+              padding: const EdgeInsets.only(bottom: Ds.s12),
+              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                SizedBox(width: 48, child: Text(fmtDayMonth(note.date), style: Ds.support())),
+                Expanded(child: Text(note.text, style: const TextStyle(fontSize: Ds.fontBody, height: 1.35))),
+              ]),
+            ),
+          const SizedBox(height: Ds.s8),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(minimumSize: const Size(0, Ds.tap)),
+            onPressed: () => _newNote(context, s),
+            icon: const Icon(Icons.edit_note, size: 20),
+            label: Text(tr('Anotar')),
+          ),
+        ]),
+      ),
+      if (n > 0) ...[
+        const SizedBox(height: Ds.gap),
+        Text(tr('Aulas dadas'), style: Ds.section()),
+        const SizedBox(height: Ds.s8),
+        AppCard(child: _lessonHistoryBody(s)),
+      ],
+      if (s.sessions.isNotEmpty) ...[
+        const SizedBox(height: Ds.gap),
+        Text(tr('Últimos exercícios'), style: Ds.section()),
+        const SizedBox(height: Ds.s8),
+        AppCard(child: _sessionsBody(s)),
+      ],
+    ];
+  }
+
+  List<Widget> _combinados(BuildContext context, Student s) {
+    return [
+      AppCard(
+        padding: EdgeInsets.zero,
+        child: Column(children: [
+          DsNavRow(Icons.piano_outlined, tr('Instrumento do aluno'), s.instrument == null ? tr('Escolher') : (teachingById(s.instrument)?.label ?? ''), () => showStudentInstrumentSheet(context, app, s)),
+          const Divider(height: 1),
+          DsNavRow(Icons.pin_outlined, tr('Código do aluno'), s.code ?? tr('Sem código'), () => _menu(context, s, 'code')),
+          const Divider(height: 1),
+          DsNavRow(Icons.badge_outlined, tr('Renomear'), app.labelOf(s), () => _menu(context, s, 'rename')),
+        ]),
+      ),
+      const SizedBox(height: Ds.gap),
+      Text(tr('Relatórios e dados'), style: Ds.section()),
+      const SizedBox(height: Ds.s8),
+      AppCard(
+        padding: EdgeInsets.zero,
+        child: Column(children: [
+          DsNavRow(Icons.copy_all_outlined, tr('Copiar relatório'), tr('Para colar numa conversa ou e-mail'), () => _menu(context, s, 'report')),
+          const Divider(height: 1),
+          DsNavRow(Icons.auto_awesome_outlined, tr('Relatório com IA'), tr('Um texto pronto para enviar'), () => _menu(context, s, 'ai')),
+          const Divider(height: 1),
+          DsNavRow(Icons.ios_share_outlined, tr('Copiar dados'), tr('Para o outro aparelho: use Importar lá'), () => _menu(context, s, 'data')),
+        ]),
+      ),
+      const SizedBox(height: Ds.gap),
+      OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(Ds.tap), foregroundColor: AppColors.sharp),
+        onPressed: () => _menu(context, s, 'delete'),
+        icon: const Icon(Icons.delete_outline),
+        label: Text(tr('Excluir aluno')),
+      ),
+    ];
   }
 
   /// O que não é urgente fica em linhas que abrem num modal: desempenho, observações e aulas dadas.
@@ -1051,6 +1160,43 @@ class LessonBannerState extends State<LessonBanner> {
           ]),
         ),
       ),
+    );
+  }
+}
+
+/// Três blocos da ficha nova: o bloco escolhido fica guardado entre as atualizações da tela.
+class _FichaTabs extends StatefulWidget {
+  final Widget header;
+  final List<(String, IconData, List<Widget> Function())> tabs;
+  const _FichaTabs({required this.header, required this.tabs});
+
+  @override
+  State<_FichaTabs> createState() => _FichaTabsState();
+}
+
+class _FichaTabsState extends State<_FichaTabs> {
+  int _i = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final i = _i.clamp(0, widget.tabs.length - 1);
+    return ListView(
+      padding: Ds.screen,
+      children: [
+        widget.header,
+        const SizedBox(height: Ds.gap),
+        SegmentedButton<int>(
+          showSelectedIcon: false,
+          style: SegmentedButton.styleFrom(minimumSize: const Size.fromHeight(Ds.tap)),
+          segments: [
+            for (var k = 0; k < widget.tabs.length; k++) ButtonSegment<int>(value: k, label: Text(widget.tabs[k].$1, maxLines: 1, overflow: TextOverflow.ellipsis)),
+          ],
+          selected: {i},
+          onSelectionChanged: (v) => setState(() => _i = v.first),
+        ),
+        const SizedBox(height: Ds.gap),
+        ...widget.tabs[i].$3(),
+      ],
     );
   }
 }

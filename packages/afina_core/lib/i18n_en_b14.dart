@@ -423,4 +423,13 @@ const Map<String, String> kEnB14 = {
   'Trocou de celular?': 'New phone?',
   'No novo, abra o app e toque em Entrar na minha conta › Tenho a chave.': 'On the new one, open the app and tap Sign in to my account › I have the key.',
   'Perdeu a chave e o celular? Aluno: peça ao professor para vincular de novo. Professor: fale com o suporte.': 'Lost the key and the phone? Student: ask your teacher to link you again. Teacher: contact support.',
+  'Agora': 'Now',
+  'Caminho': 'Progress',
+  'Combinados': 'Agreements',
+  'Sem código': 'No code',
+  'Relatórios e dados': 'Reports and data',
+  'Para colar numa conversa ou e-mail': 'To paste into a chat or e-mail',
+  'Um texto pronto para enviar': 'A ready-to-send text',
+  'Copiar dados': 'Copy data',
+  'Para o outro aparelho: use Importar lá': 'For the other device: use Import there',
 };

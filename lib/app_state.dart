@@ -3226,6 +3226,9 @@ class AppState extends ChangeNotifier {
   /// Aula online (modo e link da aula) está liberada para este perfil?
   bool get onlineClassesOn => hasFeature('aula_online');
 
+  /// Ficha do aluno nova (três blocos), liberada pela chave `ficha_nova`.
+  bool get fichaNovaOn => hasFeature('ficha_nova');
+
   /// O professor escolhe o lembrete de cada aula (recurso liberado pela chave `lembrete_escolha`)?
   bool get remindChoiceOn => hasFeature('lembrete_escolha');
 
