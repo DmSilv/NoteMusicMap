@@ -107,6 +107,9 @@ Pesquisas do app (ver api/_lib/surveys.js):
   sv_delete {id}             exclui de vez
  Conversas com os usuários (aparecem em Avisos no app; ver api/_lib/inbox.js):
   inbox_list                 caixa de entrada: uma linha por usuário (quem respondeu primeiro), com apelido (1 comando + 1 por página)
+  rq_list                    pedidos de suporte (relatos de problema enviados pelos usuários)
+  rq_open {code, x}          abre conversa a partir do pedido: você escreve primeiro e o pedido sai da fila
+  rq_close {code}            fecha o pedido sem conversa
   inbox_thread {code}        a conversa de um perfil (zera as "não lidas")
   inbox_send {code, x, ref?, ask?}  escreve para o usuário (ref = trecho da sugestão respondida; ask = pede licença para citar o apelido)
   inbox_resolve {code, done} marca como resolvida (ou reabre)
@@ -143,6 +146,9 @@ Custo: só quando o admin abre o painel (kpis ~35 comandos; lista de 25 = ~27; d
 | `news_list` | Boletim do app (Publicações) |
 | `news_save` | — |
 | `inbox_list` | Conversas com os usuários |
+| `rq_list` | — |
+| `rq_close` | — |
+| `rq_open` | — |
 | `inbox_thread` | — |
 | `inbox_send` | — |
 | `inbox_resolve` | — |
@@ -288,7 +294,8 @@ Precisa do Upstash Redis. Sem ele devolve 503 e o app segue só neste aparelho.
 | `photo_put` | foto do perfil (só aparece para quem está vinculado e só se a pessoa escolheu mostrar) photo_put { photo }  -> guarda (ou, vazia, apaga) a foto e avisa quem está vinculado (a versão "pv" vai em cada vínculo) photo_get { other }  -> a foto de quem está vinculado a você (nunca a de um desconhecido) |
 | `photo_get` | — |
 | `rev` | Consulta barata: o perfil já foi lido na autenticação, então não custa nenhum comando a mais. lr = aulas novas, dr = tarefas marcadas pelos alunos, kr = vínculos mudaram. |
-| `msg_get` | msg_get {}      -> { m: [mensagens], askOpen }   a conversa deste perfil (1 comando; o app só chama quando "cr" muda) msg_put { x }   -> resposta curta (só depois de o administrador escrever; limites por hora e por sequência) msg_ok { yes }  -> aceita ou recusa ser citado pelo apelido no boletim |
+| `rq_put` | msg_put { x }   -> resposta curta (só depois de o administrador escrever; limites por hora e por sequência) msg_ok { yes }  -> aceita ou recusa ser citado pelo apelido no boletim rq_put { x, v?, p? } -> relato de problema para o administrador (não abre conversa; ele decide abrir ou fechar) |
+| `msg_get` | — |
 | `msg_put` | — |
 | `avail` | O ALUNO vê os horários disponíveis de um professor a que está vinculado (só os que ainda dá para pegar). |
 | `picks` | O PROFESSOR vê as aulas que os alunos pegaram (para entrarem na agenda dele). |

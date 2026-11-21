@@ -9,6 +9,8 @@
 //   u:<código> campo "cr" = hora da última mensagem do admin (o app vê na sincronização que já faz: custo extra zero)
 // Privacidade: só o dono do código lê a própria conversa (o servidor autentica o segredo antes); texto limpo e curto.
 // O usuário NÃO inicia conversa: só responde quando o administrador escreveu primeiro.
+// Pedido de suporte (cv:rq, hash código -> JSON {t,x,v,p,n}): o usuário pode ENVIAR um relato de problema (1 por perfil, o mais novo
+//   substitui o anterior; 3 por dia). Não é conversa: o administrador decide abrir uma (escreve primeiro) ou fechar o pedido.
 'use strict';
 
 const crypto = require('node:crypto');
@@ -19,6 +21,10 @@ const MAX_MSGS = 30; // por conversa
 const MAX_ADMIN = 600; // texto do administrador
 const MAX_USER = 280; // resposta curta do usuário
 const MAX_REF = 90;
+const RQ = 'cv:rq';
+const MAX_REQ_TEXT = 400;
+const MAX_REQS = 300; // pedidos guardados ao mesmo tempo
+const REQ_PER_DAY = 3;
 const MAX_THREADS = 800; // teto da caixa de entrada
 const ADMIN_PER_DAY = 10; // mensagens do admin para o mesmo perfil por dia
 const USER_PER_HOUR = 6; // respostas do mesmo perfil por hora
@@ -113,6 +119,44 @@ async function userConsent(store, code, yes) {
   return { ok: true, c: th.ok };
 }
 
+/** O usuário envia um relato de problema (não abre conversa). Devolve { ok } ou { error }. */
+async function userRequest(store, code, text, meta, now) {
+  const x = clean(text, MAX_REQ_TEXT);
+  if (x.length < 5) return { error: 'Conte um pouco mais o que aconteceu.' };
+  const lim = await store.incr(`cvR:${code}:${Math.floor(now / 86400000)}`, 86400);
+  if (lim.n > REQ_PER_DAY) return { error: 'Você já enviou relatos demais hoje. Tente amanhã.' };
+  const prev = await store.hget(RQ, code);
+  if (!prev && (await store.hlen(RQ)) >= MAX_REQS) return { error: 'No momento não estamos recebendo mais relatos. Tente mais tarde.' };
+  const rec = { t: now, x, v: clean(meta && meta.v, 20), p: clean(meta && meta.p, 20), n: lim.n };
+  await store.hset(RQ, code, JSON.stringify(rec));
+  return { ok: true };
+}
+
+function parseReq(raw) {
+  try {
+    const j = JSON.parse(raw);
+    if (!j || typeof j.x !== 'string') return null;
+    return { t: Number(j.t) || 0, x: j.x, v: String(j.v || ''), p: String(j.p || ''), n: Number(j.n) || 1 };
+  } catch (_) { return null; }
+}
+
+/** Pedidos de suporte para o painel (1 comando), do mais novo ao mais antigo. */
+async function requestList(store) {
+  const all = await store.hgetall(RQ);
+  const out = [];
+  for (const [code, raw] of Object.entries(all || {})) {
+    const r = parseReq(raw);
+    if (r) out.push({ code, ...r });
+  }
+  return out.sort((a, b) => b.t - a.t);
+}
+
+/** O administrador fecha o pedido (sem conversa) ou ele vira conversa. */
+async function requestDrop(store, code) {
+  await store.hdel(RQ, code);
+  return { ok: true };
+}
+
 /** Caixa de entrada: 1 comando. Quem respondeu e ainda não foi lido primeiro, depois a atividade mais recente. */
 async function adminList(store) {
   const all = await store.hgetall(IX);
@@ -153,5 +197,5 @@ async function consentOf(store, code) {
 
 module.exports = {
   TH, IX, MAX_MSGS, MAX_ADMIN, MAX_USER, ADMIN_PER_DAY, USER_PER_HOUR, USER_STREAK,
-  clean, parseThread, parseIx, adminSend, userView, userReply, userConsent, adminList, adminThread, adminResolve, adminDelete, consentOf,
+  RQ, REQ_PER_DAY, MAX_REQ_TEXT, userRequest, requestList, requestDrop, clean, parseThread, parseIx, adminSend, userView, userReply, userConsent, adminList, adminThread, adminResolve, adminDelete, consentOf,
 };

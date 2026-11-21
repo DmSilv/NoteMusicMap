@@ -427,6 +427,9 @@ class LinkService {
   /// Conversa particular com o administrador: lê, responde (curto) e aceita/recusa ser citado no boletim.
   Future<LinkReply> msgGet(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'msg_get'});
   Future<LinkReply> msgPut(String code, String secret, String text) => _post({..._auth(code, secret, null), 'action': 'msg_put', 'x': text});
+  /// Relato de problema para o administrador (não abre conversa; ele decide).
+  Future<LinkReply> rqPut(String code, String secret, String text, {String version = '', String platform = ''}) =>
+      _post({..._auth(code, secret, null), 'action': 'rq_put', 'x': text, 'v': version, 'p': platform});
   Future<LinkReply> msgOk(String code, String secret, bool yes) => _post({..._auth(code, secret, null), 'action': 'msg_ok', 'yes': yes});
 
   /// ALUNO: avisa que fez (ou desmarcou) a tarefa [task] da aula [lesson] do professor [teacher].

@@ -98,3 +98,47 @@ class SuggestionTiles extends StatelessWidget {
     );
   }
 }
+
+/// As dicas numa folha própria (vem da lâmpada da barra de cima, que só existe enquanto há dica). Fecha sozinha quando a
+/// última dica some.
+Future<void> showTipsSheet(BuildContext context, AppState app) {
+  return showDsSheet(
+    context,
+    title: tr('Dicas'),
+    listenable: app,
+    children: (c) => [
+      if (suggestionCount(app) == 0)
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: Ds.s24),
+          child: Text(tr('Nenhuma dica por agora.'), textAlign: TextAlign.center, style: Ds.support()),
+        )
+      else
+        SuggestionTiles(app: app, closeSheet: () => Navigator.of(c).pop()),
+    ],
+  );
+}
+
+/// A lâmpada da barra de cima: só aparece quando há alguma dica.
+class TipsButton extends StatelessWidget {
+  final AppState app;
+  final Widget Function(Widget child) wrap;
+  const TipsButton({super.key, required this.app, required this.wrap});
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+        listenable: app,
+        builder: (context, _) {
+          final n = suggestionCount(app);
+          if (n == 0) return const SizedBox.shrink();
+          return IconButton(
+            tooltip: tr('Dicas'),
+            onPressed: () => showTipsSheet(context, app),
+            icon: Badge(
+              smallSize: 8,
+              backgroundColor: AppColors.sharp,
+              child: wrap(Icon(Icons.lightbulb_outline_rounded, size: 22, color: AppColors.text)),
+            ),
+          );
+        },
+      );
+}

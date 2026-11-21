@@ -154,3 +154,40 @@ test('apagar o perfil apaga a conversa', async () => {
   assert.equal((await adm(H, { action: 'delete', code: ALU, confirm: ALU })).statusCode, 200);
   assert.equal((await adm(H, { action: 'inbox_list' })).json().items.length, 0);
 });
+
+test('pedido de suporte: o usuário envia, o admin vê e decide abrir conversa ou fechar', async () => {
+  const H = mk();
+  await sync(H, ALU); await sync(H, OUTRO);
+  assert.equal((await as(H, ALU, { action: 'rq_put', x: 'ab' })).statusCode, 409, 'curto demais');
+  const ok = await as(H, ALU, { action: 'rq_put', x: 'A agenda não abre depois de trocar de celular', v: 'abc1234', p: 'android' });
+  assert.equal(ok.statusCode, 200);
+  await as(H, OUTRO, { action: 'rq_put', x: 'Não consigo entrar com a chave' });
+  let l = (await adm(H, { action: 'rq_list' })).json();
+  assert.equal(l.total, 2);
+  assert.equal(l.items.find((i) => i.code === ALU).v, 'abc1234');
+  // não virou conversa: o usuário ainda não pode responder
+  assert.equal((await as(H, ALU, { action: 'msg_put', x: 'oi' })).statusCode, 409);
+  assert.equal((await adm(H, { action: 'inbox_list' })).json().total, 0);
+  // fechar tira da fila sem criar conversa
+  assert.equal((await adm(H, { action: 'rq_close', code: OUTRO })).statusCode, 200);
+  assert.equal((await adm(H, { action: 'rq_list' })).json().total, 1);
+  assert.equal((await adm(H, { action: 'inbox_list' })).json().total, 0);
+  // abrir conversa escreve primeiro e tira o pedido
+  assert.equal((await adm(H, { action: 'rq_open', code: ALU, x: 'Vou olhar. Qual celular?' })).statusCode, 200);
+  assert.equal((await adm(H, { action: 'rq_list' })).json().total, 0);
+  const th = (await adm(H, { action: 'inbox_thread', code: ALU })).json();
+  assert.equal(th.m[0].f, 'a');
+  assert.match(th.m[0].ref, /agenda não abre/);
+  assert.equal((await as(H, ALU, { action: 'msg_put', x: 'Samsung' })).statusCode, 200);
+});
+
+test('pedido de suporte: limite por dia e só admin lê', async () => {
+  const H = mk();
+  await sync(H, ALU);
+  for (let i = 0; i < 3; i++) assert.equal((await as(H, ALU, { action: 'rq_put', x: 'Relato número ' + i + ' do problema' })).statusCode, 200);
+  assert.equal((await as(H, ALU, { action: 'rq_put', x: 'Relato número 4 do problema' })).statusCode, 429);
+  assert.equal((await adm(H, { action: 'rq_list' })).json().total, 1, 'o mais novo substitui o anterior');
+  const sem = fakeRes();
+  await H.a({ method: 'POST', headers: { 'x-forwarded-for': '9.9.9.9', authorization: 'Bearer errada' }, body: { action: 'rq_list' }, socket: {} }, sem);
+  assert.equal(sem.statusCode, 401);
+});

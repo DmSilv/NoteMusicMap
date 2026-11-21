@@ -404,6 +404,12 @@ function makeHandler(deps = {}) {
       //   msg_get {}      -> { m: [mensagens], askOpen }   a conversa deste perfil (1 comando; o app só chama quando "cr" muda)
       //   msg_put { x }   -> resposta curta (só depois de o administrador escrever; limites por hora e por sequência)
       //   msg_ok { yes }  -> aceita ou recusa ser citado pelo apelido no boletim
+      //   rq_put { x, v?, p? } -> relato de problema para o administrador (não abre conversa; ele decide abrir ou fechar)
+      if (action === 'rq_put') {
+        const r = await inbox.userRequest(store, me, b.x, { v: b.v, p: b.p }, clock());
+        if (r.error) return send(r.error.startsWith('Você já') ? 429 : 409, { error: r.error });
+        return send(200, { ok: true });
+      }
       if (action === 'msg_get' || action === 'msg_put' || action === 'msg_ok') {
         const q = await store.incr(`cvq:${me}:${hour}`, 3600);
         if (q.n > 40) return send(429, { error: 'Muitas consultas. Tente mais tarde.' });

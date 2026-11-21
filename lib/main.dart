@@ -621,15 +621,16 @@ class _HomeShellState extends State<HomeShell> {
           actions: [
             // Novidades do app (boletim): só aparece quando há uma publicada e chama atenção enquanto há uma não vista.
             NewsBell(app: app, wrap: (c) => _BarCircle(fill: AppColors.surface2, child: c)),
+            // Dicas (apelido, instalar): lâmpada própria, só enquanto há dica; o sino fica só com avisos de verdade.
+            TipsButton(app: app, wrap: (c) => _BarCircle(fill: AppColors.surface2, child: c)),
             // Central de avisos: tudo o que chegou (aulas, tarefas, horários) num só lugar.
             ListenableBuilder(
               listenable: app,
               builder: (context, _) => IconButton(
                 tooltip: tr('Avisos'),
                 icon: Badge(
-                  // O número é só de avisos de verdade (aula, tarefa, horário); só dicas viram um pontinho.
-                  label: app.unseenNotices > 0 ? Text('${app.unseenNotices}') : null,
-                  isLabelVisible: (app.unseenNotices + suggestionCount(app)) > 0,
+                  label: Text('${app.unseenNotices}'),
+                  isLabelVisible: app.unseenNotices > 0,
                   backgroundColor: AppColors.sharp,
                   child: _BarCircle(
                     fill: AppColors.surface2,

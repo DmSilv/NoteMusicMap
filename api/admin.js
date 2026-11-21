@@ -41,6 +41,9 @@
 //   sv_delete {id}             exclui de vez
 //  Conversas com os usuários (aparecem em Avisos no app; ver api/_lib/inbox.js):
 //   inbox_list                 caixa de entrada: uma linha por usuário (quem respondeu primeiro), com apelido (1 comando + 1 por página)
+//   rq_list                    pedidos de suporte (relatos de problema enviados pelos usuários)
+//   rq_open {code, x}          abre conversa a partir do pedido: você escreve primeiro e o pedido sai da fila
+//   rq_close {code}            fecha o pedido sem conversa
 //   inbox_thread {code}        a conversa de um perfil (zera as "não lidas")
 //   inbox_send {code, x, ref?, ask?}  escreve para o usuário (ref = trecho da sugestão respondida; ask = pede licença para citar o apelido)
 //   inbox_resolve {code, done} marca como resolvida (ou reabre)
@@ -652,6 +655,29 @@ function makeHandler(deps = {}) {
         const page = all.slice(0, 100);
         const got = page.length ? await cmd.pipeline(page.map((r) => ['HGET', U(r.code), 'n'])) : [];
         return send(200, { ok: true, total: all.length, unread: all.filter((r) => r.n > 0).length, items: page.map((r, i) => ({ ...r, name: (got[i] && String(got[i])) || '' })) });
+      }
+      if (action === 'rq_list') {
+        const all = await inbox.requestList(store);
+        const page = all.slice(0, 100);
+        const got = page.length ? await cmd.pipeline(page.map((r) => ['HGET', U(r.code), 'n'])) : [];
+        return send(200, { ok: true, total: all.length, items: page.map((r, i) => ({ ...r, name: (got[i] && String(got[i])) || '' })) });
+      }
+      if (action === 'rq_close') {
+        if (needCode()) return;
+        await inbox.requestDrop(store, code);
+        await log('rq_close', code);
+        return send(200, { ok: true });
+      }
+      if (action === 'rq_open') {
+        if (needCode()) return;
+        if (!(await store.hget(U(code), 'h'))) return send(404, { error: 'Perfil não encontrado.' });
+        const reqs = await inbox.requestList(store);
+        const mine = reqs.find((r) => r.code === code);
+        const r = await inbox.adminSend(store, code, b.x, now, { ref: mine ? mine.x : '' });
+        if (r.error) return send(r.error.startsWith('Já são') ? 429 : 400, { error: r.error });
+        await inbox.requestDrop(store, code);
+        await log('rq_open', code);
+        return send(200, { ok: true });
       }
       if (action === 'inbox_thread') {
         if (needCode()) return;

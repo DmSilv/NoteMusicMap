@@ -1530,6 +1530,22 @@ class AppState extends ChangeNotifier {
     return (msgs: r.msgs, askOpen: r.askOpen, error: null);
   }
 
+  /// A pessoa relata um problema. Com o vínculo online, o relato chega ao administrador com o código do perfil (ele decide abrir
+  /// uma conversa ou fechar; a resposta, se houver, aparece em Avisos). Sem vínculo não há como responder: o texto segue como
+  /// relatório anônimo. Devolve `replyable` (pode haver resposta) e `ok`.
+  Future<({bool ok, bool replyable, String? error})> sendProblem(String text) async {
+    final x = cleanText(text, max: 400);
+    if (x.length < 5) return (ok: false, replyable: false, error: tr('Conte um pouco mais o que aconteceu.'));
+    if (linkEnabled && !linkUnavailable) {
+      final r = await links.rqPut(profile.shareCode, profile.secret, x, version: kBuildId.isEmpty ? 'dev' : kBuildId.substring(0, kBuildId.length < 7 ? kBuildId.length : 7));
+      if (r.ok) return (ok: true, replyable: true, error: null);
+      return (ok: false, replyable: false, error: r.error ?? tr('Sem conexão agora.'));
+    }
+    final e = AppError(code: 'APP-00', severity: ErrorSeverity.action, where: tr('Relato da pessoa'), detail: sanitizeDetail(x), atMs: DateTime.now().millisecondsSinceEpoch);
+    final ok = await sendReport(e);
+    return (ok: ok, replyable: false, error: ok ? null : tr('Sem conexão agora.'));
+  }
+
   void addNotice(String kind, String text) {
     notices.insert(0, AppNotice(kind, cleanText(text, max: kMaxNote), DateTime.now().millisecondsSinceEpoch));
     if (notices.length > 20) notices.removeRange(20, notices.length);

@@ -657,6 +657,10 @@
         <label class="empty"><input type="checkbox" id="chAsk"> Pedir licença para citar o apelido da pessoa no boletim (ela escolhe no app)</label>
         <div class="add"><button class="primary" id="chSend">Enviar</button><button id="chResolve">Marcar como resolvida</button><button class="danger" id="chDel">Apagar conversa</button><button id="chClose">Fechar</button></div>
       </div>
+      <h3 id="rqHead" hidden>Pedidos de suporte</h3>
+      <p class="empty" id="rqLead" hidden>Relatos que os usuários enviaram em Ajustes › Ajuda e suporte. Não é conversa: você decide. "Abrir conversa" escreve para a pessoa (aparece em Avisos no app) e tira o pedido da fila; "Fechar" só tira da fila, sem avisar ninguém.</p>
+      <div id="rqBox"></div>
+      <h3 id="cvHead">Conversas</h3>
       <div id="chBox"><div class="empty">Carregando…</div></div>
     </main>
 
@@ -2569,12 +2573,46 @@
   var chCur = null, chRefText = '';
   var CH_CODE = /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$/;
   function chBadge(n) { var b = $('chBadge'); b.hidden = !n; b.textContent = n ? String(n) : ''; }
+  var rqN = 0, chUnread = 0;
+  function rqLoad() {
+    return post({ action: 'rq_list' }).then(function (r) {
+      var box = $('rqBox'); box.innerHTML = '';
+      if (r.status !== 200) { fail(r.status); return; }
+      rqN = r.j.total; chBadge(chUnread + rqN);
+      $('rqHead').hidden = !r.j.items.length; $('rqLead').hidden = !r.j.items.length;
+      r.j.items.forEach(function (it) {
+        var c = el('div', 'ffc nwi');
+        var h = el('h3', '', it.name || 'Sem apelido');
+        h.appendChild(el('span', 'badge', it.code));
+        if (it.n > 1) h.appendChild(tag(it.n + 'º relato hoje'));
+        c.appendChild(h);
+        c.appendChild(el('div', 'body', it.x));
+        c.appendChild(el('div', 'd', ago(it.t) + (it.v ? ' · versão ' + it.v : '')));
+        var add = el('div', 'add');
+        var open = el('button', 'primary', 'Abrir conversa');
+        open.onclick = function () { chOpen(it.code, it.x); };
+        var close = el('button', '', 'Fechar');
+        close.onclick = function () {
+          askConfirm({ title: 'Fechar o pedido de ' + it.code + '?', body: 'Sai da fila. A pessoa não é avisada.', facts: [], ok: 'Fechar' }).then(function (y) {
+            if (!y) return;
+            post({ action: 'rq_close', code: it.code }).then(function (r2) {
+              if (r2.status === 200) { toast('Pedido fechado.', 'ok'); rqLoad(); loadLog(); }
+              else if (!fail(r2.status)) toast('Não foi possível: ' + why(r2), 'bad');
+            });
+          });
+        };
+        add.appendChild(open); add.appendChild(close); c.appendChild(add);
+        box.appendChild(c);
+      });
+    }).catch(function () { /* o resto da tela segue */ });
+  }
   function loadChat() {
+    rqLoad();
     var box = $('chBox'); $('chNote').textContent = 'Carregando…';
     post({ action: 'inbox_list' }).then(function (r) {
       if (r.status !== 200) { if (!fail(r.status)) $('chNote').textContent = 'Não foi possível carregar: ' + why(r); return; }
       $('chNote').textContent = r.j.total + ' conversa(s)' + (r.j.unread ? ' · ' + r.j.unread + ' com resposta nova' : '');
-      chBadge(r.j.unread); box.innerHTML = '';
+      chUnread = r.j.unread; chBadge(chUnread + rqN); box.innerHTML = '';
       if (!r.j.items.length) { box.appendChild(el('div', 'empty', 'Nenhuma conversa ainda. Escreva um código acima ou toque em "Responder" numa participação da aba Pesquisa.')); return; }
       r.j.items.forEach(function (it) {
         var c = el('div', 'ffc nwi'); c.style.cursor = 'pointer'; c.tabIndex = 0; c.setAttribute('role', 'button');

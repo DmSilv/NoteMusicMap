@@ -108,6 +108,7 @@
 | `lib/ui/study_timers.dart` | Bloco "Como você quer estudar?": submenu com Pomodoro, Cronômetro e Meu tempo, cada um com uma explicação curta de quando usar. |
 | `lib/ui/success_moment.dart` | "Momento de sucesso": uma folha que sobe de baixo com um ✓ desenhado, uma frase e um detalhe, e some sozinha. Serve para os poucos momentos em que algo importante deu certo (pegar um horário, marcar uma aula, enviar… |
 | `lib/ui/suggestions.dart` | Sugestões do app (não são avisos de aula): ficam no sino, não presas no topo da tela. Hoje: informar o apelido e instalar no celular. |
+| `lib/ui/support_sheet.dart` | "Ajuda e suporte": o passo a passo de acesso, a página de perguntas e respostas e o relato de um problema. |
 | `lib/ui/task_form_page.dart` | Formulário de tarefa (escala, arpejo, método e lição, repertório ou outra) com observações. |
 | `lib/ui/teacher_page.dart` | Tela Alunos do professor (lista, novo aluno, QR, importar, métodos, senha) e a ficha do aluno (aula, tarefas, validação, observações, relatórios). |
 | `lib/ui/teacher_setup_page.dart` | Cadastro do professor, em 3 passos curtos: como te chamar, que instrumentos leciona (e o que usa neles) e as turmas. Serve para qualquer professor de música: se o instrumento não está na lista, ele cria o seu e põe… |
@@ -389,4 +390,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **346** arquivos mapeados.
+Total: **347** arquivos mapeados.
