@@ -130,3 +130,18 @@ test('limite de publicações guardadas', async () => {
   const r = await adm(H, { action: 'news_save', t: 'a mais', b: 'y' });
   assert.equal(r.statusCode, 400);
 });
+
+test('destaque: só vai ao app quando marcado; sem a chave, o painel antigo não muda', async () => {
+  const H = mk();
+  const a = (await adm(H, { action: 'news_save', t: 'Com destaque', b: 'x', hl: 1 })).json().id;
+  const b = (await adm(H, { action: 'news_save', t: 'Sem destaque', b: 'y' })).json().id;
+  for (const id of [a, b]) await adm(H, { action: 'news_state', id, st: 'live' });
+  const items = (await get(H)).json().items;
+  assert.equal(items.find((i) => i.id === a).hl, 1);
+  assert.ok(!('hl' in items.find((i) => i.id === b)));
+  // editar sem mandar hl não apaga o destaque (painel antigo)
+  await adm(H, { action: 'news_save', id: a, t: 'Com destaque 2', b: 'x' });
+  assert.equal((await get(H)).json().items.find((i) => i.id === a).hl, 1);
+  await adm(H, { action: 'news_save', id: a, t: 'Com destaque 2', b: 'x', hl: 0 });
+  assert.ok(!('hl' in (await get(H)).json().items.find((i) => i.id === a)));
+});

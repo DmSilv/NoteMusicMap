@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'design_system.dart';
+import 'notifications_sheet.dart' show noticeAgo;
 import 'theme.dart';
+import 'widgets.dart' show AppCard;
 
 /// Rótulo de uma novidade que veio de feedback; só cita o apelido se a pessoa aceitou (senão, "um usuário").
 String newsFeedbackLabel(NewsItem n) {
@@ -13,65 +15,115 @@ String newsFeedbackLabel(NewsItem n) {
   return n.feedback == 'fix' ? tr('Correção feita a partir do feedback de {0}', [who]) : tr('Sugestão de {0} que virou melhoria', [who]);
 }
 
-/// Uma novidade do boletim num aviso pequeno: título, texto curto e um botão só. Marca como vista ao abrir.
+/// Uma novidade inteira numa folha que sobe de baixo (e rola se o texto for longo): ícone, quando saiu, título, o rótulo de
+/// feedback (se houver) e o texto por completo. Marca como vista ao abrir. Serve para a novidade em destaque (sobe sozinha)
+/// e para a que a pessoa abre na central.
 Future<void> showNewsDialog(BuildContext context, AppState app, NewsItem n) {
   app.markNewsSeen(n);
-  return showDialog<void>(
+  return showModalBottomSheet<void>(
     context: context,
-    builder: (c) => AlertDialog(
-      icon: Icon(Icons.campaign_outlined, color: AppColors.accent, size: 32),
-      title: Text(n.shownTitle, textAlign: TextAlign.center),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 360),
-        child: SingleChildScrollView(
-            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          if (n.feedback.isNotEmpty) ...[
-            Text(newsFeedbackLabel(n), style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700, fontSize: 13)),
-            const SizedBox(height: Ds.s8),
-          ],
-          Text(n.shownBody, style: TextStyle(height: 1.4, color: AppColors.textDim)),
-        ])),
+    isScrollControlled: true,
+    showDragHandle: true,
+    useSafeArea: true,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(Ds.radiusCard))),
+    builder: (c) => ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: MediaQuery.of(c).size.height * 0.92),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(Ds.screenPad, Ds.s4, Ds.screenPad, Ds.s16),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Row(children: [
+            DsIconBadge(Icons.campaign_outlined, size: 44, color: AppColors.accent),
+            const SizedBox(width: Ds.s12),
+            Expanded(
+              child: Text(
+                n.publishedMs > 0 ? tr('Novidade · {0}', [noticeAgo(n.publishedMs)]) : tr('Novidade'),
+                style: Ds.support(),
+              ),
+            ),
+            IconButton(tooltip: tr('Fechar'), icon: const Icon(Icons.close_rounded), onPressed: () => Navigator.of(c).pop()),
+          ]),
+          const SizedBox(height: Ds.s12),
+          Flexible(
+            child: SingleChildScrollView(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(n.shownTitle, style: Ds.title().copyWith(fontSize: 24, height: 1.2)),
+                if (n.feedback.isNotEmpty) ...[
+                  const SizedBox(height: Ds.s8),
+                  Text(newsFeedbackLabel(n), style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700, fontSize: 13)),
+                ],
+                const SizedBox(height: Ds.s12),
+                Text(n.shownBody, style: TextStyle(height: 1.5, fontSize: 16, color: AppColors.text)),
+              ]),
+            ),
+          ),
+          const SizedBox(height: Ds.s16),
+          DsPrimaryButton(onPressed: () => Navigator.of(c).pop(), icon: Icons.check_rounded, label: tr('Entendi')),
+        ]),
       ),
-      actionsAlignment: MainAxisAlignment.center,
-      actions: [FilledButton(onPressed: () => Navigator.pop(c), child: Text(tr('Entendi')))],
     ),
   );
 }
 
-/// "Novidades" dentro da central de avisos: as que estão publicadas, a mais nova primeiro. Toque abre a novidade.
+/// A central de novidades: um cartão por novidade (a mais nova primeiro), com o sinal de "não lida", o quando saiu e o começo do
+/// texto. Tocar abre a novidade inteira. Fica separada do sino, que é só de avisos que pedem ação.
 class NewsTiles extends StatelessWidget {
   final AppState app;
-  /// [header] = o título "Novidades" acima da lista (a folha própria já tem esse título).
-  final bool header;
-  const NewsTiles({super.key, required this.app, this.header = true});
+  const NewsTiles({super.key, required this.app});
 
   @override
   Widget build(BuildContext context) {
     final list = app.news;
-    if (list.isEmpty) return const SizedBox.shrink();
+    if (list.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: Ds.s24),
+        child: Text(tr('Nenhuma novidade por enquanto. Quando o app ganhar algo, aparece aqui.'), textAlign: TextAlign.center, style: Ds.support()),
+      );
+    }
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      if (header) Padding(padding: const EdgeInsets.only(bottom: Ds.s4), child: Text(tr('Novidades'), style: Ds.section())),
       for (final n in list)
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          leading: Icon(Icons.campaign_outlined, color: app.isNewsSeen(n) ? AppColors.textDim : AppColors.accent),
-          title: Text(n.shownTitle, style: TextStyle(fontWeight: app.isNewsSeen(n) ? FontWeight.w500 : FontWeight.w800, height: 1.25)),
-          subtitle: Text(n.shownBody, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.textDim, fontSize: 12)),
-          trailing: app.isNewsSeen(n) ? null : Icon(Icons.circle, size: 9, color: AppColors.accent),
-          onTap: () => showNewsDialog(context, app, n),
+        Padding(
+          padding: const EdgeInsets.only(bottom: Ds.s8),
+          child: AppCard(
+            padding: EdgeInsets.zero,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(Ds.radiusCard),
+              onTap: () => showNewsDialog(context, app, n),
+              child: Padding(
+                padding: const EdgeInsets.all(Ds.s16),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  DsIconBadge(Icons.campaign_outlined, size: 40, color: app.isNewsSeen(n) ? AppColors.textDim : AppColors.accent),
+                  const SizedBox(width: Ds.s12),
+                  Expanded(
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        Expanded(child: Text(n.shownTitle, style: TextStyle(fontWeight: app.isNewsSeen(n) ? FontWeight.w600 : FontWeight.w800, fontSize: 16, height: 1.2))),
+                        if (!app.isNewsSeen(n)) Icon(Icons.circle, size: 9, color: AppColors.accent),
+                      ]),
+                      const SizedBox(height: Ds.s4),
+                      Text(n.shownBody, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.textDim, fontSize: 13.5, height: 1.35)),
+                      if (n.publishedMs > 0) ...[
+                        const SizedBox(height: Ds.s8),
+                        Text(noticeAgo(n.publishedMs), style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+                      ],
+                    ]),
+                  ),
+                ]),
+              ),
+            ),
+          ),
         ),
-      const SizedBox(height: Ds.s12),
     ]);
   }
 }
 
-/// A lista de novidades numa folha (vem do ícone da barra de cima). Abrir a folha não marca nada como visto: quem marca é abrir cada novidade.
+/// A central de novidades numa folha alta (vem do ícone da barra de cima). Abrir a folha não marca nada como visto: quem marca é
+/// abrir cada novidade.
 Future<void> showNewsSheet(BuildContext context, AppState app) {
   return showDsSheet(
     context,
     title: tr('Novidades'),
     listenable: app,
-    children: (c) => [NewsTiles(app: app, header: false)],
+    children: (c) => [NewsTiles(app: app)],
   );
 }
 

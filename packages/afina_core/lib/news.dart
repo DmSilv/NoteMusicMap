@@ -17,13 +17,16 @@ class NewsItem {
   /// [credit] é o apelido citado, só existe se a pessoa aceitou; vazio = "um usuário".
   final String feedback;
   final String credit;
-  const NewsItem({required this.id, required this.title, required this.body, this.titleEn = '', this.bodyEn = '', this.publishedMs = 0, this.feedback = '', this.credit = ''});
+
+  /// Destaque: a novidade sobe sozinha uma vez. Sem destaque ela só aparece na central de novidades.
+  final bool highlight;
+  const NewsItem({required this.id, required this.title, required this.body, this.titleEn = '', this.bodyEn = '', this.publishedMs = 0, this.feedback = '', this.credit = '', this.highlight = false});
 
   /// O título no idioma do app (cai no português se não há versão em inglês).
   String get shownTitle => Lang.isEn && titleEn.isNotEmpty && bodyEn.isNotEmpty ? titleEn : title;
   String get shownBody => Lang.isEn && titleEn.isNotEmpty && bodyEn.isNotEmpty ? bodyEn : body;
 
-  Map<String, dynamic> toJson() => {'id': id, 't': title, 'b': body, if (titleEn.isNotEmpty) 'te': titleEn, if (bodyEn.isNotEmpty) 'be': bodyEn, 'p': publishedMs, if (feedback.isNotEmpty) 'fb': feedback, if (credit.isNotEmpty) 'fn': credit};
+  Map<String, dynamic> toJson() => {'id': id, 't': title, 'b': body, if (titleEn.isNotEmpty) 'te': titleEn, if (bodyEn.isNotEmpty) 'be': bodyEn, 'p': publishedMs, if (feedback.isNotEmpty) 'fb': feedback, if (credit.isNotEmpty) 'fn': credit, if (highlight) 'hl': 1};
 }
 
 const int kMaxNewsShown = 10;
@@ -50,7 +53,7 @@ List<NewsItem>? parseNews(String body) {
       final t = _clean(x['t'], kMaxNewsTitle);
       final b = _clean(x['b'], kMaxNewsBody);
       if (id.isEmpty || t.isEmpty || b.isEmpty || !seen.add(id)) continue;
-      out.add(NewsItem(id: id, title: t, body: b, titleEn: _clean(x['te'], kMaxNewsTitle), bodyEn: _clean(x['be'], kMaxNewsBody), publishedMs: (x['p'] is num) ? (x['p'] as num).toInt() : 0, feedback: x['fb'] == 'idea' || x['fb'] == 'fix' ? x['fb'] as String : '', credit: x['fb'] == 'idea' || x['fb'] == 'fix' ? _clean(x['fn'], 40) : ''));
+      out.add(NewsItem(id: id, title: t, body: b, titleEn: _clean(x['te'], kMaxNewsTitle), bodyEn: _clean(x['be'], kMaxNewsBody), publishedMs: (x['p'] is num) ? (x['p'] as num).toInt() : 0, feedback: x['fb'] == 'idea' || x['fb'] == 'fix' ? x['fb'] as String : '', credit: x['fb'] == 'idea' || x['fb'] == 'fix' ? _clean(x['fn'], 40) : '', highlight: x['hl'] == 1));
       if (out.length >= kMaxNewsShown) break;
     }
     return out;
@@ -59,10 +62,14 @@ List<NewsItem>? parseNews(String body) {
   }
 }
 
-/// A novidade que aparece sozinha: a mais recente que a pessoa ainda não viu (ou null).
+/// A novidade que aparece sozinha: a mais recente **em destaque** que a pessoa ainda não viu (ou null). As outras só ficam na
+/// central de novidades.
 NewsItem? pendingNews(List<NewsItem> items, Set<String> seen) {
   for (final n in items) {
-    if (!seen.contains(n.id)) return n;
+    if (n.highlight && !seen.contains(n.id)) return n;
   }
   return null;
 }
+
+/// Quantas novidades a pessoa ainda não abriu (para o sinal animado do ícone).
+int unseenNewsCount(List<NewsItem> items, Set<String> seen) => items.where((n) => !seen.contains(n.id)).length;

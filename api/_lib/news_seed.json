@@ -3,6 +3,7 @@
   "items": [
     {
       "k": "boas-vindas",
+      "hl": true,
       "t": "Boas-vindas ao Notemusic",
       "b": "Afine o violino, treine escalas com o metrônomo e acompanhe seu estudo, tudo no mesmo lugar. Aqui você vai ver, de vez em quando, uma novidade curta do app. Bons estudos!",
       "te": "Welcome to Notemusic",

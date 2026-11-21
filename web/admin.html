@@ -757,6 +757,7 @@
         <label class="nwl" for="nwB">Texto (curto, até 420 letras)</label>
         <textarea id="nwB" maxlength="420" rows="4"></textarea>
         <div class="sub" style="padding:0" id="nwCount">0 / 420</div>
+        <label class="nwl"><input type="checkbox" id="nwHl"> Destaque: sobe sozinha uma vez por cima da tela (sem isso, fica só na central de novidades)</label>
         <label class="nwl" for="nwFb">Rótulo de feedback (opcional)</label>
         <select id="nwFb"><option value="">Nenhum</option><option value="idea">Sugestão de usuário que virou melhoria</option><option value="fix">Correção feita a partir de feedback</option></select>
         <div id="nwFbBox" hidden>
@@ -1020,7 +1021,7 @@
     nwEdit = it ? it.id : null;
     $('nwT').value = it ? it.t : ''; $('nwB').value = it ? it.b : '';
     $('nwTe').value = it ? it.te || '' : ''; $('nwBe').value = it ? it.be || '' : '';
-    $('nwFb').value = it ? it.fb || '' : ''; $('nwFbc').value = ''; $('nwFbBox').hidden = !$('nwFb').value;
+    $('nwHl').checked = !!(it && it.hl); $('nwFb').value = it ? it.fb || '' : ''; $('nwFbc').value = ''; $('nwFbBox').hidden = !$('nwFb').value;
     $('nwFormTitle').textContent = it ? 'Editando "' + it.t + '"' : 'Nova publicação';
     $('nwSave').textContent = it ? 'Salvar alterações' : 'Salvar rascunho';
     $('nwCancel').hidden = !it;
@@ -1039,7 +1040,7 @@
     var h = document.createElement('h3'); h.appendChild(document.createTextNode(it.t));
     var bd = document.createElement('span'); bd.className = 'badge ' + (it.st === 'live' ? 'live' : it.st === 'off' ? 'off' : ''); bd.textContent = NW_ST[it.st]; h.appendChild(bd); c.appendChild(h);
     var d = document.createElement('div'); d.className = 'd';
-    d.textContent = (it.p ? 'Publicada em ' + nwDate(it.p) + ' · ' : 'Nunca publicada · ') + 'alterada em ' + nwDate(it.u) + (it.te ? ' · tem versão em inglês' : '') + (it.fb ? ' · rótulo: ' + (it.fb === 'fix' ? 'correção a partir de feedback' : 'sugestão que virou melhoria') + ' (' + (it.fn ? 'cita ' + it.fn : 'anônimo, "um usuário"') + ')' : ''); c.appendChild(d);
+    d.textContent = (it.p ? 'Publicada em ' + nwDate(it.p) + ' · ' : 'Nunca publicada · ') + 'alterada em ' + nwDate(it.u) + (it.te ? ' · tem versão em inglês' : '') + (it.hl ? ' · destaque' : '') + (it.fb ? ' · rótulo: ' + (it.fb === 'fix' ? 'correção a partir de feedback' : 'sugestão que virou melhoria') + ' (' + (it.fn ? 'cita ' + it.fn : 'anônimo, "um usuário"') + ')' : ''); c.appendChild(d);
     var body = document.createElement('div'); body.className = 'body'; body.textContent = it.b; c.appendChild(body);
     var a = document.createElement('div'); a.className = 'acts';
     if (it.st !== 'live') a.appendChild(nwBtn(it.st === 'off' ? 'Publicar de novo' : 'Publicar', 'primary', function () {
@@ -1087,7 +1088,7 @@
   $('nwCancel').onclick = function () { nwFill(null); };
   $('nwFb').onchange = function () { $('nwFbBox').hidden = !$('nwFb').value; };
   $('nwSave').onclick = function () {
-    var body = { action: 'news_save', t: $('nwT').value, b: $('nwB').value, te: $('nwTe').value, be: $('nwBe').value, fb: $('nwFb').value };
+    var body = { action: 'news_save', t: $('nwT').value, b: $('nwB').value, te: $('nwTe').value, be: $('nwBe').value, fb: $('nwFb').value, hl: $('nwHl').checked ? 1 : 0 };
     if ($('nwFb').value && $('nwFbc').value.trim()) body.fbc = fixCode($('nwFbc').value);
     else if (nwEdit && !$('nwFb').value) body.fbc = '';
     if (nwEdit) body.id = nwEdit;

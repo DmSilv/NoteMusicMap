@@ -7,7 +7,7 @@ import 'profile_page.dart';
 import 'teacher_page.dart';
 import 'design_system.dart';
 import 'dev_chat_sheet.dart';
-import 'news_ui.dart';
+import 'undo_snack.dart';
 import 'suggestions.dart';
 import 'theme.dart';
 import 'package:afina_core/afina_core.dart';
@@ -75,11 +75,10 @@ Future<void> showNotificationsSheet(BuildContext context, AppState app) {
                   if (list.isNotEmpty) TextButton.icon(onPressed: app.clearNotices, icon: const Icon(Icons.delete_sweep, size: 18), label: Text(tr('Limpar'))),
                 ]),
                 const DsGap.small(),
-                if (app.news.isNotEmpty) Flexible(flex: 0, child: NewsTiles(app: app)),
                 if (suggestionCount(app) > 0) Padding(padding: const EdgeInsets.only(bottom: Ds.s4), child: Text(tr('Dicas'), style: Ds.section())),
                 SuggestionTiles(app: app, closeSheet: () => Navigator.of(c).pop()),
                 if (suggestionCount(app) > 0 && list.isNotEmpty) Padding(padding: const EdgeInsets.only(top: Ds.s12, bottom: Ds.s4), child: Text(tr('Avisos'), style: Ds.section())),
-                if (list.isEmpty && suggestionCount(app) == 0 && app.news.isEmpty)
+                if (list.isEmpty && suggestionCount(app) == 0)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 28),
                     child: Text(tr('Nenhum aviso por enquanto. Aulas novas, tarefas validadas e horários aparecem aqui.'),
@@ -93,7 +92,18 @@ Future<void> showNotificationsSheet(BuildContext context, AppState app) {
                       separatorBuilder: (_, _) => Divider(height: 1, color: AppColors.outline),
                       itemBuilder: (c, i) {
                         final n = list[i];
-                        return ListTile(
+                        // Deslizar para o lado apaga (a linha encolhe sozinha) e o aviso de baixo deixa desfazer.
+                        return Dismissible(
+                          key: ValueKey('${n.atMs}|${n.kind}|${n.text.hashCode}'),
+                          direction: DismissDirection.horizontal,
+                          background: _swipeBg(Alignment.centerLeft),
+                          secondaryBackground: _swipeBg(Alignment.centerRight),
+                          onDismissed: (_) {
+                            final messenger = ScaffoldMessenger.of(context);
+                            final at = app.removeNotice(n);
+                            showUndoSnack(messenger, message: tr('Aviso apagado.'), undoLabel: tr('Desfazer'), onUndo: () => app.restoreNotice(n, at));
+                          },
+                          child: ListTile(
                           contentPadding: EdgeInsets.zero,
                           leading: Icon(noticeIcon(n.kind), color: n.seen ? AppColors.textDim : AppColors.accent),
                           title: Text(n.text,
@@ -104,7 +114,7 @@ Future<void> showNotificationsSheet(BuildContext context, AppState app) {
                             Navigator.of(c).pop();
                             openNoticeTarget(context, app, n);
                           },
-                        );
+                        ));
                       },
                     ),
                   ),
@@ -116,3 +126,10 @@ Future<void> showNotificationsSheet(BuildContext context, AppState app) {
     ),
   );
 }
+
+Widget _swipeBg(Alignment a) => Container(
+      alignment: a,
+      padding: const EdgeInsets.symmetric(horizontal: Ds.s20),
+      color: AppColors.sharp.withValues(alpha: 0.16),
+      child: Icon(Icons.delete_outline_rounded, color: AppColors.sharp),
+    );

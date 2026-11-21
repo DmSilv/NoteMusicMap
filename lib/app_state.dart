@@ -1542,6 +1542,24 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Tira um aviso da lista (deslizar para apagar). Devolve a posição em que estava, para o "Desfazer".
+  int removeNotice(AppNotice n) {
+    final i = notices.indexOf(n);
+    if (i < 0) return 0;
+    notices.removeAt(i);
+    _saveNotices();
+    notifyListeners();
+    return i;
+  }
+
+  /// Volta o aviso apagado para onde estava.
+  void restoreNotice(AppNotice n, int at) {
+    if (notices.contains(n)) return;
+    notices.insert(at.clamp(0, notices.length), n);
+    _saveNotices();
+    notifyListeners();
+  }
+
   /// Apaga todos os avisos (central de avisos).
   void clearNotices() {
     if (notices.isEmpty) return;

@@ -620,7 +620,7 @@ function makeHandler(deps = {}) {
       if (action === 'news_list') {
         const items = await news.listAll(store);
         const used = new Set(items.map((i) => i.k).filter(Boolean));
-        const suggestions = newsSeed.items.filter((s) => !used.has(s.k)).map(({ k, t, b, te, be }) => ({ k, t, b, te, be }));
+        const suggestions = newsSeed.items.filter((s) => !used.has(s.k)).map(({ k, t, b, te, be, hl }) => ({ k, t, b, te, be, hl: hl ? 1 : 0 }));
         return send(200, { ok: true, items, suggestions, limits: { title: news.MAX_TITLE, body: news.MAX_BODY, live: news.MAX_LIVE, items: news.MAX_ITEMS } });
       }
       if (action === 'news_save') {

@@ -50,14 +50,23 @@ void main() {
 
   test('a que aparece sozinha é a mais recente ainda não vista', () {
     final items = [
-      const NewsItem(id: 'c', title: 'C', body: 'x'),
-      const NewsItem(id: 'b', title: 'B', body: 'x'),
-      const NewsItem(id: 'a', title: 'A', body: 'x'),
+      const NewsItem(id: 'c', title: 'C', body: 'x', highlight: true),
+      const NewsItem(id: 'b', title: 'B', body: 'x', highlight: true),
+      const NewsItem(id: 'a', title: 'A', body: 'x', highlight: true),
     ];
     expect(pendingNews(items, {})!.id, 'c');
     expect(pendingNews(items, {'c'})!.id, 'b');
     expect(pendingNews(items, {'a', 'b', 'c'}), isNull);
     expect(pendingNews(const [], {}), isNull);
+  });
+
+  test('sem destaque a novidade não sobe sozinha, mas conta como não vista', () {
+    final items = [const NewsItem(id: 'n', title: 'N', body: 'x'), const NewsItem(id: 'h', title: 'H', body: 'x', highlight: true)];
+    expect(pendingNews(items, {})!.id, 'h');
+    expect(pendingNews([items.first], {}), isNull);
+    expect(unseenNewsCount(items, {}), 2);
+    expect(unseenNewsCount(items, {'n'}), 1);
+    expect(parseNews('{"items":[{"id":"a","t":"A","b":"x","hl":1},{"id":"b","t":"B","b":"x"}]}')!.map((e) => e.highlight), [true, false]);
   });
 
   test('rótulo de feedback: só idea/fix; o apelido só vem com o rótulo', () {

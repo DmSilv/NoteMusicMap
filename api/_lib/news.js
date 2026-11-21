@@ -38,6 +38,8 @@ function validate(b) {
   const v = { t, b: body, te: clean(b.te, MAX_TITLE, false), be: clean(b.be, MAX_BODY, true) };
   // Rótulo de feedback: só altera se o painel mandou a chave (painel antigo não apaga o que já existe).
   if (b && b.fb !== undefined) v.fb = FB_KINDS.includes(b.fb) ? b.fb : '';
+  // Destaque: a novidade sobe sozinha uma vez por cima da tela. Sem destaque ela só fica na central de novidades.
+  if (b && b.hl !== undefined) v.hl = b.hl ? 1 : 0;
   return { v };
 }
 
@@ -48,7 +50,7 @@ function parse(raw) {
     return {
       t: String(j.t || ''), b: String(j.b || ''), te: String(j.te || ''), be: String(j.be || ''),
       st: STATES.includes(j.st) ? j.st : 'draft', c: Number(j.c) || 0, u: Number(j.u) || 0, p: Number(j.p) || 0, k: String(j.k || ''),
-      fb: FB_KINDS.includes(j.fb) ? j.fb : '', fn: clean(j.fn, 40, false),
+      fb: FB_KINDS.includes(j.fb) ? j.fb : '', fn: clean(j.fn, 40, false), hl: j.hl === 1 ? 1 : 0,
     };
   } catch (_) { return null; }
 }
@@ -73,7 +75,7 @@ function publicItems(all) {
     .filter((i) => i.st === 'live')
     .sort((a, b) => b.p - a.p)
     .slice(0, MAX_LIVE)
-    .map((i) => ({ id: i.id, t: i.t, b: i.b, ...(i.te ? { te: i.te } : {}), ...(i.be ? { be: i.be } : {}), ...(i.fb ? { fb: i.fb, ...(i.fn ? { fn: i.fn } : {}) } : {}), p: i.p }));
+    .map((i) => ({ id: i.id, t: i.t, b: i.b, ...(i.te ? { te: i.te } : {}), ...(i.be ? { be: i.be } : {}), ...(i.fb ? { fb: i.fb, ...(i.fn ? { fn: i.fn } : {}) } : {}), ...(i.hl ? { hl: 1 } : {}), p: i.p }));
 }
 
 /** Cria (sem id) ou altera (com id) um rascunho/texto. Quem já foi publicado continua com o mesmo estado. */
