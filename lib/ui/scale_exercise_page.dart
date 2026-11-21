@@ -302,16 +302,57 @@ class ScaleExercisePage extends StatelessWidget {
     );
   }
 
-  /// O que aconteceu e o que fazer, em uma ou duas frases (vai no aviso quando o exercício está travado).
+  /// O que aconteceu (alto, baixo, oscilou ou nota errada), com a medida, e o que fazer: tudo em duas frases curtas.
   String _lockDetail(ScaleExercise e) {
     final back = e.replayMidi;
     if (back == null) return tr('A nota entrou fora do ponto. Solte e toque de novo.');
     final backName = app.scaleNoteName(back, ascending: e.ascendingAt(e.index - 1), withOctave: true);
     final nextName = app.scaleNoteName(e.expected!, ascending: e.ascendingNow, withOctave: true);
-    final wrong = e.lockWrongMidi;
-    return wrong != null
-        ? tr('Ops! Você tocou {0}, mas a próxima é {1}. Volte para {2} e tente {1} de novo.', [app.scaleNoteName(wrong, ascending: e.ascendingNow, withOctave: true), nextName, backName])
-        : tr('A nota entrou fora do ponto. Volte para {0} e tente {1} de novo.', [backName, nextName]);
+    final what = _lockWhat(e, nextName);
+    return '$what ${tr('Volte para {0} e tente {1} de novo.', [backName, nextName])}';
+  }
+
+  /// A primeira frase do aviso de volta: o que o app ouviu na chegada.
+  String _lockWhat(ScaleExercise e, String nextName) {
+    final c = e.lockCents.round();
+    final far = e.lockCents.abs() > e.zone * 1.7;
+    switch (e.lockReason) {
+      case LockReason.wrongNote:
+        final wrong = e.lockWrongMidi;
+        return tr('Ops! Você tocou {0}, mas a próxima é {1}.', [wrong == null ? '?' : app.scaleNoteName(wrong, ascending: e.ascendingNow, withOctave: true), nextName]);
+      case LockReason.sharp:
+        return far ? tr('Chegou bem alto ({0} cents).', ['+$c']) : tr('Chegou um pouco alto ({0} cents).', ['+$c']);
+      case LockReason.flat:
+        return far ? tr('Chegou bem baixo ({0} cents).', ['$c']) : tr('Chegou um pouco baixo ({0} cents).', ['$c']);
+      case LockReason.unstable:
+        return tr('A afinação oscilou ao chegar (variou {0} cents).', [e.lockSpread.round()]);
+      case null:
+        return tr('A nota entrou fora do ponto.');
+    }
+  }
+
+  /// Linha curta sob o aviso: a última chegada (por uns 2 s) ou o lembrete de segurar a nota até a barra encher.
+  Widget _arrivalLine(ScaleExercise e) {
+    String? text;
+    var color = AppColors.textDim;
+    final a = e.recentArrival;
+    // Travado: o aviso de volta já diz o que aconteceu; a linha da chegada ficaria sobre outra nota.
+    if (e.replayNeeded) {
+      text = null;
+    } else if (a != null && !e.flow) {
+      final c = a.cents.round();
+      text = a.ok
+          ? tr('Chegada boa: {0} cents (limite ±{1}).', [c > 0 ? '+$c' : '$c', e.zone.round()])
+          : tr('Chegada: {0} cents (limite ±{1}).', [c > 0 ? '+$c' : '$c', e.zone.round()]);
+      color = a.ok ? AppColors.inTune : AppColors.sharp;
+    } else if (e.recentShort && !e.flow) {
+      text = tr('Segure um pouco mais: a barra precisa encher.');
+      color = AppColors.flat;
+    }
+    return SizedBox(
+      height: 22,
+      child: Center(child: text == null ? null : Text(text, textAlign: TextAlign.center, style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.w600))),
+    );
   }
 
   /// Modo livre: qualquer nota da escala, em qualquer ordem.
@@ -377,7 +418,7 @@ class ScaleExercisePage extends StatelessWidget {
 
   Widget _live(ScaleExercise e) {
     final cur = app.current;
-    final zone = app.zoneCents;
+    final zone = e.flow ? app.zoneCents : e.zone;
     final valid = cur != null && (e.flow ? e.freeNotes.contains(cur.midi) : cur.midi == (e.replayMidi ?? e.expected));
     final cents = valid ? cur.cents : null;
     // Travado: o que vale agora é a nota ANTERIOR. O desvio e os avisos são em relação a ela, não à nota da vez.
@@ -410,6 +451,14 @@ class ScaleExercisePage extends StatelessWidget {
             backTitle: locked ? tr('VOLTE PARA {0}', [backName.toUpperCase()]) : null,
             backDetail: locked ? _lockDetail(e) : null,
           ),
+          if (!e.flow) _arrivalLine(e),
+          if (e.canSkipReplay)
+            TextButton.icon(
+              style: TextButton.styleFrom(minimumSize: const Size(0, Ds.tap)),
+              onPressed: e.skipReplay,
+              icon: const Icon(Icons.redo_rounded, size: 18),
+              label: Text(tr('Tentar de novo sem voltar')),
+            ),
         ],
       ),
     );
@@ -578,6 +627,15 @@ class ScaleExercisePage extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(tr('{0} de {1} notas afinadas', [sc.inTune, sc.total])),
+          if (!e.flow && e.slips > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                tr('Voltas à nota anterior: {0} (altas {1}, baixas {2}, oscilou {3}, nota errada {4}).',
+                    [e.slips, e.slipsSharp, e.slipsFlat, e.slipsUnstable, e.wrongStarts]),
+                style: TextStyle(color: AppColors.textDim, fontSize: 13),
+              ),
+            ),
           if (app.demo)
             Padding(
               padding: const EdgeInsets.only(top: 8),

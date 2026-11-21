@@ -337,6 +337,27 @@ List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required boo
       ]),
     ),
     if (!(e?.flow ?? app.exerciseFlow))
+      DsSettingRow(
+        label: tr('Tolerância'),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<ScaleTolerance>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(value: ScaleTolerance.strict, label: Text(tr('Rigoroso'))),
+                ButtonSegment(value: ScaleTolerance.standard, label: Text(tr('Padrão'))),
+                ButtonSegment(value: ScaleTolerance.easy, label: Text(tr('Iniciante'))),
+              ],
+              selected: {app.scaleTolerance},
+              onSelectionChanged: (v) => app.setScaleTolerance(v.first),
+            ),
+          ),
+          const DsGap(Ds.s8),
+          Text(tr('Até quantos cents a nota pode estar fora para valer: ±{0}.', [app.scaleTolerance.cents.round()]), style: Ds.support()),
+        ]),
+      ),
+    if (!(e?.flow ?? app.exerciseFlow))
       SwitchListTile(
         contentPadding: EdgeInsets.zero,
         title: Text(tr('Sem escorregar o dedo'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: Ds.fontBody)),

@@ -4539,6 +4539,16 @@ class AppState extends ChangeNotifier {
   /// Guiado "sem escorregar": a nota precisa chegar afinada; se não, volta à anterior e toca de novo.
   bool scaleNoSlide = true;
 
+  /// Quão exigente é o guiado: Rigoroso (±10 cents), Padrão (±20) ou Iniciante (±30).
+  ScaleTolerance scaleTolerance = ScaleTolerance.standard;
+
+  void setScaleTolerance(ScaleTolerance t) {
+    scaleTolerance = t;
+    exercise?.applyTolerance(t); // vale já no exercício em andamento
+    _prefs?.setString('scale_tol', t.name);
+    notifyListeners();
+  }
+
   void setScaleNoSlide(bool v) {
     scaleNoSlide = v;
     exercise?.noSlide = v; // vale já no exercício em andamento (e solta quem estava travado)
@@ -4558,7 +4568,9 @@ class AppState extends ChangeNotifier {
       tonicMidi: scaleTonicMidi,
       type: scaleType,
       octaves: scaleOctaves,
-      zone: kInTuneCents,
+      zone: scaleTolerance.cents,
+      arrivalSeconds: scaleTolerance.arrivalSeconds,
+      arrivalSpread: scaleTolerance.spread,
       flow: exerciseFlow,
       noSlide: scaleNoSlide,
       direction: scaleDirection,
@@ -4628,7 +4640,7 @@ class AppState extends ChangeNotifier {
       title:
           tr('{0} · {1} oitava{2}', [scaleType.display(scaleTonicName), scaleOctaves, scaleOctaves > 1 ? 's' : '']),
       octaves: scaleOctaves,
-      zone: kInTuneCents,
+      zone: e.zone,
       accuracy: sc.accuracy,
       meanAbsCents: sc.meanAbsCents,
       steps: [
@@ -4767,6 +4779,7 @@ class AppState extends ChangeNotifier {
     scaleRhythm = StaffRhythm.values[(p.getInt('scale_rhythm') ?? StaffRhythm.quarter.index).clamp(0, StaffRhythm.values.length - 1)];
     scaleHints = p.getBool('scale_hints') ?? true;
     scaleNoSlide = p.getBool('scale_noslide') ?? true;
+    scaleTolerance = ScaleTolerance.byName(p.getString('scale_tol'));
     scaleOttava = p.getBool('scale_8va') ?? true;
     scaleFingers = p.getBool('scale_fingers') ?? true;
     scaleAlt = p.getBool('scale_alt') ?? false;

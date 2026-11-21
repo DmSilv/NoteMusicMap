@@ -260,6 +260,7 @@
 | `packages/afina_core/test/scale_flow_test.dart` | Sol maior, 1 oitava. |
 | `packages/afina_core/test/scale_noslide_test.dart` | Toca [midi] por [seconds], com o desvio indo de [from] a [to] cents (linear), em quadros de 20 ms. Devolve os resultados concluídos nesse trecho. |
 | `packages/afina_core/test/scale_spelling_test.dart` | arpejos: a outra grafia não existe; a 7ª diminuta de Ré♭ chama-se Dó♯ (como a partitura) |
+| `packages/afina_core/test/scale_tolerance_test.dart` | Toca [midi] por [seconds] com o desvio em [center] cents e um vibrato de [amp] cents a 5,5 Hz (quadros de 20 ms). |
 | `packages/afina_core/test/scale_waiting_test.dart` | Testes do módulo `scale_waiting`. |
 | `packages/afina_core/test/speed_trainer_test.dart` | Renderiza [seconds] segundos e devolve os eventos de "primeiro tempo" de cada compasso. |
 | `packages/afina_core/test/staff_layout_test.dart` | perto: no máximo ~3 espaços acima do alto da nota (ou da haste) |
@@ -395,4 +396,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **352** arquivos mapeados.
+Total: **353** arquivos mapeados.

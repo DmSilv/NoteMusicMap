@@ -37,6 +37,41 @@ List<int> scaleSequence(int tonicMidi, ScaleType t,
   return [...up, ...down];
 }
 
+/// Quão exigente é o exercício guiado. A zona é o desvio (cents) que ainda vale como "afinado"; a oscilação aceita na chegada
+/// e a janela em que a chegada é medida também crescem nos níveis mais folgados (vibrato e transição do arco não reprovam).
+enum ScaleTolerance {
+  strict(10, 1.2, 0.2, 'Rigoroso'),
+  standard(20, 2.0, 0.3, 'Padrão'),
+  easy(30, 2.0, 0.3, 'Iniciante');
+
+  /// Desvio máximo (cents) para valer como afinado.
+  final double cents;
+
+  /// Quanto a altura pode oscilar na chegada, em múltiplos da zona (máximo menos mínimo).
+  final double spread;
+
+  /// Janela (s) em que a chegada é medida.
+  final double arrivalSeconds;
+  final String label;
+  const ScaleTolerance(this.cents, this.spread, this.arrivalSeconds, this.label);
+
+  static ScaleTolerance byName(String? n) => ScaleTolerance.values.firstWhere((x) => x.name == n, orElse: () => ScaleTolerance.standard);
+}
+
+/// Por que o exercício travou e mandou voltar à nota anterior.
+enum LockReason { wrongNote, sharp, flat, unstable }
+
+/// Como foi a última chegada numa nota (para a tela explicar, por uns instantes, o que o app ouviu).
+class ArrivalInfo {
+  /// Desvio (mediana) na chegada, em cents; positivo = alto.
+  final double cents;
+
+  /// Oscilação (máximo menos mínimo) na janela de chegada.
+  final double spread;
+  final bool ok;
+  const ArrivalInfo(this.cents, this.spread, this.ok);
+}
+
 class StepResult {
   final int midi;
   final bool ascending;
@@ -121,7 +156,7 @@ class ScaleExercise {
   final int upCount;
   final ScaleDirection direction;
   final int tonicMidi;
-  final double zone;
+  double zone;
 
   /// true = EXECUÇÃO LIVRE: toque qualquer nota da escala, em qualquer ordem,
   /// e o app valida a afinação de cada uma. false = GUIADO: uma nota por vez,
@@ -141,7 +176,10 @@ class ScaleExercise {
   bool noSlide;
 
   /// Janela (s) logo depois de a altura assentar que decide se a nota chegou afinada.
-  final double arrivalSeconds;
+  double arrivalSeconds;
+
+  /// Oscilação aceita na janela de chegada, em múltiplos da zona.
+  double arrivalSpread;
 
   /// Modo guiado: tempo (s) SEGUIDO dentro da faixa "afinado" para a nota valer.
   final double holdSeconds;
@@ -191,6 +229,79 @@ class ScaleExercise {
   /// A nota errada que travou o exercício (null: travou por chegar desafinada ou escorregando).
   int? lockWrongMidi;
 
+  /// Por que travou (null: não está travado) e como foi a chegada que travou (mediana e oscilação, em cents).
+  LockReason? lockReason;
+  double lockCents = 0;
+  double lockSpread = 0;
+
+  /// Contadores do exercício: voltas por nota alta, baixa, instável, e quantas vezes a volta foi dispensada.
+  int slipsSharp = 0, slipsFlat = 0, slipsUnstable = 0, skippedReplays = 0;
+
+  /// Quantas vezes travou nesta mesma nota (zera ao avançar). Com 2 ou mais, a volta pode ser dispensada.
+  int _locksHere = 0;
+
+  /// Relógio do exercício (s), para os avisos que duram só um instante.
+  double _clock = 0;
+  ArrivalInfo? _lastArrival;
+  double _arrivalAt = -99;
+  double _shortAt = -99;
+  bool _onPrev = false;
+  double _offShort = 0;
+
+  /// A chegada mais recente (mostrada por ~2,5 s), ou null.
+  ArrivalInfo? get recentArrival => _clock - _arrivalAt <= 2.5 ? _lastArrival : null;
+
+  /// O aluno largou a nota antes de a barra encher (mostrado por ~2,5 s).
+  bool get recentShort => _clock - _shortAt <= 2.5;
+
+  /// Travado pela segunda vez (ou mais) na mesma nota: pode tentar de novo sem voltar à anterior.
+  bool get canSkipReplay => replayNeeded && _locksHere >= 2;
+
+  /// Dispensa a volta à nota anterior: destrava e deixa tentar a nota da vez de novo.
+  void skipReplay() {
+    if (!replayNeeded) return;
+    skippedReplays++;
+    _unlock();
+  }
+
+  void _unlock() {
+    _locked = false;
+    lockWrongMidi = null;
+    lockReason = null;
+    _backHeld = 0;
+    _gapT = 0;
+    _offT = 99;
+    _wasOn = false;
+  }
+
+  void _lock(LockReason reason, {double cents = 0, double spread = 0}) {
+    _resetCurrent();
+    _locked = true;
+    _locksHere++;
+    lockReason = reason;
+    lockCents = cents;
+    lockSpread = spread;
+    _backHeld = 0;
+    _gapT = 0;
+    switch (reason) {
+      case LockReason.sharp:
+        slipsSharp++;
+      case LockReason.flat:
+        slipsFlat++;
+      case LockReason.unstable:
+        slipsUnstable++;
+      case LockReason.wrongNote:
+        break;
+    }
+  }
+
+  /// Aplica um nível de tolerância (vale já no exercício em andamento).
+  void applyTolerance(ScaleTolerance tol) {
+    zone = tol.cents;
+    arrivalSpread = tol.spread;
+    arrivalSeconds = tol.arrivalSeconds;
+  }
+
   /// O exercício está travado esperando o aluno voltar à nota anterior (ou soltar, na primeira nota).
   bool get replayNeeded => !_flow && noSlide && _locked;
 
@@ -220,6 +331,7 @@ class ScaleExercise {
     bool flow = false,
     this.noSlide = false,
     this.arrivalSeconds = 0.2,
+    this.arrivalSpread = 1.2,
     this.wrongSeconds = 0.15,
     this.flowMinSeconds = 0.05,
     this.flowReleaseSeconds = 0.22,
@@ -335,8 +447,17 @@ class ScaleExercise {
   StepResult? _feedHold(int? midi, double cents, double clarity, double dt) {
     _tunedNow = false;
     _waiting += dt;
+    _clock += dt;
     if (noSlide && _locked) return _feedLocked(midi, cents, dt);
     if (midi != expected) {
+      // Largou a nota antes de a barra encher (por mais que um instante): avisa que é para segurar mais.
+      if (_onPrev) {
+        _offShort += dt;
+        if (_offShort >= 0.15) {
+          _onPrev = false;
+          if (_time >= 0.2 && _run < holdSeconds) _shortAt = _clock;
+        }
+      }
       // Saiu da nota: perde um pouco do que tinha segurado.
       _run = (_run - dt).clamp(0.0, double.infinity);
       if (noSlide) {
@@ -350,11 +471,8 @@ class ScaleExercise {
             slips++;
             wrongStarts++;
             final heard = midi;
-            _resetCurrent();
-            _locked = true;
+            _lock(LockReason.wrongNote);
             lockWrongMidi = heard;
-            _backHeld = 0;
-            _gapT = 0;
           }
         } else {
           _wrongT = 0;
@@ -363,6 +481,8 @@ class ScaleExercise {
       return null;
     }
     _wrongT = 0;
+    _onPrev = true;
+    _offShort = 0;
     if (noSlide) {
       // Nota nova (vinda de outra ou de silêncio por um instante): é uma CHEGADA, que começa do zero.
       if (!_wasOn && _offT >= 0.12) {
@@ -389,13 +509,15 @@ class ScaleExercise {
             if (s.cents < lo) lo = s.cents;
             if (s.cents > hi) hi = s.cents;
           }
-          if (med.abs() > zone || (hi - lo) > zone * 1.2) {
+          final spread = hi - lo;
+          final off = med.abs() > zone;
+          final shaky = spread > zone * arrivalSpread;
+          _lastArrival = ArrivalInfo(med, spread, !off && !shaky);
+          _arrivalAt = _clock;
+          if (off || shaky) {
             slips++;
-            _resetCurrent();
-            _locked = true;
+            _lock(off ? (med > 0 ? LockReason.sharp : LockReason.flat) : LockReason.unstable, cents: med, spread: spread);
             lockWrongMidi = null;
-            _backHeld = 0;
-            _gapT = 0;
             return null;
           }
         }
@@ -424,15 +546,9 @@ class ScaleExercise {
   StepResult? _feedLocked(int? midi, double cents, double dt) {
     final prev = index > 0 ? sequence[index - 1] : null;
     if (prev != null) {
-      if (midi == prev && cents.abs() <= zone) {
+      if (midi == prev && cents.abs() <= zone * 1.5) {
         _backHeld += dt;
-        if (_backHeld >= 0.25) {
-          _locked = false;
-          lockWrongMidi = null;
-          _backHeld = 0;
-          _offT = 99;
-          _wasOn = false;
-        }
+        if (_backHeld >= 0.25) _unlock();
       } else {
         _backHeld = (_backHeld - dt).clamp(0.0, double.infinity);
       }
@@ -440,13 +556,7 @@ class ScaleExercise {
     }
     if (midi != expected) {
       _gapT += dt;
-      if (_gapT >= 0.3) {
-        _locked = false;
-        lockWrongMidi = null;
-        _gapT = 0;
-        _offT = 99;
-        _wasOn = false;
-      }
+      if (_gapT >= 0.3) _unlock();
     } else {
       _gapT = 0;
     }
@@ -513,6 +623,7 @@ class ScaleExercise {
     if (finished || _flow) return null;
     _locked = false; // pular a nota também solta o travamento do "sem escorregar"
     lockWrongMidi = null;
+    lockReason = null;
     return _complete(StepResult(
         sequence[index], ascendingNow, _octaveOf(sequence[index]), null, 0, true));
   }
@@ -534,6 +645,8 @@ class ScaleExercise {
   StepResult _complete(StepResult r) {
     results.add(r);
     index++;
+    _locksHere = 0;
+    _onPrev = false;
     _resetCurrent();
     return r;
   }
