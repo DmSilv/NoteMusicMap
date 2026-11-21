@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ajuda do Notemusic: trocar de celular, recuperar a conta e falar com o suporte</title>
+  <meta name="description" content="Perguntas e respostas do Notemusic: troquei de celular, perdi o acesso, não recebi o código no e-mail, esqueci a senha do e-mail, como falar com o suporte e como apagar a conta.">
+  <link rel="canonical" href="https://notemusicmap.vercel.app/ajuda">
+  <meta name="theme-color" content="#101418">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <style>
+    :root { --bg: #101418; --card: #171e24; --line: #27343d; --text: #e8eef2; --dim: #a9b9c3; --accent: #22e58f; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+    main { max-width: 760px; margin: 0 auto; padding: 24px 18px 64px; }
+    h1 { font-size: 28px; line-height: 1.2; margin: 8px 0 8px; }
+    h2 { font-size: 20px; margin: 32px 0 10px; }
+    p { margin: 0 0 12px; }
+    a { color: var(--accent); }
+    .lead { color: var(--dim); }
+    .top { display: flex; align-items: center; gap: 10px; color: var(--dim); font-size: 15px; }
+    .top a { text-decoration: none; }
+    details { background: var(--card); border: 1px solid var(--line); border-radius: 16px; margin: 0 0 10px; }
+    summary { cursor: pointer; font-weight: 700; padding: 16px; min-height: 52px; list-style: none; display: flex; align-items: center; gap: 10px; }
+    summary::-webkit-details-marker { display: none; }
+    summary::before { content: "+"; color: var(--accent); font-weight: 800; width: 16px; }
+    details[open] summary::before { content: "−"; }
+    details .body { padding: 0 16px 14px 42px; color: var(--text); }
+    details .body p, details .body li { color: var(--dim); }
+    ol, ul { margin: 0 0 12px; padding-left: 20px; }
+    li { margin: 0 0 6px; }
+    .note { border-left: 3px solid var(--accent); background: var(--card); padding: 12px 14px; border-radius: 0 12px 12px 0; margin: 12px 0; color: var(--dim); }
+    .warn { border-left-color: #ff9226; }
+    :target > summary { outline: 2px solid var(--accent); }
+    footer { color: var(--dim); font-size: 14px; margin-top: 32px; }
+    @media (prefers-color-scheme: light) { :root { --bg: #f3f6f9; --card: #ffffff; --line: #d3dde5; --text: #0e1822; --dim: #3f5063; --accent: #0b7f57; } }
+  </style>
+</head>
+<body>
+<main>
+  <div class="top"><a href="/">← Voltar ao Notemusic</a></div>
+  <h1>Ajuda</h1>
+  <p class="lead">O Notemusic <b>não tem senha</b>. Sua conta é o seu código, que fica guardado no aparelho. Por isso, ao trocar de celular, é preciso avisar o app que é você. Aqui estão os caminhos, do mais fácil ao último recurso.</p>
+
+  <h2>Trocar de celular ou perdi o acesso</h2>
+
+  <details id="trocar" open>
+    <summary>Troquei de celular. Como entro na minha conta?</summary>
+    <div class="body">
+      <p>Abra o Notemusic no aparelho novo, toque em <b>"Já tenho conta"</b> (na primeira tela) ou em <b>Minha conta › Já tenho conta em outro aparelho</b>, e escolha um destes caminhos:</p>
+      <ol>
+        <li><b>Tenho o celular antigo ainda.</b> No antigo: Minha conta › Aparelhos › Adicionar um aparelho. Aparece um código (ou QR) que vale 10 minutos. No novo, digite o código ou leia o QR.</li>
+        <li><b>Liguei um e-mail à minha conta.</b> No aparelho novo: "Receber um código por e-mail". Digite o e-mail; o app envia um código de 6 dígitos (vale 10 minutos). Digite o código e pronto.</li>
+        <li><b>Guardei a chave de recuperação</b> (25 letras e números). Digite a chave no aparelho novo.</li>
+      </ol>
+      <p>Uma mesma conta pode ficar aberta em até <b>5 aparelhos</b>. Se já estiver cheia, o app pergunta qual aparelho tirar.</p>
+    </div>
+  </details>
+
+  <details id="perdi-tudo">
+    <summary>Perdi o celular e não tenho e-mail nem chave. E agora?</summary>
+    <div class="body">
+      <p>Sem nenhum desses caminhos, o app não consegue saber que é você. Ainda dá para resolver:</p>
+      <ol>
+        <li><b>Se você é aluno:</b> abra o app no aparelho novo e peça ao seu professor para vincular você de novo (QR ou código). O professor também pode ligar a ficha antiga ao seu código novo, em "Código do aluno". O histórico de estudo que ficava só no celular antigo não volta.</li>
+        <li><b>Se você é professor:</b> fale com o suporte (veja <a href="#suporte">como falar com o suporte</a>). Diga o <b>código antigo</b> da conta e o nome dos seus alunos. O suporte confere os dados e gera um <b>código de suporte</b> (vale 24 horas, uso único) para liberar a conta no aparelho novo.</li>
+      </ol>
+      <div class="note warn">Nunca envie a sua chave de recuperação nem o código de 6 dígitos a ninguém. O suporte <b>não pede</b> essas informações.</div>
+    </div>
+  </details>
+
+  <details id="sem-codigo">
+    <summary>Não recebi o código no e-mail</summary>
+    <div class="body">
+      <ul>
+        <li>Olhe a caixa de <b>spam</b> e a aba <b>Promoções</b>.</li>
+        <li>Confira se digitou o e-mail <b>igual</b> ao que ligou à conta (sem espaço no fim).</li>
+        <li>O código vale <b>10 minutos</b> e aceita 5 tentativas. Passou disso, peça outro.</li>
+        <li>Espere 1 minuto antes de pedir de novo.</li>
+        <li>Continua sem chegar? Use o caminho do aparelho antigo ou da chave, ou <a href="#suporte">fale com o suporte</a>.</li>
+      </ul>
+    </div>
+  </details>
+
+  <details id="senha-email">
+    <summary>Esqueci a senha do meu e-mail. E agora?</summary>
+    <div class="body">
+      <p>O Notemusic não guarda senha: quem controla o <b>e-mail</b> consegue entrar na conta. Então o primeiro passo é recuperar o acesso ao e-mail, no próprio provedor:</p>
+      <ul>
+        <li><b>Gmail / Google:</b> <a href="https://accounts.google.com/signin/recovery" rel="noopener">accounts.google.com/signin/recovery</a></li>
+        <li><b>Outlook / Hotmail:</b> <a href="https://account.live.com/password/reset" rel="noopener">account.live.com/password/reset</a></li>
+        <li><b>Yahoo:</b> <a href="https://login.yahoo.com/forgot" rel="noopener">login.yahoo.com/forgot</a></li>
+        <li><b>Outros:</b> procure "esqueci a senha" no site do seu provedor.</li>
+      </ul>
+      <p>Enquanto isso, se você ainda tem o celular antigo ou a chave de recuperação, use esses caminhos: não dependem do e-mail.</p>
+    </div>
+  </details>
+
+  <details id="chave">
+    <summary>O que é a chave de recuperação e onde ela fica?</summary>
+    <div class="body">
+      <p>É um código de <b>25 letras e números</b> que só você conhece. Fica em <b>Minha conta › Chave de recuperação</b>. Anote em papel ou num gerenciador de senhas. <b>Quem tem a chave entra na sua conta.</b> Se achar que alguém viu, gere outra: a anterior deixa de valer.</p>
+    </div>
+  </details>
+
+  <h2>Suporte</h2>
+
+  <details id="suporte">
+    <summary>Como falo com o suporte?</summary>
+    <div class="body">
+      <ol>
+        <li>Abra o Notemusic (mesmo que seja um perfil novo) e vá em <b>Ajustes › Sobre o app › Avaliar o app</b>.</li>
+        <li>No campo de comentário, escreva o que aconteceu e, se souber, o <b>código antigo</b> da conta (do tipo <b>ABCD-1234</b>).</li>
+        <li>Se o desenvolvedor responder, a resposta aparece no <b>sino</b> do app.</li>
+      </ol>
+      <p>Informe sempre: o que você tentou, em que aparelho (Android, iPhone, computador) e a mensagem que apareceu. Se o app mostrou um <b>código de erro</b>, escreva também.</p>
+      <div class="note warn">O suporte <b>nunca</b> pede a sua chave de recuperação nem o código de 6 dígitos que chega por e-mail.</div>
+    </div>
+  </details>
+
+  <details id="pais">
+    <summary>Sou responsável por uma criança. O que o app guarda?</summary>
+    <div class="body">
+      <p>O Notemusic não tem anúncios, não faz perfil de comportamento e <b>não grava áudio</b> (o som é analisado no aparelho e descartado). Para o vínculo com o professor, guardamos o código, o apelido e as aulas e tarefas combinadas. A <b>foto</b> só vai ao servidor se a pessoa escolher mostrá-la ao professor. Se quiser que os dados sejam removidos, veja <a href="#apagar">como apagar a conta</a>.</p>
+    </div>
+  </details>
+
+  <details id="apagar">
+    <summary>Como apago minha conta e meus dados?</summary>
+    <div class="body">
+      <p>No app: <b>Ajustes › Restaurar e apagar › Apagar tudo</b>. Isso apaga os dados deste aparelho e, com o vínculo online ligado, também o que o servidor guarda da sua conta (vínculos, aulas e tarefas enviadas, foto, e-mail ligado).</p>
+      <p>Sem acesso ao app? Faça o pedido pelo caminho de <a href="#suporte">suporte</a> informando o código da conta e escrevendo "excluir meus dados".</p>
+    </div>
+  </details>
+
+  <h2>Outros problemas</h2>
+
+  <details id="foto">
+    <summary>A foto do perfil não entra</summary>
+    <div class="body">
+      <ul>
+        <li>Toque na foto, escolha <b>Escolher da galeria</b> ou <b>Tirar uma foto</b>. O navegador abre o seletor do celular; escolha uma foto <b>comum (JPG ou PNG)</b>.</li>
+        <li>Se o aviso trouxer um "Detalhe", anote-o e envie ao suporte.</li>
+        <li>No aplicativo instalado, o Android pede permissão da câmera na primeira vez: toque em <b>Permitir</b>. Se negou antes, ligue em Configurações do aparelho › Apps › Notemusic › Permissões.</li>
+      </ul>
+    </div>
+  </details>
+
+  <details id="microfone">
+    <summary>O afinador não ouve meu instrumento</summary>
+    <div class="body">
+      <ul>
+        <li>Permita o <b>microfone</b> quando o app pedir (no navegador, pelo cadeado ao lado do endereço).</li>
+        <li>Aproxime o instrumento e toque uma nota longa. Em <b>Ajustes › Microfone</b> dá para mudar a sensibilidade.</li>
+        <li>O som é analisado no aparelho e nunca é gravado nem enviado.</li>
+      </ul>
+    </div>
+  </details>
+
+  <footer>
+    <p>Notemusic · <a href="/sobre">Sobre</a> · <a href="/">Abrir o app</a></p>
+  </footer>
+</main>
+</body>
+</html>

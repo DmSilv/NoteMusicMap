@@ -11,6 +11,7 @@ import 'error_ui.dart' show CriticalErrorPage, ProblemsPage;
 import 'feedback_sheet.dart';
 import 'install_banner.dart';
 import 'qr_scan_page.dart';
+import 'recovery_help_page.dart' show openHelpPage;
 import 'ref_a_dialog.dart';
 import 'share_sheet.dart';
 import 'theme.dart';
@@ -62,6 +63,7 @@ class SettingsPage extends StatelessWidget {
                 const DsGap(Ds.gap),
                 _navCard([
                   DsNavRow(Icons.verified_user_outlined, tr('Permissões e privacidade'), micName, () => _open(context, tr('Permissões e privacidade'), (c) => [_permissions(c)])),
+                  DsNavRow(Icons.help_outline_rounded, tr('Ajuda e suporte'), tr('Trocar de celular, perdi o acesso'), openHelpPage),
                   DsNavRow(Icons.info_outline_rounded, tr('Sobre o app'), app.updateAvailable ? tr('Versão nova disponível') : tr('Versão {0}', [kAppVersion]), () => _open(context, tr('Sobre o app'), (c) => [_about(c)]),
                       alert: app.updateAvailable),
                   DsNavRow(Icons.bug_report_outlined, tr('Problemas e diagnóstico'), app.errorLog.items.isEmpty ? tr('Nenhum problema') : tr('{0} registrado(s)', [app.errorLog.items.length]), () => _open(context, tr('Problemas e diagnóstico'), (c) => [_diagnostics(c)])),

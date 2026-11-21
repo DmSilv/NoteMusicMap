@@ -10,6 +10,7 @@ import '../app_state.dart';
 import 'account_email.dart';
 import 'design_system.dart';
 import 'devices_page.dart';
+import 'recovery_help_page.dart';
 import 'settings_page.dart' show kAppName;
 import 'share_sheet.dart' show shareLink;
 import 'theme.dart';
@@ -75,7 +76,13 @@ class _JoinAccountPageState extends State<JoinAccountPage> {
     final pairOk = normalizePairCode(_pair.text) != null;
     final keyOk = normalizeShortKey(_key.text) != null;
     return Scaffold(
-      appBar: AppBar(title: Text(tr('Entrar na minha conta'))),
+      appBar: AppBar(title: Text(tr('Entrar na minha conta')), actions: [
+        IconButton(
+          tooltip: tr('Perdi meu acesso'),
+          icon: const Icon(Icons.help_outline_rounded),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => RecoveryHelpPage(app: app))),
+        ),
+      ]),
       body: DsPageSafe(
         child: ListView(
           padding: Ds.screen,

@@ -85,6 +85,7 @@
 | `lib/ui/profile_page.dart` | "Minha conta": lista curta com o código que identifica você (sem cadastro) e a chave de recuperação, que permite levar o histórico para outro aparelho. |
 | `lib/ui/progress_cards.dart` | Evolução da taxa de acerto nos exercícios de escala. |
 | `lib/ui/qr_scan_page.dart` | Abre a câmera para ler o QR de um aluno ou de um professor. Também deixa digitar o código na mesma tela (se a câmera estiver sem permissão ou o QR não sair). Devolve o código lido, ou null se a pessoa voltar. [want]… |
+| `lib/ui/recovery_help_page.dart` | Endereço da página pública de ajuda (a mesma que o site publica). |
 | `lib/ui/ref_a_dialog.dart` | Diálogo do Lá de referência (415 a 443 Hz e valor livre). |
 | `lib/ui/remind_field.dart` | Escolha do lembrete de uma aula: com quanto tempo de antecedência o professor e o aluno são avisados. Um campo só (a lista abre num modal), para não pesar o formulário. O padrão é [kReminderMinutes]. |
 | `lib/ui/reminder_card.dart` | Lembrete de aula 15 minutos antes (notificação do navegador, mesmo com o app fechado). Mostra a situação deste aparelho e o botão para ligar ou desligar. |
@@ -368,6 +369,7 @@
 | Arquivo | O que faz |
 |---|---|
 | `web/admin.html` | Página HTML: Notemusic · Painel |
+| `web/ajuda.html` | Página HTML: Ajuda do Notemusic: trocar de celular, recuperar a conta e falar com o suporte |
 | `web/flutter_bootstrap.js` | Sem o service worker do Flutter (nesta versão ele só se desregistra). O app usa o próprio `sw.js`, registrado no index.html, para funcionar sem internet e poder ser instalado. |
 | `web/google20427e013f6bcf29.html` | _(sem descrição no cabeçalho)_ |
 | `web/index.html` | Página HTML: Notemusic: afinador, metrônomo e estudo para instrumentos de corda |
@@ -387,4 +389,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **344** arquivos mapeados.
+Total: **346** arquivos mapeados.

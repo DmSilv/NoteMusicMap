@@ -20,6 +20,7 @@ import 'design_system.dart';
 import 'devices_page.dart';
 import 'join_account_page.dart';
 import 'person_avatar.dart';
+import 'recovery_help_page.dart';
 import 'photo_pick.dart';
 import 'teaching_ui.dart';
 import 'materials_sheet.dart';
@@ -462,9 +463,32 @@ class _ProfilePageState extends State<ProfilePage> {
                       : '${app.students.length} ${app.students.length == 1 ? tr('aluno') : tr('alunos')}'
                           '${waiting > 0 ? tr(' · {0} para validar', [waiting]) : ''}',
                   onTap: () => _push(TeacherPage(app: app))),
+            if (app.teacherMode && p.recoveryShownAt == null && app.emailHint.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: Ds.s8),
+                child: AppCard(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      DsIconBadge(Icons.shield_outlined, size: 40, color: AppColors.accent),
+                      const SizedBox(width: Ds.s12),
+                      Expanded(child: Text(tr('Proteja sua conta'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17))),
+                    ]),
+                    const SizedBox(height: Ds.s8),
+                    Text(tr('Se perder este celular, seus alunos ficam sem você. Guarde a chave de recuperação.'), style: TextStyle(color: AppColors.textDim, height: 1.35)),
+                    const SizedBox(height: Ds.s12),
+                    OutlinedButton.icon(
+                      onPressed: () => _open(tr('Chave de recuperação'), (_) => _keyBody()),
+                      icon: const Icon(Icons.key),
+                      label: Text(tr('Ver a minha chave')),
+                    ),
+                  ]),
+                ),
+              ),
             _section(tr('Conta')),
             _row(Icons.login, tr('Já tenho conta em outro aparelho'),
                 sub: tr('Ligue este aparelho à sua conta'), onTap: () => _push(JoinAccountPage(app: app))),
+            _row(Icons.help_outline_rounded, tr('Perdi meu acesso'),
+                sub: tr('Passo a passo para voltar à sua conta'), onTap: () => _push(RecoveryHelpPage(app: app))),
             if (app.emailEnabled)
               _row(Icons.alternate_email, tr('E-mail da conta'),
                   sub: app.emailHint.isEmpty ? tr('Recupere a conta em outro aparelho, sem senha') : app.emailHint,
