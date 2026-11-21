@@ -1,6 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <!-- Microfone: necessário para o afinador e a grade. O áudio é analisado no aparelho e nunca é gravado nem enviado. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- Internet: o app fala com a API (vínculo, agenda, conta). Só os manifestos de depuração tinham; o de release ficava SEM rede. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Câmera: ler o QR de alunos e professores e tirar a foto do perfil. Não é obrigatória para instalar. A galeria usa o seletor de fotos do sistema (não pede permissão). -->
     <uses-permission android:name="android.permission.CAMERA"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
