@@ -345,8 +345,8 @@ class AppState extends ChangeNotifier {
       // Grande demais para o espelho: continua na lista (para não parecer apagado), mas o motor não envia nem troca.
       out[studentSection(s)] = LocalSection(data, pristine: isPristineStudent(s));
     }
-    out['AG'] = LocalSection(slotsToSection(agenda), pristine: agenda.isEmpty);
-    out['OS'] = LocalSection(slotsToSection(openSlots), pristine: openSlots.isEmpty);
+    out['AG'] = LocalSection(slotsToSection(agenda, deleted: _agendaDeleted), pristine: agenda.isEmpty && _agendaDeleted.isEmpty);
+    out['OS'] = LocalSection(slotsToSection(openSlots, deleted: _openDeleted), pristine: openSlots.isEmpty && _openDeleted.isEmpty);
     out['ME'] = LocalSection(methodsToSection(methodLibrary), pristine: methodLibrary.isEmpty);
     out['RE'] = LocalSection(methodsToSection(repertoireLibrary), pristine: repertoireLibrary.isEmpty);
     final prefs = AccountPrefs(teachInstruments: teachInstruments, teacherMode: teacherMode, custom: customInstruments, turmas: turmas);
@@ -396,12 +396,16 @@ class AppState extends ChangeNotifier {
       }
       _repo?.saveStudents(students);
     } else if (sec == 'AG') {
-      final remote = slotsFromSection(data);
-      agenda = merge ? mergeSlotLists(agenda, remote) : _keepPending(remote, agenda);
+      final remote = slotsAndTombstonesFromSection(data);
+      agenda = merge ? mergeSlotLists(agenda, remote.slots, localDeleted: _agendaDeleted, remoteDeleted: remote.deleted) : _keepPending(remote.slots, agenda);
+      _agendaDeleted = mergeTombstones(_agendaDeleted, remote.deleted, nowMs: DateTime.now().millisecondsSinceEpoch);
+      _agendaIds = {for (final s in agenda) s.id}; // o que o outro aparelho tirou não vira lápide nova aqui
       _saveAgenda();
     } else if (sec == 'OS') {
-      final remote = slotsFromSection(data);
-      openSlots = merge ? mergeSlotLists(openSlots, remote) : _keepPending(remote, openSlots);
+      final remote = slotsAndTombstonesFromSection(data);
+      openSlots = merge ? mergeSlotLists(openSlots, remote.slots, localDeleted: _openDeleted, remoteDeleted: remote.deleted) : _keepPending(remote.slots, openSlots);
+      _openDeleted = mergeTombstones(_openDeleted, remote.deleted, nowMs: DateTime.now().millisecondsSinceEpoch);
+      _openIds = {for (final s in openSlots) s.id};
       _saveAgenda();
     } else if (sec == 'ME') {
       final remote = methodsFromSection(data);
@@ -1703,9 +1707,13 @@ class AppState extends ChangeNotifier {
     }
 
     agenda = read('agenda');
+    openSlots = read('open_slots');
+    _agendaDeleted = _readTombs(p.getString('ag_del'));
+    _openDeleted = _readTombs(p.getString('os_del'));
+    _agendaIds = {for (final s in agenda) s.id};
+    _openIds = {for (final s in openSlots) s.id};
     myAgenda = read('agenda_in', dropCanceled: true);
     _agendaRev = p.getInt('agenda_rev') ?? 0;
-    openSlots = read('open_slots');
     errorLog = ErrorLog.fromJsonString(p.getString('error_log'));
     reportMode = ReportMode.values.where((m) => m.name == p.getString('report_mode')).firstOrNull ?? ReportMode.critical;
     hubViewPref = switch (p.getString('hub_view')) {
@@ -1716,9 +1724,43 @@ class AppState extends ChangeNotifier {
     _picksRev = p.getInt('picks_rev') ?? 0;
   }
 
+  // Lápides (ver mirror.dart): o que foi apagado de vez daqui. O que sumiu da lista desde a última gravação ganha uma lápide.
+  Map<String, int> _agendaDeleted = {};
+  Map<String, int> _openDeleted = {};
+  Set<String> _agendaIds = {};
+  Set<String> _openIds = {};
+
+  Map<String, int> _readTombs(String? raw) {
+    try {
+      if (raw == null) return {};
+      return {for (final e in (jsonDecode(raw) as Map).entries) '${e.key}': (e.value as num).toInt()};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  /// Compara a lista com a da última gravação e anota a lápide do que saiu; devolve as lápides atualizadas e os ids de agora.
+  (Map<String, int>, Set<String>) _tomb(Map<String, int> dead, Set<String> before, List<ClassSlot> now) {
+    final ids = {for (final s in now) s.id};
+    final t = DateTime.now().millisecondsSinceEpoch;
+    final next = {...dead};
+    for (final id in before) {
+      if (!ids.contains(id)) next[id] = t;
+    }
+    return (mergeTombstones(next, const {}, nowMs: t), ids);
+  }
+
   void _saveAgenda() {
     final p = _prefs;
     if (p == null) return;
+    final a = _tomb(_agendaDeleted, _agendaIds, agenda);
+    final o = _tomb(_openDeleted, _openIds, openSlots);
+    _agendaDeleted = a.$1;
+    _agendaIds = a.$2;
+    _openDeleted = o.$1;
+    _openIds = o.$2;
+    p.setString('ag_del', jsonEncode(_agendaDeleted));
+    p.setString('os_del', jsonEncode(_openDeleted));
     p.setString('agenda', jsonEncode([for (final s in agenda) s.toJson()]));
     p.setString('agenda_in', jsonEncode([for (final s in myAgenda) s.toJson()]));
     p.setInt('agenda_rev', _agendaRev);

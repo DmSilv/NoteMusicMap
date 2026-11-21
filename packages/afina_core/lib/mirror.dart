@@ -145,28 +145,74 @@ void mergeStudentFrom(Student into, Student other, {required bool preferOther}) 
 
 // ---------------- agenda, horários livres, métodos, ajustes, histórico ----------------
 
-/// Aulas e horários: por id, vale a versão mais nova ([ClassSlot.updatedMs]); empate fica com a daqui.
-List<ClassSlot> mergeSlotLists(List<ClassSlot> local, List<ClassSlot> remote) {
+/// Lápides: o id de uma aula ou horário que foi APAGADO de vez neste aparelho (a lista não guarda mais nem a marca de cancelada) e
+/// quando. Sem isso, a junção de dois aparelhos trazia de volta o item que um deles já tinha apagado. Duram [kTombstoneDays] dias.
+const int kMaxTombstones = 200;
+const int kTombstoneDays = 60;
+
+/// Junta duas listas de lápides (vale a mais nova de cada id), tira as velhas e corta no teto.
+Map<String, int> mergeTombstones(Map<String, int> a, Map<String, int> b, {required int nowMs}) {
+  final out = <String, int>{...a};
+  b.forEach((id, u) {
+    if (u > (out[id] ?? 0)) out[id] = u;
+  });
+  final cut = nowMs - kTombstoneDays * 86400000;
+  out.removeWhere((_, u) => u < cut);
+  if (out.length <= kMaxTombstones) return out;
+  final keep = out.entries.toList()..sort((x, y) => y.value.compareTo(x.value));
+  return {for (final e in keep.take(kMaxTombstones)) e.key: e.value};
+}
+
+/// Aulas e horários: por id, vale a versão mais nova ([ClassSlot.updatedMs]); empate fica com a daqui. Um item com lápide
+/// (apagado) some, a menos que tenha sido mexido DEPOIS de apagado.
+List<ClassSlot> mergeSlotLists(List<ClassSlot> local, List<ClassSlot> remote, {Map<String, int> localDeleted = const {}, Map<String, int> remoteDeleted = const {}}) {
   final byId = {for (final s in local) s.id: s};
   for (final r in remote) {
     final cur = byId[r.id];
     if (cur == null || r.updatedMs > cur.updatedMs) byId[r.id] = cur == null ? r : r.copyWith(pending: cur.pending);
   }
+  final dead = mergeTombstones(localDeleted, remoteDeleted, nowMs: DateTime.now().millisecondsSinceEpoch);
+  byId.removeWhere((id, s) => (dead[id] ?? -1) >= s.updatedMs && dead.containsKey(id));
   return byId.values.toList();
 }
 
-/// As aulas como seção. O "falta enviar" é só deste aparelho e não vai junto.
-String slotsToSection(List<ClassSlot> slots) => jsonEncode([for (final s in slots) s.copyWith(pending: null).toJson()]);
+/// As aulas como seção. O "falta enviar" é só deste aparelho e não vai junto. As lápides vão como itens `{id, del: 1, u}` no fim da
+/// MESMA lista: aparelhos antigos não entendem esses itens (não têm data) e os ignoram, sem estragar nada.
+String slotsToSection(List<ClassSlot> slots, {Map<String, int> deleted = const {}}) => jsonEncode([
+      for (final s in slots) s.copyWith(pending: null).toJson(),
+      for (final e in deleted.entries) {'id': e.key, 'del': 1, 'u': e.value},
+    ]);
 
-List<ClassSlot> slotsFromSection(String data) {
+/// A seção lida: as aulas e as lápides.
+class SlotSection {
+  final List<ClassSlot> slots;
+  final Map<String, int> deleted;
+  const SlotSection(this.slots, this.deleted);
+}
+
+SlotSection slotsAndTombstonesFromSection(String data) {
   try {
     final j = jsonDecode(data);
-    if (j is! List) return const [];
-    return [for (final x in j.take(400)) ?ClassSlot.tryFrom(x)];
+    if (j is! List) return const SlotSection([], {});
+    final slots = <ClassSlot>[];
+    final dead = <String, int>{};
+    for (final x in j.take(400 + kMaxTombstones)) {
+      if (x is Map && x['del'] == 1) {
+        final id = '${x['id']}';
+        final u = x['u'];
+        if (RegExp(r'^[A-Za-z0-9_-]{1,40}$').hasMatch(id) && u is num && dead.length < kMaxTombstones) dead[id] = u.toInt();
+        continue;
+      }
+      final s = ClassSlot.tryFrom(x);
+      if (s != null && slots.length < 400) slots.add(s);
+    }
+    return SlotSection(slots, dead);
   } catch (_) {
-    return const [];
+    return const SlotSection([], {});
   }
 }
+
+List<ClassSlot> slotsFromSection(String data) => slotsAndTombstonesFromSection(data).slots;
 
 String methodsToSection(List<MethodEntry> lib) => jsonEncode([for (final m in lib) m.toJson()]);
 

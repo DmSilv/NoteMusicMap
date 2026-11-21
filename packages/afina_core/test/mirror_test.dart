@@ -104,6 +104,37 @@ void main() {
       expect(m.firstWhere((s) => s.id == 'a2').canceled, isTrue, reason: 'cancelar é marca: não volta');
     });
 
+    test('lápide: o que um aparelho apagou de vez não volta pela junção com o outro', () {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      // A apagou a1 (lápide); B ainda tem a1 e uma aula nova a9
+      final m = mergeSlotLists([slot('a1', 10), slot('a9', 30)], [slot('a2', 20)], remoteDeleted: {'a1': now});
+      expect(m.map((s) => s.id).toSet(), {'a9', 'a2'});
+    });
+
+    test('lápide: se o item foi mexido DEPOIS de apagado, ele fica (editar depois de apagar vale)', () {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final m = mergeSlotLists([slot('a1', now + 1000)], const [], remoteDeleted: {'a1': now});
+      expect(m.single.id, 'a1');
+    });
+
+    test('lápide: vai e volta na seção; aparelho antigo só enxerga as aulas', () {
+      final data = slotsToSection([slot('a1', 10)], deleted: {'x7': 1790000000000});
+      final r = slotsAndTombstonesFromSection(data);
+      expect(r.slots.single.id, 'a1');
+      expect(r.deleted, {'x7': 1790000000000});
+      // quem só conhece o formato antigo (lista de aulas) ignora o item sem data
+      expect(slotsFromSection(data).map((s) => s.id), ['a1']);
+      expect(ClassSlot.tryFrom({'id': 'x7', 'del': 1, 'u': 5}), isNull, reason: 'o app antigo descarta o item sem data');
+    });
+
+    test('lápides: as velhas somem e há um teto', () {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final m = mergeTombstones({'velha': now - (kTombstoneDays + 1) * 86400000, 'nova': now}, const {}, nowMs: now);
+      expect(m.keys, ['nova']);
+      final many = {for (var i = 0; i < kMaxTombstones + 50; i++) 'i$i': now - i};
+      expect(mergeTombstones(many, const {}, nowMs: now).length, kMaxTombstones);
+    });
+
     test('o "falta enviar" não viaja e não se perde ao trocar de versão', () {
       final data = slotsToSection([slot('a1', 10, pending: true)]);
       expect(jsonDecode(data).first.containsKey('p'), isFalse);

@@ -236,7 +236,7 @@
 | `packages/afina_core/test/material_instrument_test.dart` | Testes do módulo `material_instrument`. |
 | `packages/afina_core/test/methods_test.dart` | Testes do módulo `methods`. |
 | `packages/afina_core/test/metronome_engine_test.dart` | Renderiza [total] amostras em blocos de [chunk] e junta tudo. |
-| `packages/afina_core/test/mirror_test.dart` | Testes do módulo `mirror`. |
+| `packages/afina_core/test/mirror_test.dart` | A apagou a1 (lápide); B ainda tem a1 e uma aula nova a9 |
 | `packages/afina_core/test/needle_spring_test.dart` | Simula [seconds] com passos de [dt] e devolve a trajetória (posições). |
 | `packages/afina_core/test/news_test.dart` | Testes do módulo `news`. |
 | `packages/afina_core/test/note_display_test.dart` | Alimenta o filtro com [n] por [seconds], num quadro a cada 30 ms, a partir de [t0]. Devolve a lista do que foi exibido em cada quadro. |
