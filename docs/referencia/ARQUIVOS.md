@@ -40,6 +40,7 @@
 | `lib/ui/app_locale.dart` | O app fala português do Brasil ou inglês: os textos do próprio Flutter (seletor de data e hora, "OK"/"Cancelar", copiar/colar, nomes de mês e dia) seguem o idioma escolhido (veja `Lang` e `tr()` em afina_core). Custo… |
 | `lib/ui/app_logo.dart` | Logo do Notemusic: um mostrador de afinador (arco verde, a cor do app) com uma nota musical branca no centro. Mesma geometria de tools/make_icons.mjs. |
 | `lib/ui/beat_bar.dart` | A barra de "quanto já segurou afinada". Com o metrônomo ligado ela dá uma leve pulsada a cada tempo (mais forte no tempo forte): a barra continua sendo só a medida, e o pulso ajuda a sentir o andamento. Sem… |
+| `lib/ui/cloud_copy_body.dart` | Cópia das fichas na nuvem (chave `copia_nuvem`): explica o que vai para o servidor e só liga com o aceite da pessoa. |
 | `lib/ui/design_system.dart` | Design system do Notemusic. REGRA: toda tela nova ou alterada usa estes valores e estes componentes (ver docs/12_DESIGN_SYSTEM.md). Números soltos de espaçamento, raio ou altura de botão não entram em tela nova.… |
 | `lib/ui/dev_chat_sheet.dart` | Conversa particular com o desenvolvedor: só esta pessoa vê. Mensagens do administrador, resposta curta, e (quando ele pergunta) escolher se o apelido pode ser citado no boletim. O texto vem do servidor ao abrir. |
 | `lib/ui/devices_page.dart` | Nome do sistema como a pessoa reconhece ("Android", "iPhone ou iPad"...). |
@@ -338,6 +339,7 @@
 | `api/agenda.test.js` | Testes da agenda e dos lembretes, sem rede: `node --test api/agenda.test.js` |
 | `api/agenda_control.test.js` | Testes do controle da agenda (trocar o aluno de uma aula, remarcar uma data, pausar): `node --test api/agenda_control.test.js` |
 | `api/avail.test.js` | Testes dos horários disponíveis (professor) e de "pegar horário" (aluno), sem rede: `node --test api/avail.test.js` |
+| `api/cloud_copy.test.js` | Cópia das fichas na nuvem com 1 aparelho (chave copia_nuvem + aceite): `node --test api/cloud_copy.test.js` |
 | `api/coach.test.js` | Testes da IA (vários serviços + fila) sem rede e sem chaves reais: `node --test api/` |
 | `api/cost_model.test.js` | Testes da conta de custos (quanto custa manter a plataforma): `node --test api/cost_model.test.js` |
 | `api/devices.test.js` | Aparelhos da conta (até 5), sem rede: `node --test api/devices.test.js` |
@@ -393,4 +395,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **350** arquivos mapeados.
+Total: **352** arquivos mapeados.

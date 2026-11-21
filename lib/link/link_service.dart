@@ -133,6 +133,9 @@ class LinkReply {
   final Map<String, MirrorItem> items;
   final bool stale;
   final bool mirrorOff;
+
+  /// A pessoa aceitou a cópia na nuvem (só chega na sincronização completa).
+  final bool cloudOn;
   const LinkReply({
     this.ok = false,
     this.unavailable = false,
@@ -178,6 +181,7 @@ class LinkReply {
     this.items = const {},
     this.stale = false,
     this.mirrorOff = false,
+    this.cloudOn = false,
   });
 }
 
@@ -263,6 +267,7 @@ class LinkService {
         ff: [for (final f in ((j['ff'] as List?) ?? const []).take(30)) if (f is String && RegExp(r'^[a-z][a-z0-9_]{1,30}$').hasMatch(f)) f],
         ml: meetingUrl(j['ml'] as String?) ?? '',
         mirrorOn: j['mo'] == 1,
+        cloudOn: j['cn'] == 1,
         mirrorRev: ((j['mr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
         secs: _mirrorSecs(j['secs']),
         items: _mirrorItems(j['mitems']),
@@ -430,6 +435,8 @@ class LinkService {
   /// Relato de problema para o administrador (não abre conversa; ele decide).
   Future<LinkReply> rqPut(String code, String secret, String text, {String version = '', String platform = ''}) =>
       _post({..._auth(code, secret, null), 'action': 'rq_put', 'x': text, 'v': version, 'p': platform});
+  /// Aceita ([on]) ou desliga a cópia na nuvem (desligar apaga a cópia do servidor quando há um aparelho só).
+  Future<LinkReply> cloudSet(String code, String secret, bool on) => _post({..._auth(code, secret, null), 'action': 'cloud_set', 'on': on});
   Future<LinkReply> msgOk(String code, String secret, bool yes) => _post({..._auth(code, secret, null), 'action': 'msg_ok', 'yes': yes});
 
   /// ALUNO: avisa que fez (ou desmarcou) a tarefa [task] da aula [lesson] do professor [teacher].

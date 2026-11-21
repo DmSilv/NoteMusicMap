@@ -16,6 +16,7 @@ import 'share_sheet.dart' show shareLink, showShareSheet;
 import 'teacher_page.dart';
 import 'hello_bar.dart';
 import 'link_bar.dart';
+import 'cloud_copy_body.dart';
 import 'design_system.dart';
 import 'devices_page.dart';
 import 'join_account_page.dart';
@@ -531,6 +532,10 @@ class _ProfilePageState extends State<ProfilePage> {
               _row(Icons.devices_outlined, tr('Aparelhos'),
                   sub: app.deviceList.isEmpty ? tr('Veja onde a sua conta está aberta') : tr('{0} de {1} aparelhos', [app.deviceList.length, app.maxDevices]),
                   onTap: () => _open(tr('Aparelhos'), (_) => DevicesBody(app: app))),
+            if (app.cloudCopyAvail && app.teacherMode && app.linkEnabled)
+              _row(Icons.cloud_outlined, tr('Cópia na nuvem'),
+                  sub: app.cloudCopyOn ? tr('Ligada: suas fichas também ficam no servidor') : tr('Desligada: seus dados ficam só neste aparelho'),
+                  onTap: () => _open(tr('Cópia na nuvem'), (_) => CloudCopyBody(app: app))),
             _row(Icons.key, tr('Chave de recuperação'),
                 sub: p.recoveryShownAt == null ? tr('Você ainda não guardou a sua chave') : null,
                 onTap: () => _open(tr('Chave de recuperação'), (_) => _keyBody())),

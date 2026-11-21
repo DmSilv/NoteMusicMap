@@ -38,6 +38,12 @@ const FEATURES = {
     scope: 'professor',
     students: true,
   },
+  copia_nuvem: {
+    name: 'Cópia das fichas na nuvem',
+    desc: 'O professor pode guardar uma cópia dos alunos, tarefas, agenda e métodos no servidor mesmo com um aparelho só (precisa aceitar no app).',
+    scope: 'professor',
+    students: false,
+  },
   ficha_nova: {
     name: 'Ficha do aluno nova',
     desc: 'A ficha do aluno em três blocos: Agora, Caminho e Combinados (no lugar da tela única com o menu).',

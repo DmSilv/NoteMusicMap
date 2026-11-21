@@ -155,3 +155,6 @@ Defina `SUPPORT_KEY` na Vercel para dar a uma segunda pessoa só o atendimento: 
 
 ## Grupos de recursos e diagnóstico
 Em **Publicar › Recursos** há a caixa **Grupos**: crie grupos com nome, inclua códigos e, em cada recurso, marque os grupos que o veem (há também "Todos os professores" e "Todos os alunos"). Na ficha de um perfil, **Recursos que ele vê (e por quê)** explica cada recurso. Um grupo excluído sai dos recursos e dos perfis dele.
+
+## Cópia na nuvem (chave copia_nuvem)
+Em **Publicar › Recursos**, o cartão "Cópia das fichas na nuvem" libera a cópia por código ou grupo. O professor liberado vê **Minha conta › Cópia na nuvem** e precisa aceitar. O administrador não lê o conteúdo; excluir o perfil apaga a cópia. Custo: só quem aceitou gasta comandos (gravações limitadas por hora, até 4 MB por conta).

@@ -1437,6 +1437,7 @@ class AppState extends ChangeNotifier {
 
   void _loadLinks(SharedPreferences p) {
     linkEnabled = p.getBool('link_on') ?? false;
+    cloudCopyOn = p.getBool('cloud_cn') ?? false;
     linkPref = p.getString('link_pref');
     try {
       final raw = p.getString('my_teachers');
@@ -3226,6 +3227,24 @@ class AppState extends ChangeNotifier {
   /// Aula online (modo e link da aula) está liberada para este perfil?
   bool get onlineClassesOn => hasFeature('aula_online');
 
+  /// A cópia das fichas na nuvem está liberada para este perfil (chave `copia_nuvem`)?
+  bool get cloudCopyAvail => hasFeature('copia_nuvem');
+
+  /// A pessoa aceitou guardar a cópia na nuvem (o servidor confirma na sincronização).
+  bool cloudCopyOn = false;
+
+  /// Liga ou desliga a cópia na nuvem. Devolve o texto do problema, ou null se deu certo.
+  Future<String?> setCloudCopy(bool on) async {
+    if (!linkEnabled || linkUnavailable) return tr('Ligue o vínculo online para usar a cópia na nuvem.');
+    final r = await links.cloudSet(profile.shareCode, profile.secret, on);
+    if (!r.ok) return r.error ?? tr('Sem conexão agora.');
+    cloudCopyOn = on;
+    _prefs?.setBool('cloud_cn', on);
+    notifyListeners();
+    unawaited(syncLinks()); // o servidor passa a avisar que o espelho vale (ou que parou)
+    return null;
+  }
+
   /// Ficha do aluno nova (três blocos), liberada pela chave `ficha_nova`.
   bool get fichaNovaOn => hasFeature('ficha_nova');
 
@@ -3387,6 +3406,10 @@ class AppState extends ChangeNotifier {
       if (r.unavailable) return _markLinkUnavailable();
       if (r.revoked) return _deviceRevoked();
       if (r.ok && _prefs != null) mirror.note(r);
+      if (r.ok && r.cloudOn != cloudCopyOn) {
+        cloudCopyOn = r.cloudOn;
+        _prefs?.setBool('cloud_cn', cloudCopyOn);
+      }
       if (!r.ok) {
         if (r.offline) linkOnline = false;
         notifyListeners();

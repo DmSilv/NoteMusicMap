@@ -99,6 +99,7 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `claim_lessons` | app_state.dart |
 | `clock_custom` | app_state.dart |
 | `clock_sw` | app_state.dart |
+| `cloud_cn` | app_state.dart |
 | `custom_inst` | app_state.dart |
 | `customMin` | app_state.dart |
 | `cv_seen` | app_state.dart |
@@ -227,4 +228,4 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `verdict_rev` | app_state.dart |
 | `verdicts` | app_state.dart |
 
-Total: **151** chaves locais.
+Total: **152** chaves locais.

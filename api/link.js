@@ -178,10 +178,17 @@ const LB = (code) => `lb:${code}`; // acervo do professor: idItem -> JSON (só l
 const PH = (code) => `ph:${code}`; // foto do perfil (campo d), só quando a pessoa escolhe mostrar aos vinculados
 const LBREP = 'lbrep'; // denúncias do acervo: "professor:idItem" -> JSON { n, t } // tarefas que os alunos deste professor marcaram: "aluno:idAula:idTarefa" -> JSON
 
-/** mo = a conta tem 2+ aparelhos (o espelho vale); mr = revisão do espelho. Sem 'dl' (um aparelho só) não custa nada. */
-function mirrorFlags(prof) {
-  if (!prof.dl) return {};
-  return devices.list(prof).length >= 2 ? { mo: 1, mr: Number(prof.mr) || 0 } : {};
+/** O espelho vale: a conta tem 2+ aparelhos OU a pessoa aceitou a cópia na nuvem (cn) e a chave copia_nuvem está ligada para ela.
+ *  Sem 'dl' (um aparelho só) e sem 'cn' não custa nada: só quem aceitou consulta a configuração geral (guardada 60 s). */
+async function mirrorActive(store, me, prof, now) {
+  if (prof.dl && devices.list(prof).length >= 2) return true;
+  if (prof.cn !== '1') return false;
+  return features.isOn(await features.loadCfg(store, now), 'copia_nuvem', me, prof, null);
+}
+
+/** mo = o espelho vale; mr = revisão do espelho. */
+async function mirrorFlags(store, me, prof, now) {
+  return (await mirrorActive(store, me, prof, now)) ? { mo: 1, mr: Number(prof.mr) || 0 } : {};
 }
 
 function parseLinks(h) {
@@ -340,7 +347,22 @@ function makeHandler(deps = {}) {
         const stuList = parseLinks(asStudent);
         const feats = await features.forProfile(store, me, prof, legacy, clock());
         const libT = stuList.length ? await features.many(cmd, store, 'acervo', stuList.map((x) => x.code), legacy, clock()) : new Set();
-        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: stuList, ff: feats, ...(feats.includes('aula_online') && prof.ml ? { ml: prof.ml } : {}), lb: feats.includes('acervo') ? 1 : 0, lbT: stuList.map((x) => x.code).filter((c) => libT.has(c)), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...mirrorFlags(prof), ...noticeOf(prof) });
+        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: stuList, ff: feats, ...(feats.includes('aula_online') && prof.ml ? { ml: prof.ml } : {}), lb: feats.includes('acervo') ? 1 : 0, lbT: stuList.map((x) => x.code).filter((c) => libT.has(c)), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...(await mirrorFlags(store, me, prof, clock())), ...(prof.cn === '1' ? { cn: 1 } : {}), ...noticeOf(prof) });
+      }
+
+      // ---------------- cópia na nuvem com 1 aparelho (chave copia_nuvem + aceite da pessoa) ----------------
+      //   cloud_set { on: true|false } -> liga (aceite) ou desliga; desligar apaga a cópia do servidor se a conta tem 1 aparelho só.
+      if (action === 'cloud_set') {
+        const on = b.on === true;
+        if (on) {
+          const allowed = features.isOn(await features.loadCfg(store, clock()), 'copia_nuvem', me, prof, null);
+          if (!allowed) return send(403, { error: 'feature_off', message: 'A cópia na nuvem não está liberada para esta conta.' });
+          await store.hset(U(me), 'cn', '1');
+          return send(200, { ok: true, cn: 1 });
+        }
+        await store.hdel(U(me), 'cn');
+        if (!(prof.dl && devices.list(prof).length >= 2)) await mirror.clear(store, me);
+        return send(200, { ok: true, cn: 0 });
       }
 
       // ---------------- espelho da conta entre aparelhos (só com 2+ aparelhos; ver api/_lib/mirror.js) ----------------
@@ -349,7 +371,7 @@ function makeHandler(deps = {}) {
       //   mi_put { sec, u, d }    -> grava a seção (versão mais antiga que a guardada é ignorada)
       //   mi_del { sec, u }       -> marca a seção como apagada
       if (action === 'mi_list' || action === 'mi_get' || action === 'mi_put' || action === 'mi_del') {
-        if (devices.list(prof).length < 2) return send(409, { error: 'mirror_off' });
+        if (!(await mirrorActive(store, me, prof, clock()))) return send(409, { error: 'mirror_off' });
         const hourN = await store.incr(`mirror:${action === 'mi_put' || action === 'mi_del' ? 'w' : 'r'}:${me}:${hour}`, 3600);
         if (hourN.n > (action === 'mi_put' || action === 'mi_del' ? MIRROR_PUTS_PER_HOUR : MIRROR_PULLS_PER_HOUR)) return send(429, { error: 'Muitas consultas. Tente mais tarde.' });
         if (action === 'mi_list') return send(200, { ok: true, mr: Number(prof.mr) || 0, secs: await mirror.list(store, me) });
@@ -397,7 +419,7 @@ function makeHandler(deps = {}) {
       if (action === 'rev') {
         // Conta 1 em cada 10 consultas (barato) para o painel estimar o custo do polling.
         if (Math.random() < 0.1) await metric('rev10');
-        return send(200, { ok: true, lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...mirrorFlags(prof), ...noticeOf(prof) });
+        return send(200, { ok: true, lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...(await mirrorFlags(store, me, prof, clock())), ...noticeOf(prof) });
       }
 
       // ---------------- conversa particular com o administrador (api/_lib/inbox.js) ----------------
