@@ -182,7 +182,7 @@ class ScaleExercise {
   double arrivalSpread;
 
   /// Modo guiado: tempo (s) SEGUIDO dentro da faixa "afinado" para a nota valer.
-  final double holdSeconds;
+  double holdSeconds;
 
   /// Tempo inicial ignorado na medida (a altura ainda está assentando).
   final double settleSeconds;

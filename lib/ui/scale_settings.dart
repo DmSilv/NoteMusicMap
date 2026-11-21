@@ -358,6 +358,32 @@ List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required boo
         ]),
       ),
     if (!(e?.flow ?? app.exerciseFlow))
+      DsSettingRow(
+        label: tr('Segurar a nota'),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<ScaleHold>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(value: ScaleHold.seconds, label: Text(tr('0,5 s'))),
+                ButtonSegment(value: ScaleHold.beat1, label: Text(tr('1 tempo'))),
+                ButtonSegment(value: ScaleHold.beat2, label: Text(tr('2 tempos'))),
+              ],
+              selected: {app.scaleHold},
+              onSelectionChanged: (v) => app.setScaleHold(v.first),
+            ),
+          ),
+          const DsGap(Ds.s8),
+          Text(
+            app.scaleHold == ScaleHold.seconds
+                ? tr('A nota vale depois de meio segundo afinada.')
+                : tr('Com o metrônomo em {0} bpm, a nota vale depois de {1} s afinada.', [app.metro.bpm.round(), app.scaleHoldSeconds.toStringAsFixed(1)]),
+            style: Ds.support(),
+          ),
+        ]),
+      ),
+    if (!(e?.flow ?? app.exerciseFlow))
       SwitchListTile(
         contentPadding: EdgeInsets.zero,
         title: Text(tr('Sem escorregar o dedo'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: Ds.fontBody)),

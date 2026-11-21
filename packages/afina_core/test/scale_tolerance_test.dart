@@ -149,6 +149,18 @@ void main() {
     });
   });
 
+  group('segurar em tempos do metrônomo', () {
+    test('o tempo de segurar pode mudar com o exercício em andamento', () {
+      final e = make(ScaleTolerance.standard);
+      e.holdSeconds = 1.5; // 2 tempos a 80 bpm
+      expect(play(e, 67, 1.0), isEmpty);
+      expect(e.index, 0);
+      expect(play(e, 67, 1.0), isNotEmpty);
+      e.holdSeconds = 0.5;
+      expect(play(e, 69, 0.8), isNotEmpty);
+    });
+  });
+
   group('voltar à nota anterior, de forma mais gentil', () {
     ScaleExercise lockedOnce() {
       final e = make(ScaleTolerance.strict);

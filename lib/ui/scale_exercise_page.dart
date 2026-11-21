@@ -12,6 +12,7 @@ import 'scale_settings.dart';
 import 'staff_card.dart';
 import 'staff_view.dart';
 import 'theme.dart';
+import 'toast.dart';
 import 'transitions.dart';
 import 'widgets.dart';
 
@@ -53,7 +54,8 @@ class ScaleExercisePage extends StatelessWidget {
           );
         },
       ),
-      body: SafeArea(
+      body: _ToastShift(
+        child: SafeArea(
         child: ListenableBuilder(
           listenable: app.live,
           builder: (context, _) {
@@ -67,7 +69,9 @@ class ScaleExercisePage extends StatelessWidget {
                 children: [
                   _header(e),
                   const SizedBox(height: 8),
-                  _notation(e, (MediaQuery.sizeOf(context).height - 600).clamp(150.0, 230.0)),
+                  _metroStrip(),
+                  const SizedBox(height: 8),
+                  _notation(e, (MediaQuery.sizeOf(context).height - 640).clamp(130.0, 220.0)),
                   const SizedBox(height: 12),
                   _guidedCard(e),
                   const SizedBox(height: 12),
@@ -96,6 +100,57 @@ class ScaleExercisePage extends StatelessWidget {
           },
         ),
       ),
+      ),
+    );
+  }
+
+  /// Metrônomo ao lado da partitura: liga/desliga, BPM e o pulso na tela. O som pode ficar desligado (só o pulso visual),
+  /// para o microfone não escutar o clique.
+  Widget _metroStrip() {
+    return ListenableBuilder(
+      listenable: app,
+      builder: (context, _) {
+        final running = app.metroRunning;
+        final silent = app.scaleMetroSilent;
+        final bpm = app.metro.bpm.round();
+        return Container(
+          height: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(color: AppColors.surface2.withValues(alpha: 0.55), borderRadius: BorderRadius.circular(14)),
+          child: Row(children: [
+            IconButton(
+              tooltip: running ? tr('Parar o metrônomo') : tr('Ligar o metrônomo'),
+              onPressed: app.toggleScaleMetronome,
+              icon: Icon(running ? Icons.pause_circle_filled_rounded : Icons.play_circle_fill_rounded, size: 30, color: running ? AppColors.inTune : AppColors.textDim),
+            ),
+            Expanded(
+              child: ValueListenableBuilder<MetroBeat>(
+                valueListenable: app.metroBeat,
+                builder: (c, b, _) => Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  for (var i = 0; i < app.metro.beatsPerBar.clamp(1, 8); i++)
+                    Container(
+                      width: 12,
+                      height: 12,
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: running && b.beat == i ? (i == 0 ? AppColors.inTune : AppColors.text) : AppColors.surface2,
+                      ),
+                    ),
+                ]),
+              ),
+            ),
+            IconButton(tooltip: tr('Mais devagar'), onPressed: () => app.setBpm(app.metro.bpm - 4), icon: const Icon(Icons.remove_circle_outline_rounded)),
+            SizedBox(width: 40, child: Text('$bpm', textAlign: TextAlign.center, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
+            IconButton(tooltip: tr('Mais rápido'), onPressed: () => app.setBpm(app.metro.bpm + 4), icon: const Icon(Icons.add_circle_outline_rounded)),
+            IconButton(
+              tooltip: silent ? tr('Só o pulso na tela (sem som)') : tr('Com som'),
+              onPressed: () => app.setScaleMetroSound(silent),
+              icon: Icon(silent ? Icons.volume_off_rounded : Icons.volume_up_rounded, color: silent ? AppColors.textDim : AppColors.text),
+            ),
+          ]),
+        );
+      },
     );
   }
 
@@ -914,6 +969,35 @@ Widget directionPicker(AppState app, {VoidCallback? onChanged}) => SegmentedButt
         onChanged?.call();
       },
     );
+
+/// Enquanto a tela do exercício está aberta, os avisos do app descem para não cobrir o cabeçalho (nota X de N).
+class _ToastShift extends StatefulWidget {
+  final Widget child;
+  const _ToastShift({required this.child});
+
+  @override
+  State<_ToastShift> createState() => _ToastShiftState();
+}
+
+class _ToastShiftState extends State<_ToastShift> {
+  double _before = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _before = kToastExtraTop;
+    kToastExtraTop = _before + 44;
+  }
+
+  @override
+  void dispose() {
+    kToastExtraTop = _before;
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
 
 /// Anel de progresso ao redor da nota: o trecho preenchido é o tempo já segurado afinado.
 class _RingPainter extends CustomPainter {

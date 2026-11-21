@@ -58,6 +58,9 @@ class MetroBeat {
   static const idle = MetroBeat(-1, -1, Accent.weak);
 }
 
+/// Quanto tempo a nota afinada precisa ser segurada na escala guiada.
+enum ScaleHold { seconds, beat1, beat2 }
+
 /// Jeito de marcar o tempo de estudo.
 enum StudyMode { pomodoro, stopwatch, custom }
 
@@ -4549,6 +4552,50 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Quanto tempo segurar a nota afinada: 0,5 s, ou 1 ou 2 tempos do metrônomo (o BPM da aba Metrônomo).
+  ScaleHold scaleHold = ScaleHold.seconds;
+
+  double get scaleHoldSeconds => switch (scaleHold) {
+        ScaleHold.seconds => 0.5,
+        ScaleHold.beat1 => (60 / metro.bpm).clamp(0.4, 3.0).toDouble(),
+        ScaleHold.beat2 => (120 / metro.bpm).clamp(0.4, 3.0).toDouble(),
+      };
+
+  void setScaleHold(ScaleHold h) {
+    scaleHold = h;
+    exercise?.holdSeconds = scaleHoldSeconds;
+    _prefs?.setString('scale_hold', h.name);
+    notifyListeners();
+  }
+
+  /// O metrônomo foi ligado pela escala guiada (então para junto com ela).
+  bool _metroFromScale = false;
+
+  /// Liga ou desliga o metrônomo dentro do exercício.
+  Future<void> toggleScaleMetronome() async {
+    _metroFromScale = !metroRunning;
+    await toggleMetronome();
+  }
+
+  Future<void> _stopScaleMetro() async {
+    if (_metroFromScale && metroRunning) await toggleMetronome();
+    _metroFromScale = false;
+  }
+
+  double _metroVolumeBeforeSilence = 1.0;
+
+  /// Só o pulso na tela, sem o clique (o microfone não escuta o metrônomo).
+  bool get scaleMetroSilent => metro.volume <= 0.001;
+
+  void setScaleMetroSound(bool on) {
+    if (on && scaleMetroSilent) {
+      setMetro(metro.copyWith(volume: _metroVolumeBeforeSilence > 0.05 ? _metroVolumeBeforeSilence : 1.0));
+    } else if (!on && !scaleMetroSilent) {
+      _metroVolumeBeforeSilence = metro.volume;
+      setMetro(metro.copyWith(volume: 0));
+    }
+  }
+
   void setScaleNoSlide(bool v) {
     scaleNoSlide = v;
     exercise?.noSlide = v; // vale já no exercício em andamento (e solta quem estava travado)
@@ -4569,6 +4616,7 @@ class AppState extends ChangeNotifier {
       type: scaleType,
       octaves: scaleOctaves,
       zone: scaleTolerance.cents,
+      holdSeconds: scaleHoldSeconds,
       arrivalSeconds: scaleTolerance.arrivalSeconds,
       arrivalSpread: scaleTolerance.spread,
       flow: exerciseFlow,
@@ -4590,6 +4638,7 @@ class AppState extends ChangeNotifier {
     final stopDemo = demo && listening;
     exercise = null;
     exerciseDone = false;
+    unawaited(_stopScaleMetro());
     if (stopDemo) stopListening(quiet: true);
     notifyListeners();
   }
@@ -4633,6 +4682,7 @@ class AppState extends ChangeNotifier {
     final e = exercise;
     if (e == null) return;
     exerciseDone = true;
+    unawaited(_stopScaleMetro());
     final sc = e.score;
     // No modo demonstração não se guarda histórico (não é a execução do músico).
     final student = (!demo && teacherMode) ? activeStudent : null;
@@ -4783,6 +4833,7 @@ class AppState extends ChangeNotifier {
     scaleHints = p.getBool('scale_hints') ?? true;
     scaleNoSlide = p.getBool('scale_noslide') ?? true;
     scaleTolerance = ScaleTolerance.byName(p.getString('scale_tol'));
+    scaleHold = ScaleHold.values.firstWhere((x) => x.name == p.getString('scale_hold'), orElse: () => ScaleHold.seconds);
     scaleOttava = p.getBool('scale_8va') ?? true;
     scaleFingers = p.getBool('scale_fingers') ?? true;
     scaleAlt = p.getBool('scale_alt') ?? false;
@@ -5405,6 +5456,7 @@ class AppState extends ChangeNotifier {
 
   void setMetro(MetronomeConfig c) {
     metro = c;
+    exercise?.holdSeconds = scaleHoldSeconds; // segurar em tempos acompanha o BPM
     metroPlayer.update(c);
     _save();
     notifyListeners();
