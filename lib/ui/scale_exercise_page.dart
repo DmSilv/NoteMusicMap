@@ -50,7 +50,16 @@ class ScaleExercisePage extends StatelessWidget {
           if (e == null || e.flow || e.finished || !app.listening) return const SizedBox.shrink();
           return DecoratedBox(
             decoration: BoxDecoration(border: Border(top: BorderSide(color: AppColors.surface2))),
-            child: SafeArea(top: false, child: Padding(padding: const EdgeInsets.fromLTRB(14, 8, 14, 8), child: _controls(context, e))),
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 8),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  if (_compact(context) && e.replayNeeded) ...[_eventCard(e, compact: true), const SizedBox(height: 8)],
+                  _controls(context, e),
+                ]),
+              ),
+            ),
           );
         },
       ),
@@ -63,6 +72,18 @@ class ScaleExercisePage extends StatelessWidget {
             if (e == null) return const SizedBox.shrink();
             // Guiado ouvindo: a partitura vai para cima (é o que se lê), depois a nota no anel e a régua; os botões ficam no rodapé.
             final guided = app.listening && !e.flow && !e.finished;
+            if (guided && _compact(context)) {
+              return ListView(
+                padding: const EdgeInsets.fromLTRB(14, 2, 14, 12),
+                children: [
+                  _headerCompact(e),
+                  const SizedBox(height: 6),
+                  _notation(e, (MediaQuery.sizeOf(context).height - 480).clamp(110.0, 250.0)),
+                  const SizedBox(height: 8),
+                  _compactCard(context, e),
+                ],
+              );
+            }
             if (guided) {
               return ListView(
                 padding: const EdgeInsets.fromLTRB(14, 4, 14, 16),
@@ -556,6 +577,31 @@ class ScaleExercisePage extends StatelessWidget {
   /// Guiado: a régua e UMA frase curta, sem atraso, dizem como ajustar a nota agora. Só quando algo exige uma ação (voltar,
   /// nota errada) aparece o cartão colorido logo abaixo. Verde = afinado, laranja = volte, vermelho = nota errada.
   Widget _guidedFeedback(ScaleExercise e) {
+    final f = _fb(e);
+    return Column(
+      children: [
+        AppCard(
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+          child: Column(children: [
+            _zoneMeter(f.cents, f.zone),
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 22,
+              child: Center(
+                child: Text(f.hint, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: TextStyle(color: f.hintColor, fontSize: 14.5, fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ]),
+        ),
+        if (e.replayNeeded) ...[const SizedBox(height: 12), _eventCard(e)],
+      ],
+    );
+  }
+
+  /// Celular (altura útil menor que 900): tudo precisa caber sem rolar, mesmo travado com o aviso, então o anel e a régua ficam lado a lado.
+  bool _compact(BuildContext context) => MediaQuery.sizeOf(context).height < 900;
+
+  ({double? cents, double zone, String hint, Color hintColor}) _fb(ScaleExercise e) {
     final cur = app.current;
     final zone = e.zone;
     final back = e.replayMidi;
@@ -566,23 +612,108 @@ class ScaleExercisePage extends StatelessWidget {
     final holdingPrev = !locked && e.index > 0 && cur?.midi == e.sequence[e.index - 1];
     final cue = locked ? e.cueTo(back, cur?.midi, cur?.cents ?? 0) : (holdingPrev ? null : e.cue(cur?.midi, cur?.cents ?? 0));
     final (hint, hintColor) = _hintFor(e, cents: cents, zone: zone, cue: cue, locked: locked);
-    return Column(
-      children: [
-        AppCard(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
-          child: Column(children: [
-            _zoneMeter(cents, zone),
-            const SizedBox(height: 6),
-            SizedBox(
-              height: 22,
-              child: Center(
-                child: Text(hint, maxLines: 1, overflow: TextOverflow.ellipsis, textAlign: TextAlign.center, style: TextStyle(color: hintColor, fontSize: 14.5, fontWeight: FontWeight.w600)),
+    return (cents: cents, zone: zone, hint: hint, hintColor: hintColor);
+  }
+
+  /// Compacto: "Nota 4 de 15" e o metrônomo na mesma linha, com o progresso fino embaixo.
+  Widget _headerCompact(ScaleExercise e) {
+    final status = tr('Nota {0} de {1} · {2}', [e.index + 1, e.sequence.length, e.ascendingNow ? '↑' : '↓']);
+    Widget tight(IconData i, String tip, VoidCallback f, {Color? color, double size = 24}) => IconButton(
+          tooltip: tip,
+          onPressed: f,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints.tightFor(width: 40, height: 40),
+          icon: Icon(i, size: size, color: color),
+        );
+    return ListenableBuilder(
+      listenable: app,
+      builder: (context, _) {
+        final running = app.metroRunning;
+        final silent = app.scaleMetroSilent;
+        return Column(children: [
+          Row(children: [
+            Expanded(child: Text(status, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
+            tight(running ? Icons.pause_circle_filled_rounded : Icons.play_circle_fill_rounded, running ? tr('Parar o metrônomo') : tr('Ligar o metrônomo'), app.toggleScaleMetronome,
+                color: running ? AppColors.inTune : AppColors.textDim, size: 28),
+            ValueListenableBuilder<MetroBeat>(
+              valueListenable: app.metroBeat,
+              builder: (c, b, _) => Container(
+                width: 10,
+                height: 10,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: running && b.beat >= 0 ? (b.beat == 0 ? AppColors.inTune : AppColors.text) : AppColors.surface2),
               ),
+            ),
+            tight(Icons.remove_circle_outline_rounded, tr('Mais devagar'), () => app.setBpm(app.metro.bpm - 4)),
+            Text('${app.metro.bpm.round()}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800)),
+            tight(Icons.add_circle_outline_rounded, tr('Mais rápido'), () => app.setBpm(app.metro.bpm + 4)),
+            tight(silent ? Icons.volume_off_rounded : Icons.volume_up_rounded, silent ? tr('Só o pulso na tela (sem som)') : tr('Com som'), () => app.setScaleMetroSound(silent),
+                color: silent ? AppColors.textDim : AppColors.text, size: 22),
+          ]),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(minHeight: 4, value: e.progress, backgroundColor: AppColors.surface2, color: AppColors.accent),
+          ),
+        ]);
+      },
+    );
+  }
+
+  /// Compacto: o anel (menor) à esquerda; à direita a régua, a frase e as próximas notas.
+  Widget _compactCard(BuildContext context, ScaleExercise e) {
+    final f = _fb(e);
+    final back = e.replayMidi;
+    final locked = e.replayNeeded && back != null;
+    final m = back ?? e.expected!;
+    final asc = e.ascendingAt(back != null ? e.index - 1 : e.index);
+    final next = [
+      for (var k = 1; k <= 3; k++)
+        if (e.index + k < e.sequence.length) (e.sequence[e.index + k], e.ascendingAt(e.index + k))
+    ];
+    final noteColor = locked ? AppColors.sharp : (e.tunedNow ? AppColors.inTune : AppColors.text);
+    final finger = _fingerNow(e);
+    final ring = MediaQuery.sizeOf(context).height >= 780 ? 128.0 : 104.0;
+    return AppCard(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        SizedBox(
+          width: ring,
+          height: ring,
+          child: Stack(alignment: Alignment.center, clipBehavior: Clip.none, children: [
+            TweenAnimationBuilder<double>(
+              tween: Tween<double>(end: locked ? 0 : e.holdProgress),
+              duration: const Duration(milliseconds: 140),
+              builder: (c, v, _) => CustomPaint(
+                size: Size(ring, ring),
+                painter: _RingPainter(progress: v, color: locked ? AppColors.sharp : AppColors.inTune, track: AppColors.surface2),
+              ),
+            ),
+            KeyedSubtree(key: ValueKey('c${e.index}-$m'), child: _bigNote(m, asc: asc, size: ring >= 120 ? 44 : 36, color: noteColor)),
+            if (e.justCompleted && !locked) Positioned(right: -2, top: -2, child: Icon(Icons.check_circle_rounded, size: 26, color: AppColors.inTune, semanticLabel: tr('Afinado'))),
+          ]),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            _zoneMeter(f.cents, f.zone),
+            const SizedBox(height: 4),
+            SizedBox(
+              height: 36,
+              child: Text(f.hint, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: f.hintColor, fontSize: 13.5, fontWeight: FontWeight.w600, height: 1.25)),
+            ),
+            SizedBox(
+              height: 26,
+              child: next.isEmpty
+                  ? null
+                  : Row(children: [
+                      if (finger != null && finger.isNotEmpty) ...[Flexible(child: Text(finger, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700))), const SizedBox(width: 8)],
+                      Text(tr('Depois'), style: TextStyle(color: AppColors.textDim, fontSize: 12)),
+                      const SizedBox(width: 6),
+                      for (final n in next.take(2)) ...[_miniNote(app.scaleNoteName(n.$1, ascending: n.$2, withOctave: true)), const SizedBox(width: 2)],
+                    ]),
             ),
           ]),
         ),
-        if (e.replayNeeded) ...[const SizedBox(height: 12), _eventCard(e)],
-      ],
+      ]),
     );
   }
 
@@ -628,7 +759,7 @@ class ScaleExercisePage extends StatelessWidget {
   }
 
   /// O único aviso em caixa: o exercício travou e pede uma ação. Laranja = volte; vermelho = tocou outra nota.
-  Widget _eventCard(ScaleExercise e) {
+  Widget _eventCard(ScaleExercise e, {bool compact = false}) {
     final back = e.replayMidi;
     final reason = e.lockReason;
     final wrong = reason == LockReason.wrongNote;
@@ -653,7 +784,7 @@ class ScaleExercisePage extends StatelessWidget {
       liveRegion: true,
       label: '$title. $detail',
       child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+        padding: compact ? const EdgeInsets.fromLTRB(12, 8, 12, 4) : const EdgeInsets.fromLTRB(14, 12, 14, 10),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.13),
           borderRadius: BorderRadius.circular(16),
@@ -665,13 +796,14 @@ class ScaleExercisePage extends StatelessWidget {
             const SizedBox(width: 10),
             Expanded(
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(title, style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w800, height: 1.2)),
-                const SizedBox(height: 4),
-                Text(detail, style: const TextStyle(fontSize: 14, height: 1.3)),
-                if (tip != null) ...[
+                Text(title, maxLines: compact ? 2 : null, overflow: compact ? TextOverflow.ellipsis : null, style: TextStyle(color: color, fontSize: compact ? 14.5 : 16, fontWeight: FontWeight.w800, height: 1.2)),
+                SizedBox(height: compact ? 2 : 4),
+                Text(detail, maxLines: compact ? 2 : null, overflow: compact ? TextOverflow.ellipsis : null, style: TextStyle(fontSize: compact ? 13 : 14, height: 1.25)),
+                if (tip != null && !compact) ...[
                   const SizedBox(height: 8),
                   Text(tip, style: TextStyle(color: AppColors.textDim, fontSize: 13, height: 1.3)),
                 ],
+                if (tip != null && compact) _TipLine(tip: tip),
               ]),
             ),
           ]),
@@ -679,7 +811,7 @@ class ScaleExercisePage extends StatelessWidget {
             Align(
               alignment: Alignment.centerRight,
               child: TextButton.icon(
-                style: TextButton.styleFrom(minimumSize: const Size(0, Ds.tap)),
+                style: TextButton.styleFrom(minimumSize: Size(0, compact ? 36 : Ds.tap), padding: compact ? const EdgeInsets.symmetric(horizontal: 8) : null),
                 onPressed: e.skipReplay,
                 icon: const Icon(Icons.redo_rounded, size: 18),
                 label: Text(tr('Tentar de novo sem voltar')),
@@ -969,6 +1101,37 @@ Widget directionPicker(AppState app, {VoidCallback? onChanged}) => SegmentedButt
         onChanged?.call();
       },
     );
+
+/// Dica curta atrás de um toque ("Ver dica"), para o aviso de travar caber em telas baixas.
+class _TipLine extends StatefulWidget {
+  final String tip;
+  const _TipLine({required this.tip});
+
+  @override
+  State<_TipLine> createState() => _TipLineState();
+}
+
+class _TipLineState extends State<_TipLine> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_open) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 4, bottom: 4),
+        child: GestureDetector(onTap: () => setState(() => _open = false), child: Text(widget.tip, style: TextStyle(color: AppColors.textDim, fontSize: 12.5, height: 1.25))),
+      );
+    }
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton(
+        style: TextButton.styleFrom(minimumSize: const Size(0, 32), padding: EdgeInsets.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+        onPressed: () => setState(() => _open = true),
+        child: Text(tr('Ver dica'), style: const TextStyle(fontSize: 13)),
+      ),
+    );
+  }
+}
 
 /// Enquanto a tela do exercício está aberta, os avisos do app descem para não cobrir o cabeçalho (nota X de N).
 class _ToastShift extends StatefulWidget {

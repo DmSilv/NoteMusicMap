@@ -491,4 +491,5 @@ const Map<String, String> kEnB14 = {
   '2 tempos': '2 beats',
   'A nota vale depois de meio segundo afinada.': 'The note counts after half a second in tune.',
   'Com o metrônomo em {0} bpm, a nota vale depois de {1} s afinada.': 'With the metronome at {0} bpm, the note counts after {1} s in tune.',
+  'Ver dica': 'Show tip',
 };
