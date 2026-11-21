@@ -5574,6 +5574,24 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Exclui a conta de verdade: primeiro no servidor (vínculos, aulas e tarefas enviadas, foto, e-mail, cópia na nuvem) e, só se
+  /// isso der certo, neste aparelho. Devolve o texto do problema, ou null se deu certo.
+  Future<String?> deleteMyAccount() async {
+    // Para as consultas ao servidor enquanto exclui: uma sincronização no meio recriaria o perfil.
+    final was = linkEnabled;
+    linkEnabled = false;
+    final r = await links.accountDelete(profile.shareCode, profile.secret);
+    if (!r.ok) {
+      linkEnabled = was;
+      if (r.offline || r.unavailable) return tr('Sem conexão com o servidor agora. Tente de novo com a internet ligada.');
+      return r.error ?? tr('Não foi possível excluir agora. Fale com o suporte em Ajustes › Ajuda e suporte.');
+    }
+    // A conta já não existe no servidor: o app não volta a consultá-lo.
+    _prefs?.setBool('link_on', false);
+    await resetEverything();
+    return null;
+  }
+
   /// Apaga TUDO que o app guardou neste aparelho (ajustes, histórico, IA,
   /// permissões já explicadas) e volta ao estado de primeiro uso. Na web também
   /// limpa o cache da página e recarrega, para pegar a versão mais nova.

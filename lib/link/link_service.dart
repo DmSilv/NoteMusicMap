@@ -435,6 +435,9 @@ class LinkService {
   /// Relato de problema para o administrador (não abre conversa; ele decide).
   Future<LinkReply> rqPut(String code, String secret, String text, {String version = '', String platform = ''}) =>
       _post({..._auth(code, secret, null), 'action': 'rq_put', 'x': text, 'v': version, 'p': platform});
+  /// Exclui a própria conta no servidor (tudo o que ele guarda deste perfil). Idempotente: conta que já não existe também dá ok.
+  Future<LinkReply> accountDelete(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'account_delete', 'confirm': true});
+
   /// Aceita ([on]) ou desliga a cópia na nuvem (desligar apaga a cópia do servidor quando há um aparelho só).
   Future<LinkReply> cloudSet(String code, String secret, bool on) => _post({..._auth(code, secret, null), 'action': 'cloud_set', 'on': on});
   Future<LinkReply> msgOk(String code, String secret, bool yes) => _post({..._auth(code, secret, null), 'action': 'msg_ok', 'yes': yes});

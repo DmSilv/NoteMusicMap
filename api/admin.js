@@ -74,6 +74,7 @@ const inbox = require('./_lib/inbox');
 const { validSubscription } = require('./_lib/webpush');
 const { K: EK, day: errDay, hour: errHour, sanitize } = require('./_lib/errors_lib');
 const features = require('./_lib/features');
+const { purgeProfile } = require('./_lib/purge');
 const costModel = require('./_lib/cost_model');
 const news = require('./_lib/news');
 const surveys = require('./_lib/surveys');
@@ -370,35 +371,7 @@ function makeHandler(deps = {}) {
         if (needCode()) return;
         if (fixCode(b.confirm) !== code) return send(400, { error: 'confirm_required', message: 'Para excluir, repita o código do perfil.' });
         if ((await store.hget(U(code), 'h')) === undefined) return send(404, { error: 'Perfil não encontrado.' });
-        const [students, teachers] = await Promise.all([store.hgetall(T(code)), store.hgetall(S(code))]);
-        const wipePrefix = async (key, prefix) => {
-          for (const f of Object.keys(await store.hgetall(key))) if (f.startsWith(prefix)) await store.hdel(key, f);
-        };
-        for (const st of Object.keys(students)) { // este perfil era o professor deles
-          await store.hdel(S(st), code);
-          await wipePrefix(SS(st), `${code}:`);
-          await wipePrefix(UL(st), `${code}:`);
-          await wipePrefix(VD(st), `${code}:`);
-          await store.hset(U(st), 'kr', String(now));
-          if ((await store.hlen(S(st))) === 0) await profiles.setRole(cmd, st, 's', false, now);
-        }
-        for (const te of Object.keys(teachers)) { // este perfil era o aluno deles
-          await store.hdel(T(te), code);
-          await wipePrefix(DN(te), `${code}:`);
-          const sl = await store.hgetall(SL(te));
-          for (const [id, json] of Object.entries(sl)) {
-            try { if (JSON.parse(json).sc === code) await store.hdel(SL(te), id); } catch (_) { /* ruim */ }
-          }
-          await store.hset(U(te), 'kr', String(now));
-          if ((await store.hlen(T(te))) === 0) await profiles.setRole(cmd, te, 't', false, now);
-        }
-        for (const key of [T, S, SL, SS, UL, DN, VD, AV, TK, PS, LB, (c) => `ph:${c}`, (c) => `mi:${c}`, (c) => `mm:${c}`, U]) {
-          for (const f of Object.keys(await store.hgetall(key(code)))) await store.hdel(key(code), f);
-        }
-        await inbox.adminDelete(store, code); // a conversa particular some junto com o perfil
-        await profiles.forget(cmd, code);
-        await cmd.cmd(['SREM', BLOCKED, code]);
-        await cmd.cmd(['HINCRBY', K.total, 'profiles', '-1']);
+        await purgeProfile(store, cmd, code, now);
         await log('delete', code);
         return send(200, { ok: true });
       }

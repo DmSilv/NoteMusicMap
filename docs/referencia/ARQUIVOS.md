@@ -319,6 +319,7 @@
 | `api/_lib/profiles.js` | Índice dos perfis anônimos (código + apelido) para o painel do administrador: quando entrou, última atividade, papel (professor / aluno) e bloqueio. NÃO há cadastro nem login. Custo: 3 comandos quando o perfil nasce;… |
 | `api/_lib/prompts.js` | Instruções de cada tipo de pedido. O texto recebido é DADO, nunca instrução. |
 | `api/_lib/providers.js` | Um adaptador por serviço de IA. Todos recebem {system, prompt} e devolvem {status: 'ok'\|'busy'\|'auth'\|'error', text?, model?, retryAfterMs?}. |
+| `api/_lib/purge.js` | Exclusão completa de um perfil: tudo o que o servidor guarda dele (vínculos, aulas, tarefas, horários, foto, cópia na nuvem, conversa, índices de e-mail e chave de recuperação, listas de recursos e grupos). Usada… |
 | `api/_lib/queue.js` | FILA JUSTA entre aparelhos: cada serviço de IA tem um limite de pedidos por minuto; cada pedido RESERVA o próximo horário livre ("slot"), na ordem de chegada. Se o horário está perto, o servidor espera e atende; se… |
 | `api/_lib/router.js` | REGRA DE NEGÓCIO: qual IA atende cada tipo de pedido, e quando trocar de serviço. - cada tipo de pedido tem uma ordem de preferência e um "nível" de modelo (rápido e barato para resumos; mais capaz para relatórios e… |
 | `api/_lib/store.js` | Contadores, estado de saúde e fila. Usa o Upstash Redis (REST) quando configurado, para valer entre TODAS as instâncias da Vercel; senão cai para a memória da instância. |
@@ -334,6 +335,7 @@
 |---|---|
 | `api/_lib/webpush.test.js` | Exemplo oficial da RFC 8291 (apêndice A). |
 | `api/account.test.js` | Testes do e-mail da conta (sem senha), sem rede: `node --test api/account.test.js` |
+| `api/account_delete.test.js` | O usuário exclui a própria conta: `node --test api/account_delete.test.js` |
 | `api/admin.test.js` | Testes do painel do administrador (indicadores e gestão de perfis), sem rede: `node --test api/admin.test.js` |
 | `api/admin_design.test.js` | O painel segue o mesmo design system do app: `node --test api/admin_design.test.js` (cores iguais às de lib/ui/theme.dart, escala de espaço, abas com ícone, frase de apoio em todo título, movimento que se desliga). |
 | `api/admin_push.test.js` | Aviso de bug grave ao admin (Web Push), precisão dos bugs e busca por nome, sem rede: `node --test api/admin_push.test.js` |
@@ -396,4 +398,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **353** arquivos mapeados.
+Total: **355** arquivos mapeados.

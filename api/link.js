@@ -40,6 +40,7 @@ const { unlinkPair } = require('./_lib/unlink');
 const { serverError } = require('./_lib/error_store');
 const library = require('./_lib/library');
 const features = require('./_lib/features');
+const { purgeProfile } = require('./_lib/purge');
 const inbox = require('./_lib/inbox');
 
 const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -348,6 +349,14 @@ function makeHandler(deps = {}) {
         const feats = await features.forProfile(store, me, prof, legacy, clock());
         const libT = stuList.length ? await features.many(cmd, store, 'acervo', stuList.map((x) => x.code), legacy, clock()) : new Set();
         return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: stuList, ff: feats, ...(feats.includes('aula_online') && prof.ml ? { ml: prof.ml } : {}), lb: feats.includes('acervo') ? 1 : 0, lbT: stuList.map((x) => x.code).filter((c) => libT.has(c)), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...(await mirrorFlags(store, me, prof, clock())), ...(prof.cn === '1' ? { cn: 1 } : {}), ...noticeOf(prof) });
+      }
+
+      // ---------------- excluir a própria conta (Ajustes › Excluir minha conta) ----------------
+      //   account_delete { confirm: true } -> apaga tudo o que o servidor guarda deste perfil (mesma rotina do painel)
+      if (action === 'account_delete') {
+        if (b.confirm !== true) return send(400, { error: 'confirm_required', message: 'Confirme a exclusão.' });
+        const r = await purgeProfile(store, cmd, me, clock());
+        return send(200, { ok: true, ...(r.ok ? {} : { gone: true }) });
       }
 
       // ---------------- cópia na nuvem com 1 aparelho (chave copia_nuvem + aceite da pessoa) ----------------

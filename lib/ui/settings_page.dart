@@ -437,6 +437,17 @@ class SettingsPage extends StatelessWidget {
         ),
         const DsGap(Ds.s8),
         Text(tr('Use se algo estiver estranho.'), style: Ds.support()),
+        const DsGap(Ds.s20),
+        Text(tr('Excluir a conta'), style: Ds.section()),
+        const DsGap(Ds.s8),
+        Text(tr('Apaga a sua conta no servidor e tudo deste aparelho. É definitivo.'), style: Ds.support()),
+        const DsGap(Ds.s8),
+        OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(foregroundColor: AppColors.wrong, side: BorderSide(color: AppColors.wrong), minimumSize: const Size.fromHeight(Ds.tap)),
+          onPressed: () => _deleteAccount(context),
+          icon: const Icon(Icons.person_remove_outlined),
+          label: Text(tr('Excluir minha conta'), style: const TextStyle(fontWeight: FontWeight.w700)),
+        ),
       ],
     );
   }
@@ -547,6 +558,51 @@ class SettingsPage extends StatelessWidget {
                 applicationIcon: const Padding(padding: EdgeInsets.all(8), child: AppLogo(size: 56)))),
       ],
     );
+  }
+
+  /// Excluir a conta: lista o que some e só libera o botão depois de digitar a palavra de confirmação.
+  Future<void> _deleteAccount(BuildContext context) async {
+    final word = tr('EXCLUIR');
+    final ctl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => AlertDialog(
+          title: Text(tr('Excluir a sua conta?')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(tr('No servidor: vínculos, aulas e tarefas enviadas, foto, e-mail e cópia na nuvem.')),
+              const SizedBox(height: 8),
+              Text(tr('Neste aparelho: histórico, ajustes e alunos cadastrados.')),
+              const SizedBox(height: 8),
+              Text(tr('Quem está vinculado a você perde o vínculo. Não dá para desfazer.'), style: TextStyle(color: AppColors.wrong, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 12),
+              TextField(
+                controller: ctl,
+                autocorrect: false,
+                textCapitalization: TextCapitalization.characters,
+                decoration: InputDecoration(labelText: tr('Digite {0} para confirmar', [word])),
+                onChanged: (_) => setS(() {}),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(tr('Cancelar'))),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: AppColors.wrong, foregroundColor: Colors.white),
+              onPressed: ctl.text.trim().toUpperCase() == word.toUpperCase() ? () => Navigator.pop(ctx, true) : null,
+              child: Text(tr('Excluir conta')),
+            ),
+          ],
+        ),
+      ),
+    );
+    ctl.dispose();
+    if (ok != true || !context.mounted) return;
+    final problem = await app.deleteMyAccount();
+    if (problem != null) app.say(problem);
   }
 
   Future<bool> _confirm(BuildContext context, String title, String body, String action) async {

@@ -295,6 +295,7 @@ Precisa do Upstash Redis. Sem ele devolve 503 e o app segue só neste aparelho.
 | `lesson` | Só 'lesson' pode ser grande; os demais pedidos têm ~200 bytes. |
 | `claim` | Liberação pelo suporte: o aparelho novo prova que tem o código de uso único gerado no painel e passa a ser o dono do perfil (o segredo antigo deixa de valer). Só a tentativa errada conta. |
 | `sync` | — |
+| `account_delete` | excluir a própria conta (Ajustes › Excluir minha conta) account_delete { confirm: true } -> apaga tudo o que o servidor guarda deste perfil (mesma rotina do painel) |
 | `cloud_set` | cópia na nuvem com 1 aparelho (chave copia_nuvem + aceite da pessoa) cloud_set { on: true\|false } -> liga (aceite) ou desliga; desligar apaga a cópia do servidor se a conta tem 1 aparelho só. |
 | `mi_list` | mi_get { secs: [...] }  -> { mitems: { seção: { u, d } } } mi_put { sec, u, d }    -> grava a seção (versão mais antiga que a guardada é ignorada) mi_del { sec, u }       -> marca a seção como apagada |
 | `mi_put` | — |
