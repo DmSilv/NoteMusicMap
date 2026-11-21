@@ -800,6 +800,14 @@ class AppState extends ChangeNotifier {
     return null;
   }
 
+  /// A pessoa declarou ter 18 anos ou mais (para ser professor). Quem já tem alunos cadastrados não é cobrado de novo.
+  bool get adultOk => (_prefs?.getBool('adult_ok') ?? false) || students.isNotEmpty;
+
+  void confirmAdult() {
+    _prefs?.setBool('adult_ok', true);
+    notifyListeners();
+  }
+
   void setTeacherMode(bool v) {
     teacherMode = v;
     if (v && !linkEnabled) {

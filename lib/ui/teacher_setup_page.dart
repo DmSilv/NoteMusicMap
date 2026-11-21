@@ -9,6 +9,26 @@ import 'teaching_ui.dart';
 import 'materials_sheet.dart';
 import 'theme.dart';
 
+/// Pede a declaração de maioridade a quem ainda não fez (vale para qualquer caminho que liga o modo professor).
+/// Devolve true se pode seguir.
+Future<bool> requireAdult(BuildContext context, AppState app) async {
+  if (app.adultOk) return true;
+  final yes = await showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      title: Text(tr('Tenho 18 anos ou mais')),
+      content: Text(tr('Só maiores de idade podem ser professores no app.')),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Agora não'))),
+        FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Confirmo'))),
+      ],
+    ),
+  );
+  if (yes != true) return false;
+  app.confirmAdult();
+  return true;
+}
+
 /// Cadastro do professor, em 3 passos curtos: como te chamar, que instrumentos leciona (e o que usa neles) e as turmas.
 /// Serve para qualquer professor de música: se o instrumento não está na lista, ele cria o seu e põe os métodos e as peças.
 /// Devolve true se o modo professor ficou ligado.
@@ -55,6 +75,7 @@ class _TeacherSetupPageState extends State<TeacherSetupPage> {
       return;
     }
     if (!await confirmTeacherLink(context, app)) return;
+    app.confirmAdult();
     app.setTeacherMode(true);
     if (mounted) Navigator.of(context).pop(true);
   }

@@ -22,6 +22,7 @@ import 'join_account_page.dart';
 import 'person_avatar.dart';
 import 'recovery_help_page.dart';
 import 'photo_pick.dart';
+import 'teacher_setup_page.dart' show requireAdult;
 import 'teaching_ui.dart';
 import 'materials_sheet.dart';
 import 'turmas_page.dart';
@@ -433,6 +434,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   onChanged: (v) async {
                     if (v) {
                       if (!await requireNickname(context, app, reason: tr('Para ser professor, seus alunos precisam ver o seu nome.'))) return;
+                      if (!context.mounted || !await requireAdult(context, app)) return;
                       if (!context.mounted || !await confirmTeacherLink(context, app)) return;
                       app.setTeacherMode(true);
                     } else {

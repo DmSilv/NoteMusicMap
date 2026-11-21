@@ -111,7 +111,7 @@
 | `lib/ui/support_sheet.dart` | "Ajuda e suporte": o passo a passo de acesso, a página de perguntas e respostas e o relato de um problema. |
 | `lib/ui/task_form_page.dart` | Formulário de tarefa (escala, arpejo, método e lição, repertório ou outra) com observações. |
 | `lib/ui/teacher_page.dart` | Tela Alunos do professor (lista, novo aluno, QR, importar, métodos, senha) e a ficha do aluno (aula, tarefas, validação, observações, relatórios). |
-| `lib/ui/teacher_setup_page.dart` | Cadastro do professor, em 3 passos curtos: como te chamar, que instrumentos leciona (e o que usa neles) e as turmas. Serve para qualquer professor de música: se o instrumento não está na lista, ele cria o seu e põe… |
+| `lib/ui/teacher_setup_page.dart` | Pede a declaração de maioridade a quem ainda não fez (vale para qualquer caminho que liga o modo professor). Devolve true se pode seguir. |
 | `lib/ui/teaching_ui.dart` | "Instrumentos que ensino": o professor marca um ou mais; as sugestões de método e de repertório vêm prontas. Quem ensina um instrumento que não está na lista cria o seu ("Outro instrumento") e põe os métodos e as… |
 | `lib/ui/theme.dart` | Paleta do app, com tema escuro e claro. As cores que mudam com o tema são `getters` lidos a cada construção de tela. [AppColors.dark] é definido uma vez por troca de tema em `main.dart` (que recria a árvore de… |
 | `lib/ui/toast.dart` | Aviso curto no TOPO da tela: aparece deslizando, some sozinho e pode ser arrastado para dispensar. Não cobre os botões de baixo nem exige toque. O tipo (sucesso, atenção, informação) vem do texto, ou de [kind]; muda… |

@@ -9,6 +9,7 @@ import 'hub_section.dart' show shareTeacherInvite;
 import 'safe_input.dart';
 import '../ai/coach_ai.dart';
 import 'design_system.dart';
+import 'teacher_setup_page.dart' show requireAdult;
 import 'dictation_button.dart';
 import 'dart:async';
 import 'markdown_lite.dart';
@@ -275,6 +276,7 @@ Future<void> handleIncomingStudentCode(BuildContext context, AppState app) async
     );
     if (on != true || !context.mounted) return;
     if (!await requireNickname(context, app, reason: tr('Para ser professor, seus alunos precisam ver o seu nome.'))) return;
+    if (!context.mounted || !await requireAdult(context, app)) return;
     if (!context.mounted) return;
     app.setTeacherMode(true);
   }

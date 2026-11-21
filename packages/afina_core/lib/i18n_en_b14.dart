@@ -415,4 +415,5 @@ const Map<String, String> kEnB14 = {
   'Confirme que você tem 18 anos ou mais.': 'Confirm that you are 18 or older.',
   'Tenho 18 anos ou mais': 'I am 18 or older',
   'Só maiores de idade podem ser professores no app.': 'Only adults can be teachers in the app.',
+  'Confirmo': 'I confirm',
 };

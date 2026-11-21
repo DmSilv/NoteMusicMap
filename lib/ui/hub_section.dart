@@ -154,6 +154,7 @@ class HubSection extends StatelessWidget {
       return;
     }
     if (!await requireNickname(context, app, reason: tr('Para ser professor, seus alunos precisam ver o seu nome.'))) return;
+    if (!context.mounted || !await requireAdult(context, app)) return;
     if (!context.mounted || !await confirmTeacherLink(context, app)) return;
     app.setTeacherMode(true);
   }
