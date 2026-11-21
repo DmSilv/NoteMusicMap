@@ -342,6 +342,7 @@
 | `api/devices.test.js` | Aparelhos da conta (até 5), sem rede: `node --test api/devices.test.js` |
 | `api/errors.test.js` | Relatórios de erro do app e a aba "Bugs" do painel, sem rede: `node --test api/errors.test.js` |
 | `api/features.test.js` | Testes das chaves de recursos (liberação aos poucos): `node --test api/features.test.js` |
+| `api/features_groups.test.js` | Grupos de recursos, precedência e diagnóstico "por que vê isto?": `node --test api/features_groups.test.js` |
 | `api/feedback.test.js` | Testes da nota do app e das pesquisas rápidas, sem rede: `node --test api/feedback.test.js` |
 | `api/fingering.test.js` | Dedilhado do violino editado no painel: validação, notas de cada escala, ações do admin e a leitura pública. `node --test api/fingering.test.js` |
 | `api/funnel.test.js` | Testes do funil de ativação e da comparação de agendas do painel: `node --test api/funnel.test.js` |
@@ -391,4 +392,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **348** arquivos mapeados.
+Total: **349** arquivos mapeados.

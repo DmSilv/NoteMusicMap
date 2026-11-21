@@ -720,6 +720,11 @@
     <main id="tab-features" hidden>
       <p class="lead">Cada novidade nasce desligada. Libere para alguns códigos, depois para uma parte dos usuários e, por fim, para todos.
         <b>Desligado</b> vale para todos (inclusive quem está na lista) e chega aos aparelhos em até 1 minuto. O servidor é quem decide; esconder no app não basta.</p>
+      <h2>Grupos <button class="help" data-def="ffgroups">?</button></h2>
+      <p class="lead">Um grupo é uma lista com nome (ex.: "Testadores"). Em cada recurso, marque os grupos que o veem. Os grupos automáticos valem para todos os professores ou todos os alunos.</p>
+      <div id="ffGroups"><div class="empty">Carregando…</div></div>
+      <h2>Recursos</h2>
+      <p class="lead">Cada novidade e quem a vê: estado geral, lista de códigos, grupos e porcentagem.</p>
       <div id="ffBox"><div class="empty">Carregando…</div></div>
     </main>
 
@@ -878,6 +883,7 @@
 
   // ---------------- Definições (o "?" de cada número) ----------------
   var DEFS = {
+    ffgroups: ['Grupos de recursos', 'Cada recurso pode ser liberado a grupos, além da lista de códigos e da porcentagem. Ordem de decisão: Desligado vence tudo; Todos libera todos; depois vale a lista de códigos, o grupo e a porcentagem (basta uma). Grupos manuais têm até 500 pessoas e você pode criar até 20. Quem entra ou sai de um grupo muda na próxima sincronização do app. O grupo fica guardado no perfil da pessoa, então não gasta comando a mais.'],
     presence: ['Perfis online agora', 'Perfis com o vínculo online ligado e o app aberto à frente, que deram sinal nos últimos 12 minutos. O app avisa o servidor no máximo a cada 10 minutos (2 comandos do Redis), por isso a lista pode atrasar alguns minutos. Quem só usa o afinador sem abrir telas de vínculo pode não aparecer: este número é de perfis, não de aparelhos. Abaixo ficam quem esteve online há pouco (offline). O servidor guarda só o código e o horário do último sinal; nada de áudio nem de histórico.'],
     indicators: ['Saúde do uso', 'Indicadores dos últimos 7 dias, calculados dos aparelhos que abriram o app (um aparelho conta uma vez por dia). Notificações negadas: entre quem já foi perguntado, quantos disseram não. Versão antiga: aparelhos que não estão na versão publicada agora (o painel compara com o código em produção). IA hoje: pedidos admitidos no dia contra o limite diário global. Perfis bloqueados: contados a partir desta atualização. Origens com muitos cadastros: endereços que criaram mais de 30 perfis novos num dia (o limite é 100). Perfis abandonados: sem vínculo, sem professor nem aluno e parados há 60 dias; são apagados sozinhos aos poucos e o botão limpa até 30 agora.'],
     pushadmin: ['Avisos de bug grave', 'Quando aparece um bug GRAVE novo (ou um grave resolvido que volta), o servidor manda uma notificação para os navegadores em que você ativou isto. No máximo 6 por hora, para um erro em loop não virar spam. Cada navegador precisa ativar uma vez (o painel pede a permissão). Precisa das chaves VAPID configuradas na Vercel. Bugs comuns não avisam: só os graves.'],
@@ -1103,13 +1109,83 @@
 
   // ---------------- Recursos liberados aos poucos ----------------
   var FF_MODE = { off: 'Desligado', list: 'Só liberados', pct: 'Parte dos usuários', all: 'Todos' };
+  var ffGroupData = { manual: [], auto: [], max: { groups: 20, members: 500 } };
   function loadFeatures() {
     var box = $('ffBox');
-    post({ action: 'features' }).then(function (r) {
+    Promise.all([post({ action: 'group_list' }), post({ action: 'features' })]).then(function (rs) {
+      var g = rs[0], r = rs[1];
+      if (g.status === 200) { ffGroupData = g.j; renderGroups(); }
       if (r.status !== 200) { box.textContent = 'Não foi possível carregar os recursos: ' + why(r); return; }
       box.innerHTML = '';
       r.j.items.forEach(function (f) { box.appendChild(ffCard(f)); });
     }).catch(function () { box.textContent = 'Sem conexão com o servidor.'; });
+  }
+  function renderGroups() {
+    var box = $('ffGroups'); box.innerHTML = '';
+    var c = document.createElement('div'); c.className = 'ffc';
+    var a = document.createElement('div'); a.className = 'd'; a.textContent = 'Automáticos: ' + ffGroupData.auto.map(function (x) { return x.name; }).join(' · '); c.appendChild(a);
+    if (!ffGroupData.manual.length) { var e = document.createElement('div'); e.className = 'empty'; e.textContent = 'Nenhum grupo seu ainda.'; c.appendChild(e); }
+    ffGroupData.manual.forEach(function (g) {
+      var t = document.createElement('h3'); t.appendChild(document.createTextNode(g.name));
+      var n = document.createElement('span'); n.className = 'badge list'; n.textContent = g.count + (g.count === 1 ? ' pessoa' : ' pessoas'); t.appendChild(n); c.appendChild(t);
+      var chips = document.createElement('div'); chips.className = 'chips';
+      if (!g.members.length) { var e2 = document.createElement('span'); e2.className = 'empty'; e2.textContent = 'Ninguém neste grupo.'; chips.appendChild(e2); }
+      g.members.forEach(function (code) {
+        var ch = document.createElement('span'); ch.className = 'chip'; ch.appendChild(document.createTextNode(code));
+        var x = document.createElement('button'); x.textContent = '×'; x.title = 'Tirar do grupo'; x.setAttribute('aria-label', 'Tirar ' + code + ' do grupo ' + g.name);
+        x.onclick = function () { ffDo({ action: 'group_member', id: g.id, code: code, on: false }, code + ' saiu de "' + g.name + '".'); };
+        ch.appendChild(x); chips.appendChild(ch);
+      });
+      c.appendChild(chips);
+      var add = document.createElement('div'); add.className = 'add';
+      var inp = document.createElement('input'); inp.type = 'text'; inp.placeholder = 'Código do perfil'; inp.maxLength = 9; inp.setAttribute('aria-label', 'Código para incluir em ' + g.name);
+      var go = document.createElement('button'); go.className = 'primary'; go.textContent = 'Incluir';
+      go.onclick = function () {
+        var code = fixCode(inp.value);
+        if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(code)) { toast('Digite o código completo, como ABCD-1234.', 'bad'); return; }
+        ffDo({ action: 'group_member', id: g.id, code: code, on: true }, code + ' entrou em "' + g.name + '".');
+      };
+      var del = document.createElement('button'); del.className = 'danger'; del.textContent = 'Excluir grupo';
+      del.onclick = function () {
+        askConfirm({ title: 'Excluir o grupo "' + g.name + '"?', body: g.count + ' pessoa(s) saem dele e os recursos ligados a ele deixam de ver por este grupo.', facts: ['Quem estiver em outra regra continua vendo.', 'Dá para criar o grupo de novo, mas é preciso incluir as pessoas outra vez.'], ok: 'Excluir', danger: true }).then(function (y) {
+          if (y) ffDo({ action: 'group_delete', id: g.id }, 'Grupo "' + g.name + '" excluído.');
+        });
+      };
+      add.appendChild(inp); add.appendChild(go); add.appendChild(del); c.appendChild(add);
+    });
+    var nw = document.createElement('div'); nw.className = 'add'; nw.style.marginTop = '12px';
+    var ni = document.createElement('input'); ni.type = 'text'; ni.placeholder = 'Nome do novo grupo'; ni.maxLength = 40; ni.setAttribute('aria-label', 'Nome do novo grupo');
+    var nb = document.createElement('button'); nb.className = 'primary'; nb.textContent = 'Criar grupo';
+    nb.onclick = function () { if (ni.value.trim().length < 2) { toast('Dê um nome ao grupo.', 'bad'); return; } ffDo({ action: 'group_save', name: ni.value }, 'Grupo criado.'); };
+    nw.appendChild(ni); nw.appendChild(nb); c.appendChild(nw);
+    box.appendChild(c);
+  }
+  var FF_WHY = { off: 'Desligado para todos', all: 'Liberado para todos', list: 'Está na lista deste recurso', legacy: 'Liberado pela variável LIBRARY_TESTERS', group: 'Faz parte do grupo', pct: 'Dentro da porcentagem sorteada', none: 'Nenhuma regra libera para ele' };
+  /* Ficha do perfil: cada recurso, ligado ou não, e o motivo (serve ao suporte e ao admin). */
+  function whySection(code, parent) {
+    var sec = document.createElement('div'); sec.className = 'sup';
+    var t = document.createElement('h4'); t.textContent = 'Recursos que ele vê (e por quê)'; sec.appendChild(t);
+    var body = document.createElement('div'); body.className = 'empty'; body.textContent = 'Carregando…'; sec.appendChild(body);
+    parent.appendChild(sec);
+    post({ action: 'feature_why', code: code }).then(function (r) {
+      if (r.status !== 200) { body.textContent = 'Não foi possível ler: ' + why(r); return; }
+      body.className = ''; body.innerHTML = '';
+      r.j.items.forEach(function (x) {
+        var row = document.createElement('div'); row.className = 'item';
+        var l = document.createElement('div'); l.textContent = (x.on ? 'Ligado · ' : 'Desligado · ') + x.name;
+        var sm = document.createElement('small'); sm.textContent = (FF_WHY[x.why] || x.why) + (x.groupName ? ': ' + x.groupName : '') + (x.why === 'pct' ? ' (' + x.pct + '%)' : ''); l.appendChild(sm);
+        row.appendChild(l); body.appendChild(row);
+      });
+      var gl = document.createElement('div'); gl.className = 'empty'; gl.textContent = r.j.groups.length ? 'Grupos: ' + r.j.groups.map(function (g) { return g.name; }).join(', ') : 'Não está em nenhum grupo.'; body.appendChild(gl);
+      if (role !== 'support' && ffGroupData.manual.length) {
+        var bar = document.createElement('div'); bar.className = 'add'; bar.setAttribute('data-adm', '1');
+        var sel = document.createElement('select'); sel.setAttribute('aria-label', 'Grupo');
+        ffGroupData.manual.forEach(function (g) { var o = document.createElement('option'); o.value = g.id; o.textContent = g.name; sel.appendChild(o); });
+        var inb = document.createElement('button'); inb.textContent = 'Incluir no grupo';
+        inb.onclick = function () { post({ action: 'group_member', id: sel.value, code: code, on: true }).then(function (r2) { if (r2.status === 200) { toast('Incluído no grupo.', 'ok'); sec.remove(); whySection(code, parent); } else toast('Não foi possível: ' + why(r2), 'bad'); }); };
+        bar.appendChild(sel); bar.appendChild(inb); body.appendChild(bar);
+      }
+    }).catch(function () { body.textContent = 'Sem conexão com o servidor.'; });
   }
   function ffDo(body, okMsg) {
     return post(body).then(function (r) {
@@ -1133,6 +1209,19 @@
     c.appendChild(seg);
     var pr = document.createElement('div'); pr.className = 'pctrow'; pr.appendChild(document.createTextNode('Porcentagem:')); pctInp.style.width = ''; pr.appendChild(pctInp); pr.appendChild(document.createTextNode('% dos usuários (sempre os mesmos)')); c.appendChild(pr);
 
+    var gr = document.createElement('div'); gr.className = 'chips'; gr.style.margin = '6px 0 10px';
+    var gt = document.createElement('span'); gt.className = 'sub'; gt.style.padding = '0'; gt.textContent = 'Grupos que veem:'; gr.appendChild(gt);
+    ffGroupData.auto.concat(ffGroupData.manual).forEach(function (g) {
+      var lab = document.createElement('label'); lab.className = 'ck'; var cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = (f.groups || []).indexOf(g.id) >= 0;
+      cb.onchange = function () {
+        var next = (f.groups || []).filter(function (x) { return x !== g.id; }); if (cb.checked) next.push(g.id);
+        var go = function () { ffDo({ action: 'feature_groups', id: f.id, groups: next }, f.name + ': grupos atualizados.'); };
+        if (cb.checked && g.id.indexOf('auto:') === 0) askConfirm({ title: 'Liberar para ' + g.name.toLowerCase() + '?', body: f.name, facts: ['Todos esses perfis passam a ver o recurso.', 'Dá para desmarcar na hora.'], ok: 'Liberar' }).then(function (y) { if (y) go(); else cb.checked = false; });
+        else go();
+      };
+      lab.appendChild(cb); lab.appendChild(document.createTextNode(' ' + g.name)); gr.appendChild(lab);
+    });
+    c.appendChild(gr);
     var cnt = document.createElement('div'); cnt.className = 'sub'; cnt.style.padding = '0'; cnt.textContent = 'Liberados por código: ' + f.count + (f.count > f.members.length ? ' (mostrando ' + f.members.length + ')' : ''); c.appendChild(cnt);
     var chips = document.createElement('div'); chips.className = 'chips';
     if (!f.members.length) { var e = document.createElement('span'); e.className = 'empty'; e.textContent = 'Ninguém na lista.'; chips.appendChild(e); }
@@ -1788,6 +1877,7 @@
       };
       ab.appendChild(av); ag.appendChild(ab); ag.appendChild(list); box.appendChild(ag);
 
+      whySection(code, box);
       var bar = document.createElement('div'); bar.className = 'toolbar'; bar.style.marginTop = '14px';
       var bb = document.createElement('button'); bb.textContent = d.profile.blocked ? 'Liberar' : 'Bloquear';
       bb.onclick = function () {

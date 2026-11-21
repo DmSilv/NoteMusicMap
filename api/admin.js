@@ -174,7 +174,7 @@ function parseLinks(h) {
 
 // Ações liberadas à chave de suporte: atendimento e ações reversíveis. Excluir, publicar, custos e sistema ficam só no admin.
 const SUPPORT_ACTIONS = new Set(['whoami', 'list', 'detail', 'block', 'unblock', 'inbox_list', 'inbox_thread', 'inbox_send', 'inbox_resolve',
-  'rq_list', 'rq_close', 'rq_open', 'bugs', 'bug', 'bug_status', 'support_code', 'support_cancel', 'features']);
+  'rq_list', 'rq_close', 'rq_open', 'bugs', 'bug', 'bug_status', 'support_code', 'support_cancel', 'features', 'group_list', 'feature_why']);
 
 function makeHandler(deps = {}) {
   const fetchImpl = deps.fetch || globalThis.fetch;
@@ -625,6 +625,47 @@ function makeHandler(deps = {}) {
         for (const c of targets) await (on ? features.grant : features.revoke)(store, cmd, id, c);
         await log(action, code, `${id}${targets.length > 1 ? ' +' + (targets.length - 1) + ' alunos' : ''}`);
         return send(200, { ok: true, changed: targets.length });
+      }
+
+      // ---------------- Grupos de recursos e diagnóstico ----------------
+      if (action === 'group_list') return send(200, { ok: true, ...(await features.groupList(store, cmd)) });
+      if (action === 'group_save') {
+        const r = await features.groupSave(store, b.name, now);
+        if (r.error) return send(400, { error: r.error });
+        await log('group_save', r.id, String(b.name || '').slice(0, 40));
+        return send(200, { ok: true, id: r.id });
+      }
+      if (action === 'group_delete') {
+        const r = await features.groupDelete(store, cmd, String(b.id || ''));
+        if (r.error) return send(400, { error: r.error });
+        await log('group_delete', String(b.id), r.cleaned + ' pessoas');
+        return send(200, { ok: true, cleaned: r.cleaned });
+      }
+      if (action === 'group_member') {
+        if (needCode()) return;
+        if ((await store.hget(U(code), 'h')) === undefined) return send(404, { error: 'Perfil não encontrado.' });
+        const on = b.on !== false;
+        const r = await features.groupMember(store, cmd, String(b.id || ''), code, on);
+        if (r.error) return send(400, { error: r.error });
+        await log(on ? 'group_add' : 'group_remove', code, String(b.id));
+        return send(200, { ok: true });
+      }
+      if (action === 'feature_groups') {
+        const id = String(b.id || '');
+        if (!features.known(id)) return send(400, { error: 'Recurso desconhecido.' });
+        const ok = await features.setGroups(store, id, Array.isArray(b.groups) ? b.groups : [], now);
+        await log('feature_groups', id, ok.join(','));
+        return send(200, { ok: true, groups: ok });
+      }
+      if (action === 'feature_why') {
+        if (needCode()) return;
+        const prof = await store.hgetall(U(code));
+        if (!prof || prof.h === undefined) return send(404, { error: 'Perfil não encontrado.' });
+        const legacy = new Set((cfg.libraryTesters || []).map((c) => String(c).toUpperCase()));
+        const mine = features.groupsOf(prof);
+        const raw = (await store.hgetall('ff:g')) || {};
+        const groups = mine.map((g) => { try { return { id: g, name: JSON.parse(raw[g]).n }; } catch (_) { return null; } }).filter(Boolean);
+        return send(200, { ok: true, items: await features.diagnose(store, code, prof, legacy, now), groups });
       }
 
       // ---------------- Boletim do app (Publicações) ----------------

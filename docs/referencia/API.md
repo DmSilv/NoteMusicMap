@@ -144,6 +144,12 @@ Custo: só quando o admin abre o painel (kpis ~35 comandos; lista de 25 = ~27; d
 | `features` | Recursos liberados aos poucos |
 | `feature_set` | — |
 | `feature_grant` | — |
+| `group_list` | Grupos de recursos e diagnóstico |
+| `group_save` | — |
+| `group_delete` | — |
+| `group_member` | — |
+| `feature_groups` | — |
+| `feature_why` | — |
 | `news_list` | Boletim do app (Publicações) |
 | `news_save` | — |
 | `inbox_list` | Conversas com os usuários |

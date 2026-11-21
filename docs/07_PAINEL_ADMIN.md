@@ -152,3 +152,6 @@ Ao tocar num perfil da aba **Pessoas** abre a ficha: cabeçalho (inicial, apelid
 
 ## Chave de suporte (opcional)
 Defina `SUPPORT_KEY` na Vercel para dar a uma segunda pessoa só o atendimento: Pessoas (lista e ficha, bloquear/liberar), Conversas e Bugs. Excluir perfil, encerrar vínculo, publicar, recursos, custos e sistema ficam só com a `ADMIN_KEY`. Sem a variável, o painel funciona como antes.
+
+## Grupos de recursos e diagnóstico
+Em **Publicar › Recursos** há a caixa **Grupos**: crie grupos com nome, inclua códigos e, em cada recurso, marque os grupos que o veem (há também "Todos os professores" e "Todos os alunos"). Na ficha de um perfil, **Recursos que ele vê (e por quê)** explica cada recurso. Um grupo excluído sai dos recursos e dos perfis dele.
