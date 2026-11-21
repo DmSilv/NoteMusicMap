@@ -30,6 +30,7 @@
 | `QSTASH_TOKEN` | config.js |
 | `QSTASH_URL` | config.js |
 | `RESEND_API_KEY` | config.js |
+| `SUPPORT_KEY` | config.js |
 | `UPSTASH_REDIS_REST_TOKEN` | config.js |
 | `UPSTASH_REDIS_REST_URL` | config.js |
 | `VAPID_PRIVATE_KEY` | config.js |
@@ -39,4 +40,4 @@
 | `VERCEL_GIT_COMMIT_SHA` | admin.js |
 | `VERCEL_REGION` | admin.js |
 
-Total: **33** variáveis. Para o que cada uma faz e quais são obrigatórias, veja `docs/08_OPERACAO.md`.
+Total: **34** variáveis. Para o que cada uma faz e quais são obrigatórias, veja `docs/08_OPERACAO.md`.

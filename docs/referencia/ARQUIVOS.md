@@ -359,6 +359,7 @@
 | `api/remind_choice.test.js` | Testes do lembrete escolhido pelo professor (chave `lembrete_escolha`): `node --test api/remind_choice.test.js` |
 | `api/stats.test.js` | Testes das métricas anônimas e do painel de admin, sem rede: `node --test api/stats.test.js` |
 | `api/support.test.js` | Testes do suporte do painel (vínculo, agenda, código de liberação e aviso ao usuário), sem rede: `node --test api/support.test.js` |
+| `api/support_key.test.js` | Chave de suporte: abre só o atendimento; excluir/publicar/custos ficam só no admin. `node --test api/support_key.test.js` |
 | `api/survey.test.js` | Pesquisa rápida no painel: quem respondeu (perfil), de qual aparelho; `node --test api/survey.test.js` |
 | `api/sweep.test.js` | Testes da limpeza de perfis abandonados e do aviso de origens com muitos perfis: `node --test api/sweep.test.js` |
 | `api/user_study.test.js` | Tempo de estudo, modelo e cidade por perfil no painel, sem rede: `node --test api/user_study.test.js` |
@@ -390,4 +391,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **347** arquivos mapeados.
+Total: **348** arquivos mapeados.

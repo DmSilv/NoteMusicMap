@@ -149,3 +149,6 @@ Ao tocar num perfil da aba **Pessoas** abre a ficha: cabeçalho (inicial, apelid
 - **Custo no Redis: zero comandos a mais.** O perfil já é lido em toda chamada; tempo e ficha entram no **mesmo HSET** da presença (1 gravação a cada 10 min) em campos do próprio hash do perfil (`uh` histórico de 14 dias, `tm`/`ns` totais, `dv`/`dp`/`dn`/`df`/`dt` ficha atual, anterior, trocas, primeira vez, atualizada). Abrir a ficha continua custando as mesmas ~12 leituras; a lista de 25 continua com um HMGET por perfil (agora com 3 campos a mais).
 
 - **Estudo e modelo/cidade** (também na ficha): o app manda os minutos estudados nos últimos 7 dias (campo `sm`, só números) junto com a ficha; o servidor deduz **modelo** (`Sec-CH-UA-Model`, pedido por `Accept-CH` no `vercel.json`, ou o User-Agent do Android) e **cidade aproximada** (cabeçalho da Vercel). O IP em si **não** é guardado, e o que a pessoa toca (escalas, notas, acertos) **não** sai do aparelho.
+
+## Chave de suporte (opcional)
+Defina `SUPPORT_KEY` na Vercel para dar a uma segunda pessoa só o atendimento: Pessoas (lista e ficha, bloquear/liberar), Conversas e Bugs. Excluir perfil, encerrar vínculo, publicar, recursos, custos e sistema ficam só com a `ADMIN_KEY`. Sem a variável, o painel funciona como antes.

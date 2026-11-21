@@ -77,6 +77,8 @@ function config(env = process.env) {
     libraryTesters: String(env.LIBRARY_TESTERS || '').toUpperCase().split(/[\s,;]+/).filter(Boolean),
     // Chave do painel de métricas (o mesmo segredo do painel de feedback, se não houver uma própria).
     adminKey: env.ADMIN_KEY || env.FEEDBACK_ADMIN_KEY || '',
+    // Chave de SUPORTE (opcional): abre só as ações de atendimento do painel. Igual à do admin = ignorada.
+    supportKey: (env.SUPPORT_KEY && env.SUPPORT_KEY !== (env.ADMIN_KEY || env.FEEDBACK_ADMIN_KEY)) ? env.SUPPORT_KEY : '',
     // Relatórios de erro do app: ERRORS_DISABLED=1 desliga tudo sem publicar; teto de eventos por dia.
     errorsEnabled: env.ERRORS_DISABLED !== '1',
     errorsDailyCap: num(env.ERRORS_DAILY_CAP, 150),

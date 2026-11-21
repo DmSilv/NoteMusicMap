@@ -6,6 +6,7 @@
   <meta name="robots" content="noindex, nofollow">
   <title>Notemusic · Painel</title>
   <style>
+    body.sup [data-adm] { display: none !important; }
     /* ==========================================================================================================
        Painel do Notemusic: mesmo design system do app (docs/12_DESIGN_SYSTEM.md, seção "Painel").
        Cores do app, espaços na escala de 8 (4, 8, 12, 16, 20, 24, 32), raios 20 (cartão) e 12 (controle),
@@ -871,7 +872,7 @@
   var $ = function (id) { return document.getElementById(id); };
   // O código digitado de qualquer jeito (minúscula, sem hífen, com espaço) vira ABCD-EFGH.
   function fixCode(v) { var s = String(v == null ? '' : v).toUpperCase(); var t = s.replace(/[^A-Z0-9]/g, ''); return t.length === 8 ? t.slice(0, 4) + '-' + t.slice(4) : s.trim(); }
-  var key = '';
+  var key = '', role = 'admin';
   try { key = sessionStorage.getItem('nm_admin') || ''; } catch (e) { key = ''; }
   var liveTimer = null, fullTimer = null, lastFull = null, lastKpis = null, lastHealth = null;
 
@@ -1201,7 +1202,7 @@
   }
   function logout(message) {
     try { sessionStorage.removeItem('nm_admin'); } catch (e) { /* ok */ }
-    key = ''; clearInterval(liveTimer); clearInterval(fullTimer); show(false); $('msg').textContent = message || '';
+    key = ''; role = 'admin'; document.body.className = ''; clearInterval(liveTimer); clearInterval(fullTimer); show(false); $('msg').textContent = message || '';
   }
 
   function bars(el, values, labels, lastClass) {
@@ -1704,9 +1705,9 @@
           var row = document.createElement('div'); row.className = 'item';
           var l = document.createElement('div'); l.textContent = (x.name || 'Sem apelido') + ' · ' + x.code;
           var sm = document.createElement('small'); sm.textContent = 'vinculado em ' + dt(x.since) + ' · ativo ' + ago(x.last); l.appendChild(sm);
-          var cmpB = document.createElement('button'); cmpB.textContent = 'Comparar agendas'; cmpB.style.marginRight = '6px';
+          var cmpB = document.createElement('button'); cmpB.setAttribute('data-adm', '1'); cmpB.textContent = 'Comparar agendas'; cmpB.style.marginRight = '6px';
           cmpB.onclick = function () { if (as === 'teacher') openPair(code, x.code, x.name); else openPair(x.code, code, ''); };
-          var bt = document.createElement('button'); bt.textContent = 'Encerrar vínculo';
+          var bt = document.createElement('button'); bt.textContent = 'Encerrar vínculo'; bt.setAttribute('data-adm', '1');
           bt.onclick = function () {
             askConfirm({ title: 'Encerrar o vínculo?', body: code + ' e ' + x.code + (x.name ? ' (' + x.name + ')' : ''), facts: ['Aulas, tarefas e horários entre os dois somem.', 'Os dois recebem um aviso no app.', 'Não dá para desfazer.'], ok: 'Segure para encerrar', danger: true, hold: true }).then(function (y) {
             if (!y) return;
@@ -1756,7 +1757,7 @@
       rel.appendChild(rb); box.appendChild(rel);
 
       // Agenda: ver e apagar o que estiver travando.
-      var ag = document.createElement('div'); ag.className = 'sup';
+      var ag = document.createElement('div'); ag.className = 'sup'; ag.setAttribute('data-adm', '1');
       var at = document.createElement('h4'); at.textContent = 'Agenda'; ag.appendChild(at);
       var ab = document.createElement('div'); ab.className = 'toolbar';
       var av = document.createElement('button'); av.textContent = 'Ver agenda deste perfil';
@@ -1796,7 +1797,7 @@
         post({ action: was ? 'unblock' : 'block', code: code }).then(function (r) { if (r.status === 200) { toast(code + (was ? ' liberado.' : ' bloqueado: o vínculo online dele parou.'), 'ok'); closeDetail(); loadList(); loadLog(); } else toast('Não foi possível ' + (was ? 'liberar' : 'bloquear') + ': ' + why(r), 'bad'); }).catch(function () { toast('Sem conexão com o servidor. Nada foi alterado.', 'bad'); });
         });
       };
-      var del = document.createElement('button'); del.className = 'danger'; del.textContent = 'Excluir dados';
+      var del = document.createElement('button'); del.className = 'danger'; del.setAttribute('data-adm', '1'); del.textContent = 'Excluir dados';
       del.onclick = function () {
         askConfirm({ title: 'Excluir todos os dados?', body: code, facts: ['Apaga o perfil, os vínculos e as aulas e tarefas dele no servidor.', 'Não dá para desfazer.'], ok: 'Excluir dados', danger: true, typed: code }).then(function (y) {
         if (!y) return;
@@ -2704,6 +2705,32 @@
     saude: { tabs: ['bugs', 'costs', 'system'], desc: 'Erros do app, quanto custa mantê-lo e o estado do servidor.' },
     ajuda: { tabs: ['help'], desc: 'Para que serve cada tela e respostas para as dúvidas mais comuns.' }
   };
+  // Chave de SUPORTE: só atendimento (perfis, conversas, bugs); o resto fica de fora e o servidor também recusa.
+  var ALL_GROUPS = GROUPS;
+  var SUP_GROUPS = {
+    pessoas: { tabs: ['people', 'chat', 'bugs'], desc: 'Atendimento: achar o perfil, conversar com a pessoa e ver os bugs. Publicar, custos e excluir ficam só com o administrador.' },
+    ajuda: GROUPS.ajuda
+  };
+  // Mostra só a seção que começa em um título (até o próximo título): o resto da tela some no modo suporte.
+  function keepFrom(mainId, prefix, until) {
+    var el = $(mainId); if (!el) return; var on = false;
+    for (var i = 0; i < el.children.length; i++) {
+      var c = el.children[i];
+      if (c.tagName === 'H2') on = c.textContent.indexOf(prefix) === 0 ? true : (until && c.textContent.indexOf(until) === 0 ? false : on);
+      if (!on) c.setAttribute('data-adm', '1');
+    }
+  }
+  function applyRole() {
+    document.body.className = role === 'support' ? 'sup' : '';
+    GROUPS = role === 'support' ? SUP_GROUPS : ALL_GROUPS;
+    var gb = $('groups').querySelectorAll('button');
+    for (var i = 0; i < gb.length; i++) gb[i].hidden = !GROUPS[gb[i].getAttribute('data-group')];
+    if (role !== 'support') return;
+    keepFrom('tab-people', 'Lista de perfis', 'Acervo');
+    keepFrom('tab-bugs', 'Bugs agrupados');
+    $('sysPill').hidden = true; $('healthPill').hidden = true; $('dot').parentNode.hidden = true;
+    $('updated').textContent = 'Modo suporte';
+  }
   var lastInGroup = {};
   function groupOf(tab) { for (var g in GROUPS) { if (GROUPS[g].tabs.indexOf(tab) >= 0) return g; } return 'inicio'; }
   function paintGroups(tab) {
@@ -2728,8 +2755,8 @@
     window.scrollTo(0, 0);
   }
   function loadTab(name) {
-    if (name === 'people') { loadList(); loadLog(); loadPresence(); loadLibrary(); }
-    if (name === 'bugs') { loadBugs(); loadPush(); }
+    if (name === 'people') { loadList(); if (role !== 'support') { loadLog(); loadPresence(); loadLibrary(); } }
+    if (name === 'bugs') { loadBugs(); if (role !== 'support') loadPush(); }
     if (name === 'costs') loadCosts();
     if (name === 'features') loadFeatures();
     if (name === 'news') loadNews();
@@ -2838,7 +2865,9 @@
 
   function loadLive() { if (document.hidden) return; api('live').then(function (r) { if (r.status === 200) live(r.j); else fail(r.status); }).catch(function () {}); }
   function start() {
-    show(true); loaded = {}; showTab('overview'); loaded.overview = true;
+    show(true); loaded = {}; applyRole();
+    if (role === 'support') { showTab('people'); return; }
+    showTab('overview'); loaded.overview = true;
     loadFull(); loadHealth(); loadKpis(); loadIndicators(); loadFunnel();
     post({ action: 'system' }).then(function (r) { if (r.status === 200) { sysState.sys = r.j; sysPillUpdate(); } }).catch(function () {});
     post({ action: 'costs' }).then(function (r) { if (r.status === 200) { sysState.costs = r.j; sysPillUpdate(); } }).catch(function () {});
@@ -2852,8 +2881,8 @@
     var k = $('key').value.trim();
     if (!k) { $('msg').textContent = 'Digite a chave.'; return; }
     key = k; $('msg').textContent = '';
-    api('live').then(function (r) {
-      if (r.status === 200) { try { sessionStorage.setItem('nm_admin', key); } catch (e) { /* ok */ } $('key').value = ''; start(); }
+    post({ action: 'whoami' }).then(function (r) {
+      if (r.status === 200) { role = r.j.role === 'support' ? 'support' : 'admin'; try { sessionStorage.setItem('nm_admin', key); } catch (e) { /* ok */ } $('key').value = ''; start(); }
       else if (!fail(r.status)) $('msg').textContent = 'Não foi possível entrar agora.';
     }).catch(function () { $('msg').textContent = 'Sem conexão com o servidor.'; });
   };
@@ -2897,7 +2926,7 @@
     mo.observe($('app'), { childList: true, characterData: true, subtree: true });
   })();
 
-  if (key) start(); else show(false);
+  if (key) post({ action: 'whoami' }).then(function (r) { if (r.status === 200) { role = r.j.role === 'support' ? 'support' : 'admin'; start(); } else { logout(''); } }).catch(function () { show(false); }); else show(false);
 })();
 </script>
 </body>

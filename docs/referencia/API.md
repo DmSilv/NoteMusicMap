@@ -128,6 +128,7 @@ Custo: só quando o admin abre o painel (kpis ~35 comandos; lista de 25 = ~27; d
 
 | Ação / tipo | Descrição (comentário do código) |
 |---|---|
+| `whoami` | — |
 | `kpis` | Indicadores |
 | `list` | Lista |
 | `detail` | Detalhe |

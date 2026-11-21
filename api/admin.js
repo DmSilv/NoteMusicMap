@@ -172,6 +172,10 @@ function parseLinks(h) {
   return out;
 }
 
+// Ações liberadas à chave de suporte: atendimento e ações reversíveis. Excluir, publicar, custos e sistema ficam só no admin.
+const SUPPORT_ACTIONS = new Set(['whoami', 'list', 'detail', 'block', 'unblock', 'inbox_list', 'inbox_thread', 'inbox_send', 'inbox_resolve',
+  'rq_list', 'rq_close', 'rq_open', 'bugs', 'bug', 'bug_status', 'support_code', 'support_cancel', 'features']);
+
 function makeHandler(deps = {}) {
   const fetchImpl = deps.fetch || globalThis.fetch;
   const getCfg = deps.config || (() => config());
@@ -202,20 +206,24 @@ function makeHandler(deps = {}) {
       const hk = `adm:bad:${ip}:${Math.floor(now / 3600000)}`;
       const [bad] = await cmd.pipeline([['INCR', hk], ['EXPIRE', hk, '3600', 'NX']]);
       const given = String((req.headers && (req.headers.authorization || req.headers.Authorization)) || '').replace(/^Bearer\s+/i, '');
-      const ok = crypto.timingSafeEqual(Buffer.from(sha(given)), Buffer.from(sha(cfg.adminKey)));
+      const eq = (k) => !!k && crypto.timingSafeEqual(Buffer.from(sha(given)), Buffer.from(sha(k)));
+      const role = eq(cfg.adminKey) ? 'admin' : (eq(cfg.supportKey) ? 'support' : '');
+      const ok = !!role;
       if (!ok) {
         if (Number(bad) > 10) return send(429, { error: 'Muitas tentativas. Tente mais tarde.' });
         return send(401, { error: 'Chave inválida.' });
       }
 
       const action = String(b.action || '');
+      if (role === 'support' && !SUPPORT_ACTIONS.has(action)) return send(403, { error: 'Esta chave é só de suporte.' });
+      if (action === 'whoami') return send(200, { ok: true, role });
       const code = fixCode(b.code);
       const needCode = () => {
         if (CODE_RE.test(code)) return false;
         send(400, { error: 'Código inválido.' });
         return true;
       };
-      const log = (a, c, x) => cmd.pipeline([['LPUSH', LOG, JSON.stringify(x ? { t: now, a, c, x } : { t: now, a, c })], ['LTRIM', LOG, '0', '199']]);
+      const log = (a, c, x) => cmd.pipeline([['LPUSH', LOG, JSON.stringify({ t: now, a, c, ...(x ? { x } : {}), ...(role === 'support' ? { r: 's' } : {}) })], ['LTRIM', LOG, '0', '199']]);
       // Aviso que o app mostra ao usuário na próxima atualização (viaja junto da sincronização).
       const notify = (c, k, x) => store.hset(U(c), 'sn', JSON.stringify({ t: now, k, x: String(x || '').slice(0, 60) }));
 
@@ -1139,6 +1147,7 @@ function makeHandler(deps = {}) {
         const providers = Object.keys(cfg.keys || {});
         const checks = [
           { id: 'admin', label: 'Chave do painel', ok: !!cfg.adminKey, required: true, hint: 'ADMIN_KEY', warn: !env.ADMIN_KEY && env.FEEDBACK_ADMIN_KEY ? 'Usando a chave do feedback (FEEDBACK_ADMIN_KEY). Defina uma ADMIN_KEY própria na Vercel.' : '' },
+          { id: 'support', label: 'Chave de suporte (opcional)', ok: !!cfg.supportKey, required: false, hint: 'SUPPORT_KEY' },
           { id: 'redis', label: 'Banco de dados (Redis)', ok: !!(cfg.redisUrl && cfg.redisToken), required: true, hint: 'UPSTASH_REDIS_REST_URL e UPSTASH_REDIS_REST_TOKEN' },
           { id: 'qstash', label: 'Lembretes agendados (QStash)', ok: !!(cfg.qstash && cfg.qstash.token && cfg.qstash.currentKey && cfg.qstash.nextKey), required: false, hint: 'QSTASH_TOKEN, QSTASH_CURRENT_SIGNING_KEY e QSTASH_NEXT_SIGNING_KEY' },
           { id: 'vapid', label: 'Notificações no celular (VAPID)', ok: !!(cfg.vapid && cfg.vapid.publicKey && cfg.vapid.privateKey), required: false, hint: 'VAPID_PUBLIC_KEY e VAPID_PRIVATE_KEY' },
