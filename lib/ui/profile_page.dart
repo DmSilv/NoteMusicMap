@@ -111,6 +111,38 @@ class _ProfilePageState extends State<ProfilePage> {
     app.say(problem ?? tr('Chave gerada. Guarde em lugar seguro.'));
   }
 
+  /// "Como funciona": para que serve a chave, onde guardar e o que fazer ao trocar de celular (sem e-mail no meio).
+  Widget _howKeyCard() {
+    final steps = <(IconData, String, String)>[
+      (Icons.shield_outlined, tr('A chave é a sua cópia de segurança'), tr('Ela não chega por e-mail: aparece só aqui. Sem ela e sem outro aparelho, a conta não volta.')),
+      (Icons.save_alt, tr('Onde guardar'), tr('No gerenciador de senhas, nas notas do celular ou em papel. Não envie para ninguém.')),
+      (Icons.phone_android, tr('Trocou de celular?'), tr('No novo, abra o app e toque em Entrar na minha conta › Tenho a chave.')),
+    ];
+    return AppCard(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(tr('Como funciona'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+        const SizedBox(height: Ds.s12),
+        for (final s in steps)
+          Padding(
+            padding: const EdgeInsets.only(bottom: Ds.s12),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              DsIconBadge(s.$1, size: 36),
+              const SizedBox(width: Ds.s12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(s.$2, style: const TextStyle(fontWeight: FontWeight.w800)),
+                  const SizedBox(height: Ds.s4),
+                  Text(s.$3, style: TextStyle(color: AppColors.textDim, fontSize: 12.5, height: 1.35)),
+                ]),
+              ),
+            ]),
+          ),
+        Text(tr('Perdeu a chave e o celular? Aluno: peça ao professor para vincular de novo. Professor: fale com o suporte.'),
+            style: TextStyle(color: AppColors.textDim, fontSize: 12.5, height: 1.35)),
+      ]),
+    );
+  }
+
   /// Cartão da chave de 25 caracteres: a principal (curta, sem e-mail).
   Widget _shortKeyCard() {
     final has = app.hasRecoveryKey;
@@ -843,6 +875,8 @@ class _ProfilePageState extends State<ProfilePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        _howKeyCard(),
+        const SizedBox(height: 16),
         _shortKeyCard(),
         const SizedBox(height: 16),
         _legacyCard(

@@ -416,4 +416,11 @@ const Map<String, String> kEnB14 = {
   'Tenho 18 anos ou mais': 'I am 18 or older',
   'Só maiores de idade podem ser professores no app.': 'Only adults can be teachers in the app.',
   'Confirmo': 'I confirm',
+  'A chave é a sua cópia de segurança': 'The key is your backup',
+  'Ela não chega por e-mail: aparece só aqui. Sem ela e sem outro aparelho, a conta não volta.': 'It does not come by e-mail: it only shows up here. Without it and without another device, the account cannot come back.',
+  'Onde guardar': 'Where to keep it',
+  'No gerenciador de senhas, nas notas do celular ou em papel. Não envie para ninguém.': 'In a password manager, your phone notes or on paper. Do not send it to anyone.',
+  'Trocou de celular?': 'New phone?',
+  'No novo, abra o app e toque em Entrar na minha conta › Tenho a chave.': 'On the new one, open the app and tap Sign in to my account › I have the key.',
+  'Perdeu a chave e o celular? Aluno: peça ao professor para vincular de novo. Professor: fale com o suporte.': 'Lost the key and the phone? Student: ask your teacher to link you again. Teacher: contact support.',
 };
