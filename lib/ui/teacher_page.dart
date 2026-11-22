@@ -29,93 +29,70 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
   final name = TextEditingController();
   final code = TextEditingController(text: code0 ?? '');
   String? nameErr, codeErr;
-  var showCode = (code0 ?? '').isNotEmpty;
-  final r = await showDialog<(String, String?)>(
-    context: context,
-    builder: (c) => StatefulBuilder(
-      builder: (c, setS) => AlertDialog(
-        title: Text(tr('Cadastrar pelo nome')),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextField(
-                controller: name,
-                inputFormatters: const [SafeText.name()],
-                autofocus: true,
-                textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(
-                  labelText: tr('Nome do aluno'),
-                  errorText: nameErr,
-                  suffixIcon: DictationButton(app: app, controller: name),
-                ),
-              ),
-              const SizedBox(height: Ds.s12),
-              if (!showCode)
-                TextButton.icon(
-                  style: TextButton.styleFrom(minimumSize: const Size(0, Ds.tap)),
-                  onPressed: () => setS(() => showCode = true),
-                  icon: const Icon(Icons.pin_outlined, size: 18),
-                  label: Text(tr('Tenho o código do aluno')),
-                )
-              else
-                TextField(
-                  controller: code,
-                  inputFormatters: codeFormatters,
-                  autocorrect: false,
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: InputDecoration(
-                    labelText: tr('Código do aluno'),
-                    hintText: 'K7QM-4TXD',
-                    helperText: tr('Digite o código ou leia o QR do aluno.'),
-                    helperMaxLines: 3,
-                    errorText: codeErr,
-                    errorMaxLines: 3,
-                    suffixIcon: IconButton(
-                      tooltip: tr('Ler QR do aluno'),
-                      icon: const Icon(Icons.qr_code_scanner),
-                      onPressed: () async {
-                        final s = await scanShareCode(c,
-                            title: tr('Ler QR do aluno'),
-                            want: 'aluno',
-                            check: (code) => app.checkStudent('aluno', code).code,
-                            onCamera: app.setCameraStatus);
-                        if (s == null) return;
-                        setS(() {
-                          code.text = s.code;
-                          codeErr = null;
-                        });
-                      },
-                    ),
-                  ),
-                ),
-            ],
+  final r = await showDsFormSheet<(String, String?)>(
+    context,
+    title: tr('Cadastrar aluno'),
+    primaryLabel: tr('Adicionar aluno'),
+    primaryIcon: Icons.person_add_alt_1_rounded,
+    onSubmit: (c, setS) {
+      final n = name.text.trim();
+      // Regras: nada de aluno com o seu próprio código/nome, nem repetido.
+      final r = app.checkStudent(n, code.text);
+      if (!r.ok) {
+        setS(() {
+          nameErr = r.name;
+          codeErr = r.code;
+        });
+        return null;
+      }
+      return (n, code.text.trim().isEmpty ? null : code.text);
+    },
+    body: (c, setS) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(tr('Só o nome já basta. O código vincula o aluno ao app dele, e dá para adicionar depois.'), style: Ds.support()),
+      const SizedBox(height: Ds.s16),
+      TextField(
+        controller: name,
+        inputFormatters: const [SafeText.name()],
+        autofocus: true,
+        textCapitalization: TextCapitalization.words,
+        decoration: InputDecoration(
+          labelText: tr('Nome do aluno'),
+          errorText: nameErr,
+          suffixIcon: DictationButton(app: app, controller: name),
+        ),
+      ),
+      const SizedBox(height: Ds.s16),
+      TextField(
+        controller: code,
+        inputFormatters: codeFormatters,
+        autocorrect: false,
+        textCapitalization: TextCapitalization.characters,
+        decoration: InputDecoration(
+          labelText: tr('Código do aluno (opcional)'),
+          hintText: 'K7QM-4TXD',
+          helperText: tr('Digite o código ou leia o QR do aluno.'),
+          helperMaxLines: 3,
+          errorText: codeErr,
+          errorMaxLines: 3,
+          suffixIcon: IconButton(
+            tooltip: tr('Ler QR do aluno'),
+            icon: const Icon(Icons.qr_code_scanner),
+            onPressed: () async {
+              final s = await scanShareCode(c,
+                  title: tr('Ler QR do aluno'),
+                  want: 'aluno',
+                  check: (code) => app.checkStudent('aluno', code).code,
+                  onCamera: app.setCameraStatus);
+              if (s == null) return;
+              setS(() {
+                code.text = s.code;
+                codeErr = null;
+              });
+            },
           ),
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(c), child: Text(tr('Cancelar'))),
-          FilledButton.icon(
-            style: FilledButton.styleFrom(minimumSize: const Size(0, Ds.tap)),
-            onPressed: () {
-              final n = name.text.trim();
-              // Regras: nada de aluno com o seu próprio código/nome, nem repetido.
-              final r = app.checkStudent(n, code.text);
-              if (!r.ok) {
-                setS(() {
-                  nameErr = r.name;
-                  codeErr = r.code;
-                });
-                return;
-              }
-              Navigator.pop(c, (n, code.text.trim().isEmpty ? null : code.text));
-            },
-            icon: const Icon(Icons.add, size: 18),
-            label: Text(tr('Adicionar')),
-          ),
-        ],
       ),
-    ),
+    ]),
   );
   name.dispose();
   code.dispose();

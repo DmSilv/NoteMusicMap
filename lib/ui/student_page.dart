@@ -23,52 +23,39 @@ import 'widgets.dart';
 Future<String?> askText(BuildContext context, String title, String label,
     {String initial = '', bool multiline = false, String? action, AppState? voice}) async {
   final ctl = TextEditingController(text: initial);
-  final v = await showDialog<String>(
-    context: context,
-    builder: (c) => AlertDialog(
-      title: Text(title),
-      content: TextField(
-        controller: ctl,
-        inputFormatters: [SafeText(multiline ? kMaxNote : kMaxTitle, multiline: multiline)],
-        autofocus: true,
-        minLines: multiline ? 3 : 1,
-        maxLines: multiline ? 8 : 1,
-        textCapitalization: TextCapitalization.sentences,
-        decoration: InputDecoration(
-          labelText: label,
-          // Microfone para ditar (só onde o texto é livre).
-          suffixIcon: voice == null ? null : DictationButton(app: voice, controller: ctl),
-        ),
+  final v = await showDsFormSheet<String>(
+    context,
+    title: title,
+    primaryLabel: action ?? tr('Salvar'),
+    onSubmit: (c, setS) => ctl.text,
+    body: (c, setS) => TextField(
+      controller: ctl,
+      inputFormatters: [SafeText(multiline ? kMaxNote : kMaxTitle, multiline: multiline)],
+      autofocus: true,
+      minLines: multiline ? 4 : 1,
+      maxLines: multiline ? 10 : 1,
+      textCapitalization: TextCapitalization.sentences,
+      decoration: InputDecoration(
+        labelText: label,
+        // Microfone para ditar (só onde o texto é livre).
+        suffixIcon: voice == null ? null : DictationButton(app: voice, controller: ctl),
       ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(c), child: Text(tr('Cancelar'))),
-        FilledButton(onPressed: () => Navigator.pop(c, ctl.text), child: Text(action ?? tr('Salvar'))),
-      ],
     ),
   );
   ctl.dispose();
   return v;
 }
 
-Future<bool> confirmDelete(BuildContext context, String title, String text) async {
-  final ok = await showDialog<bool>(
-    context: context,
-    builder: (c) => AlertDialog(
-      title: Text(title),
-      content: Text(text),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
-        FilledButton.icon(
-          style: FilledButton.styleFrom(
-              backgroundColor: AppColors.sharp, foregroundColor: readableOn(AppColors.sharp)),
-          onPressed: () => Navigator.pop(c, true),
-          icon: const Icon(Icons.delete_outline, size: 18), label: Text(tr('Excluir')),
-        ),
-      ],
-    ),
-  );
-  return ok == true;
-}
+/// Confirma uma exclusão que não tem volta: o botão só libera depois de digitar uma palavra simples (EXCLUIR).
+Future<bool> confirmDelete(BuildContext context, String title, String text) => showDsConfirm(
+      context,
+      title: title,
+      body: text,
+      icon: Icons.delete_outline_rounded,
+      danger: true,
+      typedWord: tr('EXCLUIR'),
+      confirmLabel: tr('Excluir'),
+    );
 
 Future<void> renameStudent(BuildContext context, AppState app, Student s) async {
   final n = await askText(context, tr('Renomear'), tr('Nome'), initial: s.name, voice: app);

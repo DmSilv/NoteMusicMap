@@ -83,7 +83,7 @@ ThemeData buildTheme({required bool dark}) {
     filledButtonTheme: FilledButtonThemeData(style: ButtonStyle(shape: _squareShape, minimumSize: WidgetStateProperty.all(const Size(64, 48)))),
     elevatedButtonTheme: ElevatedButtonThemeData(style: ButtonStyle(shape: _squareShape, minimumSize: WidgetStateProperty.all(const Size(64, 48)))),
     outlinedButtonTheme: OutlinedButtonThemeData(style: ButtonStyle(shape: _squareShape, minimumSize: WidgetStateProperty.all(const Size(64, 48)))),
-    textButtonTheme: TextButtonThemeData(style: ButtonStyle(shape: _squareShape)),
+    textButtonTheme: TextButtonThemeData(style: ButtonStyle(shape: _squareShape, minimumSize: WidgetStateProperty.all(const Size(64, 48)))),
     iconButtonTheme: IconButtonThemeData(style: ButtonStyle(shape: _squareShape)),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: AppColors.surface,
@@ -119,7 +119,17 @@ ThemeData buildTheme({required bool dark}) {
     ),
     dividerColor: AppColors.outline,
     dividerTheme: DividerThemeData(color: AppColors.outline, thickness: 1),
-    dialogTheme: DialogThemeData(backgroundColor: AppColors.surface),
+    // Caixas de diálogo: maiores, cantos do sistema, título forte e botões de 48 px (as confirmações novas usam showDsConfirm; as que
+    // restam como AlertDialog herdam este jeito).
+    dialogTheme: DialogThemeData(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      constraints: const BoxConstraints(minWidth: 328, maxWidth: 480),
+      titleTextStyle: TextStyle(color: AppColors.text, fontSize: 20, fontWeight: FontWeight.w800),
+      contentTextStyle: TextStyle(color: AppColors.textDim, fontSize: 15, height: 1.4),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+    ),
     // A folha de baixo lê a cor do TEMA a cada quadro: trocar claro/escuro com uma folha aberta não deixa o fundo para trás.
     bottomSheetTheme: BottomSheetThemeData(backgroundColor: AppColors.surface, modalBackgroundColor: AppColors.surface, surfaceTintColor: Colors.transparent),
     textTheme: ThemeData(brightness: dark ? Brightness.dark : Brightness.light)

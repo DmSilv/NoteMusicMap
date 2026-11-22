@@ -412,7 +412,64 @@ class PickerField<T> extends StatelessWidget {
   }
 }
 
-/// Folha de seleção com cartões. Fecha ao escolher.
+/// Um cartão de opção: ícone opcional, título, apoio e o marcador à direita (bolinha para escolha única, quadrado para várias).
+class _ChoiceCard extends StatelessWidget {
+  final OptionItem<Object?> item;
+  final bool selected;
+  final bool multi;
+  final bool showIcon;
+  final VoidCallback onTap;
+  const _ChoiceCard({required this.item, required this.selected, required this.multi, required this.showIcon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final marker = multi
+        ? (selected ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded)
+        : (selected ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded);
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Material(
+        color: selected ? AppColors.accent.withValues(alpha: 0.16) : AppColors.surface2,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: Ds.tap + 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: selected ? AppColors.accent : AppColors.outline, width: selected ? 2 : 1),
+            ),
+            child: Row(children: [
+              if (showIcon) ...[
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(color: (selected ? AppColors.accent : AppColors.textDim).withValues(alpha: 0.16), borderRadius: BorderRadius.circular(12)),
+                  child: Icon(item.icon ?? Icons.music_note, color: selected ? AppColors.accent : AppColors.textDim),
+                ),
+                const SizedBox(width: 12),
+              ],
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(item.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  if (item.subtitle != null) Text(item.subtitle!, style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+                ]),
+              ),
+              const SizedBox(width: 8),
+              Icon(marker, color: selected ? AppColors.accent : AppColors.textDim, size: 24),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Folha de escolha ÚNICA, igual em todo o app: cartões com marcador, e a escolha só vale ao tocar em Confirmar (Cancelar ou o X
+/// deixam como estava).
 Future<void> showOptionSheet<T>(
   BuildContext context, {
   required String title,
@@ -422,107 +479,70 @@ Future<void> showOptionSheet<T>(
   String? hint,
   bool showIcons = true,
 }) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: AppColors.surface,
-    shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-    builder: (ctx) => SafeArea(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(ctx).height * 0.8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                margin: const EdgeInsets.only(top: 10),
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: AppColors.outline, borderRadius: BorderRadius.circular(2)),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
-              child: Text(title,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-            ),
-            if (hint != null)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                child: Text(hint, style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-              ),
-            Flexible(
-              child: ListView.separated(
-                shrinkWrap: true,
-                padding: const EdgeInsets.fromLTRB(14, 4, 14, 16),
-                itemCount: options.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 8),
-                itemBuilder: (context, i) {
-                  final o = options[i];
-                  final sel = o.value == selected;
-                  return Material(
-                    color: sel ? AppColors.accent.withValues(alpha: 0.16) : AppColors.surface2,
-                    borderRadius: BorderRadius.circular(16),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () {
-                        onPick(o.value);
-                        Navigator.pop(ctx);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                              color: sel ? AppColors.accent : AppColors.outline,
-                              width: sel ? 2 : 1),
-                        ),
-                        child: Row(
-                          children: [
-                            if (showIcons) ...[
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: (sel ? AppColors.accent : AppColors.textDim)
-                                      .withValues(alpha: 0.16),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Icon(o.icon ?? Icons.music_note,
-                                    color: sel ? AppColors.accent : AppColors.textDim),
-                              ),
-                              const SizedBox(width: 12),
-                            ],
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(o.title,
-                                      style: const TextStyle(
-                                          fontSize: 16, fontWeight: FontWeight.w700)),
-                                  if (o.subtitle != null)
-                                    Text(o.subtitle!,
-                                        style: TextStyle(
-                                            color: AppColors.textDim, fontSize: 12.5)),
-                                ],
-                              ),
-                            ),
-                            if (sel) Icon(Icons.check_circle, color: AppColors.accent),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ],
+  var picked = selected;
+  return showDsFormSheet<bool>(
+    context,
+    title: title,
+    primaryLabel: tr('Confirmar'),
+    onSubmit: (c, setS) {
+      if (picked != selected) onPick(picked);
+      return true;
+    },
+    body: (c, setS) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (hint != null) Padding(padding: const EdgeInsets.only(bottom: Ds.s12), child: Text(hint, style: Ds.support())),
+      for (var i = 0; i < options.length; i++) ...[
+        if (i > 0) const SizedBox(height: Ds.s8),
+        _ChoiceCard(
+          item: OptionItem<Object?>(options[i].value, options[i].title, subtitle: options[i].subtitle, icon: options[i].icon),
+          selected: options[i].value == picked,
+          multi: false,
+          showIcon: showIcons,
+          onTap: () => setS(() => picked = options[i].value),
         ),
-      ),
-    ),
+      ],
+    ]),
+  );
+}
+
+/// Folha de escolha de VÁRIAS opções: o mesmo desenho, com quadrados; o botão mostra quantas estão marcadas e só ao confirmar
+/// o resultado é entregue.
+Future<void> showMultiOptionSheet<T>(
+  BuildContext context, {
+  required String title,
+  required List<OptionItem<T>> options,
+  required Set<T> selected,
+  required ValueChanged<Set<T>> onConfirm,
+  ValueChanged<Set<T>>? onChange,
+  String? hint,
+  Widget? footer,
+  bool showIcons = false,
+}) {
+  final picked = {...selected};
+  return showDsFormSheet<bool>(
+    context,
+    title: title,
+    primaryLabel: tr('Confirmar'),
+    onSubmit: (c, setS) {
+      onConfirm(picked);
+      return true;
+    },
+    body: (c, setS) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(padding: const EdgeInsets.only(bottom: Ds.s12), child: Text(hint ?? tr('Marque uma ou mais e confirme.'), style: Ds.support())),
+      for (var i = 0; i < options.length; i++) ...[
+        if (i > 0) const SizedBox(height: Ds.s8),
+        _ChoiceCard(
+          item: OptionItem<Object?>(options[i].value, options[i].title, subtitle: options[i].subtitle, icon: options[i].icon),
+          selected: picked.contains(options[i].value),
+          multi: true,
+          showIcon: showIcons,
+          onTap: () {
+            setS(() => picked.contains(options[i].value) ? picked.remove(options[i].value) : picked.add(options[i].value));
+            onChange?.call({...picked});
+          },
+        ),
+      ],
+      if (footer != null) ...[const SizedBox(height: Ds.s12), footer],
+    ]),
   );
 }
 

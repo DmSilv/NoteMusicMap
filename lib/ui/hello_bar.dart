@@ -2,6 +2,7 @@ import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import 'design_system.dart';
 import 'safe_input.dart';
 import 'theme.dart';
 
@@ -18,55 +19,39 @@ Future<bool> requireNickname(BuildContext context, AppState app,
 Future<void> askNickname(BuildContext context, AppState app, {bool mandatory = false, String? reason}) async {
   final ctrl = TextEditingController(text: app.profile.name ?? '');
   String? error;
-  final saved = await showDialog<String>(
-    context: context,
-    builder: (c) => StatefulBuilder(builder: (c, setS) => AlertDialog(
-      icon: const Icon(Icons.waving_hand_outlined),
-      title: Text(tr('Como posso te chamar?')),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (reason != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Text(reason, style: const TextStyle(fontWeight: FontWeight.w700)),
-            ),
-          TextField(
-            controller: ctrl,
-            autofocus: true,
-            inputFormatters: const [SafeText.name()],
-            textCapitalization: TextCapitalization.words,
-            maxLength: 40,
-            decoration: InputDecoration(labelText: mandatory ? tr('Seu nome') : tr('Seu apelido'), errorText: error),
-            onSubmitted: (v) {
-              if (mandatory && v.trim().isEmpty) {
-                setS(() => error = tr('Informe o seu nome para continuar.'));
-              } else {
-                Navigator.pop(c, v);
-              }
-            },
-          ),
-          Text(
-            tr('Aparece nas saudações do app e, se você se vincular a um professor ou aluno, para essa pessoa. Dá para trocar depois em Minha conta.'),
-            style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(onPressed: () => Navigator.pop(c), child: Text(mandatory ? tr('Cancelar') : tr('Agora não'))),
-        FilledButton(
-          onPressed: () {
-            if (mandatory && ctrl.text.trim().isEmpty) {
-              setS(() => error = tr('Informe o seu nome para continuar.'));
-            } else {
-              Navigator.pop(c, ctrl.text);
-            }
-          },
-          child: Text(tr('Salvar')),
+  final saved = await showDsFormSheet<String>(
+    context,
+    title: tr('Como posso te chamar?'),
+    primaryLabel: tr('Salvar'),
+    onSubmit: (c, setS) {
+      if (mandatory && ctrl.text.trim().isEmpty) {
+        setS(() => error = tr('Informe o seu nome para continuar.'));
+        return null;
+      }
+      return ctrl.text;
+    },
+    body: (c, setS) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      if (reason != null)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Text(reason, style: const TextStyle(fontWeight: FontWeight.w700)),
         ),
-      ],
-    )),
+      TextField(
+        controller: ctrl,
+        autofocus: true,
+        inputFormatters: const [SafeText.name()],
+        textCapitalization: TextCapitalization.words,
+        maxLength: 40,
+        decoration: InputDecoration(labelText: mandatory ? tr('Seu nome') : tr('Seu apelido'), errorText: error),
+        onChanged: (_) {
+          if (error != null) setS(() => error = null);
+        },
+      ),
+      Text(
+        tr('Aparece nas saudações do app e, se você se vincular a um professor ou aluno, para essa pessoa. Dá para trocar depois em Minha conta.'),
+        style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+      ),
+    ]),
   );
   ctrl.dispose();
   if (saved != null && saved.trim().isNotEmpty) {

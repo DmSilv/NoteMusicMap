@@ -477,3 +477,147 @@ class DsPickTile extends StatelessWidget {
     );
   }
 }
+
+/// Folha de FORMULÁRIO (e de qualquer pergunta que peça uma resposta): cabeçalho com título e X, o corpo que rola e dois botões FIXOS
+/// embaixo (Cancelar e a ação). Substitui as caixas pequenas de diálogo, para todas as perguntas terem o mesmo tamanho e jeito.
+/// [onSubmit] devolve o resultado (a folha fecha com ele) ou null para continuar aberta (ex.: campo com erro). [enabled] liga e desliga o
+/// botão da ação. Devolve o que [onSubmit] devolveu, ou null se a pessoa cancelou.
+Future<T?> showDsFormSheet<T>(
+  BuildContext context, {
+  required String title,
+  required Widget Function(BuildContext c, StateSetter setS) body,
+  required T? Function(BuildContext c, StateSetter setS) onSubmit,
+  String? primaryLabel,
+  IconData primaryIcon = Icons.check_rounded,
+  bool Function()? enabled,
+  bool danger = false,
+}) {
+  return showModalBottomSheet<T>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    useSafeArea: true,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(Ds.radiusCard))),
+    builder: (c) => StatefulBuilder(
+      builder: (c, setS) {
+        final inset = MediaQuery.of(c).viewInsets.bottom;
+        final ok = enabled?.call() ?? true;
+        return Padding(
+          padding: EdgeInsets.only(bottom: inset),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: (MediaQuery.of(c).size.height - inset) * 0.92),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(Ds.screenPad, 0, Ds.s12, Ds.s8),
+                child: Row(children: [
+                  Expanded(child: Text(title, style: Ds.title())),
+                  IconButton(onPressed: () => Navigator.of(c).pop(), tooltip: tr('Fechar'), icon: const Icon(Icons.close_rounded)),
+                ]),
+              ),
+              const Divider(height: 1),
+              Flexible(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(Ds.screenPad, Ds.s16, Ds.screenPad, Ds.s16),
+                  child: body(c, setS),
+                ),
+              ),
+              const Divider(height: 1),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(Ds.screenPad, Ds.s12, Ds.screenPad, Ds.s12),
+                child: Row(children: [
+                  Expanded(flex: 2, child: OutlinedButton(onPressed: () => Navigator.of(c).pop(), child: Text(tr('Cancelar')))),
+                  const SizedBox(width: Ds.s12),
+                  Expanded(
+                    flex: 3,
+                    child: FilledButton.icon(
+                      style: danger ? FilledButton.styleFrom(backgroundColor: AppColors.sharp, foregroundColor: readableOn(AppColors.sharp)) : null,
+                      onPressed: ok
+                          ? () {
+                              final r = onSubmit(c, setS);
+                              if (r != null) Navigator.of(c).pop(r);
+                            }
+                          : null,
+                      icon: Icon(primaryIcon, size: 20),
+                      label: Text(primaryLabel ?? tr('Salvar'), style: const TextStyle(fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                ]),
+              ),
+            ]),
+          ),
+        );
+      },
+    ),
+  );
+}
+
+/// Confirmação padrão do app (no lugar das caixas pequenas): ícone, título, texto e dois botões grandes. Com [typedWord], pede para digitar
+/// uma palavra simples antes de liberar a ação (para o que não tem volta). [danger] pinta a ação em vermelho.
+Future<bool> showDsConfirm(
+  BuildContext context, {
+  required String title,
+  String? body,
+  Widget? content,
+  required String confirmLabel,
+  IconData icon = Icons.help_outline_rounded,
+  bool danger = false,
+  String? typedWord,
+  String? cancelLabel,
+}) async {
+  final ctl = TextEditingController();
+  final color = danger ? AppColors.sharp : AppColors.accent;
+  final r = await showDialog<bool>(
+    context: context,
+    builder: (c) => StatefulBuilder(
+      builder: (c, setS) {
+        final ok = typedWord == null || ctl.text.trim().toUpperCase() == typedWord.toUpperCase();
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: Ds.s16, vertical: Ds.s24),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(Ds.radiusCard)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(Ds.s20, Ds.s24, Ds.s20, Ds.s20),
+              child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                Center(child: DsIconBadge(icon, size: 52, color: color)),
+                const SizedBox(height: Ds.s16),
+                Text(title, textAlign: TextAlign.center, style: Ds.title()),
+                if (body != null) ...[
+                  const SizedBox(height: Ds.s8),
+                  Text(body, textAlign: TextAlign.center, style: TextStyle(color: AppColors.textDim, fontSize: Ds.fontBody, height: 1.4)),
+                ],
+                if (content != null) ...[const SizedBox(height: Ds.s12), content],
+                if (typedWord != null) ...[
+                  const SizedBox(height: Ds.s16),
+                  TextField(
+                    controller: ctl,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    textCapitalization: TextCapitalization.characters,
+                    textAlign: TextAlign.center,
+                    decoration: InputDecoration(labelText: tr('Digite {0} para confirmar', [typedWord])),
+                    onChanged: (_) => setS(() {}),
+                  ),
+                ],
+                const SizedBox(height: Ds.s20),
+                Row(children: [
+                  Expanded(child: OutlinedButton(onPressed: () => Navigator.pop(c, false), child: Text(cancelLabel ?? tr('Cancelar')))),
+                  const SizedBox(width: Ds.s12),
+                  Expanded(
+                    child: FilledButton(
+                      style: danger ? FilledButton.styleFrom(backgroundColor: AppColors.sharp, foregroundColor: readableOn(AppColors.sharp)) : null,
+                      onPressed: ok ? () => Navigator.pop(c, true) : null,
+                      child: Text(confirmLabel, style: const TextStyle(fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                ]),
+              ]),
+            ),
+          ),
+        );
+      },
+    ),
+  );
+  ctl.dispose();
+  return r == true;
+}

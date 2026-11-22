@@ -1074,6 +1074,13 @@ class AppState extends ChangeNotifier {
   /// Instrumentos que o professor ensina (ids de [kTeachingInstruments]); escolhem as sugestões de método e de repertório.
   List<String> teachInstruments = [];
 
+  /// Define de uma vez os instrumentos que o professor ensina (a folha de escolha entrega o conjunto ao confirmar).
+  void setTeachInstruments(Set<String> ids) {
+    teachInstruments = cleanTeachingIds(ids);
+    _saveSetup();
+    notifyListeners();
+  }
+
   void setTeachInstrument(String id, bool on) {
     final set = {...teachInstruments};
     if (on) {

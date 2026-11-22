@@ -4,42 +4,52 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import 'design_system.dart';
 import 'theme.dart';
+import 'widgets.dart' show OptionItem, showMultiOptionSheet;
 
-/// "Instrumentos que ensino": o professor marca um ou mais; as sugestões de método e de repertório vêm prontas.
+/// "Instrumentos que ensino": o professor marca um ou mais e confirma; as sugestões de método e de repertório vêm prontas.
 /// Quem ensina um instrumento que não está na lista cria o seu ("Outro instrumento") e põe os métodos e as peças que usa.
-/// Cada toque vale na hora (sem botão de confirmar), como nos outros ajustes.
-Future<void> showTeachingInstrumentsSheet(BuildContext context, AppState app) {
-  return showDsSheet(
-    context,
-    title: tr('Instrumentos que ensino'),
-    listenable: app,
-    children: (c) => [
-      Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
-        for (final i in allTeachingInstruments())
-          FilterChip(
-            label: Text(i.label),
-            selected: app.teachInstruments.contains(i.id),
-            onSelected: (v) => app.setTeachInstrument(i.id, v),
-          ),
-        ActionChip(
-          avatar: const Icon(Icons.add, size: 18),
+Future<void> showTeachingInstrumentsSheet(BuildContext context, AppState app) async {
+  var pending = {...app.teachInstruments};
+  while (true) {
+    if (!context.mounted) return;
+    // Os botões de baixo fecham a folha, abrem o editor do instrumento próprio e a folha volta com as marcas de antes.
+    var openEditor = false;
+    TeachingInstrument? editing;
+    await showMultiOptionSheet<String>(
+      context,
+      title: tr('Instrumentos que ensino'),
+      options: [for (final i in allTeachingInstruments()) OptionItem<String>(i.id, i.label)],
+      selected: pending,
+      onChange: (s) => pending = s,
+      onConfirm: (s) {
+        pending = s;
+        app.setTeachInstruments(s);
+      },
+      footer: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        OutlinedButton.icon(
+          onPressed: () {
+            openEditor = true;
+            Navigator.of(context).pop();
+          },
+          icon: const Icon(Icons.add, size: 18),
           label: Text(tr('Outro instrumento')),
-          onPressed: () => showCustomInstrumentEditor(context, app),
         ),
-      ]),
-      if (customInstruments.isNotEmpty) ...[
-        const SizedBox(height: Ds.s12),
         for (final i in customInstruments)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            minTileHeight: Ds.tap,
-            title: Text(i.label, style: const TextStyle(fontWeight: FontWeight.w700)),
-            trailing: IconButton(tooltip: tr('Editar'), icon: const Icon(Icons.edit_outlined), onPressed: () => showCustomInstrumentEditor(context, app, existing: i)),
+          TextButton.icon(
+            onPressed: () {
+              openEditor = true;
+              editing = i;
+              Navigator.of(context).pop();
+            },
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            label: Text(tr('Editar {0}', [i.label])),
           ),
-      ],
-      const SizedBox(height: Ds.s16),
-    ],
-  );
+      ]),
+    );
+    if (!openEditor || !context.mounted) return;
+    await showCustomInstrumentEditor(context, app, existing: editing);
+    pending = {...cleanTeachingIds(pending)};
+  }
 }
 
 /// Cria ou edita um instrumento que não está no catálogo: nome, métodos e livros, repertório (um por linha; tudo opcional,
@@ -290,39 +300,42 @@ class TaskInstrumentRow extends StatelessWidget {
 }
 
 /// Marca o instrumento e a turma do aluno (as "tags" que aparecem na lista; o instrumento escolhe as sugestões da tarefa).
-/// Mostra primeiro os instrumentos que o professor ensina.
+/// Mostra primeiro os instrumentos que o professor ensina. As escolhas só valem ao tocar em Confirmar.
 Future<void> showStudentInstrumentSheet(BuildContext context, AppState app, Student s) {
-  return showDsSheet(
+  String? instrument = s.instrument;
+  String? turma = s.turma;
+  return showDsFormSheet<bool>(
     context,
     title: tr('Instrumento e turma'),
-    listenable: app,
-    children: (c) {
+    primaryLabel: tr('Confirmar'),
+    onSubmit: (c, setS) {
+      if (instrument != s.instrument) app.setStudentInstrument(s, instrument);
+      if (turma != s.turma) app.setStudentTurma(s, turma);
+      return true;
+    },
+    body: (c, setS) {
       final mine = [for (final id in app.teachInstruments) ?teachingById(id)];
       final all = mine.isEmpty ? allTeachingInstruments() : [...mine, for (final i in allTeachingInstruments()) if (!app.teachInstruments.contains(i.id)) i];
-      return [
+      return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(tr('O que {0} estuda com você. As sugestões da tarefa seguem este instrumento.', [s.name]), style: Ds.support()),
         const SizedBox(height: Ds.s16),
+        Text(tr('Instrumento'), style: Ds.section()),
+        const SizedBox(height: Ds.s8),
         Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
-          for (final i in all)
-            ChoiceChip(
-              label: Text(i.label),
-              selected: s.instrument == i.id,
-              onSelected: (v) => app.setStudentInstrument(s, v ? i.id : null),
-            ),
+          for (final i in all) ChoiceChip(label: Text(i.label), selected: instrument == i.id, onSelected: (v) => setS(() => instrument = v ? i.id : null)),
           ActionChip(avatar: const Icon(Icons.add, size: 18), label: Text(tr('Outro instrumento')), onPressed: () async {
             final i = await showCustomInstrumentEditor(context, app);
-            if (i != null) app.setStudentInstrument(s, i.id);
+            if (i != null) setS(() => instrument = i.id);
           }),
         ]),
         const SizedBox(height: Ds.s20),
         Text(tr('Turma'), style: Ds.section()),
         const SizedBox(height: Ds.s8),
         Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
-          for (final t in app.turmas) ChoiceChip(label: Text(t.name), selected: s.turma == t.id, onSelected: (v) => app.setStudentTurma(s, v ? t.id : null)),
+          for (final t in app.turmas) ChoiceChip(label: Text(t.name), selected: turma == t.id, onSelected: (v) => setS(() => turma = v ? t.id : null)),
           ActionChip(avatar: const Icon(Icons.add, size: 18), label: Text(tr('Nova turma')), onPressed: () => showTurmaEditor(context, app)),
         ]),
-        const SizedBox(height: Ds.s16),
-      ];
+      ]);
     },
   );
 }

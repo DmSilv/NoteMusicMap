@@ -124,7 +124,6 @@ const Map<String, String> kEnB14 = {
   'Adicionar aluno': 'Add student',
   'Cadastre um aluno com código para marcar aulas (Meu espaço › Alunos › Adicionar aluno).': 'Add a student with a code to schedule lessons (My space › Students › Add student).',
   'Cadastrar pelo nome': 'Add by name',
-  'Tenho o código do aluno': 'I have the student\'s code',
   'Digite o código ou leia o QR do aluno.': 'Type the code or scan the student\'s QR.',
   'Mande o link por mensagem. Quando o aluno abrir, ele aparece aqui sozinho.': 'Send the link in a message. When the student opens it, they show up here on their own.',
   'Ler o QR do aluno': 'Scan the student\'s QR',
@@ -626,4 +625,9 @@ const Map<String, String> kEnB14 = {
   'Não ouvi nada': 'I heard nothing',
   'Texto inserido': 'Text added',
   'Digite a chave de 25 caracteres.': 'Enter the 25-character key.',
+  'Cadastrar aluno': 'Add student',
+  'Só o nome já basta. O código vincula o aluno ao app dele, e dá para adicionar depois.': 'Just the name is enough. The code links the student to their app, and you can add it later.',
+  'Código do aluno (opcional)': 'Student code (optional)',
+  'Editar {0}': 'Edit {0}',
+  'Marque uma ou mais e confirme.': 'Pick one or more and confirm.',
 };
