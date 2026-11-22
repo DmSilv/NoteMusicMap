@@ -74,6 +74,30 @@ Future<bool> confirmTeacherLink(BuildContext context, AppState app) async {
   return ok == true;
 }
 
+/// Antes de desligar o modo professor: diz o que some da tela e que nada é apagado. Devolve true se a pessoa confirmou.
+Future<bool> confirmTurnOffTeacher(BuildContext context, AppState app) async {
+  final n = app.students.length;
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (c) => AlertDialog(
+      icon: Icon(Icons.groups_outlined, color: AppColors.accent),
+      title: Text(tr('Desligar o modo professor?')),
+      content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(tr('A área de professor some: você deixa de ver alunos, agenda e tarefas e não envia nada a eles.')),
+        const SizedBox(height: 10),
+        Text(n == 0
+            ? tr('Nada é apagado. Ao ligar de novo, tudo volta.')
+            : (n == 1 ? tr('Nada é apagado: o aluno e o histórico ficam guardados e voltam quando você ligar de novo.') : tr('Nada é apagado: os {0} alunos e o histórico ficam guardados e voltam quando você ligar de novo.', [n]))),
+      ]),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Manter ligado'))),
+        FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Desligar'))),
+      ],
+    ),
+  );
+  return ok == true;
+}
+
 /// Depois de desligar o modo professor: se não há professor, aula, agenda nem aluno com código, o vínculo online não serve mais
 /// a nada; pergunta se quer desligá-lo também. Se algo depende dele, não faz nada (ninguém perde avisos sem querer).
 Future<void> offerLinkOffAfterTeacher(BuildContext context, AppState app) async {

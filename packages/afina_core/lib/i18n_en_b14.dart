@@ -613,4 +613,9 @@ const Map<String, String> kEnB14 = {
   'Vai junto, como observação.': 'Sent along, as a note.',
   'Refazer: o aluno continua nesta tarefa. Próxima aula: ela volta como pendente e é enviada de novo.': 'Redo: the student keeps working on this task. Next lesson: it comes back as pending and is sent again.',
   '{0} Hz · {1}': '{0} Hz · {1}',
+  'Desligar o modo professor?': 'Turn off teacher mode?',
+  'A área de professor some: você deixa de ver alunos, agenda e tarefas e não envia nada a eles.': 'The teacher area goes away: you stop seeing students, schedule and tasks, and you cannot send them anything.',
+  'Nada é apagado. Ao ligar de novo, tudo volta.': 'Nothing is deleted. When you turn it on again, everything comes back.',
+  'Nada é apagado: o aluno e o histórico ficam guardados e voltam quando você ligar de novo.': 'Nothing is deleted: the student and the history are kept and come back when you turn it on again.',
+  'Nada é apagado: os {0} alunos e o histórico ficam guardados e voltam quando você ligar de novo.': 'Nothing is deleted: the {0} students and the history are kept and come back when you turn it on again.',
 };

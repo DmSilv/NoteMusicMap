@@ -530,6 +530,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       if (!context.mounted || !await confirmTeacherLink(context, app)) return;
                       app.setTeacherMode(true);
                     } else {
+                      if (!await confirmTurnOffTeacher(context, app)) return;
                       app.setTeacherMode(false);
                       if (context.mounted) await offerLinkOffAfterTeacher(context, app);
                     }
