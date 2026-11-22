@@ -303,6 +303,62 @@ class DsSettingRow extends StatelessWidget {
       );
 }
 
+/// Um assunto de uma folha de ajustes: contêiner com borda, ícone e título. A etiqueta (opcional) diz uma condição do assunto,
+/// por exemplo se ele segue ou não o metrônomo. Use um por assunto (regra do design system para toda folha de configuração).
+class DsGroup extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String? tag;
+  final IconData? tagIcon;
+  final List<Widget> children;
+  const DsGroup({super.key, required this.icon, required this.title, this.tag, this.tagIcon, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: Ds.s12),
+      padding: const EdgeInsets.fromLTRB(Ds.s12, Ds.s12, Ds.s12, Ds.s4),
+      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.outline, width: 1)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(icon, size: 20, color: AppColors.accent),
+          const SizedBox(width: Ds.s8),
+          Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+          if (tag != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(999)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                if (tagIcon != null) ...[Icon(tagIcon, size: 13, color: AppColors.textDim), const SizedBox(width: 4)],
+                Text(tag!, style: TextStyle(color: AppColors.textDim, fontSize: 11.5, fontWeight: FontWeight.w700)),
+              ]),
+            ),
+        ]),
+        const SizedBox(height: Ds.s12),
+        ...children,
+      ]),
+    );
+  }
+}
+
+/// Uma linha de ajuste dentro de um [DsGroup]: nome em cima e o controle embaixo (mais enxuta que a [DsSettingRow] solta).
+class DsGroupRow extends StatelessWidget {
+  final String label;
+  final Widget child;
+  const DsGroupRow(this.label, this.child, {super.key});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.only(bottom: Ds.s16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody)),
+          const SizedBox(height: Ds.s8),
+          child,
+        ]),
+      );
+}
+
 /// Abre o modal de ajustes: sobe de baixo; cada ajuste vale na hora (não há o que confirmar), então o canto tem só um X para fechar
 /// (também fecha arrastando para baixo, tocando fora ou pelo botão voltar).
 /// [listenable] reconstrói o conteúdo quando o estado muda (ex.: o próprio AppState).

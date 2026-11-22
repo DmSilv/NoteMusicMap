@@ -327,17 +327,22 @@ class _TunerPageState extends State<TunerPage> {
       title: tr('Ajustes do afinador'),
       listenable: app,
       children: (c) => [
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: Text(tr('Microfone sozinho'), style: TextStyle(fontWeight: FontWeight.w700)),
-          subtitle: Text(tr('Liga ao abrir o Afinador (depois de liberado uma vez).'), style: TextStyle(fontSize: Ds.fontLabel)),
-          value: app.autoMicEnabled,
-          onChanged: app.setAutoMic,
-        ),
-        const DsGap.section(),
-        MicSettingsContent(app: app),
-        const DsGap.section(),
-        _tuningCard(app.tunerMode == TunerMode.strings),
+        DsGroup(icon: Icons.mic_none_rounded, title: tr('Microfone'), children: [
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(tr('Microfone sozinho'), style: TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(tr('Liga ao abrir o Afinador (depois de liberado uma vez).'), style: TextStyle(fontSize: Ds.fontLabel)),
+            value: app.autoMicEnabled,
+            onChanged: app.setAutoMic,
+          ),
+          const DsGap(Ds.s12),
+          MicSettingsContent(app: app),
+          const DsGap(Ds.s8),
+        ]),
+        DsGroup(icon: Icons.straighten_rounded, title: tr('Afinação'), children: [
+          _tuningCard(app.tunerMode == TunerMode.strings),
+          const DsGap(Ds.s8),
+        ]),
       ],
     );
   }

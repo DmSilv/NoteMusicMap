@@ -108,9 +108,13 @@ class SettingsPage extends StatelessWidget {
       );
 
   List<Widget> _appearanceList() => [
-        DsSettingRow(label: tr('Tema'), child: SizedBox(width: double.infinity, child: _appearance())),
-        DsSettingRow(label: tr('Idioma / Language'), child: SizedBox(width: double.infinity, child: _language())),
-        _switch(tr('Manter a tela acesa'), tr('Enquanto você ouve ou estuda.'), app.keepAwake, app.setKeepAwake),
+        DsGroup(icon: Icons.palette_rounded, title: tr('Aparência'), children: [
+          DsGroupRow(tr('Tema'), SizedBox(width: double.infinity, child: _appearance())),
+          DsGroupRow(tr('Idioma / Language'), SizedBox(width: double.infinity, child: _language())),
+        ]),
+        DsGroup(icon: Icons.smartphone_rounded, title: tr('Tela'), children: [
+          _switch(tr('Manter a tela acesa'), tr('Enquanto você ouve ou estuda.'), app.keepAwake, app.setKeepAwake),
+        ]),
       ];
 
   Widget _diagnostics(BuildContext context) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -242,6 +246,7 @@ class SettingsPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        DsGroup(icon: Icons.music_note_rounded, title: tr('Referência e instrumento'), children: [
         _label(tr('Lá de referência'), null, HelpButton(title: tr('Lá de referência'), sections: Help.refA)),
         Wrap(spacing: 6, runSpacing: 4, children: [
           for (final hz in refs)
@@ -255,10 +260,13 @@ class SettingsPage extends StatelessWidget {
           options: instrumentOptions(app.cfg),
           onChanged: (v) => app.setTuning(instrumentId: v),
         ),
+        ]),
+        DsGroup(icon: Icons.straighten_rounded, title: tr('Sistema de afinação'), children: [
         _label(tr('Sistema de afinação'), null, HelpButton(title: tr('Qual sistema de afinação?'), sections: Help.system, footer: Help.systemFooter)),
         _choice(tr('Igual'), tr('Piano, violão e trastes.'), app.system == TuningSystem.equal, () => app.setTuning(system: TuningSystem.equal)),
         _choice(tr('Pitagórico'), tr('Arco e melodias.'), app.system == TuningSystem.pythagorean, () => app.setTuning(system: TuningSystem.pythagorean)),
         _choice(tr('Justo'), tr('Acordes e conjunto.'), app.system == TuningSystem.just, () => app.setTuning(system: TuningSystem.just)),
+        ]),
       ],
     );
   }
@@ -309,10 +317,13 @@ class SettingsPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        DsGroup(icon: Icons.notifications_active_outlined, title: tr('Aviso na batida'), children: [
         _switch(tr('Piscar a tela na batida'), tr('Um clarão a cada tempo.'),
             app.flashEnabled, (v) => app.setTuning(flashEnabled: v)),
         _switch(tr('Vibrar na batida'), tr('Só no celular Android.'),
             app.hapticEnabled, (v) => app.setTuning(hapticEnabled: v)),
+        ]),
+        DsGroup(icon: Icons.volume_up_rounded, title: tr('Som'), children: [
         _label(tr('Som do metrônomo')),
         Wrap(spacing: 6, runSpacing: 4, children: [
           for (final e in {
@@ -343,6 +354,7 @@ class SettingsPage extends StatelessWidget {
           value: app.outputLatencyMs.clamp(0.0, 250.0),
           onChanged: app.setLatency,
         ),
+        ]),
       ],
     );
   }
@@ -351,7 +363,10 @@ class SettingsPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _switch(tr('Mostrar frequência'), tr('Os Hz da nota que você toca.'), app.showFreq, app.setShowFreq),
+        DsGroup(icon: Icons.visibility_outlined, title: tr('Na tela'), children: [
+          _switch(tr('Mostrar frequência'), tr('Os Hz da nota que você toca.'), app.showFreq, app.setShowFreq),
+        ]),
+        DsGroup(icon: Icons.history_rounded, title: tr('Memória e cores'), children: [
         _label(tr('Memória da nota')),
         Wrap(spacing: 6, runSpacing: 4, children: [
           for (final e in {
@@ -375,6 +390,7 @@ class SettingsPage extends StatelessWidget {
               onSelected: (_) => app.setTuning(holdSeconds: e.key),
             ),
         ]),
+        ]),
       ],
     );
   }
@@ -383,6 +399,7 @@ class SettingsPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        DsGroup(icon: Icons.flag_rounded, title: tr('Meta'), children: [
         _label(tr('Meta diária: {0} min', [app.dailyGoalMinutes.round()])),
         Slider(
           min: 5,
@@ -391,6 +408,8 @@ class SettingsPage extends StatelessWidget {
           value: app.dailyGoalMinutes.clamp(5.0, 120.0),
           onChanged: (v) => app.setTuning(dailyGoalMinutes: v),
         ),
+        ]),
+        DsGroup(icon: Icons.history_rounded, title: tr('Histórico'), children: [
         OutlinedButton.icon(
           onPressed: () async {
             final ok = await _confirm(context, tr('Apagar histórico?'),
@@ -404,6 +423,8 @@ class SettingsPage extends StatelessWidget {
           icon: const Icon(Icons.delete_outline),
           label: Text(tr('Apagar histórico')),
         ),
+        const DsGap(Ds.s8),
+        ]),
       ],
     );
   }
@@ -413,6 +434,7 @@ class SettingsPage extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        DsGroup(icon: Icons.settings_backup_restore, title: tr('Ajustes'), children: [
         OutlinedButton.icon(
           onPressed: () async {
             final ok = await _confirm(context, tr('Restaurar padrões?'), tr('Os ajustes voltam ao início. O histórico de estudo é mantido.'), tr('Restaurar'));
@@ -422,6 +444,8 @@ class SettingsPage extends StatelessWidget {
           label: Text(tr('Restaurar ajustes')),
         ),
         const DsGap(Ds.s12),
+        ]),
+        DsGroup(icon: Icons.delete_forever_outlined, title: tr('Apagar os dados deste aparelho'), children: [
         FilledButton.icon(
           style: FilledButton.styleFrom(backgroundColor: AppColors.sharp, foregroundColor: readableOn(AppColors.sharp)),
           onPressed: () async {
@@ -437,9 +461,9 @@ class SettingsPage extends StatelessWidget {
         ),
         const DsGap(Ds.s8),
         Text(tr('Use se algo estiver estranho.'), style: Ds.support()),
-        const DsGap(Ds.s20),
-        Text(tr('Excluir a conta'), style: Ds.section()),
-        const DsGap(Ds.s8),
+        const DsGap(Ds.s12),
+        ]),
+        DsGroup(icon: Icons.person_remove_outlined, title: tr('Excluir a conta'), children: [
         Text(tr('Apaga a sua conta no servidor e tudo deste aparelho. É definitivo.'), style: Ds.support()),
         const DsGap(Ds.s8),
         OutlinedButton.icon(
@@ -448,6 +472,8 @@ class SettingsPage extends StatelessWidget {
           icon: const Icon(Icons.person_remove_outlined),
           label: Text(tr('Excluir minha conta'), style: const TextStyle(fontWeight: FontWeight.w700)),
         ),
+        const DsGap(Ds.s8),
+        ]),
       ],
     );
   }

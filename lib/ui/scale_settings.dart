@@ -260,44 +260,6 @@ class _SimpleKeyPicker extends StatelessWidget {
   }
 }
 
-/// Um assunto da folha de ajustes: contêiner com borda, ícone e título; a etiqueta diz se o assunto SEGUE o metrônomo ou não.
-Widget _group({required IconData icon, required String title, String? tag, IconData? tagIcon, required List<Widget> children}) {
-  return Container(
-    width: double.infinity,
-    margin: const EdgeInsets.only(bottom: Ds.s12),
-    padding: const EdgeInsets.fromLTRB(Ds.s12, Ds.s12, Ds.s12, Ds.s4),
-    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.outline, width: 1)),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(children: [
-        Icon(icon, size: 20, color: AppColors.accent),
-        const SizedBox(width: Ds.s8),
-        Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
-        if (tag != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(999)),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              if (tagIcon != null) ...[Icon(tagIcon, size: 13, color: AppColors.textDim), const SizedBox(width: 4)],
-              Text(tag, style: TextStyle(color: AppColors.textDim, fontSize: 11.5, fontWeight: FontWeight.w700)),
-            ]),
-          ),
-      ]),
-      const SizedBox(height: Ds.s12),
-      ...children,
-    ]),
-  );
-}
-
-/// Uma linha de ajuste dentro de um assunto (mais enxuta que a [DsSettingRow] solta).
-Widget _row(String label, Widget child) => Padding(
-      padding: const EdgeInsets.only(bottom: Ds.s16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: Ds.fontBody)),
-        const SizedBox(height: Ds.s8),
-        child,
-      ]),
-    );
-
 /// Liga/desliga com título e uma frase, dentro de um assunto.
 Widget _switch(String title, String sub, bool value, ValueChanged<bool> onChanged) => Padding(
       padding: const EdgeInsets.only(bottom: Ds.s8),
@@ -317,13 +279,13 @@ List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required boo
   final bpm = app.metro.bpm.round();
   return [
     // 1) O que tocar
-    _group(
+    DsGroup(
       icon: Icons.music_note_rounded,
       title: exercise ? tr('O que tocar') : (arp ? tr('O que tocar: arpejo') : tr('O que tocar: escala')),
       children: [
         if (!exercise) ...[
           // versão simples: quem só quer "Dó menor" ou "Mi♭ maior" escolhe direto, sem letra + acidente + tipo
-          _row(arp ? tr('Qual arpejo?') : tr('Qual escala?'), _SimpleKeyPicker(app: app)),
+          DsGroupRow(arp ? tr('Qual arpejo?') : tr('Qual escala?'), _SimpleKeyPicker(app: app)),
           Theme(
             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
             child: ExpansionTile(
@@ -339,8 +301,7 @@ List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required boo
             ),
           ),
           const DsGap(Ds.s12),
-          _row(
-            tr('Oitavas'),
+          DsGroupRow(tr('Oitavas'),
             SizedBox(
               width: double.infinity,
               child: SegmentedButton<int>(
@@ -352,8 +313,7 @@ List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required boo
             ),
           ),
         ],
-        _row(
-          tr('Direção'),
+        DsGroupRow(tr('Direção'),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             SizedBox(width: double.infinity, child: directionPicker(app, onChanged: exercise ? () => app.startExercise(demoMode: app.demo) : null)),
             if (exercise) ...[
@@ -365,14 +325,13 @@ List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required boo
       ],
     ),
     // 2) Como estudar: nada aqui depende do metrônomo
-    _group(
+    DsGroup(
       icon: Icons.school_rounded,
       title: tr('Como estudar'),
       tag: tr('Sem metrônomo'),
       tagIcon: Icons.timer_off_outlined,
       children: [
-        _row(
-          tr('Jeito de tocar'),
+        DsGroupRow(tr('Jeito de tocar'),
           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             SizedBox(
               width: double.infinity,
@@ -391,8 +350,7 @@ List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required boo
           ]),
         ),
         if (!flow) ...[
-          _row(
-            tr('Quão exigente'),
+          DsGroupRow(tr('Quão exigente'),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               SizedBox(
                 width: double.infinity,
@@ -417,14 +375,13 @@ List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required boo
     ),
     // 3) Tempo: aqui o metrônomo manda
     if (!flow)
-      _group(
+      DsGroup(
         icon: Icons.timer_outlined,
         title: tr('Tempo'),
         tag: tr('Com metrônomo'),
         tagIcon: Icons.av_timer_rounded,
         children: [
-          _row(
-            tr('Metrônomo'),
+          DsGroupRow(tr('Metrônomo'),
             Row(children: [
               IconButton.outlined(tooltip: tr('Mais devagar'), onPressed: () => app.setBpm(app.metro.bpm - 4), icon: const Icon(Icons.remove_rounded)),
               Expanded(child: Center(child: Text('$bpm bpm', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)))),
@@ -432,8 +389,7 @@ List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required boo
             ]),
           ),
           _switch(tr('Som do clique'), tr('Desligue para ver só o pulso na tela (o microfone não escuta o clique).'), !app.scaleMetroSilent, app.setScaleMetroSound),
-          _row(
-            tr('Quanto tempo segurar cada nota'),
+          DsGroupRow(tr('Quanto tempo segurar cada nota'),
             Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               SizedBox(
                 width: double.infinity,
@@ -466,7 +422,7 @@ List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required boo
         ],
       ),
     if (!exercise)
-      _group(
+      DsGroup(
         icon: Icons.grid_view_rounded,
         title: tr('Na aba Grade'),
         children: [
@@ -478,7 +434,7 @@ List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required boo
             ),
         ],
       ),
-    _group(
+    DsGroup(
       icon: Icons.queue_music_rounded,
       title: tr('Partitura'),
       children: [
@@ -487,12 +443,11 @@ List<Widget> scaleSettingsRows(BuildContext context, AppState app, {required boo
         if (exercise && app.scaleStaff && app.cfg.transpose == 0) PaperToggleRow(value: app.scalePaper, onChanged: (p) => app.setStaff(paper: p)),
       ],
     ),
-    _group(
+    DsGroup(
       icon: Icons.straighten_rounded,
       title: tr('Afinação'),
       children: [
-        _row(
-          tr('Sistema de afinação'),
+        DsGroupRow(tr('Sistema de afinação'),
           OutlinedButton.icon(
             onPressed: () => pickTuningSystem(context, app, tonicPc: app.scaleTonicMidi % 12),
             icon: const Icon(Icons.straighten, size: 20),

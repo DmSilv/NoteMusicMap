@@ -303,10 +303,10 @@ class _MetronomePageState extends State<MetronomePage>
 
   List<Widget> _settingsList(MetronomeConfig m) => [
             // ---- Compasso ----
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            DsGroup(
+              icon: Icons.music_note_rounded,
+              title: tr('Compasso e subdivisão'),
+              children: [
                   Text(tr('Compasso'), style: TextStyle(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
                   Wrap(spacing: 6, runSpacing: 4, children: [
@@ -328,7 +328,14 @@ class _MetronomePageState extends State<MetronomePage>
                         onSelected: (_) => app.setSubdivision(e.key),
                       ),
                   ]),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 8),
+              ],
+            ),
+            // ---- Som e avisos ----
+            DsGroup(
+              icon: Icons.volume_up_rounded,
+              title: tr('Som e avisos na batida'),
+              children: [
                   Text(tr('Som'), style: TextStyle(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 8),
                   Wrap(spacing: 6, children: [
@@ -388,17 +395,13 @@ class _MetronomePageState extends State<MetronomePage>
                         label: Text(tr('Testar vibração')),
                       ),
                     ),
-                ],
-              ),
+              ],
             ),
-            const SizedBox(height: 12),
             // ---- Treino ----
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(tr('Contagem e pulso interno'),
-                      style: TextStyle(fontWeight: FontWeight.w700)),
+            DsGroup(
+              icon: Icons.school_rounded,
+              title: tr('Contagem e pulso interno'),
+              children: [
                   ...[
                     const SizedBox(height: 8),
                     Text(tr('Contagem inicial'), style: TextStyle(color: AppColors.textDim)),
@@ -432,10 +435,8 @@ class _MetronomePageState extends State<MetronomePage>
                                   playBars: m.silent!.playBars, muteBars: v.round())))),
                     ],
                   ],
-                ],
-              ),
+              ],
             ),
-            const SizedBox(height: 12),
             _challengeCard(m),
       ];
 

@@ -221,6 +221,7 @@ class _GridPageState extends State<GridPage> {
       title: tr('Afinação da grade'),
       listenable: app,
       children: (c) => [
+        DsGroup(icon: Icons.straighten_rounded, title: tr('Afinação da grade'), children: [
         DsSettingRow(
           label: tr('Lá de referência: {0} Hz', [app.refA.toStringAsFixed(app.refA == app.refA.roundToDouble() ? 0 : 1)]),
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -257,6 +258,7 @@ class _GridPageState extends State<GridPage> {
             Text(tuningExplain(app), style: Ds.support()),
           ]),
         ),
+        ]),
       ],
     );
   }
@@ -468,8 +470,10 @@ class _GridPageState extends State<GridPage> {
         : (app.holdSeconds >= 120 ? tr('2 minutos') : tr('{0} segundos', [app.holdSeconds.round()]));
     return Column(
       children: [
-        AppCard(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        DsGroup(
+          icon: Icons.grid_view_rounded,
+          title: tr('Grade'),
+          children: [
             Text(tr('Oitavas na grade: {0}', [app.gridOctCount]), style: const TextStyle(fontWeight: FontWeight.w700)),
             Slider(
               min: 2,
@@ -486,13 +490,12 @@ class _GridPageState extends State<GridPage> {
               value: app.gridFollow,
               onChanged: app.setFollow,
             ),
-          ]),
+          ],
         ),
-        const DsGap(Ds.gap),
-        AppCard(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(
-            children: [
+        DsGroup(
+          icon: Icons.tune_rounded,
+          title: tr('Afinação, memória e cores'),
+          children: [
               _tile(Icons.straighten, tr('Afinação'), tuningSummary(app), _openTuning),
               const Divider(height: 1),
               _tile(Icons.history, tr('Memória da nota'), histLabel,
@@ -532,14 +535,12 @@ class _GridPageState extends State<GridPage> {
                         hint:
                             tr('Velocidade com que o destaque (nome da nota, ponteiro e quadrado aceso) passa de uma nota para a próxima. As cores da grade continuam registrando tudo o que você toca.'),
                       )),
-            ],
-          ),
+          ],
         ),
-        const SizedBox(height: 10),
-        AppCard(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(
-            children: [
+        DsGroup(
+          icon: Icons.mic_none_rounded,
+          title: tr('Microfone e dados'),
+          children: [
               _tile(Icons.mic_none, tr('Captação do microfone'),
                   tr('{0} · ganho {1}×', [app.sensitivity.label, app.micGain.toStringAsFixed(app.micGain < 10 ? 1 : 0)]),
                   _micSheet),
@@ -547,8 +548,7 @@ class _GridPageState extends State<GridPage> {
               const Divider(height: 1),
               _tile(Icons.restart_alt, tr('Zerar a grade'), tr('Apaga as cores acumuladas'),
                   () => confirmResetGrid(context, app)),
-            ],
-          ),
+          ],
         ),
       ],
     );

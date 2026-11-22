@@ -21,9 +21,10 @@ class StudyCard extends StatelessWidget {
       title: tr('Ajustes do estudo'),
       listenable: app,
       children: (c) => [
-        DsSettingRow(
-          label: tr('Meta diária: {0} min', [app.dailyGoalMinutes.round()]),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        DsGroup(icon: Icons.flag_rounded, title: tr('Meta'), children: [
+        DsGroupRow(
+          tr('Meta diária: {0} min', [app.dailyGoalMinutes.round()]),
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Slider(
               min: 5,
               max: 120,
@@ -34,11 +35,15 @@ class StudyCard extends StatelessWidget {
             Text(tr('Conta o tempo com o metrônomo ligado ou tocando no microfone.'), style: Ds.support()),
           ]),
         ),
-        OutlinedButton.icon(
-          onPressed: () => _confirmClear(c),
-          icon: const Icon(Icons.delete_outline),
-          label: Text(tr('Apagar histórico')),
-        ),
+        ]),
+        DsGroup(icon: Icons.history_rounded, title: tr('Histórico'), children: [
+          OutlinedButton.icon(
+            onPressed: () => _confirmClear(c),
+            icon: const Icon(Icons.delete_outline),
+            label: Text(tr('Apagar histórico')),
+          ),
+          const DsGap(Ds.s8),
+        ]),
       ],
     );
   }
