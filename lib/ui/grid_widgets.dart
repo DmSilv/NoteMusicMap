@@ -121,7 +121,7 @@ class OctaveChips extends StatelessWidget {
           onTapDown: (d) => goTo(d.localPosition.dx),
           onHorizontalDragUpdate: (d) => goTo(d.localPosition.dx),
           child: SizedBox(
-            height: 48,
+            height: 44,
             child: Stack(children: [
               // trilho com as nove oitavas
               Positioned.fill(
@@ -135,19 +135,21 @@ class OctaveChips extends StatelessWidget {
                 curve: Curves.easeOutCubic,
                 left: first * cell + 3,
                 width: (last - first + 1) * cell - 6,
-                top: 4,
-                bottom: 4,
+                top: 3,
+                bottom: 3,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
-                    color: AppColors.accent.withValues(alpha: 0.2),
+                    color: AppColors.text.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(11),
-                    border: Border.all(color: AppColors.accent, width: 1.5),
+                    border: Border.all(color: AppColors.text.withValues(alpha: 0.28), width: 1.2),
                   ),
                 ),
               ),
-              Row(children: [
-                for (var label = 0; label < _count; label++) Expanded(child: _num(label)),
-              ]),
+              Positioned.fill(
+                child: Row(children: [
+                  for (var label = 0; label < _count; label++) Expanded(child: _num(label)),
+                ]),
+              ),
             ]),
           ),
         ),
@@ -157,10 +159,13 @@ class OctaveChips extends StatelessWidget {
 
   Widget _num(int label) {
     final on = label >= first && label <= last;
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
+    // O número fica no meio exato da faixa; o pontinho (ou o "Lá") fica embaixo, sem empurrar o número.
+    return Stack(
+      alignment: Alignment.center,
       children: [
-        Text(
+        Padding(
+          padding: EdgeInsets.only(bottom: played.contains(label) ? 6 : 0),
+          child: Text(
           '$label',
           style: TextStyle(
             fontSize: 15,
@@ -169,13 +174,13 @@ class OctaveChips extends StatelessWidget {
             color: on ? AppColors.text : AppColors.textDim,
           ),
         ),
-        const SizedBox(height: 4),
-        // Pontinho = já tocou nessa oitava; "Lá" marca a oitava do Lá 440 Hz.
-        SizedBox(
-          height: 8,
+        ),
+        // Pontinho = já tocou nessa oitava (a dica explica que a oitava 4 é a do Lá 440 Hz).
+        Positioned(
+          bottom: 3,
           child: played.contains(label)
-              ? Container(width: 5, height: 5, decoration: BoxDecoration(color: AppColors.accent, shape: BoxShape.circle))
-              : (label == 4 ? Text(tr('Lá'), style: TextStyle(fontSize: 9, height: 1.0, color: AppColors.textDim)) : null),
+              ? Container(width: 4, height: 4, decoration: BoxDecoration(color: AppColors.accent, shape: BoxShape.circle))
+              : const SizedBox.shrink(),
         ),
       ],
     );
