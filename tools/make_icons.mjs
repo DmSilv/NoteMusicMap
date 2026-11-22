@@ -70,10 +70,18 @@ function sample(x, y, variant) {
     px = (x - 0.5) / s + 0.5;
     py = (y - 0.5) / s + 0.5;
   }
+  if (variant === 'badge') {
+    // Ícone pequeno de notificação (Android): só a silhueta em branco, sem fundo, maior que no ícone normal.
+    const s = 1.35;
+    px = (x - 0.5) / s + 0.5;
+    py = (y - 0.5) / s + 0.5;
+  }
   let col = mix(hex(C.top), hex(C.bottom), y);
-  for (const a of TICK_A) if (distSeg(px, py, pt(a, TICK_R0), pt(a, TICK_R1)) <= TICK_W / 2) col = hex(C.tick);
-  if (inNeedle(px, py)) col = hex(C.green);
-  if (Math.hypot(px - PV.x, py - PV.y) <= HUB_R) col = hex(C.hub);
+  let hit = false;
+  for (const a of TICK_A) if (distSeg(px, py, pt(a, TICK_R0), pt(a, TICK_R1)) <= TICK_W / 2) { col = hex(C.tick); hit = true; }
+  if (inNeedle(px, py)) { col = hex(C.green); hit = true; }
+  if (Math.hypot(px - PV.x, py - PV.y) <= HUB_R) { col = hex(C.hub); hit = true; }
+  if (variant === 'badge') return hit ? [255, 255, 255, 255] : [0, 0, 0, 0];
   return [...col, 255];
 }
 
@@ -135,6 +143,7 @@ out('web/icons/Icon-192.png', 192, 'rounded');
 out('web/icons/Icon-512.png', 512, 'rounded');
 out('web/icons/Icon-maskable-192.png', 192, 'maskable');
 out('web/icons/Icon-maskable-512.png', 512, 'maskable');
+out('web/icons/badge-96.png', 96, 'badge');
 
 for (const [d, s] of Object.entries({ mdpi: 48, hdpi: 72, xhdpi: 96, xxhdpi: 144, xxxhdpi: 192 })) {
   out(`android/app/src/main/res/mipmap-${d}/ic_launcher.png`, s, 'rounded');

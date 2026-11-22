@@ -105,7 +105,7 @@ self.addEventListener('push', (event) => {
       self.registration.showNotification('Notemusic · painel', {
         body,
         icon: '/icons/Icon-192.png',
-        badge: '/icons/Icon-192.png',
+        badge: '/icons/badge-96.png',
         tag: `admin-${typeof d.tag === 'string' ? d.tag.slice(0, 20) : 'x'}`,
         data: { url: '/admin.html' },
       }),
@@ -119,14 +119,21 @@ self.addEventListener('push', (event) => {
       const en = lang === 'en';
       const hhmm = new Date(Number(d.start)).toLocaleTimeString(en ? 'en-US' : 'pt-BR', { hour: '2-digit', minute: '2-digit' });
       const name = typeof d.who === 'string' && d.who ? d.who.slice(0, 40) : '';
-      const who = name ? (en ? ` with ${name}` : ` com ${name}`) : '';
+      const who = name ? (en ? ` · with ${name}` : ` · com ${name}`) : '';
+      // "Hoje às 13:20 · com Marcos": o quando e o com quem numa linha só; o título já diz quanto falta.
+      const start = new Date(Number(d.start));
+      const now = new Date();
+      const dayDiff = Math.round((new Date(start.getFullYear(), start.getMonth(), start.getDate()) - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 86400000);
+      const day = dayDiff <= 0 ? (en ? 'Today' : 'Hoje') : dayDiff === 1 ? (en ? 'Tomorrow' : 'Amanhã') : start.toLocaleDateString(en ? 'en-US' : 'pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' });
       await self.registration.showNotification(lessonTitle(Number(d.start), Date.now(), lang), {
-        body: en ? `Lesson${who} at ${hhmm}` : `Aula${who} às ${hhmm}`,
+        body: en ? `${day} at ${hhmm}${who}` : `${day} às ${hhmm}${who}`,
         icon: '/icons/Icon-192.png',
-        badge: '/icons/Icon-192.png',
+        badge: '/icons/badge-96.png', // silhueta branca: o Android pinta o ícone pequeno de uma cor só
         tag: `aula-${d.start}`, // a mesma aula não empilha avisos
         renotify: false,
         requireInteraction: false,
+        vibrate: [120, 60, 120],
+        actions: [{ action: 'open', title: en ? 'Open agenda' : 'Abrir agenda' }],
         data: { url: '/' },
       });
     })(),
