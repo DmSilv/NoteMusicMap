@@ -563,4 +563,8 @@ const Map<String, String> kEnB14 = {
   'Reenviar': 'Resend',
   'Os envios de antes foram apagados quando ele saiu.': 'Earlier deliveries were erased when they left.',
   'Vínculo online ligado: é ele que leva tarefas e avisos entre professor e aluno.': 'Online link on: it carries tasks and alerts between teacher and student.',
+  'Alterar o seu nome?': 'Change your name?',
+  'Seus professores e alunos vinculados vão ver o nome novo.': 'Your linked teachers and students will see the new name.',
+  'Alterar': 'Change',
+  'O nome não pode ficar vazio.': 'The name cannot be empty.',
 };

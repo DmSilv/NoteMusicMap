@@ -59,6 +59,47 @@ class _ProfilePageState extends State<ProfilePage> {
 
   AppState get app => widget.app;
 
+  /// O nome só muda de propósito: fica travado (só leitura) e o botão "Alterar" abre a edição. Sem nome ainda, já abre editável.
+  late bool _editingName = app.needsNickname;
+
+  bool get _nameLocked => !_editingName;
+
+  /// Quem já está vinculado (professor ou aluno) é avisado de que o nome muda para essas pessoas.
+  Future<void> _askEditName() async {
+    final linked = app.myTeachers.isNotEmpty || app.students.any((s) => s.code != null);
+    if (linked) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (c) => AlertDialog(
+          icon: Icon(Icons.badge_outlined, color: AppColors.accent),
+          title: Text(tr('Alterar o seu nome?')),
+          content: Text(tr('Seus professores e alunos vinculados vão ver o nome novo.')),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
+            FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Alterar'))),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+    }
+    _upd(() => _editingName = true);
+  }
+
+  void _saveName() {
+    final v = _name.text.trim();
+    if (v.isEmpty) {
+      app.say(tr('O nome não pode ficar vazio.'));
+      return;
+    }
+    app.setProfileName(v);
+    _upd(() => _editingName = false);
+  }
+
+  void _cancelName() {
+    _name.text = app.profile.name ?? '';
+    _upd(() => _editingName = false);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -572,18 +613,43 @@ class _ProfilePageState extends State<ProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextField(
-            controller: _name,
-            inputFormatters: const [SafeText.name()],
-            textCapitalization: TextCapitalization.words,
-            maxLength: 40,
-            decoration: InputDecoration(
-              labelText: tr('Seu nome'),
-              helperText: tr('Aparece para o seu professor ou aluno quando você se vincula.'),
-              helperMaxLines: 2,
+          if (_nameLocked)
+            Row(children: [
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(tr('Seu nome'), style: Ds.support()),
+                  Text(app.profile.name ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                ]),
+              ),
+              OutlinedButton.icon(
+                onPressed: _askEditName,
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: Text(tr('Alterar')),
+              ),
+            ])
+          else ...[
+            TextField(
+              controller: _name,
+              inputFormatters: const [SafeText.name()],
+              textCapitalization: TextCapitalization.words,
+              maxLength: 40,
+              decoration: InputDecoration(
+                labelText: tr('Seu nome'),
+                helperText: tr('Aparece para o seu professor ou aluno quando você se vincula.'),
+                helperMaxLines: 2,
+              ),
             ),
-            onChanged: app.setProfileName,
-          ),
+            Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                  if (!app.needsNickname) ...[
+                    TextButton(onPressed: _cancelName, child: Text(tr('Cancelar'))),
+                    const SizedBox(width: 8),
+                  ],
+                  FilledButton(onPressed: _saveName, child: Text(tr('Salvar'))),
+                ]),
+              ),
+          ],
           const SizedBox(height: 12),
           Center(
             child: SelectableText(
