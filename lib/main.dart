@@ -11,6 +11,7 @@ import 'stats/error_service.dart';
 import 'stats/stats_service.dart';
 import 'ui/app_locale.dart';
 import 'ui/app_logo.dart';
+import 'ui/bottom_nav.dart';
 import 'ui/exit_sheet.dart';
 import 'ui/hello_bar.dart';
 import 'ui/my_lessons_page.dart' show openMyLessons;
@@ -728,17 +729,14 @@ class _HomeShellState extends State<HomeShell> {
         // Em telas estreitas (até ~360 px) o rótulo diminui para "Meu espaço" caber numa linha só, em vez de quebrar em duas.
         bottomNavigationBar: split
             ? null
-            : NavigationBarTheme(
-                data: Theme.of(context).navigationBarTheme.copyWith(
-                      labelTextStyle: WidgetStateProperty.all(TextStyle(fontSize: MediaQuery.sizeOf(context).width < 360 ? 10 : 11.5, fontWeight: FontWeight.w600)),
-                    ),
-                child: NavigationBar(
-                  selectedIndex: kTabOrder.indexOf(_index),
-                  onDestinationSelected: (k) => _go(kTabOrder[k]),
-                  destinations: [
-                    for (final t in kTabOrder) NavigationDestination(icon: Icon(_icons[t]), label: _titles[t]),
-                  ],
-                ),
+            : BottomNav(
+                selected: kTabOrder.indexOf(_index),
+                onSelected: (k) => _go(kTabOrder[k]),
+                items: [
+                  for (final t in kTabOrder)
+                    // O ponto laranja do Meu espaço: há aviso novo e a pessoa não está lá.
+                    BottomNavItem(icon: _icons[t], label: _titles[t], alert: t == kTabStudy && _index != kTabStudy && app.unseenNotices > 0),
+                ],
               ),
       ),
     );

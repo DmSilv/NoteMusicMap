@@ -40,6 +40,7 @@
 | `lib/ui/app_locale.dart` | O app fala português do Brasil ou inglês: os textos do próprio Flutter (seletor de data e hora, "OK"/"Cancelar", copiar/colar, nomes de mês e dia) seguem o idioma escolhido (veja `Lang` e `tr()` em afina_core). Custo… |
 | `lib/ui/app_logo.dart` | Logo do Notemusic: mostrador de afinador "Marcas e ponteiro" (opção 2B do laboratório de logo). Sete marcas em leque, ponteiro verde no centro (afinado) e pivô branco, sobre petróleo. Mesma geometria de… |
 | `lib/ui/beat_bar.dart` | A barra de "quanto já segurou afinada". Com o metrônomo ligado ela dá uma leve pulsada a cada tempo (mais forte no tempo forte): a barra continua sendo só a medida, e o pulso ajuda a sentir o andamento. Sem… |
+| `lib/ui/bottom_nav.dart` | Uma aba da barra de baixo. |
 | `lib/ui/cloud_copy_body.dart` | Cópia das fichas na nuvem (chave `copia_nuvem`): explica o que vai para o servidor e só liga com o aceite da pessoa. |
 | `lib/ui/design_system.dart` | Design system do Notemusic. REGRA: toda tela nova ou alterada usa estes valores e estes componentes (ver docs/12_DESIGN_SYSTEM.md). Números soltos de espaçamento, raio ou altura de botão não entram em tela nova.… |
 | `lib/ui/dev_chat_sheet.dart` | Conversa particular com o desenvolvedor: só esta pessoa vê. Mensagens do administrador, resposta curta, e (quando ele pergunta) escolher se o apelido pode ser citado no boletim. O texto vem do servidor ao abrir. |
@@ -401,4 +402,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **358** arquivos mapeados.
+Total: **359** arquivos mapeados.
