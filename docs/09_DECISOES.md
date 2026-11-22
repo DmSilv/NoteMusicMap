@@ -79,7 +79,7 @@ O guia de uso é sempre opcional (convite no cartão "Comece por aqui" e botão 
 
 ## D-chave25. Chave de recuperação curta (25 caracteres), verificada no servidor
 - *Contexto:* a chave antiga (~100 caracteres) é a identidade inteira em texto: ninguém consegue anotá-la, e a maioria não guarda.
-- *Decisão:* uma chave aleatória de 25 símbolos (125 bits) que o servidor guarda só como hash; digitá-la num aparelho novo troca o segredo do perfil. A antiga continua valendo; a nova é a principal. Funciona sem e-mail e sem domínio.
+- *Decisão:* uma chave aleatória de 25 símbolos (125 bits) que o servidor guarda só como hash; digitá-la num aparelho novo troca o segredo do perfil. **Atualização (22/11/2026, Daniel): o app passa a mostrar e a explicar só a chave de 25 caracteres.** A chave longa antiga (NM1…) deixou de ser exibida em Minha conta; quem ainda a tiver guardada pode colá-la no campo de entrar com a chave, que segue aceitando o formato (retrocompatível, sem aviso). Funciona sem e-mail e sem domínio.
 - *Consequências:* deixa de ser autossuficiente (precisa do servidor e do perfil registrado, o que acontece quando a pessoa gera a chave); o aparelho antigo perde o acesso ao usá-la; quem tem a chave assume a conta.
 
 ## D-multiaparelho. Até 5 aparelhos por conta, todos iguais (sem aparelho principal)

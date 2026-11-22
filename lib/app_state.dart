@@ -292,6 +292,10 @@ class AppState extends ChangeNotifier {
   bool hasRecoveryKey = false;
   String recoveryKeyText = '';
 
+  /// Falta cuidar da chave de recuperação (a de 25 caracteres, a única que o app mostra): sem e-mail ligado, e ou ainda não há chave
+  /// ou ela foi gerada aqui e ainda não foi guardada. Se foi gerada em outro aparelho, já está cuidada. É o que acende a bolinha do avatar.
+  bool get keyPending => emailHint.isEmpty && (hasRecoveryKey ? (recoveryKeyText.isNotEmpty && profile.recoveryShownAt == null) : true);
+
   /// E-mail ligado a este perfil, mascarado ("a***@gmail.com"), ou vazio se não ligou.
   String emailHint = '';
 

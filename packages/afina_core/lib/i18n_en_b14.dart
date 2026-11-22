@@ -57,10 +57,7 @@ const Map<String, String> kEnB14 = {
   'A chave atual deixa de valer. Guarde a nova em lugar seguro.': 'The current key stops working. Keep the new one somewhere safe.',
   'Gerar': 'Generate',
   'Chave gerada. Guarde em lugar seguro.': 'Key generated. Keep it somewhere safe.',
-  'Chave antiga (formato longo)': 'Old key (long format)',
-  'Para quem já guardou uma.': 'For those who already saved one.',
   'Usar uma chave que já tenho': 'Use a key I already have',
-  'Digite a chave de 25 caracteres (ou cole a chave antiga, que começa com NM1).': 'Type the 25-character key (or paste the old key, which starts with NM1).',
   'Entrar com a chave': 'Sign in with the key',
   'Entrar com esta chave?': 'Sign in with this key?',
   'Chave inválida. Confira se digitou os 25 caracteres.': 'Invalid key. Check that you typed all 25 characters.',
@@ -628,4 +625,5 @@ const Map<String, String> kEnB14 = {
   'fale mais perto e tente de novo': 'speak closer and try again',
   'Não ouvi nada': 'I heard nothing',
   'Texto inserido': 'Text added',
+  'Digite a chave de 25 caracteres.': 'Enter the 25-character key.',
 };

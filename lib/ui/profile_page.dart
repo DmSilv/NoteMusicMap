@@ -45,7 +45,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  bool _showKey = false;
   bool _showShort = false; // mostrar a chave de 25 na tela
   bool _keyBusy = false;
   bool _fast = false;
@@ -261,25 +260,9 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  /// A chave longa antiga, recolhida: quem já guardou uma continua podendo usá-la.
-  Widget _legacyCard(Widget body) => AppCard(
-        padding: EdgeInsets.zero,
-        child: Theme(
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            tilePadding: const EdgeInsets.symmetric(horizontal: 16),
-            childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            shape: const Border(),
-            collapsedShape: const Border(),
-            title: Text(tr('Chave antiga (formato longo)'), style: const TextStyle(fontWeight: FontWeight.w800)),
-            subtitle: Text(tr('Para quem já guardou uma.'), style: Ds.support()),
-            children: [body],
-          ),
-        ),
-      );
-
   Future<void> _doRestore() async {
-    // Chave de 25 caracteres: confere no servidor. Qualquer outra coisa segue o caminho da chave longa antiga.
+    // Chave de 25 caracteres: confere no servidor. O app só mostra e explica essa chave. Quem ainda tiver guardado o texto longo da
+    // versão antiga (NM1…) continua podendo colá-lo aqui: o caminho segue funcionando, só não é mais oferecido.
     final shortKey = normalizeShortKey(_restore.text);
     if (shortKey != null) {
       final ok = await showDialog<bool>(
@@ -334,7 +317,6 @@ class _ProfilePageState extends State<ProfilePage> {
     if (ok != true) return;
     if (app.restoreProfile(_restore.text)) {
       _restore.clear();
-      _upd(() => _showKey = false);
       app.say(tr('Perfil restaurado.'));
     } else {
       app.say(
@@ -482,7 +464,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
               ),
-            if (p.recoveryShownAt == null && app.emailHint.isEmpty)
+            if (app.keyPending)
               Padding(
                 padding: const EdgeInsets.only(top: Ds.s8, bottom: Ds.s4),
                 child: AppCard(
@@ -550,7 +532,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   sub: tr('Organize o que você ensina'), onTap: _openTeachingSetup),
             _section(tr('Conta')),
             _row(Icons.shield_outlined, tr('Acesso e segurança'),
-                sub: p.recoveryShownAt == null ? tr('Você ainda não guardou a sua chave') : tr('Chave, aparelhos, e-mail e apagar dados'),
+                sub: app.keyPending ? tr('Você ainda não guardou a sua chave') : tr('Chave, aparelhos, e-mail e apagar dados'),
                 onTap: () => _open(tr('Acesso e segurança'), _securityBody)),
             _section(tr('App')),
             _row(Icons.settings_outlined, tr('Ajustes'), onTap: () {
@@ -618,7 +600,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   /// Acesso e segurança: tudo o que protege a conta e leva a ela, num lugar só, em três blocos.
   Widget _securityBody(BuildContext context) {
-    final p = app.profile;
     final guard = <Widget>[
       if (app.emailEnabled)
         DsNavRow(Icons.alternate_email, tr('E-mail da conta'), app.emailHint.isEmpty ? tr('Recupere a conta em outro aparelho, sem senha') : app.emailHint,
@@ -637,9 +618,9 @@ class _ProfilePageState extends State<ProfilePage> {
       _navCard([
         DsNavRow(Icons.login, tr('Já tenho conta em outro aparelho'), tr('Ligue este aparelho à sua conta'), () => _push(JoinAccountPage(app: app))),
         DsNavRow(Icons.help_outline_rounded, tr('Perdi meu acesso'), tr('Passo a passo para voltar à sua conta'), () => _push(RecoveryHelpPage(app: app))),
-        DsNavRow(Icons.key, tr('Chave de recuperação'), p.recoveryShownAt == null ? tr('Você ainda não guardou a sua chave') : tr('Guarde em lugar seguro'),
+        DsNavRow(Icons.key, tr('Chave de recuperação'), app.keyPending ? tr('Você ainda não guardou a sua chave') : tr('Guarde em lugar seguro'),
             () => _open(tr('Chave de recuperação'), (_) => _keyBody()),
-            alert: p.recoveryShownAt == null),
+            alert: app.keyPending),
       ]),
       if (guard.isNotEmpty) ...[
         _section(tr('Proteção da conta')),
@@ -1002,8 +983,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
   /// Chave de recuperação e "usar um perfil que já tenho".
   Widget _keyBody() {
-    final p = app.profile;
-    final key = recoveryKeyFor(p);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1011,66 +990,13 @@ class _ProfilePageState extends State<ProfilePage> {
         const SizedBox(height: 16),
         _shortKeyCard(),
         const SizedBox(height: 16),
-        _legacyCard(
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                tr('Guarde em lugar seguro: com ela você leva o perfil a outro aparelho. Quem a tiver pode se passar por você.'),
-                style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
-              ),
-              if (p.recoveryShownAt == null) ...[
-                const SizedBox(height: 8),
-                Text(tr('Você ainda não guardou a sua chave.'),
-                    style: TextStyle(color: AppColors.sharp, fontWeight: FontWeight.w700, fontSize: 13)),
-              ],
-              const SizedBox(height: 10),
-              if (!_showKey)
-                FilledButton.tonalIcon(
-                  onPressed: () => _upd(() => _showKey = true),
-                  icon: const Icon(Icons.visibility_outlined),
-                  label: Text(tr('Mostrar minha chave')),
-                )
-              else ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
-                  child: SelectableText(key, style: const TextStyle(fontFamily: 'monospace', fontSize: 12.5, height: 1.4)),
-                ),
-                const SizedBox(height: 8),
-                Row(children: [
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: () async {
-                        await _copy(key, tr('Chave'));
-                        app.markRecoveryShown();
-                      },
-                      icon: const Icon(Icons.copy, size: 18),
-                      label: Text(tr('Copiar')),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  OutlinedButton(
-                    onPressed: () {
-                      app.markRecoveryShown();
-                      _upd(() => _showKey = false);
-                    },
-                    child: Text(tr('Já guardei')),
-                  ),
-                ]),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
         AppCard(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(tr('Usar uma chave que já tenho'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
-              Text(tr('Digite a chave de 25 caracteres (ou cole a chave antiga, que começa com NM1).'),
+              Text(tr('Digite a chave de 25 caracteres.'),
                   style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
               const SizedBox(height: 8),
               TextField(

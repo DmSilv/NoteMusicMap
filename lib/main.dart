@@ -685,10 +685,10 @@ class _HomeShellState extends State<HomeShell> {
             ListenableBuilder(
               listenable: app,
               builder: (context, _) => IconButton(
-                tooltip: app.profile.recoveryShownAt == null && app.emailHint.isEmpty ? tr('Minha conta: falta guardar a chave de recuperação') : tr('Minha conta: perfil, ajustes e compartilhar'),
+                tooltip: app.keyPending ? tr('Minha conta: falta guardar a chave de recuperação') : tr('Minha conta: perfil, ajustes e compartilhar'),
                 icon: Badge(
                   smallSize: 8,
-                  isLabelVisible: app.profile.recoveryShownAt == null && app.emailHint.isEmpty,
+                  isLabelVisible: app.keyPending,
                   backgroundColor: AppColors.sharp,
                   child: _ProfileAvatar(app: app),
                 ),

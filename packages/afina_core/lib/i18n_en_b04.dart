@@ -219,8 +219,6 @@ const Map<String, String> kEnB04 = {
   'Encerrar o vínculo?': 'End the link?',
   'este professor': 'this teacher',
   'Encerrar': 'End',
-  'Guarde em lugar seguro: com ela você leva o perfil a outro aparelho. Quem a tiver pode se passar por você.': 'Keep it somewhere safe: with it you take your profile to another device. Anyone who has it can pass as you.',
-  'Você ainda não guardou a sua chave.': 'You haven\'t saved your key yet.',
   'Mostrar minha chave': 'Show my key',
   'Chave': 'Key',
   'Copiar': 'Copy',
