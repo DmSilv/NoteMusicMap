@@ -36,7 +36,6 @@ const Map<String, String> kEnB13 = {
   'Só quero olhar': 'Just looking',
   'Sem cadastro': 'No sign-up',
   'Dados no aparelho': 'Data on your device',
-  'Instala no celular': 'Installs on your phone',
   'Vibração': 'Vibration',
   'Agora não': 'Not now',
 };

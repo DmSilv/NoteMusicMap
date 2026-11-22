@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:afina_core/afina_core.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
+import '../platform/web_install.dart' show webIsStandalone;
 import 'app_logo.dart';
 import 'theme.dart';
 
@@ -12,12 +14,12 @@ enum TourChoice { study, hasTeacher, teacher, look, hasAccount }
 /// Apresentação do primeiro acesso: 4 telas curtas com telas reais do app e, no fim,
 /// três portas (estudar, tenho professor, sou professor). Não pede nada: nem cadastro
 /// nem permissão. Devolve a porta escolhida (ou [TourChoice.look] se a pessoa pulou).
-Future<TourChoice> showWelcomeTour(BuildContext context) async {
+Future<TourChoice> showWelcomeTour(BuildContext context, {VoidCallback? onInstall}) async {
   final r = await Navigator.of(context).push<TourChoice>(
     PageRouteBuilder<TourChoice>(
       opaque: true,
       transitionDuration: const Duration(milliseconds: 250),
-      pageBuilder: (_, _, _) => const WelcomeTour(),
+      pageBuilder: (_, _, _) => WelcomeTour(onInstall: onInstall),
       transitionsBuilder: (_, a, _, child) =>
           FadeTransition(opacity: a, child: child),
     ),
@@ -47,7 +49,9 @@ const _hubs = [
 ];
 
 class WelcomeTour extends StatefulWidget {
-  const WelcomeTour({super.key});
+  /// Se informado (web, ainda não instalado), a última tela mostra o botão "Instalar no celular".
+  final VoidCallback? onInstall;
+  const WelcomeTour({super.key, this.onInstall});
 
   @override
   State<WelcomeTour> createState() => _WelcomeTourState();
@@ -609,182 +613,173 @@ class _WelcomeTourState extends State<WelcomeTour> {
     );
   }
 
-  Widget _pick(
-    IconData icon,
-    String title,
-    String sub,
-    TourChoice c, {
-    bool main = false,
-  }) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: Semantics(
-      button: true,
-      child: Material(
-        color: main
-            ? AppColors.accent.withValues(alpha: .16)
-            : AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
+  /// Porta escolhida na última tela: só abre o card com a explicação; quem confirma é o botão "Seguir".
+  TourChoice? _door;
+
+  (String, String)? _doorInfo(TourChoice? c) => switch (c) {
+        TourChoice.study => (
+            tr('Afinador, escalas guiadas e metrônomo para estudar do seu jeito. Funciona sem conta e seus dados ficam neste aparelho.'),
+            tr('Começar a estudar')
+          ),
+        TourChoice.hasTeacher => (
+            tr('Seu professor mostra um QR no app dele. Você lê e passa a ver as aulas, as tarefas e os horários dele.'),
+            tr('Ler o QR do professor')
+          ),
+        TourChoice.teacher => (
+            tr('Cadastre alunos, marque aulas e envie tarefas. Você informa seu nome e instrumentos, e o vínculo online liga para trocar tarefas e avisos com os alunos.'),
+            tr('Criar meu perfil de professor')
+          ),
+        _ => null,
+      };
+
+  /// Uma porta: seletor (marcador à direita) em vez de seta, para deixar claro que escolher não sai da tela.
+  Widget _pick(IconData icon, String title, String sub, TourChoice c) {
+    final on = _door == c;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Semantics(
+        button: true,
+        selected: on,
+        child: Material(
+          color: on ? AppColors.accent.withValues(alpha: .16) : AppColors.surface,
           borderRadius: BorderRadius.circular(18),
-          onTap: () => _finish(c),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 68),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(
-                color: main ? AppColors.accent : AppColors.outline,
-                width: 2,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: () => setState(() => _door = c),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 68),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: on ? AppColors.accent : AppColors.outline, width: on ? 2 : 1.5),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(14)),
+                    child: Icon(icon, color: AppColors.accent, size: 26),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 2),
+                        Text(sub, style: TextStyle(fontSize: 13, color: AppColors.textDim, height: 1.25)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(on ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded,
+                      color: on ? AppColors.accent : AppColors.textDim, size: 24),
+                ],
               ),
             ),
-            child: Row(
-              children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.surface2,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(icon, color: AppColors.accent, size: 26),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        sub,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textDim,
-                          height: 1.25,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
-              ],
-            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  /// Card que aparece embaixo das portas: explica a ideia em duas linhas e traz o botão para seguir.
+  Widget _doorCard() {
+    final info = _doorInfo(_door);
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOutCubic,
+      alignment: Alignment.topCenter,
+      child: info == null
+          ? const SizedBox(width: double.infinity)
+          : Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(top: 2, bottom: 6),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.accent.withValues(alpha: .6)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(info.$1, style: const TextStyle(fontSize: 14.5, height: 1.35)),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                      onPressed: () => _finish(_door!),
+                      icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+                      iconAlignment: IconAlignment.end,
+                      label: Text(info.$2, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+    );
+  }
+
+  /// Botão secundário de largura total, com ícone e borda: dá para ver que é para tocar.
+  Widget _secondary(IconData icon, String label, VoidCallback onTap) => Padding(
+    padding: const EdgeInsets.only(bottom: 8),
+    child: SizedBox(
+      width: double.infinity,
+      height: 50,
+      child: OutlinedButton.icon(
+        onPressed: onTap,
+        icon: Icon(icon, size: 20),
+        label: Text(label, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.text,
+          side: BorderSide(color: AppColors.outline, width: 1.5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
       ),
     ),
   );
 
-  Widget _trust(IconData i, String t) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      Icon(i, size: 16, color: AppColors.accent),
-      const SizedBox(width: 5),
-      Text(
-        t,
-        style: TextStyle(
-          fontSize: 12.5,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textDim,
-        ),
-      ),
-    ],
-  );
-
   Widget _page4() => LayoutBuilder(
     builder: (context, c) => SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(22, 6, 22, 12),
+      padding: const EdgeInsets.fromLTRB(22, 6, 22, 16),
       child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: c.maxHeight - 18),
+        constraints: BoxConstraints(minHeight: c.maxHeight - 22),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _title([
-                  ("${tr('Gostou?')} ", false),
-                  ("${tr('Escolha')} ", true),
-                  (tr('por onde começar'), false),
-                ]),
-                _sub(
-                  tr(
-                    'Nada de formulário. Seus dados ficam neste aparelho e a conta só entra em cena se você quiser ligar com um professor.',
-                  ),
-                ),
-                const SizedBox(height: 18),
-                _pick(
-                  Icons.graphic_eq_rounded,
-                  tr('Quero estudar'),
-                  tr('Afinador, escalas e metrônomo'),
-                  TourChoice.study,
-                  main: true,
-                ),
-                _pick(
-                  Icons.qr_code_scanner_rounded,
-                  tr('Tenho professor'),
-                  tr('Leia o QR dele e veja aulas e tarefas'),
-                  TourChoice.hasTeacher,
-                ),
-                _pick(
-                  Icons.person_add_alt_1_rounded,
-                  tr('Sou professor'),
-                  tr('Alunos, agenda e tarefas online num só lugar'),
-                  TourChoice.teacher,
-                ),
-              ],
-            ),
-            Column(
-              children: [
-                Center(
-                  child: TextButton.icon(
-                    onPressed: () => _finish(TourChoice.hasAccount),
-                    icon: const Icon(Icons.login_rounded, size: 18),
-                    label: Text(tr('Já tenho conta em outro aparelho'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
-                    style: TextButton.styleFrom(minimumSize: const Size(48, 44), foregroundColor: AppColors.accent),
-                  ),
-                ),
-                Center(
-                  child: TextButton(
-                    onPressed: () => _finish(TourChoice.look),
-                    style: TextButton.styleFrom(
-                      minimumSize: const Size(48, 44),
-                      foregroundColor: AppColors.textDim,
-                    ),
-                    child: Text(
-                      tr('Só quero olhar'),
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                Center(
-                  child: Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 14,
-                    runSpacing: 6,
-                    children: [
-                      _trust(Icons.lock_outline_rounded, tr('Sem cadastro')),
-                      _trust(Icons.smartphone_rounded, tr('Dados no aparelho')),
-                      _trust(Icons.download_rounded, tr('Instala no celular')),
-                    ],
-                  ),
-                ),
-              ],
+            _title([
+              ("${tr('Gostou?')} ", false),
+              ("${tr('Escolha')} ", true),
+              (tr('por onde começar'), false),
+            ]),
+            _sub(tr('Nada de formulário. Seus dados ficam neste aparelho e a conta só entra em cena se você quiser ligar com um professor.')),
+            const SizedBox(height: 16),
+            _pick(Icons.graphic_eq_rounded, tr('Quero estudar'), tr('Afinador, escalas e metrônomo'), TourChoice.study),
+            _pick(Icons.qr_code_scanner_rounded, tr('Tenho professor'), tr('Leia o QR dele e veja aulas e tarefas'), TourChoice.hasTeacher),
+            _pick(Icons.person_add_alt_1_rounded, tr('Sou professor'), tr('Alunos, agenda e tarefas online num só lugar'), TourChoice.teacher),
+            _doorCard(),
+            const SizedBox(height: 10),
+            Divider(color: AppColors.outline, height: 1),
+            const SizedBox(height: 12),
+            _secondary(Icons.login_rounded, tr('Já tenho conta em outro aparelho'), () => _finish(TourChoice.hasAccount)),
+            _secondary(Icons.visibility_outlined, tr('Só quero olhar'), () => _finish(TourChoice.look)),
+            if (kIsWeb && !webIsStandalone() && widget.onInstall != null)
+              _secondary(Icons.install_mobile_rounded, tr('Instalar no celular'), widget.onInstall!),
+            const SizedBox(height: 4),
+            Center(
+              child: Text(
+                '${tr('Sem cadastro')} · ${tr('Dados no aparelho')}',
+                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.textDim),
+              ),
             ),
           ],
         ),
       ),
     ),
   );
+
 }

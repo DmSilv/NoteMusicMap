@@ -78,20 +78,44 @@ void main() {
   testWidgets('Pular vai direto às portas e cada porta devolve a sua escolha', (
     tester,
   ) async {
-    for (final (texto, esperado) in [
-      ('Quero estudar', TourChoice.study),
-      ('Tenho professor', TourChoice.hasTeacher),
-      ('Sou professor', TourChoice.teacher),
-      ('Só quero olhar', TourChoice.look),
+    // "Só quero olhar" e "Já tenho conta" saem na hora; as três portas abrem um card e só o botão "Seguir" confirma.
+    for (final (texto, esperado, botao) in [
+      ('Quero estudar', TourChoice.study, 'Começar a estudar'),
+      ('Tenho professor', TourChoice.hasTeacher, 'Ler o QR do professor'),
+      ('Sou professor', TourChoice.teacher, 'Criar meu perfil de professor'),
+      ('Só quero olhar', TourChoice.look, null),
+      ('Já tenho conta em outro aparelho', TourChoice.hasAccount, null),
     ]) {
       final r = await _abre(tester, () async {
         await tester.tap(find.text('Pular'));
         await tester.pumpAndSettle();
+        await tester.ensureVisible(find.text(texto));
         await tester.tap(find.text(texto));
         await tester.pumpAndSettle();
+        if (botao != null) {
+          await tester.ensureVisible(find.text(botao));
+          await tester.tap(find.text(botao));
+          await tester.pumpAndSettle();
+        }
       });
       expect(r, esperado, reason: texto);
     }
+  });
+
+  testWidgets('escolher uma porta só abre o card com a explicação e o botão (não sai da tela)', (tester) async {
+    final r = await _abre(tester, () async {
+      await tester.tap(find.text('Pular'));
+      await tester.pumpAndSettle();
+      expect(find.text('Começar a estudar'), findsNothing);
+      await tester.tap(find.text('Sou professor'));
+      await tester.pumpAndSettle();
+      expect(find.text('Criar meu perfil de professor'), findsOneWidget);
+      await tester.tap(find.text('Quero estudar'));
+      await tester.pumpAndSettle();
+      expect(find.text('Começar a estudar'), findsOneWidget);
+      expect(find.text('Criar meu perfil de professor'), findsNothing);
+    });
+    expect(r, isNull);
   });
 
   testWidgets(

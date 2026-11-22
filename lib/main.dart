@@ -36,6 +36,7 @@ import 'ui/theme.dart';
 import 'ui/success_moment.dart';
 import 'ui/toast.dart';
 import 'ui/welcome_tour.dart';
+import 'ui/install_banner.dart' show runInstall;
 import 'ui/tuner_page.dart';
 
 AppState? _app;
@@ -115,7 +116,10 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
   Future<void> _onboarding() async {
     final ctx = _navKey.currentContext;
     if (ctx == null || !mounted) return;
-    final choice = await showWelcomeTour(ctx);
+    final choice = await showWelcomeTour(ctx, onInstall: () {
+      final c = _navKey.currentContext;
+      if (c != null) unawaited(runInstall(c, widget.app));
+    });
     widget.app.markOnboarded();
     widget.app.trackAct(switch (choice) {
       TourChoice.study => 'door_study',
