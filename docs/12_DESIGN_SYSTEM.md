@@ -94,3 +94,11 @@ Fontes: [Material Design: spacing methods](https://material.io/design/layout/spa
 
 ## Folha de configuração: um contêiner por assunto
 Toda folha de ajustes (modal) agrupa o que é do mesmo assunto num `DsGroup` (ícone, título e, se preciso, uma etiqueta como "Com metrônomo" / "Sem metrônomo") e usa `DsGroupRow(rótulo, controle)` para cada ajuste dentro dele. Não se empilham ajustes soltos nem cartões sem título. Assuntos diferentes ficam em contêineres diferentes (por exemplo "Som" separado de "Aviso na batida", "Ajustes" separado de "Apagar dados" e de "Excluir a conta"). Já seguem a regra: Ajustes da escala e do arpejo, do metrônomo, do afinador, da grade, do estudo, e as folhas de Aparência, Afinação, Metrônomo, Grade, Estudo e Restaurar e apagar em Ajustes.
+
+## Papéis de cor (vale para toda tela)
+O verde não decora. Cada cor tem um papel, lido nos tokens de `AppColors`:
+- **Verde (`accent`)**: **uma** ação principal por tela e o "tudo certo" (conectado, feito, opção selecionada).
+- **Azul (`info`)**: informação: horário e aula do dia, links e botões de texto, novidades, rótulos.
+- **Laranja (`attention`)**: o que espera por você: para validar, pendente, aviso, chave por guardar.
+- **Neutro (`textDim` / `surface2`)**: o resto: ícones de bloco, cartões, botões secundários (contorno neutro), avatar.
+Nas telas de afinação os papéis antigos continuam (azul grave, verde afinado, laranja agudo). Diálogos e folhas novos usam `showDsConfirm` e `showDsFormSheet`.

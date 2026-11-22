@@ -57,7 +57,7 @@ Future<void> showNewsDialog(BuildContext context, AppState app, NewsItem n) {
               padding: const EdgeInsets.fromLTRB(Ds.screenPad, Ds.s16, Ds.screenPad, Ds.s24),
               children: [
                 Row(children: [
-                  DsIconBadge(Icons.campaign_outlined, size: 48, color: AppColors.accent),
+                  DsIconBadge(Icons.campaign_outlined, size: 48, color: AppColors.info),
                   const SizedBox(width: Ds.s12),
                   Expanded(child: n.publishedMs > 0 ? _newsWhen(n, strong: true) : Text(tr('Novidade'), style: Ds.support())),
                 ]),
@@ -67,8 +67,8 @@ Future<void> showNewsDialog(BuildContext context, AppState app, NewsItem n) {
                   const SizedBox(height: Ds.s12),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: Ds.s12, vertical: Ds.s8),
-                    decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
-                    child: Text(newsFeedbackLabel(n), style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700, fontSize: 13)),
+                    decoration: BoxDecoration(color: AppColors.info.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(12)),
+                    child: Text(newsFeedbackLabel(n), style: TextStyle(color: AppColors.info, fontWeight: FontWeight.w700, fontSize: 13)),
                   ),
                 ],
                 const SizedBox(height: Ds.s16),
@@ -118,7 +118,7 @@ class NewsTiles extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(Ds.s16),
                 child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  DsIconBadge(Icons.campaign_outlined, size: 44, color: app.isNewsSeen(n) ? AppColors.textDim : AppColors.accent),
+                  DsIconBadge(Icons.campaign_outlined, size: 44, color: app.isNewsSeen(n) ? AppColors.textDim : AppColors.info),
                   const SizedBox(width: Ds.s12),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -130,8 +130,8 @@ class NewsTiles extends StatelessWidget {
                           Container(
                             margin: const EdgeInsets.only(left: Ds.s8, top: 2),
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(8)),
-                            child: Text(tr('Nova'), style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800, fontSize: 11.5)),
+                            decoration: BoxDecoration(color: AppColors.info.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(8)),
+                            child: Text(tr('Nova'), style: TextStyle(color: AppColors.info, fontWeight: FontWeight.w800, fontSize: 11.5)),
                           ),
                       ]),
                       const SizedBox(height: Ds.s8),
@@ -206,7 +206,7 @@ class _NewsBellState extends State<NewsBell> with SingleTickerProviderStateMixin
           _c.stop();
           _c.value = 0;
         }
-        final icon = Icon(Icons.campaign_outlined, size: 22, color: fresh ? AppColors.accent : AppColors.text);
+        final icon = Icon(Icons.campaign_outlined, size: 22, color: fresh ? AppColors.info : AppColors.text);
         return IconButton(
           tooltip: fresh ? tr('Novidade no app') : tr('Novidades'),
           onPressed: () => showNewsSheet(context, app),
@@ -223,7 +223,7 @@ class _NewsBellState extends State<NewsBell> with SingleTickerProviderStateMixin
                     child: Container(
                       width: 36 + 14 * t,
                       height: 36 + 14 * t,
-                      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.accent, width: 2)),
+                      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.info, width: 2)),
                     ),
                   ),
                 widget.wrap(Transform.rotate(angle: wiggle, child: child)),

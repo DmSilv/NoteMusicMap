@@ -62,7 +62,7 @@ Future<bool> confirmTeacherLink(BuildContext context, AppState app) async {
   final ok = await showDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
-      icon: Icon(Icons.cloud_outlined, color: AppColors.accent),
+      icon: Icon(Icons.cloud_outlined, color: AppColors.textDim),
       title: Text(tr('Ligar o modo professor?')),
       content: Text(tr('Para enviar tarefas e receber avisos dos alunos, o app conecta online (só código, apelido e tarefas).')),
       actions: [
@@ -80,7 +80,7 @@ Future<bool> confirmTurnOffTeacher(BuildContext context, AppState app) async {
   final ok = await showDialog<bool>(
     context: context,
     builder: (c) => AlertDialog(
-      icon: Icon(Icons.groups_outlined, color: AppColors.accent),
+      icon: Icon(Icons.groups_outlined, color: AppColors.textDim),
       title: Text(tr('Desligar o modo professor?')),
       content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(tr('A área de professor some: você deixa de ver alunos, agenda e tarefas e não envia nada a eles.')),
@@ -168,16 +168,16 @@ class UpdateBar extends StatelessWidget {
         return Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
           child: Material(
-            color: AppColors.accent.withValues(alpha: 0.14),
+            color: AppColors.info.withValues(alpha: 0.14),
             borderRadius: BorderRadius.circular(16),
             child: Container(
               padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.accent.withValues(alpha: 0.6)),
+                border: Border.all(color: AppColors.info.withValues(alpha: 0.6)),
               ),
               child: Row(children: [
-                Icon(Icons.system_update, color: AppColors.accent),
+                Icon(Icons.system_update, color: AppColors.info),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [

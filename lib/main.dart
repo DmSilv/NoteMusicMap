@@ -758,7 +758,7 @@ class _BarChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final inner = Row(mainAxisSize: MainAxisSize.min, children: [
-      Icon(icon, size: 16, color: AppColors.accent),
+      Icon(icon, size: 16, color: AppColors.info),
       const SizedBox(width: 6),
       Flexible(child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700))),
       if (onTap != null) ...[const SizedBox(width: 2), Icon(Icons.expand_more_rounded, size: 16, color: AppColors.textDim)],
@@ -813,18 +813,18 @@ class _ProfileAvatar extends StatelessWidget {
     final name = (app.profile.name ?? '').trim();
     if (app.myPhoto != null) {
       return _BarCircle(
-        fill: AppColors.accent.withValues(alpha: 0.18),
-        border: AppColors.accent.withValues(alpha: 0.7),
+        fill: AppColors.surface2,
+        border: AppColors.outline,
         child: PersonAvatar(name: name, photo: app.myPhoto, radius: 17),
       );
     }
     return _BarCircle(
-      fill: AppColors.accent.withValues(alpha: 0.18),
-      border: AppColors.accent.withValues(alpha: 0.7),
+      fill: AppColors.surface2,
+      border: AppColors.outline,
       child: name.isEmpty
-          ? Icon(app.teacherMode ? Icons.school_rounded : Icons.person_rounded, size: 20, color: AppColors.accent)
+          ? Icon(app.teacherMode ? Icons.school_rounded : Icons.person_rounded, size: 20, color: AppColors.text)
           : Text(name.characters.first.toUpperCase(),
-              style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800, fontSize: 16)),
+              style: TextStyle(color: AppColors.text, fontWeight: FontWeight.w800, fontSize: 16)),
     );
   }
 }

@@ -52,11 +52,11 @@ Future<void> showReviewSheet(BuildContext context, AppState app, Student student
             alignment: Alignment.centerLeft,
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(color: AppColors.attention.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(10)),
               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Icon(Icons.fact_check_outlined, size: 15, color: AppColors.accent),
+                Icon(Icons.fact_check_outlined, size: 15, color: AppColors.attention),
                 const SizedBox(width: 6),
-                Text(tr('{0} marcou como feita', [student.name]), style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700, fontSize: Ds.fontLabel)),
+                Text(tr('{0} marcou como feita', [student.name]), style: TextStyle(color: AppColors.attention, fontWeight: FontWeight.w700, fontSize: Ds.fontLabel)),
               ]),
             ),
           ),
@@ -173,7 +173,7 @@ class ValidationCard extends StatelessWidget {
               icon: taskKindIcon(t.kind),
               title: t.title,
               support: t.kind.label,
-              status: t.awaitsValidation ? DsStatus(tr('Aluno marcou como feita'), Icons.fact_check_outlined, AppColors.accent) : null,
+              status: t.awaitsValidation ? DsStatus(tr('Aluno marcou como feita'), Icons.fact_check_outlined, AppColors.attention) : null,
               onTap: () => showReviewSheet(context, app, student, t),
               trailing: Row(mainAxisSize: MainAxisSize.min, children: [
                 IconButton.filledTonal(
@@ -333,7 +333,7 @@ class _ValidationQueuePageState extends State<ValidationQueuePage> {
       icon: taskKindIcon(t.kind),
       title: t.title,
       support: tr('Enviada em {0}', [fmtDayMonth(t.created)]),
-      status: marked && !only ? DsStatus(tr('Aluno marcou como feita'), Icons.fact_check_outlined, AppColors.accent) : null,
+      status: marked && !only ? DsStatus(tr('Aluno marcou como feita'), Icons.fact_check_outlined, AppColors.attention) : null,
       onTap: () => showReviewSheet(context, app, g.student, t),
       trailing: Row(mainAxisSize: MainAxisSize.min, children: [
         IconButton.filledTonal(

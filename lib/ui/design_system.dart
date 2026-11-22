@@ -69,7 +69,7 @@ class DsIconBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? AppColors.accent;
+    final c = color ?? AppColors.textDim;
     return Container(
       width: size,
       height: size,
@@ -230,13 +230,13 @@ class DsConfigCard extends StatelessWidget {
       excludeSemantics: true,
       onTap: onTap,
       child: Material(
-        color: AppColors.accent.withValues(alpha: 0.10),
-        shape: RoundedRectangleBorder(borderRadius: radius, side: BorderSide(color: AppColors.accent.withValues(alpha: 0.4))),
+        color: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: radius, side: BorderSide(color: AppColors.outline)),
         child: InkWell(
           borderRadius: radius,
           onTap: onTap,
-          focusColor: AppColors.accent.withValues(alpha: 0.2),
-          hoverColor: AppColors.accent.withValues(alpha: 0.08),
+          focusColor: AppColors.textDim.withValues(alpha: 0.2),
+          hoverColor: AppColors.textDim.withValues(alpha: 0.08),
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: Ds.tap + 16),
             child: Padding(
@@ -248,8 +248,8 @@ class DsConfigCard extends StatelessWidget {
                 Container(
                   width: Ds.tap - 4,
                   height: Ds.tap - 4,
-                  decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(Ds.radiusControl)),
-                  child: Icon(Icons.tune_rounded, size: 22, color: AppColors.accent),
+                  decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(Ds.radiusControl)),
+                  child: Icon(Icons.tune_rounded, size: 22, color: AppColors.textDim),
                 ),
               ]),
             ),
@@ -322,7 +322,7 @@ class DsGroup extends StatelessWidget {
       decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.outline, width: 1)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Icon(icon, size: 20, color: AppColors.accent),
+          Icon(icon, size: 20, color: AppColors.textDim),
           const SizedBox(width: Ds.s8),
           Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
           if (tag != null)
@@ -467,7 +467,7 @@ class DsPickTile extends StatelessWidget {
             Text(label, style: TextStyle(fontSize: 12, color: AppColors.textDim)),
             const SizedBox(height: 2),
             Row(children: [
-              Icon(icon, size: 18, color: AppColors.accent),
+              Icon(icon, size: 18, color: AppColors.textDim),
               const SizedBox(width: Ds.s8),
               Expanded(child: FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)))),
             ]),
@@ -565,7 +565,7 @@ Future<bool> showDsConfirm(
   String? cancelLabel,
 }) async {
   final ctl = TextEditingController();
-  final color = danger ? AppColors.sharp : AppColors.accent;
+  final color = danger ? AppColors.sharp : AppColors.info;
   final r = await showDialog<bool>(
     context: context,
     builder: (c) => StatefulBuilder(

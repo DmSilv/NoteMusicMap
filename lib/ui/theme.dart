@@ -29,6 +29,14 @@ class AppColors {
   static Color get wrong => dark ? const Color(0xFFFF6B6B) : const Color(0xFFB3261E);
   static Color get accent => inTune;
 
+  // PAPÉIS DE COR (vale para todas as telas; o verde não decora):
+  //  - accent (verde): UMA ação principal por tela e "tudo certo" (conectado, feito, selecionado).
+  //  - info (azul): informação, horário de aula, links, novidades.
+  //  - attention (laranja): o que espera por você (para validar, pendente, aviso).
+  //  - textDim / surface2 (neutro): o resto: ícones de bloco, cartões, botões secundários.
+  static Color get info => flat;
+  static Color get attention => sharp;
+
   /// Texto/ícone sobre botões na cor de destaque.
   static Color get onAccent => dark ? const Color(0xFF062B1E) : const Color(0xFFFFFFFF);
 
@@ -45,7 +53,7 @@ ThemeData buildTheme({required bool dark}) {
           surface: AppColors.surface,
           onSurface: AppColors.text,
           secondary: AppColors.flat,
-          secondaryContainer: AppColors.accent.withValues(alpha: 0.22),
+          secondaryContainer: AppColors.surface2,
           onSecondaryContainer: AppColors.text,
           outline: AppColors.outline,
         )
@@ -82,8 +90,13 @@ ThemeData buildTheme({required bool dark}) {
     // Alvo de toque mínimo de 48 px (design system).
     filledButtonTheme: FilledButtonThemeData(style: ButtonStyle(shape: _squareShape, minimumSize: WidgetStateProperty.all(const Size(64, 48)))),
     elevatedButtonTheme: ElevatedButtonThemeData(style: ButtonStyle(shape: _squareShape, minimumSize: WidgetStateProperty.all(const Size(64, 48)))),
-    outlinedButtonTheme: OutlinedButtonThemeData(style: ButtonStyle(shape: _squareShape, minimumSize: WidgetStateProperty.all(const Size(64, 48)))),
-    textButtonTheme: TextButtonThemeData(style: ButtonStyle(shape: _squareShape, minimumSize: WidgetStateProperty.all(const Size(64, 48)))),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+        style: ButtonStyle(
+            shape: _squareShape,
+            minimumSize: WidgetStateProperty.all(const Size(64, 48)),
+            foregroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.disabled) ? AppColors.textDim.withValues(alpha: 0.5) : AppColors.text),
+            side: WidgetStateProperty.all(BorderSide(color: AppColors.outline, width: 1.2)))),
+    textButtonTheme: TextButtonThemeData(style: ButtonStyle(shape: _squareShape, minimumSize: WidgetStateProperty.all(const Size(64, 48)), foregroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.disabled) ? AppColors.textDim.withValues(alpha: 0.5) : AppColors.info))),
     iconButtonTheme: IconButtonThemeData(style: ButtonStyle(shape: _squareShape)),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: AppColors.surface,

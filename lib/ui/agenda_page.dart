@@ -153,13 +153,13 @@ class _AgendaPageState extends State<AgendaPage> {
         child: Row(children: [
           Text('${_dow[i]}, ${fmtDayMonth(d)}',
               style: TextStyle(
-                  fontWeight: FontWeight.w800, color: isToday ? AppColors.accent : AppColors.text, fontSize: 14)),
+                  fontWeight: FontWeight.w800, color: isToday ? AppColors.info : AppColors.text, fontSize: 14)),
           if (isToday)
             Container(
               margin: const EdgeInsets.only(left: 8),
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 1),
-              decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
-              child: Text(tr('hoje'), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.accent)),
+              decoration: BoxDecoration(color: AppColors.info.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(6)),
+              child: Text(tr('hoje'), style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.info)),
             ),
         ]),
       ));
@@ -246,7 +246,7 @@ class _AgendaPageState extends State<AgendaPage> {
                 ],
                 if (s.online) ...[
                   const SizedBox(width: 6),
-                  Icon(Icons.videocam_outlined, size: 15, color: AppColors.accent),
+                  Icon(Icons.videocam_outlined, size: 15, color: AppColors.info),
                 ],
               ]),
               if (s.online)
@@ -258,7 +258,7 @@ class _AgendaPageState extends State<AgendaPage> {
                 Text(s.note, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: AppColors.textDim, fontSize: 12)),
               if (phase == ClassPhase.ongoing || phase == ClassPhase.soon)
                 Text(classPhaseLabel(phase),
-                    style: TextStyle(color: AppColors.accent, fontSize: 11.5, fontWeight: FontWeight.w700)),
+                    style: TextStyle(color: AppColors.info, fontSize: 11.5, fontWeight: FontWeight.w700)),
               if (queued)
                 Text(issue ? tr('Aluno ainda não recebeu') : tr('A enviar ao aluno'),
                     style: TextStyle(color: AppColors.flat, fontSize: 11.5, fontWeight: FontWeight.w700)),
@@ -468,7 +468,7 @@ class _MyAgendaPageState extends State<MyAgendaPage> {
         border: Border.all(color: ongoing ? AppColors.accent : AppColors.outline, width: ongoing ? 1.6 : 1),
       ),
       child: Row(children: [
-        Icon(s.weekly ? Icons.event_repeat : Icons.event, color: AppColors.accent),
+        Icon(s.weekly ? Icons.event_repeat : Icons.event, color: AppColors.textDim),
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -477,7 +477,7 @@ class _MyAgendaPageState extends State<MyAgendaPage> {
             if (s.note.isNotEmpty) Text(s.note, style: const TextStyle(fontSize: 12.5, height: 1.3)),
             if (s.online)
               Text(s.hasLink ? tr('Aula online') : tr('Aula online · o professor ainda vai enviar o link'),
-                  style: TextStyle(color: s.hasLink ? AppColors.accent : AppColors.flat, fontSize: 12.5, fontWeight: FontWeight.w700)),
+                  style: TextStyle(color: s.hasLink ? AppColors.info : AppColors.flat, fontSize: 12.5, fontWeight: FontWeight.w700)),
           ]),
         ),
         if (s.hasLink)

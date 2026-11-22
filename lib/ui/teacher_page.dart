@@ -272,7 +272,7 @@ class _HowItWorks extends StatelessWidget {
           initiallyExpanded: open,
           tilePadding: const EdgeInsets.symmetric(horizontal: 10),
           childrenPadding: const EdgeInsets.fromLTRB(10, 0, 10, 12),
-          leading: Icon(Icons.help_outline, color: AppColors.accent),
+          leading: Icon(Icons.help_outline, color: AppColors.info),
           title: Text(tr('Como funciona'), style: TextStyle(fontWeight: FontWeight.w800)),
           subtitle: Text(tr('Cadastrar, acompanhar e compartilhar, passo a passo'),
               style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
@@ -623,7 +623,7 @@ class _TeacherPageState extends State<TeacherPage> {
     final today = classesToday(app.visibleAgenda, DateTime.now()).count;
     final waiting = app.awaitingTotal;
     Widget chip(IconData icon, String text, {bool alert = false, VoidCallback? onTap}) {
-      final color = alert ? AppColors.accent : AppColors.textDim;
+      final color = alert ? AppColors.attention : AppColors.textDim;
       final box = Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
@@ -720,14 +720,14 @@ class _TeacherPageState extends State<TeacherPage> {
                     const SizedBox(height: 3),
                     Row(children: [
                       if (nextOcc != null) ...[
-                        Icon(Icons.event_outlined, size: 14, color: classToday ? AppColors.accent : AppColors.textDim),
+                        Icon(Icons.event_outlined, size: 14, color: classToday ? AppColors.info : AppColors.textDim),
                         const SizedBox(width: 4),
                       ],
                       Expanded(
                         child: Text(subtitle,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: classToday ? AppColors.accent : AppColors.textDim, fontSize: 13, fontWeight: classToday ? FontWeight.w700 : FontWeight.w400)),
+                            style: TextStyle(color: classToday ? AppColors.info : AppColors.textDim, fontSize: 13, fontWeight: classToday ? FontWeight.w700 : FontWeight.w400)),
                       ),
                     ]),
                     if (awaiting > 0 || open > 0 || absences > 0 || s.instrument != null || app.turmaOf(s) != null) ...[
@@ -735,7 +735,7 @@ class _TeacherPageState extends State<TeacherPage> {
                       Wrap(spacing: 6, runSpacing: 4, children: [
                         if (s.instrument != null) _tag(teachingById(s.instrument)?.label ?? '', AppColors.textDim),
                         if (app.turmaOf(s) != null) _tag(app.turmaOf(s)!.name, AppColors.textDim),
-                        if (awaiting > 0) _tag(tr('{0} para validar', [awaiting]), AppColors.accent),
+                        if (awaiting > 0) _tag(tr('{0} para validar', [awaiting]), AppColors.attention),
                         if (open > 0) _tag(tr('{0} em aberto', [open]), AppColors.flat),
                         if (absences > 0) _tag(tr('{0} falta{1}', [absences, absences == 1 ? '' : 's']), AppColors.sharp),
                       ]),

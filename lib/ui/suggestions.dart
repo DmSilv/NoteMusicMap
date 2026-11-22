@@ -72,13 +72,13 @@ class SuggestionTiles extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(Ds.s16),
       decoration: BoxDecoration(
-        color: AppColors.accent.withValues(alpha: 0.12),
+        color: AppColors.info.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(Ds.radiusCard),
-        border: Border.all(color: AppColors.accent.withValues(alpha: 0.5)),
+        border: Border.all(color: AppColors.info.withValues(alpha: 0.5)),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(icon, color: AppColors.accent),
+          Icon(icon, color: AppColors.info),
           const SizedBox(width: Ds.s12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

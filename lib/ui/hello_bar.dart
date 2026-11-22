@@ -79,7 +79,7 @@ class HelloBar extends StatelessWidget {
           return Padding(
             padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
             child: Material(
-              color: AppColors.accent.withValues(alpha: 0.14),
+              color: AppColors.info.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(16),
               child: InkWell(
                 borderRadius: BorderRadius.circular(16),
@@ -88,10 +88,10 @@ class HelloBar extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.accent.withValues(alpha: 0.6)),
+                    border: Border.all(color: AppColors.info.withValues(alpha: 0.6)),
                   ),
                   child: Row(children: [
-                    Icon(Icons.waving_hand_outlined, color: AppColors.accent),
+                    Icon(Icons.waving_hand_outlined, color: AppColors.info),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
@@ -130,7 +130,7 @@ class HelloBar extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.only(right: 8),
             child: Row(children: [
-              Icon(icon, size: 20, color: AppColors.accent),
+              Icon(icon, size: 20, color: AppColors.textDim),
               const SizedBox(width: 8),
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [

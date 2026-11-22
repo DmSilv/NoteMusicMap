@@ -177,7 +177,7 @@ class _MoveBodyState extends State<_MoveBody> {
         else if (problem != null)
           _banner(AppColors.sharp, Icons.error_outline_rounded, [Text(problem, style: const TextStyle(fontSize: 14.5, height: 1.35, fontWeight: FontWeight.w600))])
         else
-          _banner(AppColors.accent, Icons.arrow_forward_rounded, [
+          _banner(AppColors.info, Icons.arrow_forward_rounded, [
             Text(whenText(widget.from), style: TextStyle(fontSize: 14, color: AppColors.textDim, decoration: TextDecoration.lineThrough)),
             const SizedBox(height: 2),
             Text(whenText(to), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
@@ -279,7 +279,7 @@ class _SwapBodyState extends State<_SwapBody> {
             else if (problem != null)
               _banner(AppColors.sharp, Icons.error_outline_rounded, [Text(problem, style: const TextStyle(fontSize: 14.5, height: 1.35, fontWeight: FontWeight.w600))])
             else
-              _banner(AppColors.accent, Icons.swap_horiz_rounded, [
+              _banner(AppColors.info, Icons.swap_horiz_rounded, [
                 _swapLine(widget.aName, widget.aStart, b.start),
                 const SizedBox(height: Ds.s8),
                 _swapLine(b.name, b.start, widget.aStart),

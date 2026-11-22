@@ -70,7 +70,7 @@ class _ProfilePageState extends State<ProfilePage> {
       final ok = await showDialog<bool>(
         context: context,
         builder: (c) => AlertDialog(
-          icon: Icon(Icons.badge_outlined, color: AppColors.accent),
+          icon: Icon(Icons.badge_outlined, color: AppColors.textDim),
           title: Text(tr('Alterar o seu nome?')),
           content: Text(tr('Seus professores e alunos vinculados vão ver o nome novo.')),
           actions: [
@@ -470,7 +470,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 child: AppCard(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     Row(children: [
-                      DsIconBadge(Icons.shield_outlined, size: 40, color: AppColors.accent),
+                      DsIconBadge(Icons.shield_outlined, size: 40, color: AppColors.attention),
                       const SizedBox(width: Ds.s12),
                       Expanded(child: Text(tr('Proteja sua conta'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17))),
                     ]),
@@ -490,7 +490,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 sub: app.myTeachers.isEmpty
                     ? tr('Nenhum ainda')
                     : '${app.myTeachers.length} ${app.myTeachers.length == 1 ? tr('vinculado') : tr('vinculados')}',
-                trailing: plan.open > 0 ? _pill(tr('{0} em aberto', [plan.open]), AppColors.accent) : const Icon(Icons.chevron_right),
+                trailing: plan.open > 0 ? _pill(tr('{0} em aberto', [plan.open]), AppColors.attention) : const Icon(Icons.chevron_right),
                 onTap: () => _open(tr('Professores e aulas'), _myTeacherCard)),
             _row(Icons.cloud_outlined, tr('Vínculo online'),
                 sub: tr('Toque para ver, desligar ou reconectar'),
@@ -855,7 +855,7 @@ class _ProfilePageState extends State<ProfilePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            Icon(Icons.school_outlined, color: AppColors.accent),
+            Icon(Icons.school_outlined, color: AppColors.textDim),
             const SizedBox(width: 8),
             Expanded(
               child: Text(tr('Meus professores'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
@@ -942,7 +942,7 @@ class _ProfilePageState extends State<ProfilePage> {
   /// Aviso para o aluno: "Fulano adicionou você" ou "nova aula". Fica até ser dispensado.
   Widget _noticeCard(BuildContext context, AppNotice n) {
     return Material(
-      color: AppColors.accent.withValues(alpha: 0.16),
+      color: AppColors.info.withValues(alpha: 0.16),
       borderRadius: BorderRadius.circular(12),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(14, 12, 8, 8),
@@ -951,7 +951,7 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Icon(n.kind == 'lesson' ? Icons.assignment_turned_in_outlined : (n.kind == 'support' ? Icons.support_agent : Icons.how_to_reg_outlined),
-                  color: AppColors.accent),
+                  color: AppColors.info),
               const SizedBox(width: 10),
               Expanded(child: Text(n.text, style: const TextStyle(fontWeight: FontWeight.w700, height: 1.3))),
               IconButton(

@@ -34,7 +34,7 @@ class MyLessonsCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            Icon(Icons.checklist_rtl, color: AppColors.accent),
+            Icon(Icons.checklist_rtl, color: AppColors.textDim),
             const SizedBox(width: 8),
             Expanded(
               child: Text(tr('Minhas aulas e tarefas'), style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
@@ -43,7 +43,7 @@ class MyLessonsCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.2),
+                  color: AppColors.attention.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(tr('{0} em aberto', [plan.open]), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5)),
@@ -138,7 +138,7 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
     if (state == StudentTaskState.validated) return DsStatus(tr('validada'), Icons.verified_rounded, AppColors.inTune);
     if (state == StudentTaskState.returned) return DsStatus(tr('refazer'), Icons.replay_rounded, AppColors.sharp);
     if (_carried.contains('${l.id}:${t.id}')) return DsStatus(tr('levada para a próxima aula'), Icons.redo_rounded, AppColors.flat);
-    if (state == StudentTaskState.claimed) return DsStatus(tr('aguardando o professor'), Icons.hourglass_top_rounded, AppColors.accent);
+    if (state == StudentTaskState.claimed) return DsStatus(tr('aguardando o professor'), Icons.hourglass_top_rounded, AppColors.info);
     return overdue ? DsStatus(tr('atrasada'), Icons.schedule_rounded, AppColors.sharp) : null;
   }
 
@@ -425,9 +425,9 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
               width: double.infinity,
               padding: const EdgeInsets.all(Ds.s12),
               decoration: BoxDecoration(
-                color: AppColors.accent.withValues(alpha: 0.08),
+                color: AppColors.info.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(Ds.radiusControl + 4),
-                border: Border(left: BorderSide(color: AppColors.accent, width: 4)),
+                border: Border(left: BorderSide(color: AppColors.info, width: 4)),
               ),
               child: Text(t.note, style: const TextStyle(fontSize: Ds.fontBody, height: 1.4)),
             ),

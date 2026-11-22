@@ -387,10 +387,10 @@ class PickerField<T> extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.accent.withValues(alpha: 0.18),
+                  color: AppColors.textDim.withValues(alpha: 0.18),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(cur.icon ?? icon ?? Icons.music_note, color: AppColors.accent),
+                child: Icon(cur.icon ?? icon ?? Icons.music_note, color: AppColors.textDim),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -580,7 +580,7 @@ Future<void> showInfoSheet(BuildContext context, String title, List<(String, Str
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(children: [
-                Icon(Icons.lightbulb_outline, color: AppColors.accent),
+                Icon(Icons.lightbulb_outline, color: AppColors.info),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(title,
@@ -598,7 +598,7 @@ Future<void> showInfoSheet(BuildContext context, String title, List<(String, Str
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.accent.withValues(alpha: 0.12),
+                    color: AppColors.info.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(footer, style: const TextStyle(height: 1.35)),

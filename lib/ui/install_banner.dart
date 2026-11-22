@@ -63,8 +63,8 @@ Future<void> runInstall(BuildContext context, AppState app) async {
                 child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   CircleAvatar(
                     radius: 14,
-                    backgroundColor: AppColors.accent.withValues(alpha: 0.2),
-                    child: Text('${i + 1}', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w800)),
+                    backgroundColor: AppColors.info.withValues(alpha: 0.2),
+                    child: Text('${i + 1}', style: TextStyle(color: AppColors.info, fontWeight: FontWeight.w800)),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -124,7 +124,7 @@ class _InstallBannerState extends State<InstallBanner> {
         return Padding(
           padding: const EdgeInsets.fromLTRB(12, 6, 12, 2),
           child: Material(
-            color: AppColors.accent.withValues(alpha: 0.14),
+            color: AppColors.info.withValues(alpha: 0.14),
             borderRadius: BorderRadius.circular(16),
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
@@ -133,10 +133,10 @@ class _InstallBannerState extends State<InstallBanner> {
                 padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.accent.withValues(alpha: 0.6)),
+                  border: Border.all(color: AppColors.info.withValues(alpha: 0.6)),
                 ),
                 child: Row(children: [
-                  Icon(Icons.install_mobile, color: AppColors.accent),
+                  Icon(Icons.install_mobile, color: AppColors.info),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [

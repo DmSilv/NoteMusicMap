@@ -260,12 +260,12 @@ class HubSection extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: Ds.gap),
           padding: const EdgeInsets.fromLTRB(Ds.s16, Ds.s8, Ds.s8, Ds.s8),
           decoration: BoxDecoration(
-            color: AppColors.accent.withValues(alpha: 0.16),
+            color: AppColors.attention.withValues(alpha: 0.16),
             borderRadius: BorderRadius.circular(Ds.radiusCard),
-            border: Border.all(color: AppColors.accent.withValues(alpha: 0.5)),
+            border: Border.all(color: AppColors.attention.withValues(alpha: 0.5)),
           ),
           child: Row(children: [
-            Icon(Icons.notifications_active_outlined, size: 20, color: AppColors.accent),
+            Icon(Icons.notifications_active_outlined, size: 20, color: AppColors.attention),
             const SizedBox(width: 10),
             Expanded(child: Text(n.text, style: const TextStyle(fontWeight: FontWeight.w700, height: 1.25))),
             TextButton.icon(
@@ -316,22 +316,23 @@ class HubSection extends StatelessWidget {
       }
     }
 
-    final bg = urgent ? AppColors.accent.withValues(alpha: 0.24) : AppColors.accent.withValues(alpha: 0.14);
+    // Cartão neutro; só o que está acontecendo agora (ou prestes) ganha o contorno azul de informação.
+    final bg = AppColors.surface;
     return Container(
       padding: const EdgeInsets.all(Ds.s20),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(Ds.radiusCard),
-        border: Border.all(color: AppColors.accent.withValues(alpha: urgent ? 0.8 : 0.4), width: urgent ? 1.6 : 1),
+        border: Border.all(color: urgent ? AppColors.info : AppColors.outline, width: urgent ? 1.6 : 1),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           if (urgent) ...[
-            Icon(h.kind == HeroKind.ongoing ? Icons.play_circle_outline : Icons.alarm, size: 18, color: AppColors.accent),
+            Icon(h.kind == HeroKind.ongoing ? Icons.play_circle_outline : Icons.alarm, size: 18, color: AppColors.info),
             const SizedBox(width: 6),
           ],
           Expanded(
-            child: Text(h.kicker, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.accent)),
+            child: Text(h.kicker, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.info)),
           ),
         ]),
         const SizedBox(height: Ds.s8),
@@ -405,7 +406,7 @@ class HubSection extends StatelessWidget {
     Widget row(SlotOccurrence o) {
       final name = _whoOf(o);
       final who = o.slot.studentCode.isEmpty ? null : app.studentByCode(o.slot.studentCode);
-      final tint = who == null ? AppColors.accent : studentTint(who);
+      final tint = who == null ? AppColors.textDim : studentTint(who);
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: Ds.s8),
         child: Row(children: [
@@ -431,7 +432,7 @@ class HubSection extends StatelessWidget {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(tr('Depois'), style: Ds.section()),
             for (var i = 0; i < later.length; i++) ...[
-              if (i > 0) Divider(height: 1, color: AppColors.accent.withValues(alpha: 0.18)),
+              if (i > 0) Divider(height: 1, color: AppColors.outline.withValues(alpha: 0.5)),
               row(later[i]),
             ],
           ]),
@@ -470,7 +471,7 @@ class HubSection extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(Ds.radiusCard),
-          border: Border.all(color: alert ? AppColors.flat.withValues(alpha: 0.6) : AppColors.outline),
+          border: Border.all(color: alert ? AppColors.attention.withValues(alpha: 0.7) : AppColors.outline),
         ),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(children: [
@@ -486,7 +487,7 @@ class HubSection extends StatelessWidget {
                 Text(t.headline,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: alert ? AppColors.flat : AppColors.text, height: 1.2)),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: alert ? AppColors.attention : AppColors.text, height: 1.2)),
                 const SizedBox(height: Ds.s4),
                 Text(t.caption, maxLines: 3, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: AppColors.textDim, height: 1.25)),
               ]),

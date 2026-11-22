@@ -413,7 +413,7 @@ class StudentPage extends StatelessWidget {
           ),
         ],
         const SizedBox(height: Ds.s8),
-        if (!mine && moment != null) _infoLine(Icons.schedule, moment, color: AppColors.accent),
+        if (!mine && moment != null) _infoLine(Icons.schedule, moment, color: AppColors.info),
         if (issue != null && !mine)
           _infoLine(Icons.info_outline_rounded, issue.short,
               link: issue.needsCode ? tr('Informar') : tr('Ver por quê'),
@@ -902,7 +902,7 @@ class StudentPage extends StatelessWidget {
   DsStatus? _statusFor(Student s, Assignment t) {
     if (t.done) return DsStatus(tr('validada'), Icons.verified_rounded, AppColors.inTune);
     if (t.reviewed) return DsStatus(tr('refazer'), Icons.replay_rounded, AppColors.sharp);
-    if (t.awaitsValidation) return DsStatus(tr('Aluno marcou como feita'), Icons.fact_check_outlined, AppColors.accent);
+    if (t.awaitsValidation) return DsStatus(tr('Aluno marcou como feita'), Icons.fact_check_outlined, AppColors.attention);
     final canReceive = s.code != null && s.linkState != 'ended';
     if (canReceive && t.sent == false) return DsStatus(tr('A enviar'), Icons.schedule_send_outlined, AppColors.flat);
     if (canReceive && t.sent == true && s.lessons.any((r) => r.sent == false && taskIdsOf(r).contains(t.id))) {
@@ -1262,7 +1262,7 @@ class _LessonCardState extends State<_LessonCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  Icon(Icons.school_outlined, color: AppColors.accent),
+                  Icon(Icons.school_outlined, color: AppColors.textDim),
                   const SizedBox(width: 8),
                   Expanded(child: Text(tr('Aula'), style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
                 ]),
@@ -1300,9 +1300,9 @@ class _LessonCardState extends State<_LessonCard> {
                     Padding(
                       padding: const EdgeInsets.only(bottom: Ds.s12),
                       child: Row(children: [
-                        Icon(Icons.schedule, size: 16, color: AppColors.accent),
+                        Icon(Icons.schedule, size: 16, color: AppColors.info),
                         const SizedBox(width: 6),
-                        Text(_momentLesson()!, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.accent)),
+                        Text(_momentLesson()!, style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.info)),
                       ]),
                     ),
                   Row(children: [

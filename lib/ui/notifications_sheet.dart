@@ -101,11 +101,11 @@ Future<void> showNotificationsSheet(BuildContext context, AppState app) {
                           },
                           child: ListTile(
                           contentPadding: EdgeInsets.zero,
-                          leading: Icon(noticeIcon(n.kind), color: n.seen ? AppColors.textDim : AppColors.accent),
+                          leading: Icon(noticeIcon(n.kind), color: n.seen ? AppColors.textDim : AppColors.attention),
                           title: Text(n.text,
                               style: TextStyle(fontWeight: n.seen ? FontWeight.w500 : FontWeight.w800, height: 1.25)),
                           subtitle: Text(noticeAgo(n.atMs), style: TextStyle(color: AppColors.textDim, fontSize: 12)),
-                          trailing: n.seen ? null : Icon(Icons.circle, size: 9, color: AppColors.accent),
+                          trailing: n.seen ? null : Icon(Icons.circle, size: 9, color: AppColors.attention),
                           onTap: () {
                             Navigator.of(c).pop();
                             openNoticeTarget(context, app, n);
