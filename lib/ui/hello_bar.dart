@@ -141,9 +141,9 @@ class HelloBar extends StatelessWidget {
         };
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 6, 8, 0),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => askNickname(context, app),
+          // Só a saudação: o nome não se troca por aqui (a troca fica em Minha conta, com confirmação).
+          child: Padding(
+            padding: const EdgeInsets.only(right: 8),
             child: Row(children: [
               Icon(icon, size: 20, color: AppColors.accent),
               const SizedBox(width: 8),
@@ -160,8 +160,6 @@ class HelloBar extends StatelessWidget {
                         style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
                 ]),
               ),
-              Tooltip(message: tr('Trocar apelido'), child: Icon(Icons.edit_outlined, size: 16, color: AppColors.textDim)),
-              const SizedBox(width: 8),
             ]),
           ),
         );

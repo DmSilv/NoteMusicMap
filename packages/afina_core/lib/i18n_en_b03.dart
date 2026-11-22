@@ -62,7 +62,6 @@ const Map<String, String> kEnB03 = {
   '{0}! Como posso te chamar?': '{0}! What should I call you?',
   'Coloque seu apelido para o app falar com você.': 'Add your nickname so the app can talk to you.',
   'Informar': 'Enter',
-  'Trocar apelido': 'Change nickname',
   'Professor(a): {0}': 'Teacher: {0}',
   '{0} professores': '{0} teachers',
   'Modo professor': 'Teacher mode',
