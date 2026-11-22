@@ -66,7 +66,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('Quero estudar'), findsOneWidget);
         expect(find.text('Tenho professor'), findsOneWidget);
-        expect(find.text('Só quero olhar'), findsOneWidget);
+        expect(find.text('Já tenho conta em outro aparelho'), findsOneWidget);
         expect(
           find.text('Continuar'),
           findsNothing,
@@ -78,12 +78,11 @@ void main() {
   testWidgets('Pular vai direto às portas e cada porta devolve a sua escolha', (
     tester,
   ) async {
-    // "Só quero olhar" e "Já tenho conta" saem na hora; as três portas abrem um card e só o botão "Seguir" confirma.
+    // "Já tenho conta" sai na hora; as três portas abrem um card e só o botão "Seguir" confirma.
     for (final (texto, esperado, botao) in [
       ('Quero estudar', TourChoice.study, 'Começar a estudar'),
       ('Tenho professor', TourChoice.hasTeacher, 'Ler o QR do professor'),
       ('Sou professor', TourChoice.teacher, 'Criar meu perfil de professor'),
-      ('Só quero olhar', TourChoice.look, null),
       ('Já tenho conta em outro aparelho', TourChoice.hasAccount, null),
     ]) {
       final r = await _abre(tester, () async {

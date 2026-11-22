@@ -1,10 +1,8 @@
 import 'dart:async';
 
 import 'package:afina_core/afina_core.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 
-import '../platform/web_install.dart' show webIsStandalone;
 import 'app_logo.dart';
 import 'theme.dart';
 
@@ -14,12 +12,12 @@ enum TourChoice { study, hasTeacher, teacher, look, hasAccount }
 /// Apresentação do primeiro acesso: 4 telas curtas com telas reais do app e, no fim,
 /// três portas (estudar, tenho professor, sou professor). Não pede nada: nem cadastro
 /// nem permissão. Devolve a porta escolhida (ou [TourChoice.look] se a pessoa pulou).
-Future<TourChoice> showWelcomeTour(BuildContext context, {VoidCallback? onInstall}) async {
+Future<TourChoice> showWelcomeTour(BuildContext context) async {
   final r = await Navigator.of(context).push<TourChoice>(
     PageRouteBuilder<TourChoice>(
       opaque: true,
       transitionDuration: const Duration(milliseconds: 250),
-      pageBuilder: (_, _, _) => WelcomeTour(onInstall: onInstall),
+      pageBuilder: (_, _, _) => const WelcomeTour(),
       transitionsBuilder: (_, a, _, child) =>
           FadeTransition(opacity: a, child: child),
     ),
@@ -49,9 +47,7 @@ const _hubs = [
 ];
 
 class WelcomeTour extends StatefulWidget {
-  /// Se informado (web, ainda não instalado), a última tela mostra o botão "Instalar no celular".
-  final VoidCallback? onInstall;
-  const WelcomeTour({super.key, this.onInstall});
+  const WelcomeTour({super.key});
 
   @override
   State<WelcomeTour> createState() => _WelcomeTourState();
@@ -766,9 +762,6 @@ class _WelcomeTourState extends State<WelcomeTour> {
             Divider(color: AppColors.outline, height: 1),
             const SizedBox(height: 12),
             _secondary(Icons.login_rounded, tr('Já tenho conta em outro aparelho'), () => _finish(TourChoice.hasAccount)),
-            _secondary(Icons.visibility_outlined, tr('Só quero olhar'), () => _finish(TourChoice.look)),
-            if (kIsWeb && !webIsStandalone() && widget.onInstall != null)
-              _secondary(Icons.install_mobile_rounded, tr('Instalar no celular'), widget.onInstall!),
             const SizedBox(height: 4),
             Center(
               child: Text(

@@ -33,7 +33,6 @@ const Map<String, String> kEnB13 = {
   'Afinador, escalas e metrônomo': 'Tuner, scales and metronome',
   'Leia o QR dele e veja aulas e tarefas': 'Scan their QR and see lessons and tasks',
   'Alunos, agenda e tarefas online num só lugar': 'Students, schedule and tasks online in one place',
-  'Só quero olhar': 'Just looking',
   'Sem cadastro': 'No sign-up',
   'Dados no aparelho': 'Data on your device',
   'Vibração': 'Vibration',
