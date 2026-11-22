@@ -103,7 +103,7 @@
 | `lib/ui/staff_view.dart` | Resultado de uma nota já tocada (pinta a cabeça da nota). |
 | `lib/ui/status_strip.dart` | Faixa fina logo abaixo da barra superior com os avisos que ficam ativos: microfone ouvindo e timer do Pomodoro. Só aparece quando há algo ativo, e os dois avisos ficam lado a lado, sem disputar espaço com o título e… |
 | `lib/ui/student_identity.dart` | Selo do vínculo online e campo do código do aluno, na ficha e na lista. |
-| `lib/ui/student_page.dart` | Detalhe de um aluno: evolução, orientações, tarefas e observações. |
+| `lib/ui/student_page.dart` | Confirma uma exclusão que não tem volta: o botão só libera depois de digitar uma palavra simples (EXCLUIR). |
 | `lib/ui/study_card.dart` | "Seu estudo": o tempo estudado hoje, os dias seguidos, a meta diária e o cronômetro/Pomodoro num cartão só. Mora na aba Metrônomo (onde a pessoa já está praticando); os dados e gráficos ficam na tela "Evolução". |
 | `lib/ui/study_glance.dart` | "Seu estudo" no Meu espaço de quem ainda não tem professor: o essencial numa olhada (hoje, dias seguidos e a meta). O resto (gráficos, resumo da semana) fica na Evolução, um toque adiante. |
 | `lib/ui/study_page.dart` | "Meu espaço": o foco é a AGENDA (próxima aula e o que vem depois), os alunos, as tarefas e o acervo. O estudo (resumo, cronômetro e Pomodoro) mora na aba Metrônomo (`study_card.dart`). |
@@ -114,7 +114,7 @@
 | `lib/ui/task_form_page.dart` | Formulário de tarefa (escala, arpejo, método e lição, repertório ou outra) com observações. |
 | `lib/ui/teacher_page.dart` | Tela Alunos do professor (lista, novo aluno, QR, importar, métodos, senha) e a ficha do aluno (aula, tarefas, validação, observações, relatórios). |
 | `lib/ui/teacher_setup_page.dart` | Pede a declaração de maioridade a quem ainda não fez (vale para qualquer caminho que liga o modo professor). Devolve true se pode seguir. |
-| `lib/ui/teaching_ui.dart` | "Instrumentos que ensino": o professor marca um ou mais; as sugestões de método e de repertório vêm prontas. Quem ensina um instrumento que não está na lista cria o seu ("Outro instrumento") e põe os métodos e as… |
+| `lib/ui/teaching_ui.dart` | "Instrumentos que ensino": o professor marca um ou mais e confirma; as sugestões de método e de repertório vêm prontas. Quem ensina um instrumento que não está na lista cria o seu ("Outro instrumento") e põe os… |
 | `lib/ui/theme.dart` | Paleta do app, com tema escuro e claro. As cores que mudam com o tema são `getters` lidos a cada construção de tela. [AppColors.dark] é definido uma vez por troca de tema em `main.dart` (que recria a árvore de… |
 | `lib/ui/toast.dart` | Aviso curto no TOPO da tela: aparece deslizando, some sozinho e pode ser arrastado para dispensar. Não cobre os botões de baixo nem exige toque. O tipo (sucesso, atenção, informação) vem do texto, ou de [kind]; muda… |
 | `lib/ui/toast_kind.dart` | Tipos de aviso curto: o tipo define cor, ícone e quanto tempo fica na tela. |

@@ -28,8 +28,6 @@ const Map<String, String> kEnB05 = {
   'Este é o QR de um professor. Aqui é preciso o QR do aluno.': 'This is a teacher\'s QR. Here you need the student\'s QR.',
   'QR do tipo errado': 'Wrong type of QR',
   'Não dá para usar este QR': 'This QR can\'t be used',
-  'Aponte a câmera para o QR. Se preferir, digite o código:': 'Point the camera at the QR. If you prefer, type the code:',
-  'Usar código': 'Use code',
   'O Notemusic não tem permissão para usar a câmera. Libere nas configurações do aparelho (ou do navegador) para ler o QR, ou digite o código abaixo.': 'Notemusic doesn\'t have permission to use the camera. Allow it in your device (or browser) settings to scan the QR, or type the code below.',
   'Este aparelho ou navegador não consegue ler QR pela câmera. Digite o código abaixo.': 'This device or browser can\'t read QR codes with the camera. Type the code below.',
   'Não foi possível abrir a câmera agora. Digite o código abaixo.': 'Couldn\'t open the camera right now. Type the code below.',

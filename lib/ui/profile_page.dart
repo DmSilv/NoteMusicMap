@@ -897,7 +897,7 @@ class _ProfilePageState extends State<ProfilePage> {
             onPressed: () async {
               final s = await scanShareCode(
                 context,
-                title: tr('Ler QR do professor'),
+                title: tr('Vincular com professor'),
                 want: 'professor',
                 check: app.checkTeacherCode,
                 onCamera: app.setCameraStatus,
@@ -905,7 +905,7 @@ class _ProfilePageState extends State<ProfilePage> {
               if (s != null) _registerTeacher(s.code);
             },
             icon: const Icon(Icons.qr_code_scanner),
-            label: Text(teachers.isEmpty ? tr('Ler QR do professor') : tr('Adicionar outro professor')),
+            label: Text(teachers.isEmpty ? tr('Ler QR ou digitar código') : tr('Adicionar outro professor')),
           ),
         ],
       ),

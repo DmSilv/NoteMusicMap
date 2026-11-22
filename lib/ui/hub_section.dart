@@ -308,7 +308,7 @@ class HubSection extends StatelessWidget {
         case HubDest.inviteStudent:
           buttons.add(primary(tr('Adicionar aluno'), Icons.person_add_alt_1, () => showAddStudent(context, app)));
         case HubDest.scanTeacher:
-          buttons.add(primary(tr('Ler QR do professor'), Icons.qr_code_scanner, () => _scanTeacher(context)));
+          buttons.add(primary(tr('Ler QR ou digitar código'), Icons.qr_code_scanner, () => _scanTeacher(context)));
           if (!app.teacherMode) {
             buttons.add(soft(tr('Sou professor'), Icons.school_outlined, () => _push(context, ProfilePage(app: app, initialTab: 1))));
           }
@@ -522,7 +522,7 @@ class HubSection extends StatelessWidget {
     if (!await requireNickname(context, app, reason: tr('Para vincular a um professor, ele precisa saber quem você é.'))) return;
     if (!context.mounted) return;
     final s = await scanShareCode(context,
-        title: tr('Ler QR do professor'), want: 'professor', check: app.checkTeacherCode, onCamera: app.setCameraStatus);
+        title: tr('Vincular com professor'), want: 'professor', check: app.checkTeacherCode, onCamera: app.setCameraStatus);
     if (s == null) return;
     final err = await app.addMyTeacher(s.code);
     if (err != null) app.say(err);

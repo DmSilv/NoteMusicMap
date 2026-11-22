@@ -79,7 +79,7 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
             icon: const Icon(Icons.qr_code_scanner),
             onPressed: () async {
               final s = await scanShareCode(c,
-                  title: tr('Ler QR do aluno'),
+                  title: tr('Vincular com aluno'),
                   want: 'aluno',
                   check: (code) => app.checkStudent('aluno', code).code,
                   onCamera: app.setCameraStatus);
@@ -111,7 +111,7 @@ Future<void> _addByName(BuildContext context, AppState app, {String? code0}) asy
 /// Lê o QR do aluno (ele mostra no perfil dele) e cadastra com o código já preenchido.
 Future<void> _scanAndAddStudent(BuildContext context, AppState app) async {
   final s = await scanShareCode(context,
-      title: tr('Ler QR do aluno'), want: 'aluno', check: (code) => app.checkStudent('aluno', code).code, onCamera: app.setCameraStatus);
+      title: tr('Vincular com aluno'), want: 'aluno', check: (code) => app.checkStudent('aluno', code).code, onCamera: app.setCameraStatus);
   if (s == null || !context.mounted) return;
   await _addByName(context, app, code0: s.code);
 }
@@ -166,8 +166,8 @@ Future<void> showAddStudent(BuildContext context, AppState app) {
       option(
         c,
         icon: Icons.qr_code_scanner_rounded,
-        title: tr('Ler o QR do aluno'),
-        sub: tr('O aluno está com você: aponte a câmera para o QR do perfil dele.'),
+        title: tr('Ler QR ou digitar código'),
+        sub: tr('O aluno está com você: aponte a câmera para o QR do perfil dele, ou digite o código que aparece abaixo dele.'),
         onTap: () {
           Navigator.of(c).pop();
           _scanAndAddStudent(context, app);

@@ -59,6 +59,10 @@ class _QrScanPageState extends State<QrScanPage> {
   bool _done = false;
   bool? _reported;
 
+  /// Aba aberta: false = ler o QR com a câmera; true = digitar o código. Sem câmera (sem permissão ou sem suporte) abre digitando.
+  bool _typing = false;
+  String? _whyTyping;
+
   @override
   void initState() {
     super.initState();
@@ -74,6 +78,18 @@ class _QrScanPageState extends State<QrScanPage> {
     if (now != null && now != _reported) {
       _reported = now;
       widget.onCamera?.call(now);
+    }
+    // Câmera que não abre: já leva à aba de digitar, dizendo por quê (a pessoa não fica olhando uma tela preta).
+    final err = s.error;
+    if (err != null && !_typing && mounted) {
+      final denied = err.errorCode == MobileScannerErrorCode.permissionDenied;
+      final unsupported = err.errorCode == MobileScannerErrorCode.unsupported;
+      setState(() {
+        _typing = true;
+        _whyTyping = denied
+            ? tr('Sem permissão para usar a câmera. Libere nas configurações do aparelho ou do navegador, ou digite o código.')
+            : (unsupported ? tr('Este aparelho ou navegador não lê QR pela câmera. Digite o código.') : tr('Não foi possível abrir a câmera agora. Digite o código.'));
+      });
     }
   }
 
@@ -137,6 +153,13 @@ class _QrScanPageState extends State<QrScanPage> {
     Navigator.of(context).pop(s);
   }
 
+  /// Letras e números que faltam para completar um código (8).
+  int get _missing => (8 - _typed.text.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').length).clamp(0, 8);
+
+  String get _whereIsCode => widget.want == 'aluno'
+      ? tr('O código fica abaixo do QR no app do aluno (ex.: K7QM-4TXD).')
+      : (widget.want == 'professor' ? tr('O código fica abaixo do QR no app do professor (ex.: K7QM-4TXD).') : tr('O código fica abaixo do QR no app da outra pessoa (ex.: K7QM-4TXD).'));
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -144,86 +167,138 @@ class _QrScanPageState extends State<QrScanPage> {
       body: SafeArea(
         child: Column(
           children: [
-            Expanded(
-              child: Stack(children: [
-                Positioned.fill(
-                  child: ClipRect(
-                child: MobileScanner(
-                  controller: _cam,
-                  onDetect: (cap) {
-                    for (final b in cap.barcodes) {
-                      final v = b.rawValue;
-                      if (v != null) {
-                        _accept(v, fromCamera: true);
-                        break;
-                      }
+            // As duas formas de vincular, sempre à vista: ler o QR ou digitar o código.
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              child: SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<bool>(
+                  showSelectedIcon: false,
+                  segments: [
+                    ButtonSegment(value: false, icon: const Icon(Icons.qr_code_scanner_rounded), label: Text(tr('Ler QR code'))),
+                    ButtonSegment(value: true, icon: const Icon(Icons.keyboard_alt_outlined), label: Text(tr('Digitar código'))),
+                  ],
+                  selected: {_typing},
+                  onSelectionChanged: (v) => setState(() {
+                    _typing = v.first;
+                    if (!_typing) _whyTyping = null;
+                  }),
+                ),
+              ),
+            ),
+            Expanded(child: _typing ? _typingPane(context) : _cameraPane(context)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _cameraPane(BuildContext context) {
+    return Column(children: [
+      Expanded(
+        child: Stack(children: [
+          Positioned.fill(
+            child: ClipRect(
+              child: MobileScanner(
+                controller: _cam,
+                onDetect: (cap) {
+                  for (final b in cap.barcodes) {
+                    final v = b.rawValue;
+                    if (v != null) {
+                      _accept(v, fromCamera: true);
+                      break;
                     }
-                  },
-                  errorBuilder: (context, error) => _CameraProblem(error: error),
-                  placeholderBuilder: (context) => const ColoredBox(
-                    color: Colors.black,
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                  // Moldura para mirar o QR (só aparece quando a câmera está funcionando).
-                  overlayBuilder: (context, constraints) => IgnorePointer(
-                    child: Center(
-                      child: Container(
-                        width: 230,
-                        height: 230,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.9), width: 3),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
+                  }
+                },
+                errorBuilder: (context, error) => _CameraProblem(error: error),
+                placeholderBuilder: (context) => const ColoredBox(color: Colors.black, child: Center(child: CircularProgressIndicator())),
+                // Moldura para mirar o QR (só aparece quando a câmera está funcionando).
+                overlayBuilder: (context, constraints) => IgnorePointer(
+                  child: Center(
+                    child: Container(
+                      width: 230,
+                      height: 230,
+                      decoration: BoxDecoration(border: Border.all(color: Colors.white.withValues(alpha: 0.9), width: 3), borderRadius: BorderRadius.circular(20)),
                     ),
                   ),
                 ),
               ),
-                ),
-                if (_bannerTitle != null)
-                  Positioned(
-                    left: 12,
-                    right: 12,
-                    top: 12,
-                    child: _InvalidBanner(title: _bannerTitle!, text: _bannerText ?? ''),
-                  ),
-              ]),
             ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + MediaQuery.of(context).viewInsets.bottom),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(tr('Aponte a câmera para o QR. Se preferir, digite o código:'),
-                      style: TextStyle(color: AppColors.textDim, fontSize: 13)),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _typed,
-                          autocorrect: false,
-                          enableSuggestions: false,
-                          inputFormatters: codeFormatters,
-                          textCapitalization: TextCapitalization.characters,
-                          decoration: InputDecoration(hintText: 'K7QM-4TXD', errorText: _message, errorMaxLines: 3),
-                          onChanged: (_) {
-                            if (_message != null) setState(() => _message = null);
-                          },
-                          onSubmitted: (v) => _accept(v, fromCamera: false),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      FilledButton(onPressed: () => _accept(_typed.text, fromCamera: false), child: Text(tr('Usar código'))),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+          if (_bannerTitle != null)
+            Positioned(left: 12, right: 12, top: 12, child: _InvalidBanner(title: _bannerTitle!, text: _bannerText ?? '')),
+        ]),
       ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text(
+            widget.want == 'aluno' ? tr('Aponte a câmera para o QR que o aluno mostra no app dele.') : (widget.want == 'professor' ? tr('Aponte a câmera para o QR que o professor mostra no app dele.') : tr('Aponte a câmera para o QR do Notemusic.')),
+            textAlign: TextAlign.center,
+            style: TextStyle(color: AppColors.textDim, fontSize: 13.5),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => setState(() => _typing = true),
+            icon: const Icon(Icons.keyboard_alt_outlined, size: 20),
+            label: Text(tr('Prefiro digitar o código')),
+          ),
+        ]),
+      ),
+    ]);
+  }
+
+  Widget _typingPane(BuildContext context) {
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(16, 8, 16, 12 + bottom),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        if (_whyTyping != null)
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: AppColors.flat.withValues(alpha: 0.14), borderRadius: BorderRadius.circular(12)),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Icon(Icons.no_photography_outlined, size: 20, color: AppColors.flat),
+              const SizedBox(width: 10),
+              Expanded(child: Text(_whyTyping!, style: const TextStyle(fontSize: 13.5, height: 1.35))),
+            ]),
+          ),
+        Text(_whereIsCode, style: TextStyle(color: AppColors.textDim, fontSize: 13.5, height: 1.4)),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _typed,
+          autofocus: true,
+          autocorrect: false,
+          enableSuggestions: false,
+          inputFormatters: codeFormatters,
+          textCapitalization: TextCapitalization.characters,
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w800, letterSpacing: 3),
+          decoration: InputDecoration(
+            hintText: 'K7QM-4TXD',
+            hintStyle: TextStyle(fontSize: 26, fontWeight: FontWeight.w600, letterSpacing: 3, color: AppColors.textDim.withValues(alpha: 0.4)),
+            errorText: _message,
+            errorMaxLines: 3,
+            helperText: _typed.text.isEmpty ? null : (_missing == 0 ? tr('Código completo.') : (_missing == 1 ? tr('Falta 1 caractere.') : tr('Faltam {0} caracteres.', [_missing]))),
+          ),
+          onChanged: (_) => setState(() => _message = null),
+          onSubmitted: (v) => _accept(v, fromCamera: false),
+        ),
+        const SizedBox(height: 20),
+        Row(children: [
+          Expanded(flex: 2, child: OutlinedButton(onPressed: () => Navigator.of(context).pop(), child: Text(tr('Cancelar')))),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 3,
+            child: FilledButton.icon(
+              onPressed: _typed.text.trim().isEmpty ? null : () => _accept(_typed.text, fromCamera: false),
+              icon: const Icon(Icons.check_rounded),
+              label: Text(tr('Confirmar código'), style: const TextStyle(fontWeight: FontWeight.w800)),
+            ),
+          ),
+        ]),
+      ]),
     );
   }
 }
