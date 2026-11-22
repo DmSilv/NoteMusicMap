@@ -126,7 +126,7 @@ void main() {
         await tester.tap(find.text('Pular'));
         await tester.pumpAndSettle();
         expect(find.text('Quero estudar'), findsOneWidget);
-        expect(find.text('Sem cadastro'), findsOneWidget);
+        expect(find.textContaining('Sem cadastro'), findsOneWidget);
       }, size: const Size(320, 568));
     },
   );

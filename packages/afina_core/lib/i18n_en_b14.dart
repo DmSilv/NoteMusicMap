@@ -601,4 +601,6 @@ const Map<String, String> kEnB14 = {
   'Aula {0}': 'Lesson {0}',
   '{0} às {1}': '{0} at {1}',
   'Nova': 'New',
+  'Se perder este celular, você perde o acesso à conta. Guarde a chave de recuperação.': 'If you lose this phone, you lose access to your account. Keep the recovery key.',
+  'Minha conta: falta guardar a chave de recuperação': 'My account: the recovery key is not saved yet',
 };

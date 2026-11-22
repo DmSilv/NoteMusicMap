@@ -482,6 +482,27 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
               ),
+            if (p.recoveryShownAt == null && app.emailHint.isEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: Ds.s8, bottom: Ds.s4),
+                child: AppCard(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      DsIconBadge(Icons.shield_outlined, size: 40, color: AppColors.accent),
+                      const SizedBox(width: Ds.s12),
+                      Expanded(child: Text(tr('Proteja sua conta'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17))),
+                    ]),
+                    const SizedBox(height: Ds.s8),
+                    Text(app.teacherMode ? tr('Se perder este celular, seus alunos ficam sem você. Guarde a chave de recuperação.') : tr('Se perder este celular, você perde o acesso à conta. Guarde a chave de recuperação.'), style: TextStyle(color: AppColors.textDim, height: 1.35)),
+                    const SizedBox(height: Ds.s12),
+                    OutlinedButton.icon(
+                      onPressed: () => _open(tr('Chave de recuperação'), (_) => _keyBody()),
+                      icon: const Icon(Icons.key),
+                      label: Text(tr('Ver a minha chave')),
+                    ),
+                  ]),
+                ),
+              ),
             _section(tr('Meus professores e aulas')),
             _row(Icons.school_outlined, tr('Professores e aulas'),
                 sub: app.myTeachers.isEmpty
@@ -526,27 +547,6 @@ class _ProfilePageState extends State<ProfilePage> {
             if (app.teacherMode)
               _row(Icons.tune_rounded, tr('Turmas, instrumentos e métodos'),
                   sub: tr('Organize o que você ensina'), onTap: _openTeachingSetup),
-            if (app.teacherMode && p.recoveryShownAt == null && app.emailHint.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: Ds.s8),
-                child: AppCard(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(children: [
-                      DsIconBadge(Icons.shield_outlined, size: 40, color: AppColors.accent),
-                      const SizedBox(width: Ds.s12),
-                      Expanded(child: Text(tr('Proteja sua conta'), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17))),
-                    ]),
-                    const SizedBox(height: Ds.s8),
-                    Text(tr('Se perder este celular, seus alunos ficam sem você. Guarde a chave de recuperação.'), style: TextStyle(color: AppColors.textDim, height: 1.35)),
-                    const SizedBox(height: Ds.s12),
-                    OutlinedButton.icon(
-                      onPressed: () => _open(tr('Chave de recuperação'), (_) => _keyBody()),
-                      icon: const Icon(Icons.key),
-                      label: Text(tr('Ver a minha chave')),
-                    ),
-                  ]),
-                ),
-              ),
             _section(tr('Conta')),
             _row(Icons.shield_outlined, tr('Acesso e segurança'),
                 sub: p.recoveryShownAt == null ? tr('Você ainda não guardou a sua chave') : tr('Chave, aparelhos, e-mail e apagar dados'),
