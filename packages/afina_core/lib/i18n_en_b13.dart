@@ -31,7 +31,6 @@ const Map<String, String> kEnB13 = {
       'No forms. Your data stays on this device and an account only comes into play if you want to link with a teacher.',
   'Quero estudar': 'I want to practice',
   'Afinador, escalas e metrônomo': 'Tuner, scales and metronome',
-  'Leia o QR dele e veja aulas e tarefas': 'Scan their QR and see lessons and tasks',
   'Alunos, agenda e tarefas online num só lugar': 'Students, schedule and tasks online in one place',
   'Sem cadastro': 'No sign-up',
   'Dados no aparelho': 'Data on your device',

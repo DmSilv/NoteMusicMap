@@ -520,15 +520,19 @@ class HubSection extends StatelessWidget {
     );
   }
 
-  Future<void> _scanTeacher(BuildContext context) async {
-    if (!await requireNickname(context, app, reason: tr('Para vincular a um professor, ele precisa saber quem você é.'))) return;
-    if (!context.mounted) return;
-    final s = await scanShareCode(context,
-        title: tr('Vincular com professor'), want: 'professor', check: app.checkTeacherCode, onCamera: app.setCameraStatus);
-    if (s == null) return;
-    final err = await app.addMyTeacher(s.code);
-    if (err != null) app.say(err);
-  }
+  Future<void> _scanTeacher(BuildContext context) => linkTeacherByScan(context, app);
+}
+
+/// "Tenho professor": pede o nome (o professor precisa saber quem é o aluno), abre a leitura do QR (com a opção de digitar o
+/// código na mesma tela) e vincula. Serve ao Meu espaço e à escolha "Tenho professor" da apresentação, que cai direto aqui.
+Future<void> linkTeacherByScan(BuildContext context, AppState app) async {
+  if (!await requireNickname(context, app, reason: tr('Para vincular a um professor, ele precisa saber quem você é.'))) return;
+  if (!context.mounted) return;
+  final s = await scanShareCode(context,
+      title: tr('Vincular com professor'), want: 'professor', check: app.checkTeacherCode, onCamera: app.setCameraStatus);
+  if (s == null) return;
+  final err = await app.addMyTeacher(s.code);
+  if (err != null) app.say(err);
 }
 
 /// Envia (ou copia) o link que abre o app já pedindo ao aluno para vincular este professor.

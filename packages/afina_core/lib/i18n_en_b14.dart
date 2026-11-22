@@ -557,7 +557,6 @@ const Map<String, String> kEnB14 = {
   'O nome não pode ficar vazio.': 'The name cannot be empty.',
   'Afinador, escalas guiadas e metrônomo para estudar do seu jeito. Funciona sem conta e seus dados ficam neste aparelho.': 'Tuner, guided scales and metronome to study your way. Works without an account and your data stays on this device.',
   'Começar a estudar': 'Start studying',
-  'Seu professor mostra um QR no app dele. Você lê e passa a ver as aulas, as tarefas e os horários dele.': 'Your teacher shows a QR in their app. You scan it and see their lessons, tasks and times.',
   'Ler o QR do professor': 'Scan the teacher QR',
   'Cadastre alunos, marque aulas e envie tarefas. Você informa seu nome e instrumentos, e o vínculo online liga para trocar tarefas e avisos com os alunos.': 'Add students, schedule lessons and send tasks. You enter your name and instruments, and the online link turns on to exchange tasks and alerts with students.',
   'Criar meu perfil de professor': 'Create my teacher profile',
@@ -720,4 +719,6 @@ const Map<String, String> kEnB14 = {
   'igual': 'same',
   '{0} pontos a mais': '{0} points higher',
   '{0} pontos a menos': '{0} points lower',
+  'Seu professor mostra um QR no app dele. Você lê o QR, ou digita o código, e passa a ver as aulas, as tarefas e os horários dele.': 'Your teacher shows a QR in their app. You scan the QR, or type the code, and start seeing their classes, tasks and times.',
+  'Leia o QR ou digite o código dele': 'Scan their QR or type their code',
 };

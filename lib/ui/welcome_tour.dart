@@ -36,14 +36,14 @@ class _Shot {
 const _tunerFlat = _Shot('assets/tour/tuner_flat.png', 780 / 1065);
 const _tunerOk = _Shot('assets/tour/tuner_ok.png', 780 / 1065);
 const _tools = [
-  _Shot('assets/tour/tab_tuner.png', 780 / 1150),
-  _Shot('assets/tour/tab_scales.png', 780 / 1150),
+  _Shot('assets/tour/tab_tuner.png', 780 / 1190),
+  _Shot('assets/tour/tab_scales.png', 780 / 1250),
   _Shot('assets/tour/tab_metro.png', 780 / 1150),
   _Shot('assets/tour/tab_grid.png', 780 / 1150),
 ];
 const _hubs = [
-  _Shot('assets/tour/hub_student.png', 780 / 1130),
-  _Shot('assets/tour/hub_teacher.png', 780 / 1130),
+  _Shot('assets/tour/hub_student.png', 780 / 1215),
+  _Shot('assets/tour/hub_teacher.png', 780 / 1250),
 ];
 
 class WelcomeTour extends StatefulWidget {
@@ -618,7 +618,7 @@ class _WelcomeTourState extends State<WelcomeTour> {
             tr('Começar a estudar')
           ),
         TourChoice.hasTeacher => (
-            tr('Seu professor mostra um QR no app dele. Você lê e passa a ver as aulas, as tarefas e os horários dele.'),
+            tr('Seu professor mostra um QR no app dele. Você lê o QR, ou digita o código, e passa a ver as aulas, as tarefas e os horários dele.'),
             tr('Ler o QR do professor')
           ),
         TourChoice.teacher => (
@@ -755,7 +755,7 @@ class _WelcomeTourState extends State<WelcomeTour> {
             _sub(tr('Nada de formulário. Seus dados ficam neste aparelho e a conta só entra em cena se você quiser ligar com um professor.')),
             const SizedBox(height: 16),
             _pick(Icons.graphic_eq_rounded, tr('Quero estudar'), tr('Afinador, escalas e metrônomo'), TourChoice.study),
-            _pick(Icons.qr_code_scanner_rounded, tr('Tenho professor'), tr('Leia o QR dele e veja aulas e tarefas'), TourChoice.hasTeacher),
+            _pick(Icons.qr_code_scanner_rounded, tr('Tenho professor'), tr('Leia o QR ou digite o código dele'), TourChoice.hasTeacher),
             _pick(Icons.person_add_alt_1_rounded, tr('Sou professor'), tr('Alunos, agenda e tarefas online num só lugar'), TourChoice.teacher),
             _doorCard(),
             const SizedBox(height: 10),

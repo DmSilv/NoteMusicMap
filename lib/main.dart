@@ -14,6 +14,7 @@ import 'ui/app_logo.dart';
 import 'ui/bottom_nav.dart';
 import 'ui/exit_sheet.dart';
 import 'ui/hello_bar.dart';
+import 'ui/hub_section.dart' show linkTeacherByScan;
 import 'ui/my_lessons_page.dart' show openMyLessons;
 import 'ui/home_tabs.dart';
 import 'ui/link_bar.dart';
@@ -134,7 +135,12 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
       case TourChoice.study:
         widget.app.goTab?.call(kTabTuner);
       case TourChoice.hasTeacher:
-        widget.app.goTab?.call(kTabStudy); // o Meu espaço já traz "Ler QR do professor"
+        // Vai ao Meu espaço e já abre a leitura do QR (com "Digitar código"): o botão da apresentação promete "Ler o QR do professor".
+        widget.app.goTab?.call(kTabStudy);
+        final c = _navKey.currentContext;
+        if (c == null || !mounted) return;
+        // ignore: use_build_context_synchronously
+        await linkTeacherByScan(c, widget.app);
       case TourChoice.teacher:
         widget.app.goTab?.call(kTabStudy);
         final c = _navKey.currentContext;

@@ -11,6 +11,7 @@ import 'account_email.dart';
 import 'design_system.dart';
 import 'devices_page.dart';
 import 'recovery_help_page.dart';
+import 'safe_input.dart' show UpperCaseText;
 import 'settings_page.dart' show kAppName;
 import 'share_sheet.dart' show shareLink;
 import 'theme.dart';
@@ -100,7 +101,7 @@ class _JoinAccountPageState extends State<JoinAccountPage> {
                   textCapitalization: TextCapitalization.characters,
                   autocorrect: false,
                   maxLength: 200, // aceita o link inteiro colado
-                  inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9\- ?&=:/._#]'))],
+                  inputFormatters: [const UpperCaseText(), FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9\- ?&=:/._#]'))],
                   decoration: InputDecoration(labelText: tr('Código (XXXX-XXXX)'), counterText: ''),
                   onChanged: (_) => setState(() => _error = null),
                 ),
@@ -136,6 +137,7 @@ class _JoinAccountPageState extends State<JoinAccountPage> {
                     TextField(
                       controller: _key,
                       textCapitalization: TextCapitalization.characters,
+                      inputFormatters: const [UpperCaseText()],
                       autocorrect: false,
                       maxLength: 40,
                       decoration: InputDecoration(labelText: tr('XXXXX-XXXXX-XXXXX-XXXXX-XXXXX'), counterText: ''),

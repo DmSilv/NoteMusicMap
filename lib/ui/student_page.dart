@@ -22,7 +22,7 @@ import 'widgets.dart';
 // Ficha do aluno e as janelas pequenas que ela compartilha com a lista de alunos (extraído de teacher_page.dart sem mudar o comportamento).
 
 Future<String?> askText(BuildContext context, String title, String label,
-    {String initial = '', bool multiline = false, String? action, AppState? voice}) async {
+    {String initial = '', bool multiline = false, String? action, AppState? voice, bool code = false}) async {
   final ctl = TextEditingController(text: initial);
   final v = await showDsFormSheet<String>(
     context,
@@ -31,11 +31,12 @@ Future<String?> askText(BuildContext context, String title, String label,
     onSubmit: (c, setS) => ctl.text,
     body: (c, setS) => TextField(
       controller: ctl,
-      inputFormatters: [SafeText(multiline ? kMaxNote : kMaxTitle, multiline: multiline)],
+      inputFormatters: code ? codeFormatters : [SafeText(multiline ? kMaxNote : kMaxTitle, multiline: multiline)],
       autofocus: true,
       minLines: multiline ? 4 : 1,
       maxLines: multiline ? 10 : 1,
-      textCapitalization: TextCapitalization.sentences,
+      textCapitalization: code ? TextCapitalization.characters : TextCapitalization.sentences,
+      autocorrect: !code,
       decoration: InputDecoration(
         labelText: label,
         // Microfone para ditar (só onde o texto é livre).
@@ -72,7 +73,7 @@ Future<void> renameStudent(BuildContext context, AppState app, Student s) async 
 
 Future<void> editStudentCode(BuildContext context, AppState app, Student s) async {
   final c = await askText(context, tr('Código do aluno'), tr('Código (ex.: K7QM-4TXD)'),
-      initial: s.code ?? '', action: tr('Salvar'));
+      initial: s.code ?? '', action: tr('Salvar'), code: true);
   if (c == null) return;
   final err = app.checkStudentCode(c, exceptId: s.id);
   if (err != null) {

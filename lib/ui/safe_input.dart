@@ -43,12 +43,36 @@ class SafeText extends TextInputFormatter {
   }
 }
 
-/// Campo de código de aluno/professor: só letras, números, hífen e espaço, e
-/// no máximo 12 caracteres ("K7QM-4TXD" cabe com folga).
-final List<TextInputFormatter> codeFormatters = [
-  FilteringTextInputFormatter.allow(RegExp(r'[A-Za-z0-9\- ]')),
-  LengthLimitingTextInputFormatter(12),
-];
+/// Deixa as letras em MAIÚSCULAS, também ao colar. Textos que são um link (com "/" ou "=") ficam como estão,
+/// porque o endereço pode ter letras minúsculas que importam.
+class UpperCaseText extends TextInputFormatter {
+  const UpperCaseText();
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final t = newValue.text;
+    if (t.contains('/') || t.contains('=')) return newValue;
+    final up = t.toUpperCase();
+    return up == t ? newValue : newValue.copyWith(text: up);
+  }
+}
+
+/// Máscara dos códigos curtos (aluno, professor, aparelho): XXXX-XXXX. Só letras e números, sempre em maiúsculas; o
+/// hífen entra sozinho depois da quarta letra. Colar "k7qm 4txd" ou "K7QM-4TXD" dá o mesmo resultado.
+class CodeMask extends TextInputFormatter {
+  const CodeMask();
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    var raw = newValue.text.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    if (raw.length > 8) raw = raw.substring(0, 8);
+    final out = raw.length > 4 ? '${raw.substring(0, 4)}-${raw.substring(4)}' : raw;
+    return TextEditingValue(text: out, selection: TextSelection.collapsed(offset: out.length));
+  }
+}
+
+/// Campo de código de aluno/professor: máscara XXXX-XXXX (maiúsculas, hífen automático, 8 caracteres).
+final List<TextInputFormatter> codeFormatters = [const CodeMask()];
 
 /// Campo numérico inteiro com no máximo [digits] dígitos (evita números absurdos).
 List<TextInputFormatter> digitsFormatters(int digits) => [
