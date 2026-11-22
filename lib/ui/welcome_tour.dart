@@ -12,12 +12,12 @@ enum TourChoice { study, hasTeacher, teacher, look, hasAccount }
 /// Apresentação do primeiro acesso: 4 telas curtas com telas reais do app e, no fim,
 /// três portas (estudar, tenho professor, sou professor). Não pede nada: nem cadastro
 /// nem permissão. Devolve a porta escolhida (ou [TourChoice.look] se a pessoa pulou).
-Future<TourChoice> showWelcomeTour(BuildContext context) async {
+Future<TourChoice> showWelcomeTour(BuildContext context, {bool startAtDoors = false, TourChoice? door}) async {
   final r = await Navigator.of(context).push<TourChoice>(
     PageRouteBuilder<TourChoice>(
       opaque: true,
       transitionDuration: const Duration(milliseconds: 250),
-      pageBuilder: (_, _, _) => const WelcomeTour(),
+      pageBuilder: (_, _, _) => WelcomeTour(startAtDoors: startAtDoors, door: door),
       transitionsBuilder: (_, a, _, child) =>
           FadeTransition(opacity: a, child: child),
     ),
@@ -47,15 +47,17 @@ const _hubs = [
 ];
 
 class WelcomeTour extends StatefulWidget {
-  const WelcomeTour({super.key});
+  final bool startAtDoors;
+  final TourChoice? door;
+  const WelcomeTour({super.key, this.startAtDoors = false, this.door});
 
   @override
   State<WelcomeTour> createState() => _WelcomeTourState();
 }
 
 class _WelcomeTourState extends State<WelcomeTour> {
-  final _pc = PageController();
-  int _page = 0;
+  late final _pc = PageController(initialPage: widget.startAtDoors ? 3 : 0);
+  late int _page = widget.startAtDoors ? 3 : 0;
 
   // tela 1: a mesma corda desafinada e afinada
   bool _inTune = false;
@@ -64,13 +66,20 @@ class _WelcomeTourState extends State<WelcomeTour> {
   bool _toolTouched = false;
   // tela 3: o lado que a pessoa quer ver
   bool _teacherSide = false;
-  Timer? _t1, _t2;
+  // troca sozinho entre os dois lados até a pessoa tocar
+  bool _sideTouched = false;
+  Timer? _t1, _t2, _t3;
 
   @override
   void initState() {
     super.initState();
     _t1 = Timer.periodic(const Duration(milliseconds: 2800), (_) {
       if (mounted && _page == 0) setState(() => _inTune = !_inTune);
+    });
+    _t3 = Timer.periodic(const Duration(milliseconds: 4000), (_) {
+      if (mounted && _page == 2 && !_sideTouched) {
+        setState(() => _teacherSide = !_teacherSide);
+      }
     });
     _t2 = Timer.periodic(const Duration(milliseconds: 3200), (_) {
       if (mounted && _page == 1 && !_toolTouched) {
@@ -81,6 +90,7 @@ class _WelcomeTourState extends State<WelcomeTour> {
 
   @override
   void dispose() {
+    _t3?.cancel();
     _t1?.cancel();
     _t2?.cancel();
     _pc.dispose();
@@ -231,28 +241,31 @@ class _WelcomeTourState extends State<WelcomeTour> {
   Widget _title(List<(String, bool)> parts, {double? size}) => LayoutBuilder(
     builder: (context, c) {
       final h = MediaQuery.sizeOf(context).height;
-      final s =
-          size ??
-          (h < 640
-              ? 24.0
-              : (MediaQuery.sizeOf(context).width * 0.082).clamp(26.0, 34.0));
-      return Text.rich(
-        TextSpan(
-          children: [
-            for (final p in parts)
-              TextSpan(
-                text: p.$1,
-                style: TextStyle(
-                  color: p.$2 ? AppColors.accent : AppColors.text,
+      final s = size ?? (h < 640 ? 24.0 : 30.0);
+      // Sempre uma linha só: se a frase não couber, a fonte diminui.
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text.rich(
+          TextSpan(
+            children: [
+              for (final p in parts)
+                TextSpan(
+                  text: p.$1,
+                  style: TextStyle(
+                    color: p.$2 ? AppColors.accent : AppColors.text,
+                  ),
                 ),
-              ),
-          ],
-        ),
-        style: TextStyle(
-          fontSize: s,
-          fontWeight: FontWeight.w800,
-          height: 1.06,
-          letterSpacing: -s * 0.03,
+            ],
+          ),
+          maxLines: 1,
+          softWrap: false,
+          style: TextStyle(
+            fontSize: s,
+            fontWeight: FontWeight.w800,
+            height: 1.1,
+            letterSpacing: -s * 0.03,
+          ),
         ),
       );
     },
@@ -270,6 +283,8 @@ class _WelcomeTourState extends State<WelcomeTour> {
         constraints: const BoxConstraints(maxWidth: 340),
         child: Text(
           t,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: AppColors.textDim,
             fontSize: small ? 14.5 : 16,
@@ -386,31 +401,7 @@ class _WelcomeTourState extends State<WelcomeTour> {
   Widget _page1() => _layout(
     art: Column(
       children: [
-        if (!_compact)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-              decoration: BoxDecoration(
-                color: AppColors.surface2,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(18),
-                  topRight: Radius.circular(18),
-                  bottomRight: Radius.circular(18),
-                  bottomLeft: Radius.circular(4),
-                ),
-              ),
-              child: Text(
-                tr('Será que essa nota está afinada?'),
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        if (!_compact) const SizedBox(height: 10),
-        Expanded(child: _phone([_tunerFlat, _tunerOk], _inTune ? 1 : 0)),
+        Expanded(child: _phone([_tunerFlat, _tunerOk], _inTune ? 1 : 0, maxH: 560)),
         const SizedBox(height: 10),
         _pill(
           _inTune ? tr('Afinado') : tr('Agudo: desça a afinação'),
@@ -422,38 +413,26 @@ class _WelcomeTourState extends State<WelcomeTour> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _title([
-          ("${tr('Tocou a nota e ficou')} ", false),
-          (tr('na dúvida?'), true),
+          ("${tr('Essa nota')} ", false),
+          (tr('está afinada?'), true),
         ]),
-        _sub(
-          tr(
-            'O Notemusic escuta e diz na hora se está afinada, baixa ou alta. Sem cadastro, sem pegadinha.',
-          ),
-        ),
+        _sub(tr('O Notemusic escuta e diz na hora se está baixa, alta ou afinada.')),
       ],
     ),
   );
 
   Widget _page2() {
     final names = [tr('Afinador'), tr('Escalas'), tr('Metrônomo'), tr('Grade')];
-    final caps = [
-      tr('Corda a corda, com a agulha mostrando o caminho.'),
-      tr('Escalas e arpejos na partitura, com exercício guiado.'),
-      tr('O chefe do tempo, sem reclamar de hora extra.'),
-      tr('Toque qualquer nota e veja se está afinada.'),
-    ];
     return _layout(
       art: Column(
         children: [
-          Expanded(child: _phone(_tools, _tool)),
-          const SizedBox(height: 10),
-          Wrap(
-            alignment: WrapAlignment.center,
-            spacing: 5,
-            runSpacing: 5,
+          Row(
             children: [
               for (var i = 0; i < 4; i++)
-                Semantics(
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(right: i == 3 ? 0 : 6),
+                    child: Semantics(
                   button: true,
                   selected: _tool == i,
                   child: GestureDetector(
@@ -463,57 +442,52 @@ class _WelcomeTourState extends State<WelcomeTour> {
                     }),
                     behavior: HitTestBehavior.opaque,
                     child: Container(
-                      constraints: const BoxConstraints(minHeight: 36),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
+                      height: 38,
+                      alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: _tool == i
-                            ? AppColors.accent
+                            ? AppColors.surface2
                             : AppColors.surface,
                         borderRadius: BorderRadius.circular(999),
                         border: Border.all(
                           color: _tool == i
-                              ? AppColors.accent
+                              ? AppColors.text
                               : AppColors.outline,
                         ),
                       ),
-                      child: Text(
-                        names[i],
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: _tool == i
-                              ? AppColors.onAccent
-                              : AppColors.textDim,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          names[i],
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.w700,
+                            color: _tool == i
+                                ? AppColors.text
+                                : AppColors.textDim,
+                          ),
                         ),
                       ),
                     ),
                   ),
+                  ),
+                  ),
                 ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(
-            caps[_tool],
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13.5, color: AppColors.textDim),
-          ),
+          const SizedBox(height: 12),
+          Expanded(child: _phone(_tools, _tool, maxH: 560)),
         ],
       ),
       copy: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _title([
-            ("${tr('Uma caixa de ferramentas,')} ", false),
-            (tr('zero bagunça'), true),
+            ("${tr('Ferramentas')} ", false),
+            (tr('sem bagunça'), true),
           ]),
-          _sub(
-            tr(
-              'Abra o que precisa, quando precisar. O resto fica quieto esperando.',
-            ),
-          ),
+          _sub(tr('Abra só o que precisa, na hora que precisar.')),
         ],
       ),
     );
@@ -528,15 +502,16 @@ class _WelcomeTourState extends State<WelcomeTour> {
           height: 42,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: on ? AppColors.accent : Colors.transparent,
+            color: on ? AppColors.surface2 : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: on ? AppColors.text : Colors.transparent),
           ),
           child: Text(
             label,
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
-              color: on ? AppColors.onAccent : AppColors.textDim,
+              color: on ? AppColors.text : AppColors.textDim,
             ),
           ),
         ),
@@ -557,21 +532,24 @@ class _WelcomeTourState extends State<WelcomeTour> {
                 seg(
                   tr('Tenho professor'),
                   !_teacherSide,
-                  () => setState(() => _teacherSide = false),
+                  () => setState(() {
+                    _sideTouched = true;
+                    _teacherSide = false;
+                  }),
                 ),
                 seg(
                   tr('Sou professor'),
                   _teacherSide,
-                  () => setState(() => _teacherSide = true),
+                  () => setState(() {
+                    _sideTouched = true;
+                    _teacherSide = true;
+                  }),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
-          Expanded(child: _phone(_hubs, _teacherSide ? 1 : 0)),
-          const SizedBox(height: 6),
-          // As telas são capturas fixas (datas e nomes de exemplo): avisa que é uma ilustração.
-          Center(child: Text(tr('Exemplo ilustrativo'), style: TextStyle(fontSize: 12, color: AppColors.textDim))),
+          const SizedBox(height: 22),
+          Expanded(child: _phone(_hubs, _teacherSide ? 1 : 0, maxH: 520)),
         ],
       ),
       copy: AnimatedSwitcher(
@@ -584,25 +562,17 @@ class _WelcomeTourState extends State<WelcomeTour> {
           children: _teacherSide
               ? [
                   _title([
-                    ("${tr('Agenda e alunos,')} ", false),
-                    (tr('sem planilha'), true),
+                    ("${tr('Agenda e alunos')} ", false),
+                    (tr('num lugar'), true),
                   ]),
-                  _sub(
-                    tr(
-                      'Marque aulas, abra horários livres e abra a ficha de cada aluno com um toque.',
-                    ),
-                  ),
+                  _sub(tr('Marque aulas e abra a ficha de cada aluno.')),
                 ]
               : [
                   _title([
-                    ("${tr('A aula e as tarefas')} ", false),
-                    (tr('num lugar só'), true),
+                    ("${tr('Aula e tarefas')} ", false),
+                    (tr('num lugar'), true),
                   ]),
-                  _sub(
-                    tr(
-                      'Seu professor marca a aula, você vê na hora e pega um horário livre.',
-                    ),
-                  ),
+                  _sub(tr('Veja a aula marcada e pegue um horário livre.')),
                 ],
         ),
       ),
@@ -610,19 +580,19 @@ class _WelcomeTourState extends State<WelcomeTour> {
   }
 
   /// Porta escolhida na última tela: só abre o card com a explicação; quem confirma é o botão "Seguir".
-  TourChoice? _door;
+  late TourChoice? _door = widget.door;
 
   (String, String)? _doorInfo(TourChoice? c) => switch (c) {
         TourChoice.study => (
-            tr('Afinador, escalas guiadas e metrônomo para estudar do seu jeito. Funciona sem conta e seus dados ficam neste aparelho.'),
+            tr('Afinador, escalas guiadas e metrônomo. Funciona sem conta.'),
             tr('Começar a estudar')
           ),
         TourChoice.hasTeacher => (
-            tr('Seu professor mostra um QR no app dele. Você lê o QR, ou digita o código, e passa a ver as aulas, as tarefas e os horários dele.'),
+            tr('Leia o QR do professor ou digite o código para ver aulas e tarefas.'),
             tr('Ler o QR do professor')
           ),
         TourChoice.teacher => (
-            tr('Cadastre alunos, marque aulas e envie tarefas. Você informa seu nome e instrumentos, e o vínculo online liga para trocar tarefas e avisos com os alunos.'),
+            tr('Cadastre alunos, marque aulas e envie tarefas.'),
             tr('Criar meu perfil de professor')
           ),
         _ => null,
@@ -637,7 +607,7 @@ class _WelcomeTourState extends State<WelcomeTour> {
         button: true,
         selected: on,
         child: Material(
-          color: on ? AppColors.accent.withValues(alpha: .16) : AppColors.surface,
+          color: on ? AppColors.surface2 : AppColors.surface,
           borderRadius: BorderRadius.circular(18),
           child: InkWell(
             borderRadius: BorderRadius.circular(18),
@@ -647,7 +617,7 @@ class _WelcomeTourState extends State<WelcomeTour> {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: on ? AppColors.accent : AppColors.outline, width: on ? 2 : 1.5),
+                border: Border.all(color: on ? AppColors.text : AppColors.outline, width: on ? 1.5 : 1),
               ),
               child: Row(
                 children: [
@@ -696,7 +666,7 @@ class _WelcomeTourState extends State<WelcomeTour> {
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.accent.withValues(alpha: .6)),
+                border: Border.all(color: AppColors.outline),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -739,40 +709,34 @@ class _WelcomeTourState extends State<WelcomeTour> {
     ),
   );
 
-  Widget _page4() => LayoutBuilder(
-    builder: (context, c) => SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(22, 6, 22, 16),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: c.maxHeight - 22),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _title([
-              ("${tr('Gostou?')} ", false),
-              ("${tr('Escolha')} ", true),
-              (tr('por onde começar'), false),
-            ]),
-            _sub(tr('Nada de formulário. Seus dados ficam neste aparelho e a conta só entra em cena se você quiser ligar com um professor.')),
-            const SizedBox(height: 16),
-            _pick(Icons.graphic_eq_rounded, tr('Quero estudar'), tr('Afinador, escalas e metrônomo'), TourChoice.study),
-            _pick(Icons.qr_code_scanner_rounded, tr('Tenho professor'), tr('Leia o QR ou digite o código dele'), TourChoice.hasTeacher),
-            _pick(Icons.person_add_alt_1_rounded, tr('Sou professor'), tr('Alunos, agenda e tarefas online num só lugar'), TourChoice.teacher),
-            _doorCard(),
-            const SizedBox(height: 10),
-            Divider(color: AppColors.outline, height: 1),
-            const SizedBox(height: 12),
-            _secondary(Icons.login_rounded, tr('Já tenho conta em outro aparelho'), () => _finish(TourChoice.hasAccount)),
-            const SizedBox(height: 4),
-            Center(
-              child: Text(
-                '${tr('Sem cadastro')} · ${tr('Dados no aparelho')}',
-                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.textDim),
-              ),
-            ),
-          ],
+  /// Portas no alto e "Já tenho conta" fixo no pé da tela: o card da porta abre no meio sem empurrar o resto.
+  Widget _page4() => Column(
+    children: [
+      Expanded(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(22, 28, 22, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _title([
+                ("${tr('Por onde')} ", false),
+                (tr('começar?'), true),
+              ]),
+              _sub(tr('Sem formulário. Seus dados ficam neste aparelho.')),
+              const SizedBox(height: 28),
+              _pick(Icons.graphic_eq_rounded, tr('Quero estudar'), tr('Afinador, escalas e metrônomo'), TourChoice.study),
+              _pick(Icons.qr_code_scanner_rounded, tr('Tenho professor'), tr('Leia o QR ou digite o código'), TourChoice.hasTeacher),
+              _pick(Icons.person_add_alt_1_rounded, tr('Sou professor'), tr('Alunos, agenda e tarefas'), TourChoice.teacher),
+              _doorCard(),
+            ],
+          ),
         ),
       ),
-    ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(22, 4, 22, 22),
+        child: _secondary(Icons.login_rounded, tr('Já tenho conta em outro aparelho'), () => _finish(TourChoice.hasAccount)),
+      ),
+    ],
   );
 
 }

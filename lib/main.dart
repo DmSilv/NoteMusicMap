@@ -119,43 +119,55 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
   /// pedido na hora em que a pessoa for ouvir (ver [_micRationale]) e o professor só vira
   /// professor se tocar na porta "Sou professor".
   Future<void> _onboarding() async {
-    final ctx = _navKey.currentContext;
-    if (ctx == null || !mounted) return;
-    final choice = await showWelcomeTour(ctx);
-    widget.app.markOnboarded();
-    widget.app.trackAct(switch (choice) {
-      TourChoice.study => 'door_study',
-      TourChoice.hasTeacher => 'door_student',
-      TourChoice.teacher => 'door_teacher',
-      TourChoice.look => 'door_look',
-      TourChoice.hasAccount => 'door_account',
-    });
-    unawaited(widget.app.checkVibration());
-    switch (choice) {
-      case TourChoice.study:
-        widget.app.goTab?.call(kTabTuner);
-      case TourChoice.hasTeacher:
-        // Vai ao Meu espaço e já abre a leitura do QR (com "Digitar código"): o botão da apresentação promete "Ler o QR do professor".
-        widget.app.goTab?.call(kTabStudy);
-        final c = _navKey.currentContext;
-        if (c == null || !mounted) return;
-        // ignore: use_build_context_synchronously
-        await linkTeacherByScan(c, widget.app);
-      case TourChoice.teacher:
-        widget.app.goTab?.call(kTabStudy);
-        final c = _navKey.currentContext;
-        if (c == null || !mounted) return;
-        // O cadastro do professor (nome, instrumentos, turmas) no lugar de só pedir o nome.
-        // ignore: use_build_context_synchronously
-        await Navigator.of(c).push<bool>(MaterialPageRoute<bool>(builder: (_) => TeacherSetupPage(app: widget.app)));
-      case TourChoice.look:
-        break;
-      case TourChoice.hasAccount:
-        // Aparelho novo de quem já tem conta: leva direto à tela de entrar (código do outro aparelho, chave ou e-mail).
-        final c = _navKey.currentContext;
-        if (c == null || !mounted) return;
-        // ignore: use_build_context_synchronously
-        await Navigator.of(c).push<bool>(MaterialPageRoute<bool>(builder: (_) => JoinAccountPage(app: widget.app)));
+    TourChoice? back; // porta de onde a pessoa voltou sem concluir: a apresentação reabre nela
+    while (true) {
+      final ctx = _navKey.currentContext;
+      if (ctx == null || !mounted) return;
+      // ignore: use_build_context_synchronously
+      final choice = await showWelcomeTour(ctx, startAtDoors: back != null, door: back);
+      widget.app.markOnboarded();
+      widget.app.trackAct(switch (choice) {
+        TourChoice.study => 'door_study',
+        TourChoice.hasTeacher => 'door_student',
+        TourChoice.teacher => 'door_teacher',
+        TourChoice.look => 'door_look',
+        TourChoice.hasAccount => 'door_account',
+      });
+      unawaited(widget.app.checkVibration());
+      var done = true;
+      switch (choice) {
+        case TourChoice.study:
+          widget.app.goTab?.call(kTabTuner);
+        case TourChoice.hasTeacher:
+          // Vai ao Meu espaço e já abre a leitura do QR (com "Digitar código"): o botão da apresentação promete "Ler o QR do professor".
+          widget.app.goTab?.call(kTabStudy);
+          final c = _navKey.currentContext;
+          if (c == null || !mounted) return;
+          final before = widget.app.myTeachers.length;
+          // ignore: use_build_context_synchronously
+          await linkTeacherByScan(c, widget.app);
+          done = widget.app.myTeachers.length > before;
+        case TourChoice.teacher:
+          widget.app.goTab?.call(kTabStudy);
+          final c = _navKey.currentContext;
+          if (c == null || !mounted) return;
+          // O cadastro do professor (nome, instrumentos, turmas) no lugar de só pedir o nome.
+          // ignore: use_build_context_synchronously
+          final ok = await Navigator.of(c).push<bool>(MaterialPageRoute<bool>(builder: (_) => TeacherSetupPage(app: widget.app)));
+          done = ok == true;
+        case TourChoice.look:
+          break;
+        case TourChoice.hasAccount:
+          // Aparelho novo de quem já tem conta: leva direto à tela de entrar (código do outro aparelho, chave ou e-mail).
+          final c = _navKey.currentContext;
+          if (c == null || !mounted) return;
+          // ignore: use_build_context_synchronously
+          final ok = await Navigator.of(c).push<bool>(MaterialPageRoute<bool>(builder: (_) => JoinAccountPage(app: widget.app)));
+          done = ok == true;
+      }
+      // Voltou sem concluir (Voltar na leitura do QR, no cadastro ou no login): reabre as portas.
+      if (done || !mounted) return;
+      back = choice;
     }
   }
 
