@@ -109,7 +109,6 @@ const Map<String, String> kEnB02 = {
   'Copiar relatório': 'Copy report',
   'Limpar': 'Clear',
   'Evolução': 'Progress',
-  'Últimos 7 dias': 'Last 7 days',
   'Meta diária: {0} min': 'Daily goal: {0} min',
   'Já vai embora?': 'Leaving already?',
   'Se estiver tocando ou estudando, o app para de ouvir.': 'If you\'re playing or studying, the app stops listening.',

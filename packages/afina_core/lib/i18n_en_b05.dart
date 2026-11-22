@@ -3,7 +3,6 @@ library;
 
 const Map<String, String> kEnB05 = {
   'Faça uma escala guiada em Escalas: a taxa de acerto aparece aqui.': 'Do a guided scale in Scales: your accuracy rate appears here.',
-  'na última escala\n{0}': 'on the last scale\n{0}',
   'Média (5 últimas)': 'Average (last 5)',
   'Melhor': 'Best',
   'Escalas feitas': 'Scales done',

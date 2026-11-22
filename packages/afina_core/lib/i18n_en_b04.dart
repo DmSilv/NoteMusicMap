@@ -231,5 +231,4 @@ const Map<String, String> kEnB04 = {
   'Código de professor': 'Teacher code',
   'O código {0} foi lido. Vincular como o seu professor? Ele passa a aparecer na sua lista e você na lista dele. O servidor guarda os códigos, o apelido e a data do vínculo, e as tarefas das aulas que ele encerrar para você; nada dos seus exercícios.': 'Code {0} was read. Link as your teacher? They will appear on your list and you on theirs. The server stores the codes, the nickname and the link date, and the tasks of the lessons they end for you; nothing from your exercises.',
   'Vincular': 'Link',
-  'Sua evolução': 'Your progress',
 };

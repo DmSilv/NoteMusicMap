@@ -84,7 +84,7 @@
 | `lib/ui/photo_pick.dart` | Pergunta de onde vem a foto (câmera, galeria ou remover), reduz a imagem e devolve o texto base64 pronto. Devolve: o texto da foto; '' para remover; null se a pessoa desistiu ou não deu para usar a imagem. |
 | `lib/ui/pomodoro_card.dart` | Timer de estudo (Pomodoro) com alarme sutil. |
 | `lib/ui/profile_page.dart` | "Minha conta": lista curta com o código que identifica você (sem cadastro) e a chave de recuperação, que permite levar o histórico para outro aparelho. |
-| `lib/ui/progress_cards.dart` | Evolução da taxa de acerto nos exercícios de escala. |
+| `lib/ui/progress_cards.dart` | Verde: 80% ou mais; azul: 50 a 79%; laranja: abaixo de 50%. |
 | `lib/ui/qr_scan_page.dart` | Abre a câmera para ler o QR de um aluno ou de um professor. Também deixa digitar o código na mesma tela (se a câmera estiver sem permissão ou o QR não sair). Devolve o código lido, ou null se a pessoa voltar. [want]… |
 | `lib/ui/recovery_help_page.dart` | Endereço da página pública de ajuda (a mesma que o site publica). |
 | `lib/ui/ref_a_dialog.dart` | Diálogo do Lá de referência (415 a 443 Hz e valor livre). |
