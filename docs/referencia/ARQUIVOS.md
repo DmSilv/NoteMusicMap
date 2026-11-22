@@ -44,7 +44,7 @@
 | `lib/ui/design_system.dart` | Design system do Notemusic. REGRA: toda tela nova ou alterada usa estes valores e estes componentes (ver docs/12_DESIGN_SYSTEM.md). Números soltos de espaçamento, raio ou altura de botão não entram em tela nova.… |
 | `lib/ui/dev_chat_sheet.dart` | Conversa particular com o desenvolvedor: só esta pessoa vê. Mensagens do administrador, resposta curta, e (quando ele pergunta) escolher se o apelido pode ser citado no boletim. O texto vem do servidor ao abrir. |
 | `lib/ui/devices_page.dart` | Nome do sistema como a pessoa reconhece ("Android", "iPhone ou iPad"...). |
-| `lib/ui/dictation_button.dart` | Botão de microfone para ditar num campo de texto. Use como `suffixIcon` do `InputDecoration`. Pisca em vermelho enquanto ouve; tocar de novo para. |
+| `lib/ui/dictation_button.dart` | Botão de microfone para ditar num campo de texto. Use como `suffixIcon` do `InputDecoration`. Parado: microfone. Preparando: roda um indicador. Ouvindo: círculo vermelho que pulsa com o ícone de parar (tocar de novo… |
 | `lib/ui/error_ui.dart` | Telas e blocos de erro: tela crítica (APP-99), cartão amigável no lugar de bloco que quebrou e a lista "Problemas recentes". |
 | `lib/ui/evolution_page.dart` | "Evolução": segunda tela do Meu espaço, com os dados de estudo e os gráficos (últimos 7 dias, taxa de acerto nas escalas e orientações do treinador). |
 | `lib/ui/exit_sheet.dart` | Pergunta antes de fechar o app (botão voltar na tela principal). Devolve true só se a pessoa tocar em "Sair do app": tocar fora, arrastar para baixo ou apertar voltar de novo significa FICAR. O botão grande e… |
@@ -133,7 +133,7 @@
 | `lib/ui/web_file_pick_web.dart` | Abre o seletor de arquivos de imagem (ou a câmera, com [camera]) e devolve os bytes; null se a pessoa desistiu. Lança se o navegador não conseguir ler o arquivo. |
 | `lib/ui/welcome_tour.dart` | Para onde a pessoa quer ir depois da apresentação. |
 | `lib/ui/widgets.dart` | Peças comuns de interface: cartões, seleção de opções, folha de ajuda ("?") e textos de ajuda em um lugar só. |
-| `lib/voice/dictation.dart` | Escrita por voz: toca no microfone de um campo, fala, e o texto aparece. Usa o reconhecimento de fala do próprio aparelho (Android/iOS) ou do navegador (Chrome, Edge, Safari). O app não grava nem envia áudio: quem… |
+| `lib/voice/dictation.dart` | Em que ponto o ditado está (a faixa de voz e o botão mostram isto em todos os campos). |
 
 ## Núcleo em Dart puro (`packages/afina_core/lib/`)
 

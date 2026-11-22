@@ -36,6 +36,7 @@ import 'ui/theme.dart';
 import 'ui/success_moment.dart';
 import 'ui/toast.dart';
 import 'ui/welcome_tour.dart';
+import 'ui/dictation_button.dart' show DictationPill;
 import 'ui/scale_settings.dart' show showScaleSettings;
 import 'ui/settings_page.dart' show QuickSettings, showQuickSettings;
 import 'ui/tuning_pick.dart' show tuningSystemName;
@@ -354,7 +355,10 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
             // A chave recria a árvore ao trocar de tema: as cores do app são
             // lidas de AppColors e precisam ser reavaliadas.
             builder: (context, child) {
-              final tree = KeyedSubtree(key: ValueKey('$dark-${widget.app.langNotifier.value.name}'), child: child!);
+              // A faixa de voz fica por cima de tudo (telas, folhas e diálogos): é a mesma em todos os campos com microfone.
+              final tree = KeyedSubtree(
+                  key: ValueKey('$dark-${widget.app.langNotifier.value.name}'),
+                  child: Stack(fit: StackFit.expand, children: [child!, DictationPill(app: widget.app)]));
               final mq = MediaQuery.of(context);
               // No navegador/tela larga o app não estica: fica numa coluna centralizada e as laterais ficam escuras.
               // A coluna acompanha a tela: no tablet em pé ocupa quase tudo; no computador em pé fica mais larga que a do celular.
