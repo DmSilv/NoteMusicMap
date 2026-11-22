@@ -6,7 +6,7 @@ import '../app_state.dart';
 import 'design_system.dart';
 import 'evolution_page.dart';
 import 'markdown_lite.dart';
-import 'scale_exercise_page.dart' show InsightTile, copyAiSummary;
+import 'scale_exercise_page.dart' show InsightTile;
 import 'study_card.dart';
 import 'theme.dart';
 import 'widgets.dart';
@@ -14,6 +14,7 @@ import 'widgets.dart';
 /// A primeira frase útil do plano (sem "##" nem "-"), para o cartão do Meu espaço.
 String _firstLine(String md) {
   for (final raw in md.split('\n')) {
+    if (raw.trimLeft().startsWith('#')) continue; // título do plano: não serve de frase
     final t = raw.replaceAll(RegExp(r'^[#\-\*\d\.\s]+'), '').replaceAll('**', '').trim();
     if (t.length >= 12) return t.length > 130 ? '${t.substring(0, 129)}…' : t;
   }
@@ -187,7 +188,7 @@ class StudyHubPage extends StatelessWidget {
   }
 }
 
-/// A aba Treinador: o plano da semana (IA, guardado), as dicas do dia (calculadas no aparelho, de graça) e perguntas prontas.
+/// A aba Treinador: o plano da semana (IA, guardado), perguntas prontas, o histórico do que ele respondeu e as dicas do dia (calculadas no aparelho, de graça).
 class CoachTab extends StatefulWidget {
   final AppState app;
   const CoachTab({super.key, required this.app});
@@ -198,6 +199,9 @@ class CoachTab extends StatefulWidget {
 
 class _CoachTabState extends State<CoachTab> {
   AppState get app => widget.app;
+
+  /// O texto da resposta que a pessoa já abriu (para o aviso "Resposta pronta" sumir depois de ler).
+  String? _openedText;
 
   @override
   void initState() {
@@ -244,6 +248,11 @@ class _CoachTabState extends State<CoachTab> {
     await app.ai.askQuestion(buildQuestionRequest(q, ctx, scalesPrompt: app.aiSummary()), q);
   }
 
+  void _read(CoachEntry e, {bool canDelete = false}) {
+    setState(() => _openedText = e.text);
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => CoachReaderPage(app: app, entry: e, canDelete: canDelete)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -254,64 +263,63 @@ class _CoachTabState extends State<CoachTab> {
         final can = canAskNewPlan(planAt: ai.planAt, planFingerprint: ai.planFingerprint, currentFingerprint: studyContextFingerprint(ctx), now: DateTime.now());
         final busy = ai.busy;
         final left = (CoachAi.dailyLimit - ai.usedCount).clamp(0, CoachAi.dailyLimit);
+        final plan = ai.planText == null ? null : CoachEntry(kind: 'plan', title: 'plan', text: ai.planText!, at: ai.planAt ?? DateTime.now());
+        final ready = !busy && ai.answerText != null && ai.history.isNotEmpty && ai.history.first.text == ai.answerText && _openedText != ai.answerText;
         return ListView(padding: Ds.screen, children: [
           _UsageRow(used: CoachAi.dailyLimit - left, limit: CoachAi.dailyLimit),
           const DsGap(Ds.s12),
+          if (busy) ...[
+            AppCard(child: _AiProgress(ai: ai)),
+            const DsGap(Ds.gap),
+          ],
+          if (ai.phase == AiPhase.failed && ai.message != null && !busy) ...[
+            AppCard(child: Text(ai.message!, style: TextStyle(color: AppColors.attention, fontSize: 14))),
+            const DsGap(Ds.gap),
+          ],
           AppCard(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              DsCardTitle(Icons.checklist_rounded, tr('Plano da semana')),
-              const SizedBox(height: Ds.s8),
-              if (ai.planText == null)
-                Text(tr('O treinador monta um plano com o que você tocou, o tempo que estudou e as tarefas do seu professor. Pede uma vez por semana e fica guardado.'), style: Ds.support())
-              else ...[
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(Ds.s12),
-                  decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
-                  child: MarkdownLite(ai.planText!),
-                ),
-                const SizedBox(height: Ds.s4),
-                Text(tr('Gerado em {0}. Gerado por IA: pode errar; use como sugestão, junto com o seu professor.', [fmtDayMonth(ai.planAt ?? DateTime.now())]), style: Ds.support()),
+              DsCardTitle(Icons.checklist_rounded, tr('Plano da semana'),
+                  subtitle: plan == null ? tr('Um roteiro curto, feito pela IA com o que você estudou.') : tr('Gerado em {0}', [fmtDayMonth(plan.at)])),
+              if (plan != null) ...[
+                const SizedBox(height: Ds.s12),
+                _Preview(text: plan.text, onTap: () => _read(plan)),
               ],
               const SizedBox(height: Ds.s12),
-              if (busy) _AiProgress(ai: ai) else ...[
-                Wrap(spacing: Ds.s8, runSpacing: Ds.s8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+              Wrap(spacing: Ds.s8, runSpacing: Ds.s8, crossAxisAlignment: WrapCrossAlignment.center, children: [
+                if (plan == null)
                   FilledButton.icon(
-                    onPressed: can && left > 0 ? () => _plan(context) : null,
+                    onPressed: !busy && left > 0 ? () => _plan(context) : null,
                     icon: const Icon(Icons.auto_awesome, size: 18),
-                    label: Text(ai.planText == null ? tr('Gerar meu plano') : tr('Atualizar o plano')),
+                    label: Text(tr('Gerar plano')),
+                  )
+                else ...[
+                  FilledButton.icon(
+                    onPressed: () => _read(plan),
+                    icon: const Icon(Icons.menu_book_rounded, size: 18),
+                    label: Text(tr('Ler plano')),
                   ),
                   OutlinedButton.icon(
-                    onPressed: () => copyAiSummary(app),
-                    icon: const Icon(Icons.copy, size: 18),
-                    label: Text(tr('Copiar resumo')),
+                    onPressed: !busy && can && left > 0 ? () => _plan(context) : null,
+                    icon: const Icon(Icons.refresh_rounded, size: 18),
+                    label: Text(tr('Atualizar')),
                   ),
-                  if (left == 0)
-                    Text(tr('Você usou os {0} pedidos de hoje. Volte amanhã.', [CoachAi.dailyLimit]), style: TextStyle(color: AppColors.attention, fontSize: 13))
-                  else if (ai.planText != null && !can)
-                    Text(tr('O plano está em dia.'), style: Ds.support()),
-                ]),
+                ],
+              ]),
+              if (left == 0)
+                Padding(padding: const EdgeInsets.only(top: Ds.s8), child: Text(tr('Você usou os {0} pedidos de hoje. Volte amanhã.', [CoachAi.dailyLimit]), style: TextStyle(color: AppColors.attention, fontSize: 13)))
+              else if (plan != null && !can)
+                Padding(padding: const EdgeInsets.only(top: Ds.s8), child: Text(tr('O plano está em dia.'), style: Ds.support())),
+            ]),
+          ),
+          const DsGap(Ds.gap),
+          AppCard(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              DsCardTitle(Icons.forum_outlined, tr('Pergunte ao treinador'), subtitle: tr('Toque numa pergunta e a resposta fica no histórico.')),
+              const SizedBox(height: Ds.s12),
+              if (ready) ...[
+                _ReadyTile(question: ai.answerQuestion ?? '', onTap: () => _read(ai.history.first, canDelete: true)),
+                const SizedBox(height: Ds.s8),
               ],
-              if (ai.phase == AiPhase.failed && ai.message != null)
-                Padding(padding: const EdgeInsets.only(top: Ds.s8), child: Text(ai.message!, style: TextStyle(color: AppColors.attention, fontSize: 13))),
-            ]),
-          ),
-          const DsGap(Ds.gap),
-          AppCard(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              DsCardTitle(Icons.lightbulb_outline_rounded, tr('Dicas de hoje'), subtitle: tr('Calculadas no aparelho, sem gastar IA.')),
-              const SizedBox(height: Ds.s8),
-              if (app.sessionRecords.isEmpty)
-                Text(tr('Faça um exercício guiado para receber orientações.'), style: Ds.support())
-              else
-                for (final i in app.insights) InsightTile(insight: i),
-            ]),
-          ),
-          const DsGap(Ds.gap),
-          AppCard(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              DsCardTitle(Icons.forum_outlined, tr('Pergunte ao treinador')),
-              const SizedBox(height: Ds.s8),
               for (final q in _questions)
                 Padding(
                   padding: const EdgeInsets.only(bottom: Ds.s8),
@@ -333,18 +341,35 @@ class _CoachTabState extends State<CoachTab> {
                     ),
                   ),
                 ),
-              if (ai.answerText != null && !busy) ...[
-                const SizedBox(height: Ds.s12),
-                Text(ai.answerQuestion ?? '', style: const TextStyle(fontWeight: FontWeight.w800)),
+            ]),
+          ),
+          const DsGap(Ds.gap),
+          AppCard(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              DsCardTitle(Icons.history_rounded, tr('Histórico'), subtitle: ai.history.isEmpty ? tr('O que o treinador responder fica guardado aqui.') : null),
+              if (ai.history.isNotEmpty) ...[
                 const SizedBox(height: Ds.s8),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(Ds.s12),
-                  decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(12)),
-                  child: MarkdownLite(ai.answerText!),
-                ),
-                Align(alignment: Alignment.centerRight, child: CopyAnswerButton(ai.answerText!)),
+                for (final e in ai.history.take(4)) _EntryTile(entry: e, onTap: () => _read(e, canDelete: true)),
+                if (ai.history.length > 4)
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: TextButton(
+                      onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => CoachHistoryPage(app: app))),
+                      child: Text(tr('Ver todos ({0})', [ai.history.length])),
+                    ),
+                  ),
               ],
+            ]),
+          ),
+          const DsGap(Ds.gap),
+          AppCard(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              DsCardTitle(Icons.lightbulb_outline_rounded, tr('Dicas de hoje'), subtitle: tr('Calculadas no aparelho, sem gastar IA.')),
+              const SizedBox(height: Ds.s8),
+              if (app.sessionRecords.isEmpty)
+                Text(tr('Faça um exercício guiado para receber orientações.'), style: Ds.support())
+              else
+                for (final i in app.insights) InsightTile(insight: i),
             ]),
           ),
           if (app.myLessons.any((l) => l.notes.isNotEmpty)) ...[
@@ -362,6 +387,170 @@ class _CoachTabState extends State<CoachTab> {
           ],
         ]);
       },
+    );
+  }
+}
+
+/// O texto sem marcações do Markdown, em poucas linhas, para dar uma ideia do conteúdo.
+String _plain(String md) => md.replaceAll(RegExp(r'(^|\n)\s*[-•]\s+'), ' ').replaceAll(RegExp(r'[#*_`>]'), '').replaceAll(RegExp(r'\s*\n+\s*'), ' ').replaceAll(RegExp(r'\s{2,}'), ' ').trim();
+
+String _entryTitle(CoachEntry e) => e.isPlan ? tr('Plano da semana') : e.title;
+
+class _Preview extends StatelessWidget {
+  final String text;
+  final VoidCallback onTap;
+  const _Preview({required this.text, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: AppColors.surface2,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(Ds.s12),
+            child: Text(_plain(text), maxLines: 4, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14.5, height: 1.4)),
+          ),
+        ),
+      );
+}
+
+/// Aviso de que a resposta chegou: um toque abre a leitura.
+class _ReadyTile extends StatelessWidget {
+  final String question;
+  final VoidCallback onTap;
+  const _ReadyTile({required this.question, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: AppColors.info.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: Ds.tap),
+            padding: const EdgeInsets.symmetric(horizontal: Ds.s12, vertical: Ds.s8),
+            decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.info.withValues(alpha: 0.5))),
+            child: Row(children: [
+              Icon(Icons.mark_chat_read_outlined, size: 20, color: AppColors.info),
+              const SizedBox(width: Ds.s12),
+              Expanded(
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(tr('Resposta pronta'), style: TextStyle(color: AppColors.info, fontWeight: FontWeight.w800, fontSize: 13)),
+                  Text(question, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 14.5)),
+                ]),
+              ),
+              Text(tr('Ler'), style: TextStyle(color: AppColors.info, fontWeight: FontWeight.w700)),
+            ]),
+          ),
+        ),
+      );
+}
+
+/// Uma linha do histórico: o que foi pedido, quando e o começo da resposta.
+class _EntryTile extends StatelessWidget {
+  final CoachEntry entry;
+  final VoidCallback onTap;
+  const _EntryTile({required this.entry, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: Ds.tap),
+          padding: const EdgeInsets.symmetric(vertical: Ds.s8),
+          child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Icon(entry.isPlan ? Icons.checklist_rounded : Icons.forum_outlined, size: 20, color: AppColors.textDim),
+            ),
+            const SizedBox(width: Ds.s12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(_entryTitle(entry), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5)),
+                Text('${fmtDayMonth(entry.at)} · ${_plain(entry.text)}', maxLines: 1, overflow: TextOverflow.ellipsis, style: Ds.support()),
+              ]),
+            ),
+            Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
+          ]),
+        ),
+      );
+}
+
+/// Leitura de uma resposta do treinador, com texto confortável, copiar e (no histórico) apagar.
+class CoachReaderPage extends StatelessWidget {
+  final AppState app;
+  final CoachEntry entry;
+  final bool canDelete;
+  const CoachReaderPage({super.key, required this.app, required this.entry, this.canDelete = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(entry.isPlan ? tr('Plano da semana') : tr('Resposta do treinador'))),
+      body: DsPageSafe(
+        child: ListView(padding: Ds.screen, children: [
+          if (!entry.isPlan) ...[
+            Text(entry.title, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w800, height: 1.25)),
+            const SizedBox(height: Ds.s4),
+          ],
+          Text(tr('Gerado em {0}', [fmtDayMonth(entry.at)]), style: Ds.support()),
+          const SizedBox(height: Ds.s12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(Ds.s16),
+            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.outline)),
+            child: MarkdownLite(entry.text),
+          ),
+          const SizedBox(height: Ds.s12),
+          Text(tr('Feito por IA: pode errar. Use junto com o seu professor.'), style: Ds.support()),
+          const SizedBox(height: Ds.s12),
+          Wrap(spacing: Ds.s8, runSpacing: Ds.s8, children: [
+            CopyAnswerButton(entry.text),
+            if (canDelete)
+              TextButton.icon(
+                onPressed: () async {
+                  final nav = Navigator.of(context);
+                  final ok = await showDsConfirm(context, title: tr('Apagar do histórico?'), body: tr('Esta resposta some deste aparelho.'), confirmLabel: tr('Apagar'), icon: Icons.delete_outline_rounded);
+                  if (!ok) return;
+                  await app.ai.deleteEntry(entry);
+                  nav.pop();
+                },
+                icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                label: Text(tr('Apagar')),
+              ),
+          ]),
+        ]),
+      ),
+    );
+  }
+}
+
+/// Todas as respostas guardadas.
+class CoachHistoryPage extends StatelessWidget {
+  final AppState app;
+  const CoachHistoryPage({super.key, required this.app});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(tr('Histórico'))),
+      body: DsPageSafe(
+        child: ListenableBuilder(
+          listenable: app.ai,
+          builder: (context, _) => ListView(padding: Ds.screen, children: [
+            if (app.ai.history.isEmpty) Text(tr('O que o treinador responder fica guardado aqui.'), style: Ds.support()),
+            for (final e in app.ai.history)
+              _EntryTile(
+                entry: e,
+                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => CoachReaderPage(app: app, entry: e, canDelete: true))),
+              ),
+          ]),
+        ),
+      ),
     );
   }
 }

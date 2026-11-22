@@ -13,6 +13,26 @@ const String kApiBase = String.fromEnvironment('API_BASE');
 
 enum AiPhase { idle, sending, queued, done, failed }
 
+/// Uma resposta guardada do treinador: o plano da semana ou a resposta a uma pergunta.
+class CoachEntry {
+  final String kind; // 'plan' ou 'question'
+  final String title; // a pergunta (ou "Plano da semana", quando kind == 'plan')
+  final String text;
+  final DateTime at;
+  const CoachEntry({required this.kind, required this.title, required this.text, required this.at});
+
+  bool get isPlan => kind == 'plan';
+
+  Map<String, dynamic> toJson() => {'k': kind, 'q': title, 't': text, 'at': at.toIso8601String()};
+
+  static CoachEntry? fromJson(Object? j) {
+    if (j is! Map) return null;
+    final k = j['k'], q = j['q'], t = j['t'], at = DateTime.tryParse('${j['at']}');
+    if (k is! String || q is! String || t is! String || at == null) return null;
+    return CoachEntry(kind: k, title: q, text: t, at: at);
+  }
+}
+
 /// Análise por IA (Gemini, via função da Vercel) para o modo Treinador.
 ///
 /// Protege o plano gratuito: pede com calma, respeita o intervalo e o limite
@@ -39,6 +59,10 @@ class CoachAi extends ChangeNotifier {
   String? planText;
   DateTime? planAt;
   String? planFingerprint;
+
+  /// Histórico (do mais novo para o mais antigo), guardado no aparelho. Cabe pouco: só texto.
+  List<CoachEntry> history = [];
+  static const int _maxHistory = 30;
 
   /// A última resposta a uma pergunta ao treinador.
   String? answerText;
@@ -78,6 +102,16 @@ class CoachAi extends ChangeNotifier {
     planText = p.getString('ai_plan_text');
     planAt = DateTime.tryParse(p.getString('ai_plan_at') ?? '');
     planFingerprint = p.getString('ai_plan_fp');
+    try {
+      final raw = p.getString('ai_history');
+      if (raw != null) history = [for (final j in jsonDecode(raw) as List) ?CoachEntry.fromJson(j)];
+    } catch (_) {
+      history = [];
+    }
+    if (history.isEmpty && planText != null) {
+      // Quem já tinha um plano guardado vê ele no histórico também.
+      history = [CoachEntry(kind: 'plan', title: 'plan', text: planText!, at: planAt ?? DateTime.now())];
+    }
     usedCount = await usedToday();
     if (text != null || planText != null) phase = AiPhase.done;
     notifyListeners();
@@ -132,6 +166,7 @@ class CoachAi extends ChangeNotifier {
       await p.setString('ai_plan_text', planText!);
       await p.setString('ai_plan_at', planAt!.toIso8601String());
       await p.setString('ai_plan_fp', fingerprint);
+      await _remember(CoachEntry(kind: 'plan', title: 'plan', text: planText!, at: planAt!));
       notifyListeners();
     }
   }
@@ -142,8 +177,26 @@ class CoachAi extends ChangeNotifier {
     if (phase == AiPhase.done && lastKind == 'question' && lastResult != null) {
       answerText = lastResult;
       answerQuestion = question;
+      await _remember(CoachEntry(kind: 'question', title: question, text: lastResult!, at: DateTime.now()));
       notifyListeners();
     }
+  }
+
+  Future<void> _remember(CoachEntry e) async {
+    history = [e, ...history].take(_maxHistory).toList();
+    await _saveHistory();
+  }
+
+  Future<void> _saveHistory() async {
+    final p = await _p;
+    await p.setString('ai_history', jsonEncode([for (final e in history) e.toJson()]));
+  }
+
+  /// Tira uma resposta do histórico (o plano da semana atual continua guardado à parte).
+  Future<void> deleteEntry(CoachEntry e) async {
+    history = history.where((x) => !identical(x, e)).toList();
+    await _saveHistory();
+    notifyListeners();
   }
 
   /// Quantos pedidos ainda cabem hoje neste aparelho.

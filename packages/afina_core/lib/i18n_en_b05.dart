@@ -11,7 +11,6 @@ const Map<String, String> kEnB05 = {
   'Faça um exercício guiado para receber orientações.': 'Do a guided exercise to get guidance.',
   'Muita gente usando agora. Você é o {0}º da fila: sua vez em {1}s.': 'Lots of people using it right now. You are number {0} in the queue: your turn in {1}s.',
   'Muita gente usando agora. Você está na fila: nova tentativa em {0}s (tentativa {1}/{2}).': 'Lots of people using it right now. You\'re in the queue: trying again in {0}s (attempt {1}/{2}).',
-  'Copiar resumo': 'Copy summary',
   'QR Code inválido': 'Invalid QR code',
   'Este QR não é do Notemusic, então não há nada para fazer com ele. Aponte para o QR de um aluno ou professor do app.': 'This QR isn\'t from Notemusic, so there\'s nothing to do with it. Point at the QR of a student or teacher of the app.',
   'Código incorreto. Confira as letras e os números (ex.: K7QM-4TXD).': 'Incorrect code. Check the letters and numbers (e.g. K7QM-4TXD).',
