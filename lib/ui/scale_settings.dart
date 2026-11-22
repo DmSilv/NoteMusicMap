@@ -13,13 +13,21 @@ import 'tuning_pick.dart';
 /// Escalas e na tela do exercício (a pessoa não precisa lembrar onde está cada coisa). Só a Afinação abre uma folha própria, porque
 /// é uma escolha longa.
 void showScaleSettings(BuildContext context, AppState app, {required bool exercise, VoidCallback? onReport}) {
+  // Desempenho: nada nesta folha muda a cada leitura do microfone, então ela escuta só o [app] (não o sinal ao vivo, que reconstruía a
+  // folha inteira ~30 vezes por segundo). E, com a folha aberta no exercício, a tela de trás congela (ver [scaleSheetOpen]) até fechar.
+  if (exercise) scaleSheetOpen.value = true;
   showDsSheet(
     context,
     title: exercise ? tr('Ajustes do exercício') : (app.scaleType.arpeggio ? tr('Configurar arpejo') : tr('Configurar escala')),
-    listenable: exercise ? Listenable.merge([app, app.live]) : app,
+    listenable: app,
     children: (c) => scaleSettingsRows(c, app, exercise: exercise, onReport: onReport),
-  );
+  ).whenComplete(() {
+    if (exercise) scaleSheetOpen.value = false;
+  });
 }
+
+/// Verdadeiro enquanto a folha de ajustes do exercício está aberta: a tela do exercício para de se redesenhar ao vivo por trás dela.
+final ValueNotifier<bool> scaleSheetOpen = ValueNotifier<bool>(false);
 
 /// A tônica como o músico pensa: a LETRA (Dó Ré Mi Fá Sol Lá Si) e o acidente (♭ ♮ ♯). Em duas linhas, em vez de uma lista de 17 botões; os
 /// acidentes que não existem para aquela letra ficam apagados (não há Mi♯ maior) e a outra grafia (Sol♭ ou Fá♯) é só questão de escolher o acidente.

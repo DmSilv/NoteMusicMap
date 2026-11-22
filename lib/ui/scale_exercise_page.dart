@@ -43,9 +43,9 @@ class ScaleExercisePage extends StatelessWidget {
           },
         ),
       ),
-      bottomNavigationBar: ListenableBuilder(
+      bottomNavigationBar: _LiveGate(
         listenable: app.live,
-        builder: (context, _) {
+        builder: (context) {
           final e = app.exercise;
           if (e == null || e.flow || e.finished || !app.listening) return const SizedBox.shrink();
           return DecoratedBox(
@@ -65,9 +65,9 @@ class ScaleExercisePage extends StatelessWidget {
       ),
       body: _ToastShift(
         child: SafeArea(
-        child: ListenableBuilder(
+        child: _LiveGate(
           listenable: app.live,
-          builder: (context, _) {
+          builder: (context) {
             final e = app.exercise;
             if (e == null) return const SizedBox.shrink();
             // Guiado ouvindo: a partitura vai para cima (é o que se lê), depois a nota no anel e a régua; os botões ficam no rodapé.
@@ -1188,4 +1188,44 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_RingPainter old) => old.progress != progress || old.color != color || old.track != track;
+}
+
+/// Como um `ListenableBuilder`, mas congela enquanto a folha de ajustes está aberta: a tela de trás (partitura, anel, régua) não se
+/// redesenha ~30 vezes por segundo por baixo do modal, o que deixava a folha com poucos quadros por segundo. Ao fechar, redesenha na hora.
+class _LiveGate extends StatefulWidget {
+  final Listenable listenable;
+  final WidgetBuilder builder;
+  const _LiveGate({required this.listenable, required this.builder});
+
+  @override
+  State<_LiveGate> createState() => _LiveGateState();
+}
+
+class _LiveGateState extends State<_LiveGate> {
+  Widget? _last;
+  late final Listenable _both = Listenable.merge([widget.listenable, scaleSheetOpen]);
+
+  @override
+  void initState() {
+    super.initState();
+    _both.addListener(_tick);
+  }
+
+  @override
+  void dispose() {
+    _both.removeListener(_tick);
+    super.dispose();
+  }
+
+  void _tick() {
+    if (!mounted) return;
+    if (scaleSheetOpen.value && _last != null) return; // folha aberta: não redesenha
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (scaleSheetOpen.value && _last != null) return _last!;
+    return _last = widget.builder(context);
+  }
 }

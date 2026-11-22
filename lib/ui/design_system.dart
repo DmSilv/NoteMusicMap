@@ -386,12 +386,15 @@ Future<void> showDsSheet(
         ),
         const Divider(height: 1),
         Flexible(
-          child: ListenableBuilder(
-            listenable: listenable,
-            builder: (c, _) => ListView(
-              padding: const EdgeInsets.fromLTRB(Ds.screenPad, Ds.s20, Ds.screenPad, Ds.s32),
-              shrinkWrap: true,
-              children: children(c),
+          // RepaintBoundary: a folha repinta só quando ela muda, sem arrastar a tela de trás (e vice-versa).
+          child: RepaintBoundary(
+            child: ListenableBuilder(
+              listenable: listenable,
+              builder: (c, _) => ListView(
+                padding: const EdgeInsets.fromLTRB(Ds.screenPad, Ds.s20, Ds.screenPad, Ds.s32),
+                shrinkWrap: true,
+                children: children(c),
+              ),
             ),
           ),
         ),
