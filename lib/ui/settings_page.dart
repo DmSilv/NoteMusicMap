@@ -49,25 +49,30 @@ class SettingsPage extends StatelessWidget {
               padding: Ds.screen,
               children: [
                 _header(),
-                const DsGap(Ds.gap),
+                _sectionLabel(tr('Meu instrumento')),
                 _navCard([
-                  DsNavRow(Icons.palette_rounded, tr('Aparência e tela'), '$themeName${app.keepAwake ? tr(' · tela acesa') : ''}', () => _open(context, tr('Aparência e tela'), (c) => _appearanceList())),
-                  DsNavRow(Icons.straighten, tr('Afinação'), tuningSummary(app), () => _open(context, tr('Afinação'), (c) => [_tuningBasic(c)])),
-                  DsNavRow(Icons.graphic_eq_rounded, tr('Som de referência'), app.toneTimbre == ToneTimbre.fork ? tr('Diapasão') : tr('Flauta'), () => _open(context, tr('Som de referência'), (c) => [_tone()])),
+                  DsNavRow(Icons.straighten, tr('Afinação e referência'), '${tuningSummary(app)} · ${app.toneTimbre == ToneTimbre.fork ? tr('Diapasão') : tr('Flauta')}',
+                      () => _open(context, tr('Afinação e referência'), (c) => [_tuningBasic(c), const DsGap(Ds.s12), DsGroup(icon: Icons.graphic_eq_rounded, title: tr('Som de referência'), children: [_tone()])])),
                   DsNavRow(Icons.abc_rounded, tr('Nomes das notas'), app.transpose == 0 ? tr('Som real') : tr('Transpositor'), () => _open(context, tr('Nomes das notas'), (c) => [_names()])),
                   DsNavRow(Icons.mic_none_rounded, tr('Microfone'), micName, () => _open(context, tr('Microfone'), (c) => [MicSettingsContent(app: app)])),
+                ]),
+                _sectionLabel(tr('Meu estudo')),
+                _navCard([
                   DsNavRow(Icons.timer_outlined, tr('Metrônomo'), soundName, () => _open(context, tr('Metrônomo'), (c) => [_metronome()])),
                   DsNavRow(Icons.grid_view_rounded, tr('Grade'), tr('Memória {0}', [{HistoryMode.short: tr('1 s'), HistoryMode.medium: tr('3 s'), HistoryMode.long: tr('30 s'), HistoryMode.unlimited: tr('da sessão')}[app.history]]), () => _open(context, tr('Grade'), (c) => [_grid()])),
                   DsNavRow(Icons.auto_stories_rounded, tr('Estudo'), tr('Meta {0} min', [app.dailyGoalMinutes.round()]), () => _open(context, tr('Estudo'), (c) => [_study(c)])),
                 ]),
-                const DsGap(Ds.gap),
+                _sectionLabel(tr('O app')),
                 _navCard([
+                  DsNavRow(Icons.palette_rounded, tr('Aparência e tela'), '$themeName${app.keepAwake ? tr(' · tela acesa') : ''}', () => _open(context, tr('Aparência e tela'), (c) => _appearanceList())),
                   DsNavRow(Icons.verified_user_outlined, tr('Permissões e privacidade'), micName, () => _open(context, tr('Permissões e privacidade'), (c) => [_permissions(c)])),
-                  DsNavRow(Icons.help_outline_rounded, tr('Ajuda e suporte'), tr('Acesso à conta e relatar problema'), () => showSupportSheet(context, app)),
                   DsNavRow(Icons.info_outline_rounded, tr('Sobre o app'), app.updateAvailable ? tr('Versão nova disponível') : tr('Versão {0}', [kAppVersion]), () => _open(context, tr('Sobre o app'), (c) => [_about(c)]),
                       alert: app.updateAvailable),
+                ]),
+                _sectionLabel(tr('Ajuda')),
+                _navCard([
+                  DsNavRow(Icons.help_outline_rounded, tr('Ajuda e suporte'), tr('Acesso à conta e relatar problema'), () => showSupportSheet(context, app)),
                   DsNavRow(Icons.bug_report_outlined, tr('Problemas e diagnóstico'), app.errorLog.items.isEmpty ? tr('Nenhum problema') : tr('{0} registrado(s)', [app.errorLog.items.length]), () => _open(context, tr('Problemas e diagnóstico'), (c) => [_diagnostics(c)])),
-                  DsNavRow(Icons.restart_alt_rounded, tr('Restaurar e apagar'), tr('Voltar ao início'), () => _open(context, tr('Restaurar e apagar'), (c) => [_resetAll(c)])),
                 ]),
               ],
             );
@@ -76,6 +81,12 @@ class SettingsPage extends StatelessWidget {
       ),
     );
   }
+
+  /// Título pequeno de cada grupo de ajustes (o assunto, em duas ou três palavras).
+  Widget _sectionLabel(String t) => Padding(
+        padding: const EdgeInsets.fromLTRB(4, Ds.s20, 4, Ds.s8),
+        child: Text(t, style: Ds.section()),
+      );
 
   /// Cartão com linhas de navegação separadas por filete.
   Widget _navCard(List<Widget> rows) => AppCard(
@@ -698,4 +709,10 @@ class SettingsPage extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Restaurar ajustes, apagar os dados do aparelho ou excluir a conta (aberto em Minha conta › Acesso e segurança).
+void showResetSheet(BuildContext context, AppState app) {
+  final page = SettingsPage(app: app);
+  page._open(context, tr('Restaurar e apagar'), (c) => [page._resetAll(c)]);
 }

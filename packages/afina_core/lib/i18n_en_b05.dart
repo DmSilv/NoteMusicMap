@@ -122,7 +122,6 @@ const Map<String, String> kEnB05 = {
   'Nenhum problema': 'No problems',
   '{0} registrado(s)': '{0} recorded',
   'Restaurar e apagar': 'Restore and erase',
-  'Voltar ao início': 'Back to the start',
   'Afine. Estude. Evolua.': 'Tune. Study. Improve.',
   'Tema': 'Theme',
   'Idioma / Language': 'Language / Idioma',

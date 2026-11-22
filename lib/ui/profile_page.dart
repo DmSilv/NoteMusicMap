@@ -11,7 +11,7 @@ import 'my_lessons_page.dart';
 import 'safe_input.dart';
 import '../link/link_service.dart' show LinkedPerson;
 import 'qr_scan_page.dart';
-import 'settings_page.dart' show SettingsPage;
+import 'settings_page.dart' show SettingsPage, showResetSheet;
 import 'share_sheet.dart' show shareLink, showShareSheet;
 import 'teacher_page.dart';
 import 'hello_bar.dart';
@@ -482,20 +482,17 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                 ),
               ),
-            _section(tr('Vínculos')),
-            _row(Icons.cloud_outlined, tr('Vínculo online'),
-                sub: tr('Toque para ver, desligar ou reconectar'),
-                trailing: _pill(st.title, linkColor), onTap: () => _open(tr('Vínculo online'), (_) => _linkOnlineCard())),
-            _row(Icons.school_outlined, tr('Meus professores'),
+            _section(tr('Meus professores e aulas')),
+            _row(Icons.school_outlined, tr('Professores e aulas'),
                 sub: app.myTeachers.isEmpty
                     ? tr('Nenhum ainda')
                     : '${app.myTeachers.length} ${app.myTeachers.length == 1 ? tr('vinculado') : tr('vinculados')}',
-                onTap: () => _open(tr('Meus professores'), _myTeacherCard)),
-            if (app.hasTeacherSide)
-              _row(Icons.checklist_rtl, tr('Minhas aulas'),
-                  trailing: plan.open > 0 ? _pill(tr('{0} em aberto', [plan.open]), AppColors.accent) : const Icon(Icons.chevron_right),
-                  onTap: () => _push(MyLessonsPage(app: app))),
-            _section(tr('Professor')),
+                trailing: plan.open > 0 ? _pill(tr('{0} em aberto', [plan.open]), AppColors.accent) : const Icon(Icons.chevron_right),
+                onTap: () => _open(tr('Professores e aulas'), _myTeacherCard)),
+            _row(Icons.cloud_outlined, tr('Vínculo online'),
+                sub: tr('Toque para ver, desligar ou reconectar'),
+                trailing: _pill(st.title, linkColor), onTap: () => _open(tr('Vínculo online'), (_) => _linkOnlineCard())),
+            _section(tr('Sou professor')),
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: AppCard(
@@ -520,25 +517,15 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
             if (app.teacherMode)
-              _row(Icons.piano_outlined, tr('Instrumentos que ensino'),
-                  sub: app.teachInstruments.isEmpty
-                      ? tr('Escolher')
-                      : app.teachInstruments.map((id) => teachingById(id)?.label ?? id).join(', '),
-                  onTap: () => showTeachingInstrumentsSheet(context, app)),
-            if (app.teacherMode)
-              _row(Icons.workspaces_outline, tr('Turmas'),
-                  sub: app.turmas.isEmpty ? tr('Separe alunos por turma ou instrumento') : app.turmas.map((t) => t.name).join(', '),
-                  onTap: () => _push(TurmasPage(app: app))),
-            if (app.teacherMode)
-              _row(Icons.library_books_outlined, tr('Métodos e repertório'),
-                  sub: tr('Monte a sua lista, um por linha'), onTap: () => showMaterialsSheet(context, app)),
-            if (app.teacherMode)
               _row(Icons.groups_rounded, tr('Meus alunos'),
                   sub: app.students.isEmpty
                       ? tr('Nenhum aluno ainda')
                       : '${app.students.length} ${app.students.length == 1 ? tr('aluno') : tr('alunos')}'
                           '${waiting > 0 ? tr(' · {0} para validar', [waiting]) : ''}',
                   onTap: () => _push(TeacherPage(app: app))),
+            if (app.teacherMode)
+              _row(Icons.tune_rounded, tr('Turmas, instrumentos e métodos'),
+                  sub: tr('Organize o que você ensina'), onTap: _openTeachingSetup),
             if (app.teacherMode && p.recoveryShownAt == null && app.emailHint.isEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: Ds.s8),
@@ -561,25 +548,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
             _section(tr('Conta')),
-            _row(Icons.login, tr('Já tenho conta em outro aparelho'),
-                sub: tr('Ligue este aparelho à sua conta'), onTap: () => _push(JoinAccountPage(app: app))),
-            _row(Icons.help_outline_rounded, tr('Perdi meu acesso'),
-                sub: tr('Passo a passo para voltar à sua conta'), onTap: () => _push(RecoveryHelpPage(app: app))),
-            if (app.emailEnabled)
-              _row(Icons.alternate_email, tr('E-mail da conta'),
-                  sub: app.emailHint.isEmpty ? tr('Recupere a conta em outro aparelho, sem senha') : app.emailHint,
-                  onTap: () => _open(tr('E-mail da conta'), (c) => AccountEmailBody(app: app, onSignedIn: () => Navigator.of(c).pop()))),
-            if (app.linkEnabled)
-              _row(Icons.devices_outlined, tr('Aparelhos'),
-                  sub: app.deviceList.isEmpty ? tr('Veja onde a sua conta está aberta') : tr('{0} de {1} aparelhos', [app.deviceList.length, app.maxDevices]),
-                  onTap: () => _open(tr('Aparelhos'), (_) => DevicesBody(app: app))),
-            if (app.cloudCopyAvail && app.teacherMode && app.linkEnabled)
-              _row(Icons.cloud_outlined, tr('Cópia na nuvem'),
-                  sub: app.cloudCopyOn ? tr('Ligada: suas fichas também ficam no servidor') : tr('Desligada: seus dados ficam só neste aparelho'),
-                  onTap: () => _open(tr('Cópia na nuvem'), (_) => CloudCopyBody(app: app))),
-            _row(Icons.key, tr('Chave de recuperação'),
-                sub: p.recoveryShownAt == null ? tr('Você ainda não guardou a sua chave') : null,
-                onTap: () => _open(tr('Chave de recuperação'), (_) => _keyBody())),
+            _row(Icons.shield_outlined, tr('Acesso e segurança'),
+                sub: p.recoveryShownAt == null ? tr('Você ainda não guardou a sua chave') : tr('Chave, aparelhos, e-mail e apagar dados'),
+                onTap: () => _open(tr('Acesso e segurança'), _securityBody)),
+            _section(tr('App')),
             _row(Icons.settings_outlined, tr('Ajustes'), onTap: () {
               app.markTab('settings');
               _push(SettingsPage(app: app));
@@ -603,6 +575,80 @@ class _ProfilePageState extends State<ProfilePage> {
         );
       },
     );
+  }
+
+  /// Turmas, instrumentos que ensina e métodos: três atalhos numa folha só (saem do corpo da lista).
+  void _openTeachingSetup() {
+    showDsSheet(context, title: tr('Turmas, instrumentos e métodos'), listenable: app, children: (c) => [
+          _navCard([
+            DsNavRow(
+                Icons.piano_outlined,
+                tr('Instrumentos que ensino'),
+                app.teachInstruments.isEmpty ? tr('Escolher') : app.teachInstruments.map((id) => teachingById(id)?.label ?? id).join(', '),
+                () {
+                  Navigator.pop(c);
+                  showTeachingInstrumentsSheet(context, app);
+                }),
+            DsNavRow(Icons.workspaces_outline, tr('Turmas'), app.turmas.isEmpty ? tr('Separe alunos por turma ou instrumento') : app.turmas.map((t) => t.name).join(', '), () {
+              Navigator.pop(c);
+              _push(TurmasPage(app: app));
+            }),
+            DsNavRow(Icons.library_books_outlined, tr('Métodos e repertório'), tr('Monte a sua lista, um por linha'), () {
+              Navigator.pop(c);
+              showMaterialsSheet(context, app);
+            }),
+          ]),
+        ]);
+  }
+
+  /// Linhas de navegação num cartão só, separadas por filete.
+  Widget _navCard(List<Widget> rows) => AppCard(
+        padding: EdgeInsets.zero,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(Ds.radiusCard),
+          child: Column(children: [
+            for (var i = 0; i < rows.length; i++) ...[
+              if (i > 0) Divider(height: 1, indent: 64, color: AppColors.outline.withValues(alpha: 0.5)),
+              rows[i],
+            ],
+          ]),
+        ),
+      );
+
+  /// Acesso e segurança: tudo o que protege a conta e leva a ela, num lugar só, em três blocos.
+  Widget _securityBody(BuildContext context) {
+    final p = app.profile;
+    final guard = <Widget>[
+      if (app.emailEnabled)
+        DsNavRow(Icons.alternate_email, tr('E-mail da conta'), app.emailHint.isEmpty ? tr('Recupere a conta em outro aparelho, sem senha') : app.emailHint,
+            () => _open(tr('E-mail da conta'), (c) => AccountEmailBody(app: app, onSignedIn: () => Navigator.of(c).pop()))),
+      if (app.linkEnabled)
+        DsNavRow(Icons.devices_outlined, tr('Aparelhos'),
+            app.deviceList.isEmpty ? tr('Veja onde a sua conta está aberta') : tr('{0} de {1} aparelhos', [app.deviceList.length, app.maxDevices]),
+            () => _open(tr('Aparelhos'), (_) => DevicesBody(app: app))),
+      if (app.cloudCopyAvail && app.teacherMode && app.linkEnabled)
+        DsNavRow(Icons.cloud_outlined, tr('Cópia na nuvem'),
+            app.cloudCopyOn ? tr('Ligada: suas fichas também ficam no servidor') : tr('Desligada: seus dados ficam só neste aparelho'),
+            () => _open(tr('Cópia na nuvem'), (_) => CloudCopyBody(app: app))),
+    ];
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _section(tr('Entrar e recuperar')),
+      _navCard([
+        DsNavRow(Icons.login, tr('Já tenho conta em outro aparelho'), tr('Ligue este aparelho à sua conta'), () => _push(JoinAccountPage(app: app))),
+        DsNavRow(Icons.help_outline_rounded, tr('Perdi meu acesso'), tr('Passo a passo para voltar à sua conta'), () => _push(RecoveryHelpPage(app: app))),
+        DsNavRow(Icons.key, tr('Chave de recuperação'), p.recoveryShownAt == null ? tr('Você ainda não guardou a sua chave') : tr('Guarde em lugar seguro'),
+            () => _open(tr('Chave de recuperação'), (_) => _keyBody()),
+            alert: p.recoveryShownAt == null),
+      ]),
+      if (guard.isNotEmpty) ...[
+        _section(tr('Proteção da conta')),
+        _navCard(guard),
+      ],
+      _section(tr('Dados e exclusão')),
+      _navCard([
+        DsNavRow(Icons.restart_alt_rounded, tr('Restaurar e apagar'), tr('Restaurar ajustes, apagar dados ou excluir a conta'), () => showResetSheet(context, app)),
+      ]),
+    ]);
   }
 
   /// Seu código e o QR (um só): para o seu professor ou, no modo professor, para os seus alunos.
@@ -856,6 +902,14 @@ class _ProfilePageState extends State<ProfilePage> {
                 onPressed: () => _confirmRemoveTeacher(context, t),
               ),
             ),
+          if (app.hasTeacherSide) ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () => _push(MyLessonsPage(app: app)),
+              icon: const Icon(Icons.checklist_rtl),
+              label: Text(tr('Ver minhas aulas')),
+            ),
+          ],
           const SizedBox(height: 8),
           FilledButton.tonalIcon(
             onPressed: () async {
