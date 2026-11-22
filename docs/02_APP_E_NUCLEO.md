@@ -53,6 +53,7 @@ Nada de Flutter nem `dart:io` (assim roda no navegador e nos testes de linha de 
 | Hub | `hub`, `hub_view` | Destaque e blocos do Meu espaço; **visões Aluno/Professor** sem destino repetido |
 | Comece por aqui | `start_checklist` | Os 3 passos do professor novo (vincular, marcar aula, passar tarefa) e o próximo que falta; também os 3 passos do músico solo ("Seu primeiro passo") |
 | Dias seguidos e semana | `study_streak` | Dias seguidos de estudo com perdão de 1 dia e o resumo dos últimos 7 dias (minutos, dias, meta, comparação com a semana anterior) |
+| Treinador (contexto da IA) | `study_context` | Monta o texto que acompanha o pedido ao treinador (estudo da semana, tarefas em aberto, observações só se autorizadas), a impressão do que foi enviado e a regra de quando pedir um plano novo |
 | Vínculo | `link_status` | Estado do vínculo em linguagem simples |
 | Erros e texto | `errors`, `error_report`, `markdown_lite` | Catálogo, classificação, higienização, relatório, trilha, markdown da IA |
 | Saudação | `greeting` | "Bom dia / Boa tarde / Boa noite, Nome" pela hora local (faixa no Afinador e no Meu espaço, com convite para o apelido) |

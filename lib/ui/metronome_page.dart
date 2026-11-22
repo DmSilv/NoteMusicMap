@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'safe_input.dart';
-import 'metro_section.dart';
 import 'speed_trainer_card.dart';
-import 'study_card.dart';
 import 'package:afina_core/afina_core.dart';
 import 'perf.dart';
 import 'design_system.dart';
@@ -101,25 +99,11 @@ class _MetronomePageState extends State<MetronomePage>
       builder: (context, _) {
         final m = app.metro;
         final running = app.metroRunning;
-        return ValueListenableBuilder<int>(
-          valueListenable: metroSection,
-          builder: (context, section, _) => ListView(
+        return ListView(
           padding: Ds.screen,
           children: [
-            // Duas visões na mesma aba: o metrônomo e o estudo (timers). O estudo fica escondido até a pessoa escolher.
-            SegmentedButton<int>(
-              showSelectedIcon: false,
-              segments: [
-                ButtonSegment(value: kMetroSectionMetronome, icon: Icon(Icons.timer_outlined, size: 18), label: Text(tr('Metrônomo'))),
-                ButtonSegment(value: kMetroSectionStudy, icon: Icon(Icons.auto_stories_rounded, size: 18), label: Text(tr('Estudo e timers'))),
-              ],
-              selected: {section},
-              onSelectionChanged: (v) => metroSection.value = v.first,
-            ),
-            const DsGap(Ds.gap),
-            if (section == kMetroSectionStudy)
-              StudyCard(app: app)
-            else ...[
+            // O estudo (cronômetro, Pomodoro, meta, evolução e treinador) mora na página Estudo, no Meu espaço: aqui é só o metrônomo.
+            ...[
             AppCard(
               child: Column(
                 children: [
@@ -278,7 +262,7 @@ class _MetronomePageState extends State<MetronomePage>
             ),
             ],
           ],
-        ));
+        );
       },
     );
   }

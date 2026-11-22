@@ -7,34 +7,27 @@ import 'theme.dart';
 import 'widgets.dart';
 import 'package:afina_core/afina_core.dart';
 
-/// "Evolução": segunda tela do Meu espaço, com os dados de estudo e os gráficos
-/// (últimos 7 dias, taxa de acerto nas escalas e orientações do treinador).
-class EvolutionPage extends StatelessWidget {
+/// "Evolução": os dados de estudo e os gráficos (resumo da semana, últimos 7 dias e taxa de acerto nas escalas). Mora na página Estudo,
+/// na aba Evolução; as orientações ficam na aba Treinador.
+class EvolutionBody extends StatelessWidget {
   final AppState app;
-  const EvolutionPage({super.key, required this.app});
+  const EvolutionBody({super.key, required this.app});
 
   static List<String> get _dias => [tr('seg'), tr('ter'), tr('qua'), tr('qui'), tr('sex'), tr('sáb'), tr('dom')];
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(tr('Evolução'))),
-      body: SafeArea(
-        child: ListenableBuilder(
-          listenable: app,
-          builder: (context, _) => ListView(
-            padding: Ds.screen,
-            children: [
-              _summary(),
-              const DsGap(Ds.gap),
-              _week(),
-              const DsGap(Ds.gap),
-              EvolutionCard(app: app),
-              const DsGap(Ds.gap),
-              CoachCard(app: app),
-            ],
-          ),
-        ),
+    return ListenableBuilder(
+      listenable: app,
+      builder: (context, _) => ListView(
+        padding: Ds.screen,
+        children: [
+          _summary(),
+          const DsGap(Ds.gap),
+          _week(),
+          const DsGap(Ds.gap),
+          EvolutionCard(app: app),
+        ],
       ),
     );
   }

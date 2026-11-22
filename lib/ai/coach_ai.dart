@@ -35,6 +35,15 @@ class CoachAi extends ChangeNotifier {
   String? lastResult;
   String? lastKind;
 
+  /// O plano da semana (guardado no aparelho): o texto, quando foi gerado e a impressão do que foi enviado (para saber se algo mudou).
+  String? planText;
+  DateTime? planAt;
+  String? planFingerprint;
+
+  /// A última resposta a uma pergunta ao treinador.
+  String? answerText;
+  String? answerQuestion;
+
   /// Quem respondeu ("Gemini", "Claude"...) e a posição na fila, se houver.
   String? provider;
   int? queuePosition;
@@ -58,7 +67,10 @@ class CoachAi extends ChangeNotifier {
     final p = await _p;
     consent = p.getBool('ai_consent') ?? false;
     text = p.getString('ai_last_text');
-    if (text != null) phase = AiPhase.done;
+    planText = p.getString('ai_plan_text');
+    planAt = DateTime.tryParse(p.getString('ai_plan_at') ?? '');
+    planFingerprint = p.getString('ai_plan_fp');
+    if (text != null || planText != null) phase = AiPhase.done;
     notifyListeners();
   }
 
@@ -98,6 +110,34 @@ class CoachAi extends ChangeNotifier {
     if (kIsWeb) return Uri.base.resolve('/api/coach');
     return null;
   }
+
+  /// Pede o plano da semana ao treinador e o guarda. [fingerprint] é a impressão do que foi enviado.
+  Future<void> askPlan(String request, String fingerprint) async {
+    await ask(request, kind: 'study_plan');
+    if (phase == AiPhase.done && lastKind == 'study_plan' && lastResult != null) {
+      planText = lastResult;
+      planAt = DateTime.now();
+      planFingerprint = fingerprint;
+      final p = await _p;
+      await p.setString('ai_plan_text', planText!);
+      await p.setString('ai_plan_at', planAt!.toIso8601String());
+      await p.setString('ai_plan_fp', fingerprint);
+      notifyListeners();
+    }
+  }
+
+  /// Pergunta ao treinador (uma resposta por vez; conta no limite do dia como qualquer pedido).
+  Future<void> askQuestion(String request, String question) async {
+    await ask(request, kind: 'question');
+    if (phase == AiPhase.done && lastKind == 'question' && lastResult != null) {
+      answerText = lastResult;
+      answerQuestion = question;
+      notifyListeners();
+    }
+  }
+
+  /// Quantos pedidos ainda cabem hoje neste aparelho.
+  Future<int> leftToday() async => (_clientDailyLimit - await usedToday()).clamp(0, _clientDailyLimit);
 
   /// Pede a análise. [summary] é o texto só com números (sem áudio).
   Future<void> ask(String summary, {String kind = 'session_summary'}) async {

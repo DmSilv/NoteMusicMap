@@ -20,7 +20,7 @@ import 'open_slots_page.dart';
 import 'hello_bar.dart';
 import 'link_bar.dart' show confirmTeacherLink;
 import 'meeting_link.dart';
-import 'study_glance.dart';
+import 'study_hub.dart';
 import 'library_page.dart' show openLibrary;
 import 'materials_sheet.dart';
 import 'turmas_page.dart';
@@ -76,6 +76,7 @@ class HubSection extends StatelessWidget {
       if (isT && StartCard.visibleFor(app)) StartCard(app: app) else if (isT && StartCard.hiddenFor(app)) StartCardReturn(app: app),
       // Quem chegou sozinho vê aqui o mesmo "Seu primeiro passo" do Afinador (some ao concluir ou ao esconder).
       if (!isT && app.firstStepVisible) Padding(padding: const EdgeInsets.only(top: Ds.s12), child: FirstStepCard(app: app)),
+      if (!isT) ...[const SizedBox(height: Ds.s12), StudyHubCard(app: app)],
       const SizedBox(height: Ds.gap),
       // Tela larga (tablet ou computador em pé): o bloco de alunos e a organização ficam lado a lado, em vez de esticar na largura toda.
       if (isT && wide && tiles.length == 1)
@@ -127,7 +128,7 @@ class HubSection extends StatelessWidget {
   /// o estudo de hoje e, mais abaixo, o convite para ligar a um professor. Antes era só um cartão pedindo o QR do professor.
   Widget _newcomer(BuildContext context) {
     final step = app.firstStepInHub;
-    final study = StudyGlanceCard(app: app);
+    final study = StudyHubCard(app: app);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       _viewSwitch(context, HubView.student),
       if (app.linkStatus.health != LinkHealth.off) _statusChip(context), // o selo "Desligado" não diz nada a quem acabou de chegar

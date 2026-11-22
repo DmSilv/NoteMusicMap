@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 
 import '../app_state.dart';
 import 'design_system.dart';
-import 'evolution_page.dart';
 import 'study_timers.dart';
 import 'theme.dart';
 import 'widgets.dart';
 import 'package:afina_core/afina_core.dart';
 
 /// "Seu estudo": o tempo estudado hoje, os dias seguidos, a meta diária e o cronômetro/Pomodoro num cartão só.
-/// Mora na aba Metrônomo (onde a pessoa já está praticando); os dados e gráficos ficam na tela "Evolução".
+/// Mora na aba Hoje da página Estudo; os dados e gráficos ficam na aba Evolução.
 class StudyCard extends StatelessWidget {
   final AppState app;
   const StudyCard({super.key, required this.app});
@@ -77,11 +76,6 @@ class StudyCard extends StatelessWidget {
             const DsIconBadge(Icons.auto_stories_rounded, size: 34),
             const SizedBox(width: Ds.s12),
             Expanded(child: Text(tr('Seu estudo'), style: TextStyle(fontSize: Ds.fontTitle - 2, fontWeight: FontWeight.w800))),
-            TextButton.icon(
-              onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => EvolutionPage(app: app))),
-              icon: const Icon(Icons.insights_rounded, size: 18),
-              label: Text(tr('Evolução')),
-            ),
           ]),
           const SizedBox(height: Ds.s8),
           Row(

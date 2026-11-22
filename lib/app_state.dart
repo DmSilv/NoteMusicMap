@@ -4714,6 +4714,34 @@ class AppState extends ChangeNotifier {
   List<Insight> get insights =>
       analyzePractice(sessionRecords, flats: flatsForText);
 
+  /// Deixa o treinador ler as observações que o professor escreveu (sem nomes). Desligado por padrão.
+  bool aiTeacherContext = false;
+
+  void setAiTeacherContext(bool v) {
+    aiTeacherContext = v;
+    _prefs?.setBool('ai_teacher_ctx', v);
+    notifyListeners();
+  }
+
+  /// O contexto de estudo que acompanha o pedido ao treinador: estudo da semana, tarefas em aberto e (se autorizado) observações.
+  String studyContextText() {
+    final open = <String>[];
+    for (final l in myLessons) {
+      for (final t in l.tasks) {
+        if (!lessonTaskDone(l, t)) open.add(t.isScale ? '${t.title} (${tr('meta {0}%', [(t.goal * 100).round()])})' : '${t.kind.label}: ${t.title}');
+      }
+    }
+    final notes = aiTeacherContext ? [for (final l in myLessons.take(4)) ...l.notes] : const <String>[];
+    return buildStudyContext(
+      studySeconds: studySeconds,
+      now: DateTime.now(),
+      goalMinutes: dailyGoalMinutes,
+      openTasks: open,
+      teacherNotes: notes,
+      lessonsCount: myLessons.length,
+    );
+  }
+
   String aiSummary() =>
       buildAiPrompt(sessionRecords, instrument: instrument.name, flats: flatsForText);
 
@@ -5030,6 +5058,7 @@ class AppState extends ChangeNotifier {
     setViolinFingeringFromJson(p.getString('fing_json'));
     news = parseNews(p.getString('news_json') ?? '') ?? [];
     _newsSeen = (p.getStringList('news_seen') ?? const <String>[]).toSet();
+    aiTeacherContext = p.getBool('ai_teacher_ctx') ?? false;
     newsPeekMs = p.getInt('news_peek') ?? 0;
     scaleNames = StaffNames.values[(p.getInt('scale_names') ?? StaffNames.none.index).clamp(0, StaffNames.values.length - 1)];
     // Meta simples para quem chega agora (5 min); quem já usava e nunca mexeu continua com 20.

@@ -90,6 +90,10 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `ai_day` | coach_ai.dart |
 | `ai_device` | coach_ai.dart, feedback_service.dart |
 | `ai_last_text` | coach_ai.dart |
+| `ai_plan_at` | coach_ai.dart |
+| `ai_plan_fp` | coach_ai.dart |
+| `ai_plan_text` | coach_ai.dart |
+| `ai_teacher_ctx` | app_state.dart |
 | `anchor` | app_state.dart |
 | `auto_mic` | app_state.dart |
 | `beats` | app_state.dart |
@@ -233,4 +237,4 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `verdict_rev` | app_state.dart |
 | `verdicts` | app_state.dart |
 
-Total: **157** chaves locais.
+Total: **161** chaves locais.

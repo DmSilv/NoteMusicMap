@@ -13,7 +13,6 @@ import 'ui/app_locale.dart';
 import 'ui/app_logo.dart';
 import 'ui/exit_sheet.dart';
 import 'ui/hello_bar.dart';
-import 'ui/metro_section.dart';
 import 'ui/my_lessons_page.dart' show openMyLessons;
 import 'ui/home_tabs.dart';
 import 'ui/link_bar.dart';
@@ -36,6 +35,7 @@ import 'ui/theme.dart';
 import 'ui/success_moment.dart';
 import 'ui/toast.dart';
 import 'ui/welcome_tour.dart';
+import 'ui/study_hub.dart' show StudyHubPage;
 import 'ui/dictation_button.dart' show DictationPill;
 import 'ui/scale_settings.dart' show showScaleSettings;
 import 'ui/settings_page.dart' show QuickSettings, showQuickSettings;
@@ -705,10 +705,7 @@ class _HomeShellState extends State<HomeShell> {
           child: Column(
             children: [
               // Microfone e Pomodoro ativos: faixa própria, longe do título.
-              StatusStrip(app: app, hideMic: !split && (_index == 0 || _index == 2 || _index == 3), onPomodoro: () {
-                metroSection.value = kMetroSectionStudy; // Pomodoro e relógio abrem a visão de estudo
-                _go(kTabMetronome);
-              }),
+              StatusStrip(app: app, hideMic: !split && (_index == 0 || _index == 2 || _index == 3), onPomodoro: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => StudyHubPage(app: app, initialTab: 0)))),
               // Saudação com o apelido (ou convite para preencher), só nas telas principais.
               // Versão nova disponível (faixa fixa, com botão).
               UpdateBar(app: app),

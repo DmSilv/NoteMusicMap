@@ -43,6 +43,7 @@ export 'practice_coach.dart';
 export 'system_guide.dart';
 export 'scale_exercise.dart';
 export 'study_clock.dart';
+export 'study_context.dart';
 export 'teacher.dart';
 export 'teaching.dart';
 export 'turma.dart';

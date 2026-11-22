@@ -13,7 +13,6 @@ const Map<String, String> kEnB04 = {
   'Vivace': 'Vivace',
   'Presto': 'Presto',
   'Prestissimo': 'Prestissimo',
-  'Estudo e timers': 'Study and timers',
   'Diminuir 1 BPM': 'Decrease 1 BPM',
   '{0} batidas por minuto': '{0} beats per minute',
   'BPM · {0} · partiu de {1}': 'BPM · {0} · started at {1}',

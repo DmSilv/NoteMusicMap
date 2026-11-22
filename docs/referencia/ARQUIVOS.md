@@ -46,7 +46,7 @@
 | `lib/ui/devices_page.dart` | Nome do sistema como a pessoa reconhece ("Android", "iPhone ou iPad"...). |
 | `lib/ui/dictation_button.dart` | Botão de microfone para ditar num campo de texto. Use como `suffixIcon` do `InputDecoration`. Parado: microfone. Preparando: roda um indicador. Ouvindo: círculo vermelho que pulsa com o ícone de parar (tocar de novo… |
 | `lib/ui/error_ui.dart` | Telas e blocos de erro: tela crítica (APP-99), cartão amigável no lugar de bloco que quebrou e a lista "Problemas recentes". |
-| `lib/ui/evolution_page.dart` | "Evolução": segunda tela do Meu espaço, com os dados de estudo e os gráficos (últimos 7 dias, taxa de acerto nas escalas e orientações do treinador). |
+| `lib/ui/evolution_page.dart` | "Evolução": os dados de estudo e os gráficos (resumo da semana, últimos 7 dias e taxa de acerto nas escalas). Mora na página Estudo, na aba Evolução; as orientações ficam na aba Treinador. |
 | `lib/ui/exit_sheet.dart` | Pergunta antes de fechar o app (botão voltar na tela principal). Devolve true só se a pessoa tocar em "Sair do app": tocar fora, arrastar para baixo ou apertar voltar de novo significa FICAR. O botão grande e… |
 | `lib/ui/feedback_sheet.dart` | Dar uma nota de 1 a 5 ao app (com comentário opcional). |
 | `lib/ui/grid_board.dart` | A grade principal, no estilo do Tonemap: 12 colunas (Dó a Si) e uma linha por oitava, com os agudos em cima. Cada quadrado mostra o nome da nota, a cor da última vez que foi tocada, quantas vezes (×3) e, na nota que… |
@@ -66,7 +66,6 @@
 | `lib/ui/materials_sheet.dart` | "Métodos e repertório": o modal que sobe para o professor montar a lista dele. Um por linha, quantos quiser: digita o nome e dá Enter (o campo continua aberto para o próximo) ou cola uma lista inteira. Cada item… |
 | `lib/ui/meeting_link.dart` | Abre o link da aula online no navegador do aparelho. Sites conhecidos (Meet, Zoom, Teams…) abrem direto; qualquer outro mostra antes o endereço, para a pessoa saber para onde está indo. |
 | `lib/ui/methods_page.dart` | "Meus métodos e lições": a biblioteca do professor. Cadastrar, editar, copiar a lista. Ela também cresce sozinha com o que é digitado nas tarefas. |
-| `lib/ui/metro_section.dart` | Qual visão a aba Metrônomo mostra: 0 = o metrônomo, 1 = estudo e timers (resumo, cronômetro, Pomodoro). Um só valor para o app todo: as pílulas de Pomodoro e relógio da faixa de cima trocam para 1 antes de ir à aba. |
 | `lib/ui/metronome_page.dart` | Aba Metrônomo: andamento, compasso, subdivisão, som, tap tempo e modo desafio. |
 | `lib/ui/mic_pill.dart` | Aviso fixo na barra superior enquanto o microfone está captando: ponto pulsante + "Ouvindo". Visível em qualquer aba; tocar desliga. |
 | `lib/ui/my_lessons_page.dart` | Minhas aulas (aluno): aulas e tarefas recebidas do professor, com o status oficial (validada, aguardando, refazer) e o botão de treinar. |
@@ -104,8 +103,8 @@
 | `lib/ui/status_strip.dart` | Faixa fina logo abaixo da barra superior com os avisos que ficam ativos: microfone ouvindo e timer do Pomodoro. Só aparece quando há algo ativo, e os dois avisos ficam lado a lado, sem disputar espaço com o título e… |
 | `lib/ui/student_identity.dart` | Selo do vínculo online e campo do código do aluno, na ficha e na lista. |
 | `lib/ui/student_page.dart` | Confirma uma exclusão que não tem volta: o botão só libera depois de digitar uma palavra simples (EXCLUIR). |
-| `lib/ui/study_card.dart` | "Seu estudo": o tempo estudado hoje, os dias seguidos, a meta diária e o cronômetro/Pomodoro num cartão só. Mora na aba Metrônomo (onde a pessoa já está praticando); os dados e gráficos ficam na tela "Evolução". |
-| `lib/ui/study_glance.dart` | "Seu estudo" no Meu espaço de quem ainda não tem professor: o essencial numa olhada (hoje, dias seguidos e a meta). O resto (gráficos, resumo da semana) fica na Evolução, um toque adiante. |
+| `lib/ui/study_card.dart` | "Seu estudo": o tempo estudado hoje, os dias seguidos, a meta diária e o cronômetro/Pomodoro num cartão só. Mora na aba Hoje da página Estudo; os dados e gráficos ficam na aba Evolução. |
+| `lib/ui/study_hub.dart` | A primeira frase útil do plano (sem "##" nem "-"), para o cartão do Meu espaço. |
 | `lib/ui/study_page.dart` | "Meu espaço": o foco é a AGENDA (próxima aula e o que vem depois), os alunos, as tarefas e o acervo. O estudo (resumo, cronômetro e Pomodoro) mora na aba Metrônomo (`study_card.dart`). |
 | `lib/ui/study_timers.dart` | Bloco "Como você quer estudar?": submenu com Pomodoro, Cronômetro e Meu tempo, cada um com uma explicação curta de quando usar. |
 | `lib/ui/success_moment.dart` | "Momento de sucesso": uma folha que sobe de baixo com um ✓ desenhado, uma frase e um detalhe, e some sozinha. Serve para os poucos momentos em que algo importante deu certo (pegar um horário, marcar uma aula, enviar… |
@@ -199,6 +198,7 @@
 | `packages/afina_core/lib/staff_notation.dart` | Partitura de escalas e arpejos (clave de Sol, compasso 4/4, como no "sistema de escalas" de Flesch). Esta parte é só MÚSICA, em Dart puro e testável: posição da nota na pauta, armadura de clave, quando aparece ♯ ♭ ♮… |
 | `packages/afina_core/lib/start_checklist.dart` | "Comece por aqui": o que o professor novo precisa fazer para o app render (vincular, marcar aula, passar tarefa). Dart puro: o app diz o que já aconteceu e esta lógica diz o que falta e qual é o próximo passo. |
 | `packages/afina_core/lib/study_clock.dart` | Relógios de estudo: CRONÔMETRO (conta para cima) e MINUTERIA (conta para baixo até um tempo escolhido). Dart puro: o relógio de parede é passado de fora (ms), então dá para testar e para retomar depois de fechar o app. |
+| `packages/afina_core/lib/study_context.dart` | O que o treinador (IA) recebe além dos números das escalas: o estudo da semana, as tarefas em aberto do professor e, só se a pessoa autorizar, as observações dele. Nunca áudio, nunca nomes: tarefas e observações… |
 | `packages/afina_core/lib/study_streak.dart` | Dias seguidos de estudo (com perdão de 1 dia) e o resumo da semana. Dart puro: o app passa o mapa "dia (AAAA-MM-DD) -> segundos estudados" e a data de hoje; aqui sai o que mostrar. |
 | `packages/afina_core/lib/survey.dart` | Uma pergunta da pesquisa ativa (escrita no painel e lida de GET /api/feedback?survey=1). |
 | `packages/afina_core/lib/system_guide.dart` | Dados para explicar o "Sistema de afinação" na tela: para a tônica escolhida, qual é o ALVO de cada nota no sistema (igual, pitagórico ou justo) e quanto ele difere do temperamento igual, em Hz. Dart puro e testável. |
@@ -269,6 +269,7 @@
 | `packages/afina_core/test/start_checklist_test.dart` | Testes do módulo `start_checklist`. |
 | `packages/afina_core/test/student_label_test.dart` | Testes do módulo `student_label`. |
 | `packages/afina_core/test/study_clock_test.dart` | Testes do módulo `study_clock`. |
+| `packages/afina_core/test/study_context_test.dart` | Testes do módulo `study_context`. |
 | `packages/afina_core/test/study_streak_test.dart` | estudou 0,1,3,5,6: faltaram 2 e 4; o 2º vazio vem logo depois do 1º perdão -> quebra |
 | `packages/afina_core/test/survey_test.dart` | Testes do módulo `survey`. |
 | `packages/afina_core/test/system_guide_test.dart` | em Hz, na oitava 4: Mi justo (5/4 de 261,626) = 327,03 Hz contra 329,63 do igual |
@@ -400,4 +401,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **357** arquivos mapeados.
+Total: **358** arquivos mapeados.
