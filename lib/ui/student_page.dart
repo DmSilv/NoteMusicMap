@@ -1,3 +1,4 @@
+import 'undo_snack.dart';
 import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -337,7 +338,7 @@ class StudentPage extends StatelessWidget {
         actionIcon: open == 0 ? null : Icons.send_rounded,
         onAction: open == 0 ? null : () => app.say(app.resendOpenTasks(s)),
       ));
-      out.add(_infoLine(Icons.close_rounded, tr('Os envios de antes foram apagados quando ele saiu.'), link: tr('Agora não'), onLink: () => app.dismissRelinkOffer(s)));
+      out.add(_infoLine(Icons.close_rounded, tr('Os envios de antes foram apagados quando ele saiu.'), link: tr('Agora não'), onLink: () => dismissWithUndo(context, message: tr('Tudo bem: a oferta de reenviar as tarefas foi dispensada.'), undoLabel: tr('Desfazer'), action: () => app.dismissRelinkOffer(s), undo: () => app.restoreRelinkOffer(s))));
     }
     return [for (final w in out) Padding(padding: const EdgeInsets.only(bottom: Ds.s8), child: w)];
   }

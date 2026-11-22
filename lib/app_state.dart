@@ -1195,6 +1195,12 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Desfaz o "Agora não" do convite de turmas.
+  void showTurmaHint() {
+    _prefs?.setBool('turma_hint_off', false);
+    notifyListeners();
+  }
+
   Turma? turmaOf(Student s) => s.turma == null ? null : turmas.where((t) => t.id == s.turma).firstOrNull;
 
   /// O instrumento a usar nas sugestões da tarefa deste aluno (o dele, se o professor ensina; senão o único que ensina).
@@ -2906,6 +2912,13 @@ class AppState extends ChangeNotifier {
     return sendPendingTasks(s);
   }
 
+  /// Desfaz o "Agora não": a oferta de reenviar volta.
+  void restoreRelinkOffer(Student s) {
+    relinkOffers.add(s.id);
+    _saveLessons();
+    notifyListeners();
+  }
+
   /// "Agora não": some a oferta de reenviar as tarefas.
   void dismissRelinkOffer(Student s) {
     relinkOffers.remove(s.id);
@@ -4244,6 +4257,19 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Desfaz um "Agora não" de apelido ou de instalar: volta ao momento anterior.
+  void restoreNickHide(int untilMs) {
+    nickHideUntil = untilMs;
+    _prefs?.setInt('nick_hide', untilMs);
+    notifyListeners();
+  }
+
+  void restoreInstallHide(int untilMs) {
+    installHideUntil = untilMs;
+    _prefs?.setInt('install_hide', untilMs);
+    notifyListeners();
+  }
+
   void hideInstall({int days = 3}) {
     installHideUntil = DateTime.now().add(Duration(days: days)).millisecondsSinceEpoch;
     _prefs?.setInt('install_hide', installHideUntil);
@@ -5004,6 +5030,7 @@ class AppState extends ChangeNotifier {
     setViolinFingeringFromJson(p.getString('fing_json'));
     news = parseNews(p.getString('news_json') ?? '') ?? [];
     _newsSeen = (p.getStringList('news_seen') ?? const <String>[]).toSet();
+    newsPeekMs = p.getInt('news_peek') ?? 0;
     scaleNames = StaffNames.values[(p.getInt('scale_names') ?? StaffNames.none.index).clamp(0, StaffNames.values.length - 1)];
     // Meta simples para quem chega agora (5 min); quem já usava e nunca mexeu continua com 20.
     dailyGoalMinutes = p.getDouble('goal') ?? ((p.getBool('onboarded') ?? false) ? 20 : 5);
@@ -5136,6 +5163,40 @@ class AppState extends ChangeNotifier {
 
   /// A novidade que aparece sozinha: só depois da apresentação do app, e uma vez para cada uma.
   NewsItem? get pendingNewsItem => onboarded ? pendingNews(news, _newsSeen) : null;
+
+  /// Quando a pessoa abriu a central de novidades pela última vez. Abrir a central apaga o laranja do sino (a pessoa viu que há
+  /// novidade); cada novidade segue com a etiqueta "Nova" até ser aberta ou até "Marcar todas como lidas".
+  int newsPeekMs = 0;
+
+  void markNewsPeeked() {
+    newsPeekMs = DateTime.now().millisecondsSinceEpoch;
+    _prefs?.setInt('news_peek', newsPeekMs);
+    notifyListeners();
+  }
+
+  /// O sino chama atenção: há novidade nunca aberta que saiu depois da última vez que a central foi aberta.
+  bool get newsBellFresh => news.any((n) => !isNewsSeen(n) && (n.publishedMs == 0 ? newsPeekMs == 0 : n.publishedMs > newsPeekMs));
+
+  /// "Marcar todas como lidas".
+  void markAllNewsSeen() {
+    for (final n in news) {
+      _newsSeen.add(n.id);
+    }
+    final keep = _newsSeen.toList();
+    _prefs?.setStringList('news_seen', keep.length > 60 ? keep.sublist(keep.length - 60) : keep);
+    markNewsPeeked();
+  }
+
+  /// Desfaz "Marcar todas como lidas".
+  void restoreNewsSeen(Set<String> before, int peekBefore) {
+    _newsSeen = {...before};
+    newsPeekMs = peekBefore;
+    _prefs?.setStringList('news_seen', _newsSeen.toList());
+    _prefs?.setInt('news_peek', peekBefore);
+    notifyListeners();
+  }
+
+  Set<String> get newsSeenIds => {..._newsSeen};
 
   void markNewsSeen(NewsItem n) {
     if (!_newsSeen.add(n.id)) return;

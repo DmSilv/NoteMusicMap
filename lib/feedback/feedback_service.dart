@@ -116,6 +116,19 @@ class FeedbackService extends ChangeNotifier {
     return sessions >= 2 || days >= 3;
   }
 
+  /// Desfaz o "Agora não" (a pessoa tocou sem querer): volta ao adiamento de antes.
+  Future<void> restoreSnooze(int snoozesBefore, DateTime? untilBefore) async {
+    snoozes = snoozesBefore;
+    snoozeUntil = untilBefore;
+    await _prefs?.setInt('fb_snoozes', snoozes);
+    if (untilBefore == null) {
+      await _prefs?.remove('fb_snooze_until');
+    } else {
+      await _prefs?.setString('fb_snooze_until', untilBefore.toIso8601String());
+    }
+    notifyListeners();
+  }
+
   /// "Agora não": pergunta de novo em 7 dias (no máximo mais 2 vezes).
   Future<void> snooze({DateTime? now}) async {
     snoozes += 1;

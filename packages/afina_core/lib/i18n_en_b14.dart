@@ -647,4 +647,11 @@ const Map<String, String> kEnB14 = {
   'Faltam {0} caracteres.': '{0} characters missing.',
   'Confirmar código': 'Confirm code',
   'O aluno está com você: aponte a câmera para o QR do perfil dele, ou digite o código que aparece abaixo dele.': 'The student is with you: point the camera at their profile QR, or type the code shown below it.',
+  'Tudo bem: perguntamos de novo mais tarde.': 'Okay, we\'ll ask again later.',
+  'Tudo bem: o convite para instalar volta em alguns dias.': 'Okay, the install invitation comes back in a few days.',
+  'Tudo bem: perguntamos o apelido depois.': 'Okay, we\'ll ask for your nickname later.',
+  'Tudo bem: o convite de turmas não aparece mais.': 'Okay, the classes invitation will not show again.',
+  'Tudo bem: a oferta de reenviar as tarefas foi dispensada.': 'Okay, the offer to resend the tasks was dismissed.',
+  'Todas as novidades marcadas como lidas.': 'All updates marked as read.',
+  'Marcar todas como lidas': 'Mark all as read',
 };

@@ -1,3 +1,4 @@
+import 'undo_snack.dart';
 import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -464,7 +465,13 @@ class _TeacherPageState extends State<TeacherPage> {
                 Row(children: [
                   FilledButton(onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TurmasPage(app: app))), child: Text(tr('Criar turmas'))),
                   const SizedBox(width: Ds.s8),
-                  TextButton(onPressed: app.hideTurmaHint, child: Text(tr('Agora não'))),
+                  TextButton(
+                      onPressed: () => dismissWithUndo(context,
+                          message: tr('Tudo bem: o convite de turmas não aparece mais.'),
+                          undoLabel: tr('Desfazer'),
+                          action: app.hideTurmaHint,
+                          undo: app.showTurmaHint),
+                      child: Text(tr('Agora não'))),
                 ]),
               ]),
             ),

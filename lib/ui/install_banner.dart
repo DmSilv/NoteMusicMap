@@ -1,3 +1,4 @@
+import 'undo_snack.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -159,7 +160,14 @@ class _InstallBannerState extends State<InstallBanner> {
                     tooltip: tr('Agora não'),
                     visualDensity: VisualDensity.compact,
                     icon: const Icon(Icons.close, size: 18),
-                    onPressed: () => app.hideInstall(days: 7),
+                    onPressed: () {
+                      final before = app.installHideUntil;
+                      dismissWithUndo(context,
+                          message: tr('Tudo bem: o convite para instalar volta em alguns dias.'),
+                          undoLabel: tr('Desfazer'),
+                          action: () => app.hideInstall(days: 7),
+                          undo: () => app.restoreInstallHide(before));
+                    },
                   ),
                 ]),
               ),

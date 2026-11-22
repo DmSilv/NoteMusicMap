@@ -1,3 +1,4 @@
+import 'undo_snack.dart';
 import 'dart:math' as math;
 
 import 'package:afina_core/afina_core.dart';
@@ -150,6 +151,8 @@ class NewsTiles extends StatelessWidget {
 /// A central de novidades em TELA CHEIA (vem do ícone da barra de cima). Abrir a tela não marca nada como visto: quem marca é
 /// abrir cada novidade.
 Future<void> showNewsSheet(BuildContext context, AppState app) {
+  // Abrir a central já apaga o laranja do sino: a pessoa viu que há novidade.
+  app.markNewsPeeked();
   return Navigator.of(context).push<void>(MaterialPageRoute<void>(
     fullscreenDialog: true,
     builder: (c) => Scaffold(
@@ -162,7 +165,25 @@ Future<void> showNewsSheet(BuildContext context, AppState app) {
           listenable: app,
           builder: (context, _) => ListView(
             padding: const EdgeInsets.fromLTRB(Ds.screenPad, Ds.s16, Ds.screenPad, Ds.s32),
-            children: [NewsTiles(app: app)],
+            children: [
+              if (app.news.any((n) => !app.isNewsSeen(n)))
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      final seen = app.newsSeenIds, peek = app.newsPeekMs;
+                      dismissWithUndo(c,
+                          message: tr('Todas as novidades marcadas como lidas.'),
+                          undoLabel: tr('Desfazer'),
+                          action: app.markAllNewsSeen,
+                          undo: () => app.restoreNewsSeen(seen, peek));
+                    },
+                    icon: const Icon(Icons.done_all_rounded, size: 20),
+                    label: Text(tr('Marcar todas como lidas')),
+                  ),
+                ),
+              NewsTiles(app: app),
+            ],
           ),
         ),
       ),
@@ -198,7 +219,7 @@ class _NewsBellState extends State<NewsBell> with SingleTickerProviderStateMixin
       listenable: app,
       builder: (context, _) {
         if (app.news.isEmpty) return const SizedBox.shrink();
-        final fresh = app.news.any((n) => !app.isNewsSeen(n));
+        final fresh = app.newsBellFresh;
         final still = MediaQuery.of(context).disableAnimations;
         if (fresh && !still) {
           if (!_c.isAnimating) _c.repeat();

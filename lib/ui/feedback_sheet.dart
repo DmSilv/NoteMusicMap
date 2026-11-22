@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'undo_snack.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
@@ -286,7 +288,16 @@ class FeedbackInviteCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  TextButton(onPressed: app.feedback.snooze, child: Text(tr('Agora não'))),
+                  TextButton(
+                    onPressed: () {
+                      final n = app.feedback.snoozes, until = app.feedback.snoozeUntil;
+                      dismissWithUndo(context,
+                          message: tr('Tudo bem: perguntamos de novo mais tarde.'),
+                          undoLabel: tr('Desfazer'),
+                          action: () => unawaited(app.feedback.snooze()),
+                          undo: () => unawaited(app.feedback.restoreSnooze(n, until)));
+                    },
+                    child: Text(tr('Agora não'))),
                 ]),
               ],
             ),

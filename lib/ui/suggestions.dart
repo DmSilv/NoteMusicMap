@@ -1,3 +1,4 @@
+import 'undo_snack.dart';
 import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
@@ -40,7 +41,15 @@ class SuggestionTiles extends StatelessWidget {
             closeSheet();
             askNickname(context, app);
           },
-          onLater: () => app.hideNickPrompt(days: 7),
+          onLater: () {
+            final before = app.nickHideUntil;
+            dismissWithUndo(context,
+                message: tr('Tudo bem: perguntamos o apelido depois.'),
+                undoLabel: tr('Desfazer'),
+                action: () => app.hideNickPrompt(days: 7),
+                undo: () => app.restoreNickHide(before));
+            closeSheet(); // a folha cobriria o aviso com Desfazer
+          },
         ),
       if (installSuggested(app))
         _tile(
@@ -53,7 +62,15 @@ class SuggestionTiles extends StatelessWidget {
             closeSheet();
             runInstall(context, app);
           },
-          onLater: () => app.hideInstall(days: 7),
+          onLater: () {
+            final before = app.installHideUntil;
+            dismissWithUndo(context,
+                message: tr('Tudo bem: o convite para instalar volta em alguns dias.'),
+                undoLabel: tr('Desfazer'),
+                action: () => app.hideInstall(days: 7),
+                undo: () => app.restoreInstallHide(before));
+            closeSheet(); // a folha cobriria o aviso com Desfazer
+          },
         ),
     ];
     if (tiles.isEmpty) return const SizedBox.shrink();
