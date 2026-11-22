@@ -38,7 +38,7 @@
 | `lib/ui/agenda_page.dart` | Agenda do PROFESSOR: as aulas marcadas, por semana ou por mês. Marcar, mudar, cancelar uma aula (ou só um dia de uma aula semanal) e ligar o lembrete de 15 minutos. |
 | `lib/ui/agenda_sheets.dart` | Modais da agenda do professor (remarcar uma aula, trocar horários, confirmar). Cada ação é UM modal só: o que vai mudar aparece antes (de → para), a conferência de choque é feita ao vivo e o botão só liga quando cabe… |
 | `lib/ui/app_locale.dart` | O app fala português do Brasil ou inglês: os textos do próprio Flutter (seletor de data e hora, "OK"/"Cancelar", copiar/colar, nomes de mês e dia) seguem o idioma escolhido (veja `Lang` e `tr()` em afina_core). Custo… |
-| `lib/ui/app_logo.dart` | Logo do Notemusic: um mostrador de afinador (arco verde, a cor do app) com uma nota musical branca no centro. Mesma geometria de tools/make_icons.mjs. |
+| `lib/ui/app_logo.dart` | Logo do Notemusic: mostrador de afinador "Marcas e ponteiro" (opção 2B do laboratório de logo). Sete marcas em leque, ponteiro verde no centro (afinado) e pivô branco, sobre petróleo. Mesma geometria de… |
 | `lib/ui/beat_bar.dart` | A barra de "quanto já segurou afinada". Com o metrônomo ligado ela dá uma leve pulsada a cada tempo (mais forte no tempo forte): a barra continua sendo só a medida, e o pulso ajuda a sentir o andamento. Sem… |
 | `lib/ui/cloud_copy_body.dart` | Cópia das fichas na nuvem (chave `copia_nuvem`): explica o que vai para o servidor e só liga com o aceite da pessoa. |
 | `lib/ui/design_system.dart` | Design system do Notemusic. REGRA: toda tela nova ou alterada usa estes valores e estes componentes (ver docs/12_DESIGN_SYSTEM.md). Números soltos de espaçamento, raio ou altura de botão não entram em tela nova.… |

@@ -2,24 +2,21 @@
 // Uso:  node tools/make_icons.mjs   (na raiz do projeto)
 // Sem dependências: rasteriza por geometria com supersampling 4x4.
 //
-// Logo: mostrador de afinador. Um arco vai do azul (grave) ao laranja (agudo)
-// passando pelo verde (afinado); o ponteiro branco aponta quase para o centro.
-// A mesma geometria está em lib/ui/app_logo.dart.
+// Logo: mostrador de afinador "Marcas e ponteiro" (opção 2B do laboratório de logo).
+// Sete marcas em leque, ponteiro verde no centro (afinado) e pivô branco, sobre petróleo.
+// A mesma geometria está em lib/ui/app_logo.dart e em design/logo_lab.html.
 import { deflateSync } from 'node:zlib';
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 
-// ---- Geometria (coordenadas 0..1; ângulos em graus, y para cima) ----
-const C = { top: '#17323C', bottom: '#0A141C', blue: '#2E9BFF', green: '#1FE68F', orange: '#FF9226', needle: '#FFFFFF', hub: '#0F1B24' };
-const PV = { x: 0.5, y: 0.60 }; // pivô do ponteiro
-const R = 0.29, SW = 0.085; // raio e espessura do arco
-const A0 = 205, A1 = -25; // do lado grave ao lado agudo (passa pelo topo)
-const NA = 84, NL = 0.25, NW = 0.038; // ponteiro: ângulo, comprimento, espessura
-// Nota musical (colcheia) no centro do mostrador.
-const NOTE_HEAD = { x: 0.455, y: 0.655, rx: 0.088, ry: 0.061, tilt: 22 }; // cabeça inclinada
-const NOTE_STEM = [{ x: 0.531, y: 0.645 }, { x: 0.531, y: 0.385 }]; // haste
-const NOTE_FLAG = [{ x: 0.531, y: 0.385 }, { x: 0.58, y: 0.418 }, { x: 0.617, y: 0.47 }, { x: 0.602, y: 0.535 }]; // bandeira
-const NOTE_W = 0.042; // espessura da haste e da bandeira
+// ---- Geometria (coordenadas 0..1; ângulos em graus a partir da vertical, horário) ----
+const C = { top: '#2D7790', bottom: '#2A6F83', green: '#1FE68F', tick: '#D5E9EF', hub: '#FFFFFF' };
+const PV = { x: 0.5, y: 0.62 }; // pivô
+const TICK_A = [-63, -42, -21, 0, 21, 42, 63].filter((a) => a !== 0); // marcas (o centro é o ponteiro)
+const TICK_R0 = 0.22, TICK_R1 = 0.30, TICK_W = 0.065;
+const NEEDLE = [{ x: 0.455, y: 0.62 }, { x: 0.545, y: 0.62 }, { x: 0.5, y: 0.32 }]; // ponteiro (triângulo)
+const NEEDLE_PAD = 0.015; // arredondamento do ponteiro
+const HUB_R = 0.075;
 const CORNER = 0.22;
 
 const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
@@ -43,17 +40,20 @@ function hsl2rgb([h, s, l]) {
   return [r + m, g + m, b + m].map((v) => v * 255);
 }
 const hslLerp = (a, b, t) => { const A = rgb2hsl(a), B = rgb2hsl(b); return hsl2rgb(A.map((v, i) => v + (B[i] - v) * t)); };
-/** Logo simples: arco de uma cor só, a mesma cor de destaque do app. */
-function arcColor() {
-  return hex(C.green);
-}
 const rad = (d) => (d * Math.PI) / 180;
-const pt = (a, r = R) => ({ x: PV.x + r * Math.cos(rad(a)), y: PV.y - r * Math.sin(rad(a)) });
+const pt = (a, r) => ({ x: PV.x + r * Math.sin(rad(a)), y: PV.y - r * Math.cos(rad(a)) });
 
 function insideRounded(x, y) {
   const qx = Math.abs(x - 0.5) - (0.5 - CORNER);
   const qy = Math.abs(y - 0.5) - (0.5 - CORNER);
   return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) <= CORNER;
+}
+function inNeedle(x, y) {
+  const [a, b, c] = NEEDLE;
+  const side = (p, q) => (q.x - p.x) * (y - p.y) - (q.y - p.y) * (x - p.x);
+  const s1 = side(a, b), s2 = side(b, c), s3 = side(c, a);
+  if ((s1 >= 0 && s2 >= 0 && s3 >= 0) || (s1 <= 0 && s2 <= 0 && s3 <= 0)) return true;
+  return [[a, b], [b, c], [c, a]].some(([p, q]) => distSeg(x, y, p, q) <= NEEDLE_PAD);
 }
 function distSeg(px, py, a, b) {
   const dx = b.x - a.x, dy = b.y - a.y;
@@ -71,30 +71,9 @@ function sample(x, y, variant) {
     py = (y - 0.5) / s + 0.5;
   }
   let col = mix(hex(C.top), hex(C.bottom), y);
-
-  // arco
-  const dx = px - PV.x, dy = -(py - PV.y);
-  const r = Math.hypot(dx, dy);
-  let a = (Math.atan2(dy, dx) * 180) / Math.PI;
-  if (a < A1) a += 360;
-  if (a <= A0 && Math.abs(r - R) <= SW / 2) col = arcColor((A0 - a) / (A0 - A1));
-  const inBody = a <= A0 && Math.abs(r - R) <= SW / 2;
-  for (const [ang, t] of inBody ? [] : [[A0, 0], [A1, 1]]) {
-    const e = pt(ang);
-    if (Math.hypot(px - e.x, py - e.y) <= SW / 2) col = arcColor(t);
-  }
-  // nota musical
-  {
-    const t = rad(NOTE_HEAD.tilt);
-    const ddx = px - NOTE_HEAD.x, ddy = -(py - NOTE_HEAD.y);
-    const lx = ddx * Math.cos(t) + ddy * Math.sin(t);
-    const ly = -ddx * Math.sin(t) + ddy * Math.cos(t);
-    let on = (lx / NOTE_HEAD.rx) ** 2 + (ly / NOTE_HEAD.ry) ** 2 <= 1;
-    if (distSeg(px, py, NOTE_STEM[0], NOTE_STEM[1]) <= NOTE_W / 2) on = true;
-    for (let i = 0; i < NOTE_FLAG.length - 1 && !on; i++)
-      if (distSeg(px, py, NOTE_FLAG[i], NOTE_FLAG[i + 1]) <= NOTE_W / 2) on = true;
-    if (on) col = hex(C.needle);
-  }
+  for (const a of TICK_A) if (distSeg(px, py, pt(a, TICK_R0), pt(a, TICK_R1)) <= TICK_W / 2) col = hex(C.tick);
+  if (inNeedle(px, py)) col = hex(C.green);
+  if (Math.hypot(px - PV.x, py - PV.y) <= HUB_R) col = hex(C.hub);
   return [...col, 255];
 }
 
@@ -170,23 +149,15 @@ for (const im of contents.images) {
 
 // ---- SVG ----
 const S = 1024;
-const hexOf = (c) => '#' + c.map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
-const N = 72;
-let segs = '';
-for (let i = 0; i < N; i++) {
-  const a1 = A0 - ((A0 - A1) * i) / N, a2 = A0 - ((A0 - A1) * (i + 1)) / N + (i < N - 1 ? -0.4 : 0);
-  const p1 = pt(a1), p2 = pt(a2);
-  segs += `<path d="M${(p1.x * S).toFixed(1)} ${(p1.y * S).toFixed(1)} A${R * S} ${R * S} 0 0 1 ${(p2.x * S).toFixed(1)} ${(p2.y * S).toFixed(1)}" stroke="${hexOf(arcColor((i + 0.5) / N))}" stroke-width="${SW * S}" fill="none"/>\n  `;
-}
-const e0 = pt(A0), e1 = pt(A1);
+const f = (n) => (n * S).toFixed(1);
+let ticks = '';
+for (const a of TICK_A) { const p = pt(a, TICK_R0), q = pt(a, TICK_R1); ticks += `<line x1="${f(p.x)}" y1="${f(p.y)}" x2="${f(q.x)}" y2="${f(q.y)}" stroke="${C.tick}" stroke-width="${f(TICK_W)}" stroke-linecap="round"/>
+  `; }
 writeFileSync('assets/logo/logo.svg', `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${S} ${S}" width="${S}" height="${S}">
   <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.top}"/><stop offset="1" stop-color="${C.bottom}"/></linearGradient></defs>
   <rect width="${S}" height="${S}" rx="${CORNER * S}" fill="url(#g)"/>
-  ${segs}<circle cx="${e0.x * S}" cy="${e0.y * S}" r="${(SW / 2) * S}" fill="${C.green}"/>
-  <circle cx="${e1.x * S}" cy="${e1.y * S}" r="${(SW / 2) * S}" fill="${C.green}"/>
-  <ellipse cx="${NOTE_HEAD.x * S}" cy="${NOTE_HEAD.y * S}" rx="${NOTE_HEAD.rx * S}" ry="${NOTE_HEAD.ry * S}" transform="rotate(${-NOTE_HEAD.tilt} ${NOTE_HEAD.x * S} ${NOTE_HEAD.y * S})" fill="${C.needle}"/>
-  <polyline points="${NOTE_STEM.map((p) => p.x * S + ',' + p.y * S).join(' ')}" stroke="${C.needle}" stroke-width="${NOTE_W * S}" stroke-linecap="round" fill="none"/>
-  <polyline points="${NOTE_FLAG.map((p) => p.x * S + ',' + p.y * S).join(' ')}" stroke="${C.needle}" stroke-width="${NOTE_W * S}" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  ${ticks}<polygon points="${NEEDLE.map((p) => f(p.x) + ',' + f(p.y)).join(' ')}" fill="${C.green}" stroke="${C.green}" stroke-width="${f(NEEDLE_PAD * 2)}" stroke-linejoin="round"/>
+  <circle cx="${f(PV.x)}" cy="${f(PV.y)}" r="${f(HUB_R)}" fill="${C.hub}"/>
 </svg>
 `);
 console.log('ok assets/logo/logo.svg');

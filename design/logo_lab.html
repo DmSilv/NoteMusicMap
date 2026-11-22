@@ -1,0 +1,729 @@
+<title>Laboratório de logo</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --bg:#F2F5F7;
+  --surface:#FFFFFF;
+  --surface-2:#E8EDF0;
+  --ink:#0E1A21;
+  --ink-2:#465761;
+  --line:#D6DDE2;
+  --line-2:#B3BFC7;
+  --brand:#126278;
+  --on-brand:#FFFFFF;
+  --ok:#0A7346;
+  --ok-bg:#D9F1E5;
+  --mid:#7F5200;
+  --mid-bg:#F7E8C6;
+  --bad:#A8281F;
+  --bad-bg:#F7D9D5;
+  --font-body:"Figtree",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-head:"Bricolage Grotesque","Figtree",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0B1115;
+    --surface:#121A1F;
+    --surface-2:#1A242A;
+    --ink:#E7EEF2;
+    --ink-2:#9DAFB9;
+    --line:#22303A;
+    --line-2:#3B4C57;
+    --brand:#6CC3D9;
+    --on-brand:#04212A;
+    --ok:#5ED9A2;
+    --ok-bg:#0F2E21;
+    --mid:#F0B551;
+    --mid-bg:#34270C;
+    --bad:#FF8F85;
+    --bad-bg:#3C1815;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0B1115;
+  --surface:#121A1F;
+  --surface-2:#1A242A;
+  --ink:#E7EEF2;
+  --ink-2:#9DAFB9;
+  --line:#22303A;
+  --line-2:#3B4C57;
+  --brand:#6CC3D9;
+  --on-brand:#04212A;
+  --ok:#5ED9A2;
+  --ok-bg:#0F2E21;
+  --mid:#F0B551;
+  --mid-bg:#34270C;
+  --bad:#FF8F85;
+  --bad-bg:#3C1815;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:400 16px/1.55 var(--font-body);-webkit-font-smoothing:antialiased;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  --r:22%;
+}
+.wrap{max-width:1120px;margin:0 auto;padding:32px 0 88px}
+h1,h2,h3,h4{font-family:var(--font-head);margin:0;letter-spacing:-.012em;text-wrap:balance}
+h1{font-size:clamp(36px,7vw,60px);line-height:1;font-weight:700}
+h2{font-size:clamp(25px,3.6vw,34px);line-height:1.08;font-weight:700}
+h3{font-size:19px;line-height:1.2;font-weight:700}
+h4{font-size:14px;line-height:1.3;font-weight:600}
+p{margin:0}
+a{color:var(--brand)}
+b{font-weight:700}
+.dim{color:var(--ink-2)}
+.num{font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+section{margin-top:68px}
+.lede{font-size:clamp(17px,2.2vw,20px);line-height:1.45;max-width:64ch;margin-top:18px;color:var(--ink-2)}
+.sub{color:var(--ink-2);margin-top:8px;max-width:66ch}
+.howto{margin-top:14px;max-width:64ch;font-size:15px}
+
+/* ícones */
+.ico{display:inline-block;overflow:hidden;border-radius:var(--r);line-height:0;vertical-align:top;flex:none}
+.ico svg{display:block;width:100%;height:100%}
+#lab.v-gray .ico{filter:grayscale(1)}
+#lab.v-prot .ico{filter:url(#f-prot)}
+#lab.v-deut .ico{filter:url(#f-deut)}
+#lab.v-trit .ico{filter:url(#f-trit)}
+#lab.v-blur .ico{filter:blur(3px)}
+
+/* botões */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 18px;border-radius:12px;border:1px solid var(--line-2);background:var(--surface);color:var(--ink);cursor:pointer;font-weight:600;font-size:14px;line-height:1.2}
+.btn:hover{border-color:var(--ink-2)}
+.btn.pri{background:var(--brand);color:var(--on-brand);border-color:transparent}
+.btn.pri:hover{filter:brightness(1.08)}
+.btn.on{border-color:var(--brand);color:var(--brand)}
+.lnk{background:none;border:0;padding:0;color:var(--brand);text-decoration:underline;cursor:pointer;font-size:13px}
+.seg{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.seg>span{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);margin-right:4px}
+.seg button{min-height:34px;padding:0 12px;border-radius:999px;border:1px solid var(--line-2);background:var(--surface);color:var(--ink);cursor:pointer;font-size:13px;font-weight:600}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+
+/* por que mudar */
+.why{list-style:none;margin:22px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));column-gap:44px;counter-reset:w}
+.why li{counter-increment:w;position:relative;padding:16px 0 18px 40px;border-top:1px solid var(--line);font-size:15.5px}
+.why li::before{content:counter(w);position:absolute;left:0;top:15px;font:700 22px/1 var(--font-head);color:var(--brand)}
+.why b{display:block;font-size:17px;margin-bottom:3px}
+
+/* apostas */
+.bets{display:grid;gap:16px;margin-top:24px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.bet{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:14px}
+.bet .row{display:flex;align-items:flex-end;gap:14px}
+.bet h3{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.bet p{font-size:15px}
+.bet .stats{font-size:12.5px;color:var(--ink-2)}
+.bet .btn{align-self:flex-start;margin-top:auto}
+.code{font:700 13px/1 var(--font-head);color:var(--brand);background:var(--surface-2);padding:5px 8px;border-radius:8px;letter-spacing:.03em;white-space:nowrap}
+
+/* bancada */
+.bar{position:sticky;top:0;z-index:6;display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;padding:10px 0;margin-top:18px;background:var(--bg);border-bottom:1px solid var(--line)}
+@media (max-width:699px){.bar{position:static}}
+.labgrid{display:grid;gap:28px;margin-top:24px;grid-template-columns:minmax(0,1fr)}
+@media (min-width:900px){.labgrid{grid-template-columns:320px minmax(0,1fr);gap:44px}}
+@media (min-width:900px) and (min-height:900px){.pv{position:sticky;top:78px}}
+.pv{align-self:start}
+.big-wrap{display:flex;justify-content:center}
+#big{width:min(100%,260px);aspect-ratio:1/1;height:auto}
+.pv-meta{margin-top:18px;display:grid;gap:10px}
+.pv-meta h3{font-size:24px}
+.pv-pal{font-weight:600}
+.measures{display:grid;gap:8px;margin:6px 0 0;padding:12px 0 0;border-top:1px solid var(--line);font-size:14px}
+.measures div{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.measures dt{color:var(--ink-2)}
+.measures dd{margin:0;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.st-ok{color:var(--ok)}.st-mid{color:var(--mid)}.st-bad{color:var(--bad)}
+.pv-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.chk{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:14px;margin-top:2px}
+.chk label{display:inline-flex;gap:8px;align-items:center;cursor:pointer;min-height:32px}
+.chk input{width:18px;height:18px;accent-color:var(--brand)}
+#copybox{display:none;margin-top:8px}
+#copybox textarea{width:100%;height:96px;font:12px/1.4 ui-monospace,Consolas,monospace;background:var(--surface);color:var(--ink);border:1px solid var(--line-2);border-radius:10px;padding:8px}
+.toast{font-size:13px;color:var(--ok);min-height:18px}
+
+/* matriz */
+.matrix{display:grid;grid-template-columns:80px repeat(7,minmax(0,1fr));gap:6px 5px;align-items:center}
+@media (min-width:700px){.matrix{grid-template-columns:104px repeat(7,minmax(0,62px));justify-content:start;gap:8px 8px}}
+.mx-col,.mx-row,.mx-cell{border:0;background:none;padding:0;cursor:pointer;color:var(--ink)}
+.mx-col{display:flex;flex-direction:column;align-items:center;gap:4px;font:700 12px/1 var(--font-head);padding:2px 0 6px}
+.mx-col i{display:block;width:100%;max-width:30px;aspect-ratio:1;border-radius:7px}
+.mx-row{display:flex;gap:6px;align-items:baseline;text-align:left;font-size:12px;line-height:1.15;min-height:36px}
+.mx-row b{font:700 14px var(--font-head);min-width:12px}
+@media (min-width:700px){.mx-row{font-size:13.5px}}
+.mx-row.on,.mx-col.on{color:var(--brand)}
+.mx-row.ref,.mx-col.ref{opacity:.75}
+.mx-cell{aspect-ratio:1/1;display:block;width:100%}
+.mx-cell .ico{width:100%;height:100%}
+.mx-cell.on .ico{outline:2.5px solid var(--brand);outline-offset:2px}
+.mx-sep{grid-column:1/-1;height:1px;background:var(--line);margin:2px 0}
+.leg{list-style:none;margin:22px 0 0;padding:0;display:grid;gap:10px 28px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));font-size:14px}
+.leg li{display:flex;gap:10px;align-items:flex-start}
+.leg i{flex:none;width:22px;height:22px;border-radius:6px;margin-top:2px}
+.leg b{display:block}
+.leg span{color:var(--ink-2)}
+
+/* tamanhos */
+.sz{display:flex;flex-wrap:wrap;align-items:flex-end;gap:22px 28px;margin-top:20px;padding:22px;background:var(--surface);border:1px solid var(--line);border-radius:18px}
+.sz figure{margin:0;display:grid;justify-items:center;gap:8px}
+.sz figcaption{font-size:12px;color:var(--ink-2);text-align:center;line-height:1.25}
+.sz figcaption b{display:block;color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* telas */
+.ctxgrid{display:grid;gap:16px;margin-top:20px;grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}
+.ctx{background:var(--surface);border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column}
+.ctx h4{padding:14px 16px 0;color:var(--ink-2)}
+.ctx .cb{padding:12px 16px 14px;display:grid;gap:10px}
+.ctx .cn{padding:0 16px 14px;font-size:13px;color:var(--ink-2)}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px}
+.wall{border-radius:14px;padding:16px 8px 10px;display:flex;justify-content:space-around;gap:4px}
+.wall.dk{background:linear-gradient(165deg,#0F1419,#1C2833)}
+.wall.lt{background:linear-gradient(165deg,#E8EDF2,#C5D1DC)}
+.app{display:grid;justify-items:center;gap:5px;width:58px}
+.app small{font-size:10.5px;line-height:1;color:#F2F6F9}
+.wall.lt .app small{color:#16222C}
+.nb{display:block;width:54px;height:54px;border-radius:var(--r)}
+.nb0{background:linear-gradient(160deg,#5F8DFF,#3A5FD0)}
+.nb2{background:linear-gradient(160deg,#FFD25C,#F0A12A)}
+.nb3{background:linear-gradient(160deg,#F4F6F8,#CFD6DD)}
+.wall .app:nth-child(n){min-width:0}
+.appbg{border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:10px}
+.appbg.dk{background:#0F1419;color:#E8EEF4}
+.appbg.lt{background:#D9E1E9;color:#0E1822}
+.wm{font:700 19px var(--font-head);letter-spacing:-.01em}
+.appbg .grow{flex:1}
+.dotx{width:30px;height:30px;border-radius:50%;background:currentColor;opacity:.13}
+.tabs{border-radius:12px;padding:10px 10px 0;display:flex;gap:6px;align-items:flex-end}
+.tabs.lt{background:#DDE3E8}
+.tabs.dk{background:#1F2428}
+.tab{display:flex;align-items:center;gap:8px;padding:9px 14px;font-size:13px;line-height:1;border-radius:10px 10px 0 0;white-space:nowrap}
+.tabs.lt .tab{background:#fff;color:#1c2227}
+.tabs.dk .tab{background:#35393E;color:#E8EAED}
+.tab.ghost{opacity:.55;background:transparent!important}
+.store{display:flex;gap:16px;align-items:center;padding:6px 0}
+.store b{font:700 20px var(--font-head);display:block}
+.store span{display:block;font-size:13.5px;color:var(--ink-2)}
+.store .btn{min-height:36px;margin-top:8px;padding:0 20px;border-radius:999px}
+.row3{display:flex;gap:14px;justify-content:space-around;align-items:flex-end}
+.row3 figure{margin:0;display:grid;justify-items:center;gap:7px;font-size:12px;color:var(--ink-2);text-align:center}
+.plate{border-radius:14px;padding:14px 10px 10px}
+.plate.ios{background:linear-gradient(160deg,#5B6B8A,#2E3A55)}
+.plate.ios figure{color:#F2F6F9}
+.status{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 14px;border-radius:10px;font-size:13px}
+.status.dk{background:#15191D;color:#fff}
+.status.lt{background:#F1F3F4;color:#1B1F23}
+.status .tiny{display:flex;gap:10px;align-items:center}
+.sil{display:inline-block;line-height:0}
+.sil svg{display:block;width:100%;height:100%}
+
+/* contraste */
+.tblwrap{overflow-x:auto;margin-top:18px;border:1px solid var(--line);border-radius:16px;background:var(--surface)}
+.tbl{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+.tbl th{font-size:11.5px;font-weight:600;color:var(--ink-2);text-align:left;padding:12px 8px 8px;border-bottom:1px solid var(--line-2);line-height:1.2}
+.tbl td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl tr:last-child td{border-bottom:0}
+.tbl tbody tr{cursor:pointer}
+.tbl tbody tr.on{background:color-mix(in srgb,var(--brand) 11%,transparent)}
+.tbl td:first-child{font-weight:600;line-height:1.25}
+.tbl td:first-child .nm{display:flex;gap:8px;align-items:flex-start}
+.tbl td:first-child i{display:block;width:20px;height:20px;border-radius:6px;flex:none}
+.badge{display:block;width:max-content;margin:3px 0 0;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700;line-height:1.3}
+@media (min-width:700px){.tbl{font-size:14.5px}.tbl th,.tbl td{padding:12px 14px}.badge{display:inline-block;margin:0 0 0 8px}}
+.badge.ok{background:var(--ok-bg);color:var(--ok)}
+.badge.mid{background:var(--mid-bg);color:var(--mid)}
+.badge.bad{background:var(--bad-bg);color:var(--bad)}
+.note{font-size:13.5px;color:var(--ink-2);margin-top:12px;max-width:80ch}
+
+/* comparar */
+.favs{display:flex;gap:16px;overflow-x:auto;padding:4px 2px 12px;margin-top:18px}
+.fav{flex:none;width:176px;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:14px;display:grid;gap:10px;justify-items:start}
+.fav-ico{border:0;background:none;padding:0;cursor:pointer}
+.fav-row{display:flex;gap:10px;align-items:flex-end}
+.fav-t{font-size:13px;line-height:1.3}
+.empty{font-size:14px;color:var(--ink-2);align-self:center;max-width:36ch}
+
+/* pesquisa */
+details.res{border-top:1px solid var(--line-2);padding-top:18px}
+details.res summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px}
+details.res summary::-webkit-details-marker{display:none}
+details.res summary h2{margin:0}
+details.res summary::after{content:"Abrir";font-size:14px;font-weight:600;color:var(--brand)}
+details.res[open] summary::after{content:"Fechar"}
+.src{display:grid;gap:0;margin-top:18px}
+.src div{display:grid;gap:4px;padding:14px 0;border-top:1px solid var(--line)}
+.src dt{font-weight:700}
+.src dd{margin:0;color:var(--ink-2);font-size:15px;max-width:78ch}
+footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line-2);color:var(--ink-2);font-size:14.5px;max-width:70ch}
+@media (prefers-reduced-motion:no-preference){.btn,.seg button{transition:background-color .15s,border-color .15s,color .15s}}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <filter id="f-prot"><feColorMatrix type="matrix" values="0.152286 1.052583 -0.204868 0 0  0.114503 0.786281 0.099216 0 0  -0.003882 -0.048116 1.051998 0 0  0 0 0 1 0"/></filter>
+    <filter id="f-deut"><feColorMatrix type="matrix" values="0.367322 0.860646 -0.227968 0 0  0.280085 0.672501 0.047413 0 0  -0.011820 0.042940 0.968881 0 0  0 0 0 1 0"/></filter>
+    <filter id="f-trit"><feColorMatrix type="matrix" values="1.255528 -0.076749 -0.178779 0 0  -0.078411 0.930809 0.147602 0 0  0.004733 0.691367 0.303900 0 0  0 0 0 1 0"/></filter>
+  </defs>
+</svg>
+
+<div class="wrap">
+
+<header>
+  <h1>Logo sem nota musical</h1>
+  <p class="lede">Oito ideias novas e o logo atual, em sete paletas, com teste de tamanho pequeno, contraste e daltonismo. Nada de nota: cada desenho tem um símbolo só e um ponto verde.</p>
+  <p class="howto"><b>Como usar:</b> veja as 3 apostas logo abaixo; para mexer, toque numa combinação na bancada e tudo muda junto. Quando escolher, me diga o código (por exemplo <span class="code">4B</span>).</p>
+  <noscript><p class="howto">Esta página precisa de JavaScript para desenhar os logos.</p></noscript>
+</header>
+
+<section id="melhorar" aria-labelledby="h-melhorar">
+  <h2 id="h-melhorar">O que eu mudaria</h2>
+  <p class="sub">O que parecia errado no logo de hoje, e o que cada proposta daqui faz diferente.</p>
+  <ol class="why">
+    <li><b>Um símbolo só.</b>A nota ao lado do mostrador eram dois desenhos competindo, por isso pareciam separados. Aqui cada proposta tem uma ideia única e um único ponto verde.</li>
+    <li><b>Traço grosso.</b>Em 16 a 32 px o traço fino some (o guia da Apple manda evitar linhas finas). Os traços daqui têm de 6% a 10% do lado.</li>
+    <li><b>Fundo de tom médio, não escuro.</b>O fundo atual tem só <b class="num" style="display:inline" data-calc="G.dark.min"></b> de contraste com o fundo escuro do app: some. O petróleo que você aprovou chega a <b class="num" style="display:inline" data-calc="A.dark.top"></b> no alto do degradê, mas cai para <b class="num" style="display:inline" data-calc="A.dark.bot"></b> embaixo. A paleta B encurta o degradê e passa de 3:1 nas duas pontas, em tela escura e clara.</li>
+    <li><b>Um verde só, no lugar certo.</b>O verde é o &ldquo;afinado&rdquo;. Ele precisa continuar aparecendo em cinza, em daltonismo e com o ícone desfocado (use a barra &ldquo;Visão&rdquo; da bancada).</li>
+    <li><b>Tudo dentro do círculo central.</b>O Android corta a borda dos ícones. O desenho cabe em cerca de 61% do lado; a linha tracejada mostra essa zona e &ldquo;Alinhamento&rdquo; mostra o centro de cada desenho. O logo de hoje ocupa 66% do lado e tem o centro 2,7 abaixo do meio (escolha a linha 0 na bancada e ligue &ldquo;Alinhamento&rdquo;); os novos ficam entre 45% e 60% e a menos de 1 do meio.</li>
+    <li><b>Pronto para uma cor só.</b>O ícone temático do Android 13+ e o modo tingido do iOS usam só silhueta. Em &ldquo;Na tela&rdquo; cada desenho aparece nessas versões.</li>
+  </ol>
+</section>
+
+<section id="apostas" aria-labelledby="h-apostas">
+  <h2 id="h-apostas">Minhas 3 apostas</h2>
+  <p class="sub">As combinações que eu levaria adiante. Cada uma aparece em 96, 56, 32 e 16 px.</p>
+  <div class="bets" id="bets"></div>
+</section>
+
+<section id="lab" aria-labelledby="h-lab">
+  <h2 id="h-lab">Bancada</h2>
+  <p class="sub">Escolha uma ideia (linha) e uma paleta (coluna). Os testes abaixo valem para a combinação marcada.</p>
+
+  <div class="bar" role="toolbar" aria-label="Opções de visualização">
+    <div class="seg" id="seg-view" role="group" aria-label="Visão"><span>Visão</span>
+      <button type="button" data-view="normal" aria-pressed="true">Normal</button>
+      <button type="button" data-view="gray" aria-pressed="false">Cinza</button>
+      <button type="button" data-view="prot" aria-pressed="false">Protanopia</button>
+      <button type="button" data-view="deut" aria-pressed="false">Deuteranopia</button>
+      <button type="button" data-view="trit" aria-pressed="false">Tritanopia</button>
+      <button type="button" data-view="blur" aria-pressed="false">Desfoque</button>
+    </div>
+    <div class="seg" id="seg-mask" role="group" aria-label="Máscara"><span>Máscara</span>
+      <button type="button" data-mask="ios" aria-pressed="true">iOS</button>
+      <button type="button" data-mask="play" aria-pressed="false">Play</button>
+      <button type="button" data-mask="circle" aria-pressed="false">Círculo</button>
+      <button type="button" data-mask="square" aria-pressed="false">Quadrado</button>
+    </div>
+  </div>
+  <p class="note" id="view-note"></p>
+
+  <div class="labgrid">
+    <div class="pv">
+      <div class="big-wrap"><span class="ico" id="big"></span></div>
+      <div class="pv-meta">
+        <div><span class="code" id="pv-code"></span></div>
+        <h3 id="pv-name"></h3>
+        <p class="pv-pal" id="pv-pal"></p>
+        <p class="dim" id="pv-idea"></p>
+        <p class="dim" id="pv-risk"></p>
+        <dl class="measures" id="pv-measures"></dl>
+        <div class="chk">
+          <label><input type="checkbox" id="t-safe"> Zona segura</label>
+          <label><input type="checkbox" id="t-align"> Alinhamento</label>
+        </div>
+        <div class="pv-actions">
+          <button type="button" class="btn" id="b-fav">Guardar para comparar</button>
+          <button type="button" class="btn" id="b-copy">Copiar SVG</button>
+        </div>
+        <p class="toast" id="toast" role="status" aria-live="polite"></p>
+        <div id="copybox"><textarea id="copyta" readonly aria-label="Código SVG"></textarea></div>
+      </div>
+    </div>
+    <div class="mxwrap">
+      <div class="matrix" id="matrix" role="group" aria-label="Combinações de ideia e paleta"></div>
+      <ul class="leg" id="leg"></ul>
+    </div>
+  </div>
+
+  <h2 style="margin-top:56px" id="h-tam">Tamanhos reais</h2>
+  <p class="sub">É assim que o ícone aparece de verdade. Se ele só funciona grande, não serve.</p>
+  <div class="sz" id="sizes"></div>
+
+  <h2 style="margin-top:56px" id="h-tela">Na tela</h2>
+  <p class="sub">O mesmo ícone em lugares reais, inclusive as versões de uma cor.</p>
+  <div class="ctxgrid" id="ctx"></div>
+
+  <h2 style="margin-top:56px" id="h-con">Contraste das paletas</h2>
+  <p class="sub">Medido com a fórmula da WCAG, no pior ponto do degradê. Toque numa linha para escolher a paleta.</p>
+  <div class="tblwrap"><table class="tbl" id="tbl"></table></div>
+  <p class="note"><b>Desenho</b> é a cor principal sobre o fundo do ícone; <b>acento</b> é o destaque (o verde, ou a cor que faz o papel dele); <b>tela escura</b> e <b>tela clara</b> são o próprio ícone sobre #0F1419 (fundo do app e de telas escuras) e sobre #E3E9EF. Régua: <b>4,5:1 ótimo</b> · <b>3:1 ok</b> (o mínimo que a WCAG pede para gráficos) · abaixo disso fraco. Para logotipos a WCAG não exige nada; uso o número só para saber se ainda se enxerga.</p>
+
+  <h2 style="margin-top:56px" id="h-comp">Para comparar</h2>
+  <p class="sub">Guarde combinações com o botão da bancada e veja lado a lado, com o logo atual como referência.</p>
+  <div class="favs" id="favs"></div>
+</section>
+
+<section id="pesquisa">
+  <details class="res">
+    <summary><h2>O que a pesquisa diz</h2></summary>
+    <dl class="src">
+      <div><dt>Apple, Human Interface Guidelines: ícones de app</dt><dd>Um conceito simples como ponto focal, fundo liso ou em degradê simples, nada de linhas finas, cantos vivos ou texto, e o desenho centralizado porque a máscara corta. A arte é quadrada, sem cantos arredondados nem sombra ou brilho embutidos (o sistema aplica). Existem as variantes clara, escura e tingida, e as duas últimas precisam continuar legíveis. <a href="https://developer.apple.com/design/human-interface-guidelines/app-icons" target="_blank" rel="noopener">Abrir a fonte</a></dd></div>
+      <div><dt>Android: ícones adaptativos</dt><dd>Camadas de 108 dp, com zona segura de 66 dp no centro (um círculo de 66 dp nunca é cortado) e o logo entre 48 e 66 dp. Há uma camada monocromática opcional para os ícones temáticos do Android 13 em diante. <a href="https://developer.android.com/develop/ui/views/launch/icon_design_adaptive" target="_blank" rel="noopener">Abrir a fonte</a></dd></div>
+      <div><dt>Google Play: ícone da loja</dt><dd>512 × 512 px, PNG de 32 bits, até 1024 KB, quadrado inteiro: a loja é que arredonda e põe a sombra. Sem texto promocional no ícone. <a href="https://developer.android.com/google-play/resources/icon-design-specifications" target="_blank" rel="noopener">Abrir a fonte</a></dd></div>
+      <div><dt>Contraste (WCAG 2.2, critério 1.4.11)</dt><dd>3:1 para gráficos que a pessoa precisa entender. Logotipos são isentos, mas a régua serve para perguntar &ldquo;isso ainda se vê?&rdquo;. <a href="https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast.html" target="_blank" rel="noopener">Abrir a fonte</a></dd></div>
+      <div><dt>Testes de logotipo (vários guias de design)</dt><dd>Versão em tons de cinza, versão de 16 px (a do favicon), olhos semicerrados (desfoque) e simulação de daltonismo. É o que está na barra &ldquo;Visão&rdquo; e nos tamanhos reais.</dd></div>
+      <div><dt>Sobre ícones de música com uma nota só</dt><dd>Comentários da imprensa de design sobre o ícone do Apple Music (Creative Bloq, MacStories, MacRumors) apontaram que uma nota simples tem pouca personalidade e é pouco memorável. É opinião de crítica, não medição, mas é um motivo a mais para sair da nota.</dd></div>
+      <div><dt>O que eu não encontrei</dt><dd>Um levantamento de ícones de afinadores e metrônomos. Então a diferenciação aqui é argumento de princípio, não de dados. Antes de decidir, procure &ldquo;afinador&rdquo; e &ldquo;metrônomo&rdquo; nas lojas e veja o que se repete: se a sua escolha parecer uma das primeiras, vale trocar.</dd></div>
+    </dl>
+  </details>
+</section>
+
+<footer>
+  Os desenhos são provisórios, feitos em SVG para esta conversa. Quando você escolher, eu refino as curvas, gero o PNG, o ícone adaptativo do Android (com a camada de uma cor) e as versões escura e tingida do iOS, e troco o logo no app, na tela de boas-vindas e na loja.
+</footer>
+
+</div>
+
+<script>
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})};
+var f=function(n){return +(+n).toFixed(2)};
+
+/* ---------- cor ---------- */
+var hex2=function(h){return [1,3,5].map(function(i){return parseInt(h.slice(i,i+2),16)})};
+var toHex=function(a){return '#'+a.map(function(v){return Math.round(Math.max(0,Math.min(255,v))).toString(16).padStart(2,'0')}).join('').toUpperCase()};
+var mixHex=function(a,b,t){var A=hex2(a),B=hex2(b);return toHex(A.map(function(v,i){return v+(B[i]-v)*t}))};
+var lin=function(c){c/=255;return c<=.03928?c/12.92:Math.pow((c+.055)/1.055,2.4)};
+var lum=function(h){var c=hex2(h).map(lin);return .2126*c[0]+.7152*c[1]+.0722*c[2]};
+var ratio=function(a,b){var x=lum(a),y=lum(b);return (Math.max(x,y)+.05)/(Math.min(x,y)+.05)};
+var fmt=function(n){return n.toFixed(1).replace('.',',')+':1'};
+var grade=function(n){return n>=4.5?['ok','ótimo']:n>=3?['mid','ok']:['bad','fraco']};
+var WALL={dark:'#0F1419',light:'#E3E9EF'};
+
+/* ---------- desenho ---------- */
+var rad=function(d){return d*Math.PI/180};
+var pol=function(cx,cy,r,a){return [cx+r*Math.sin(rad(a)),cy-r*Math.cos(rad(a))]};
+var line=function(x1,y1,x2,y2,col,w){return '<line x1="'+f(x1)+'" y1="'+f(y1)+'" x2="'+f(x2)+'" y2="'+f(y2)+'" stroke="'+col+'" stroke-width="'+w+'" stroke-linecap="round"/>'};
+var path=function(d,col,w){return '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="'+w+'" stroke-linecap="round" stroke-linejoin="round"/>'};
+var dot=function(x,y,r,col){return '<circle cx="'+f(x)+'" cy="'+f(y)+'" r="'+r+'" fill="'+col+'"/>'};
+var arc=function(cx,cy,r,a0,a1,col,w){var p=pol(cx,cy,r,a0),q=pol(cx,cy,r,a1);return path('M'+f(p[0])+' '+f(p[1])+'A'+r+' '+r+' 0 '+(a1-a0>180?1:0)+' 1 '+f(q[0])+' '+f(q[1]),col,w)};
+function wave(x0,lam,k,A0,tau,y0){var x1=x0+lam*k/2,pts=[];for(var x=x0;x<=x1+.01;x+=.5){pts.push([x,y0-A0*Math.exp(-(x-x0)/tau)*Math.sin(2*Math.PI*(x-x0)/lam)])}return {d:'M'+pts.map(function(p){return f(p[0])+' '+f(p[1])}).join('L'),x1:x1}}
+function vib(x,y0,y1,A){var pts=[];for(var i=0;i<=40;i++){var t=i/40;pts.push([x+A*Math.sin(2*Math.PI*t),y0+(y1-y0)*t])}return 'M'+pts.map(function(p){return f(p[0])+' '+f(p[1])}).join('L')}
+
+var CON=[
+ {id:0,name:'Atual (nota)',short:'Atual',sw:8.5,ref:true,
+  idea:'O logo de hoje: mostrador verde com uma nota branca no centro. Fica aqui só para comparar.',
+  risk:'É o que a gente está deixando para trás.',
+  draw:function(c){return arc(50,60,29,-115,115,c.a,8.5)
+    +'<ellipse cx="45.5" cy="65.5" rx="8.8" ry="6.1" transform="rotate(-22 45.5 65.5)" fill="'+c.g+'"/>'
+    +line(53.1,64.5,53.1,38.5,c.g,4.2)+path('M53.1 38.5L58 41.8L61.7 47L60.2 53.5',c.g,4.2)}},
+ {id:1,name:'Diapasão',short:'Diapasão',sw:9.5,
+  idea:'O objeto que quer dizer “afinar”. Dois dentes brancos e o som vibrando em verde.',
+  risk:'É um símbolo clássico de afinação, então tende a lembrar outros apps; o que diferencia é o traço grosso e as ondas verdes.',
+  draw:function(c){return arc(50,40,25,-114,-66,c.a,7.5)+arc(50,40,25,66,114,c.a,7.5)
+    +path('M39 25V49A11 11 0 0 0 61 49V25',c.g,9.5)+path('M50 60V75',c.g,9.5)}},
+ {id:2,name:'Marcas e ponteiro',short:'Marcas',sw:7,
+  idea:'As marcas do afinador em leque e o ponteiro verde no centro: o “A” que você gostou, sem a nota.',
+  risk:'Mostrador com ponteiro é um símbolo bem conhecido de afinador, então tende a lembrar outros apps.',
+  draw:function(c){var cx=50,cy=62,s='';for(var i=0;i<7;i++){var a=-63+i*21,p=pol(cx,cy,22,a),q=pol(cx,cy,30,a);s+=line(p[0],p[1],q[0],q[1],c.s,6.5)}
+    return s+'<path d="M45.5 62L54.5 62L50 32Z" fill="'+c.a+'" stroke="'+c.a+'" stroke-width="3" stroke-linejoin="round"/>'+dot(cx,cy,7.5,c.g)}},
+ {id:3,name:'Mostrador e zona verde',short:'Mostrador',sw:10,
+  idea:'Um anel grosso com a zona verde no alto e o ponteiro apontando para ela: acertar o centro.',
+  risk:'Anel aberto com ponteiro pode lembrar botão de ligar ou de volume.',
+  draw:function(c){var cx=50,cy=54,r=25,t=pol(cx,cy,15,12);return arc(cx,cy,r,-135,135,c.s,10)+arc(cx,cy,r,-16,16,c.a,10)+line(cx,cy,t[0],t[1],c.g,7)+dot(cx,cy,7,c.g)}},
+ {id:4,name:'Onda que assenta',short:'Onda',sw:8,
+  idea:'O som oscila e se acerta: a onda perde força até virar uma linha verde reta, a linha do “afinado”.',
+  risk:'É mais larga que alta; em tamanho pequeno parece onda de áudio, e o verde final é o que diferencia.',
+  draw:function(c){var w=wave(24,24,3,30,20,55);return path(w.d,c.g,8)+path('M'+f(w.x1)+' 55H76',c.a,8)}},
+ {id:5,name:'Monograma N',short:'N',sw:9,
+  idea:'O N de Notemusic em traços grossos, com a diagonal verde como um ponteiro.',
+  risk:'Letra é o que melhor se lê pequeno, mas diz menos sobre o que o app faz.',
+  draw:function(c){return path('M33 32L67 68',c.a,9)+path('M33 68V32',c.g,9)+path('M67 68V32',c.g,9)}},
+ {id:6,name:'Cordas',short:'Cordas',sw:7,
+  idea:'Quatro cordas e uma vibrando em verde: a que está sendo afinada.',
+  risk:'Pequeno, vira “barras” ou equalizador; só fala com quem toca instrumento de corda.',
+  draw:function(c){var s='';[30,43,57,70].forEach(function(x,i){s+=i===2?'<path d="M57 27Q70 50 57 73Q44 50 57 27Z" fill="'+c.a+'" stroke="'+c.a+'" stroke-width="4" stroke-linejoin="round"/>':line(x,27,x,73,c.g,7)});return s}},
+ {id:7,name:'Metrônomo',short:'Metrônomo',sw:7,
+  idea:'O corpo do metrônomo com o pêndulo e o peso em verde.',
+  risk:'Fala de ritmo mais que de afinação.',
+  draw:function(c){return path('M33 76L41 35H59L67 76Z',c.g,7)+line(46,68,58,24,c.a,6)+dot(52,45,5.8,c.a)}},
+ {id:8,name:'Roda de 12 notas',short:'Roda de 12',sw:0,
+  idea:'As 12 notas da escala cromática em roda; o ponto verde é a nota em que você está afinado.',
+  risk:'Pode lembrar relógio ou carregamento; o verde fixo no alto é o que muda isso.',
+  draw:function(c){var s='';for(var i=0;i<12;i++){var p=pol(50,50,24.5,i*30);s+=dot(p[0],p[1],i===0?5.9:4.7,i===0?c.a:c.g)}return s}}
+];
+
+var PAL=[
+ {id:'A',name:'Petróleo',tag:'aprovada',note:'A que você gostou. O degradê escurece muito embaixo.',
+  bg:['#27758A','#174A5C'],g:'#FFFFFF',a:'#1FE68F',s:'#CFE3EA',
+  dk:{bg:['#0F2F3A','#091C24'],g:'#FFFFFF',a:'#1FE68F',s:'#9CC4D1'}},
+ {id:'B',name:'Petróleo ajustado',tag:'recomendada',note:'O mesmo petróleo com o degradê mais curto e menos escuro embaixo.',
+  bg:['#2D7790','#2A6F83'],g:'#FFFFFF',a:'#1FE68F',s:'#D5E9EF',
+  dk:{bg:['#0F2F3A','#091C24'],g:'#FFFFFF',a:'#1FE68F',s:'#9CC4D1'}},
+ {id:'C',name:'Claro',tag:'',note:'Fundo de gelo, desenho petróleo e verde mais fundo. Some em tela clara.',
+  bg:['#F7FBFC','#DCE8EE'],g:'#12414F',a:'#08925C',s:'#6F9AAA',
+  dk:{bg:['#17343F','#0C1D25'],g:'#EAF6F9',a:'#2BE59A',s:'#7FA6B4'}},
+ {id:'D',name:'Verde vivo',tag:'',note:'O verde do app como fundo. Chama atenção; lembra apps de streaming.',
+  bg:['#3BEFA9','#14C57D'],g:'#06303B',a:'#0B6075',s:'#0F5A55',
+  dk:{bg:['#0E3D33','#082A24'],g:'#8FF5CE',a:'#FFFFFF',s:'#2BA97A'}},
+ {id:'E',name:'Índigo',tag:'',note:'Outro matiz, para quem quiser sair do azul e do verde que o app já usa.',
+  bg:['#524FBA','#2E2C86'],g:'#FFFFFF',a:'#1FE68F',s:'#CBCAF5',
+  dk:{bg:['#25245F','#171644'],g:'#FFFFFF',a:'#1FE68F',s:'#A9A8E6'}},
+ {id:'F',name:'Âmbar',tag:'',note:'Quente e diferente. Cuidado: laranja já quer dizer “agudo” no afinador.',
+  bg:['#FFC94D','#FF9A2B'],g:'#1B2A31',a:'#0E5C70',s:'#6A4A1A',
+  dk:{bg:['#3A2A10','#241808'],g:'#FFD27A',a:'#7FD6E8',s:'#B8893A'}},
+ {id:'G',name:'Atual (escuro)',tag:'referência',note:'O fundo de hoje. Quase não se separa do fundo escuro do app.',
+  bg:['#17323C','#0A141C'],g:'#FFFFFF',a:'#1FE68F',s:'#8FB3C0',
+  dk:{bg:['#17323C','#0A141C'],g:'#FFFFFF',a:'#1FE68F',s:'#8FB3C0'}}
+];
+
+var VIEWS={
+ normal:'Como o ícone é de verdade.',
+ gray:'Só a luminosidade: o desenho tem que funcionar sem cor.',
+ prot:'Protanopia: vermelhos escurecem e verdes ficam amarelados. O destaque verde ainda aparece?',
+ deut:'Deuteranopia: verde e vermelho se confundem. O destaque ainda se separa do resto?',
+ trit:'Tritanopia: azul e verde se aproximam. O fundo ainda se separa do desenho?',
+ blur:'Olhos semicerrados: o formato geral ainda se reconhece? (desfoque de 3 px)'
+};
+var MASKS={ios:'22%',play:'30%',circle:'50%',square:'0%'};
+
+var BETS=[
+ {k:'2B',t:'Marcas e ponteiro, petróleo ajustado',
+  why:'É o “A” que você gostou (marcas, petróleo, branco, um verde) sem a nota: o ponteiro verde no centro faz o papel que a nota fazia, mas como parte do mostrador. Fica centrado e dentro da zona segura.',
+  care:'Mostrador com ponteiro é um símbolo bem conhecido de afinador, então tende a lembrar outros apps. A identidade vem da cor e do traço grosso. Se quiser algo mais encorpado na mesma família, veja a 3B.'},
+ {k:'1B',t:'Diapasão, petróleo ajustado',
+  why:'O diapasão é o objeto que quer dizer “afinar” sem precisar de explicação. A silhueta é forte, aguenta uma cor só e as ondas verdes dão o “vibrando”.',
+  care:'É um símbolo clássico de afinação, então tende a lembrar outros apps. Vale ver como ele fica ao lado dos concorrentes na loja.'},
+ {k:'4B',t:'Onda que assenta, petróleo ajustado',
+  why:'Conta a história do app: o som oscila e se acerta até virar a linha verde do “afinado”. É a ideia mais própria do Notemusic.',
+  care:'É mais larga que alta, então sobra espaço em cima e embaixo, e em 16 px lembra onda de áudio. O verde final é o que diferencia.'}
+];
+
+/* ---------- variantes de cor ---------- */
+function colorsFor(pal,mode){
+  if(mode==='dark')return pal.dk;
+  if(mode==='tint'){
+    var T='#A9DDEC',b=['#34393C','#1E2224'],gBright=lum(pal.g)>=lum(pal.a);
+    var hi=T,lo=mixHex(T,b[1],.4),so=mixHex(T,b[1],.62);
+    return {bg:b,g:gBright?hi:lo,a:gBright?lo:hi,s:so};
+  }
+  return pal;
+}
+function mono(col,bg){return {bg:[bg||col,bg||col],g:col,a:col,s:col}}
+
+var U=0;
+function svg(con,pal,o){
+  o=o||{};var c=o.colors||colorsFor(pal,o.mode||'light'),id='lg'+(++U),bg='';
+  if(!o.nobg)bg='<defs><linearGradient id="'+id+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+c.bg[0]+'"/><stop offset="1" stop-color="'+c.bg[1]+'"/></linearGradient></defs><rect width="100" height="100" fill="url(#'+id+')"/>';
+  return '<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="'+esc(con.name)+'">'+bg+'<g class="glyph">'+con.draw(c)+'</g></svg>';
+}
+function ico(con,pal,size,o){
+  o=o||{};var st='';
+  if(size)st+='width:'+size+'px;height:'+size+'px;';
+  if(o.r)st+='--r:'+o.r+';';
+  return '<span class="ico"'+(st?' style="'+st+'"':'')+'>'+svg(con,pal,o)+'</span>';
+}
+function sil(con,pal,size,col){return '<span class="sil" style="width:'+size+'px;height:'+size+'px">'+svg(con,pal,{nobg:true,colors:mono(col)})+'</span>'}
+function standalone(con,pal){
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+pal.bg[0]+'"/><stop offset="1" stop-color="'+pal.bg[1]+'"/></linearGradient></defs><rect width="100" height="100" fill="url(#g)"/>'+con.draw(pal)+'</svg>';
+}
+function metrics(p){
+  var mn=function(col){return Math.min.apply(null,p.bg.map(function(b){return ratio(col,b)}))};
+  return {g:mn(p.g),a:mn(p.a),s:mn(p.s),
+    dark:Math.min.apply(null,p.bg.map(function(b){return ratio(b,WALL.dark)})),
+    light:Math.min.apply(null,p.bg.map(function(b){return ratio(b,WALL.light)}))};
+}
+function calc(spec){
+  var parts=spec.split('.'),p=PAL.filter(function(x){return x.id===parts[0]})[0],kind=parts[1],stop=parts[2]||'min';
+  var vals=p.bg.map(function(b){return kind==='dark'||kind==='light'?ratio(b,WALL[kind]):ratio(p[{glyph:'g',accent:'a',soft:'s'}[kind]],b)});
+  return stop==='top'?vals[0]:stop==='bot'?vals[1]:Math.min.apply(null,vals);
+}
+function key(k){var p=PAL.filter(function(x){return x.id===k.slice(-1)})[0],c=CON[+k.slice(0,-1)];return [c,p]}
+
+/* ---------- estado ---------- */
+var S={c:2,p:'B',mask:'ios',view:'normal',safe:false,align:false,favs:[]};
+var store={
+ get:function(){try{return JSON.parse(localStorage.getItem('logolab.v1')||'null')}catch(e){return null}},
+ set:function(){try{localStorage.setItem('logolab.v1',JSON.stringify(S))}catch(e){}}
+};
+(function(){var o=store.get();if(o&&typeof o==='object'){['c','p','mask','safe','align','favs'].forEach(function(k){if(o[k]!==undefined)S[k]=o[k]});}
+ if(!CON[S.c])S.c=2;if(!PAL.some(function(p){return p.id===S.p}))S.p='B';if(!MASKS[S.mask])S.mask='ios';if(!Array.isArray(S.favs))S.favs=[];
+ S.favs=S.favs.filter(function(k){return typeof k==='string'&&/^[0-8][A-G]$/.test(k)}).slice(0,6)})();
+function sel(){return {con:CON[S.c],pal:PAL.filter(function(p){return p.id===S.p})[0]}}
+function curKey(){return S.c+S.p}
+
+/* ---------- blocos ---------- */
+function renderBets(){
+  $('#bets').innerHTML=BETS.map(function(b){
+    var kp=key(b.k),con=kp[0],pal=kp[1],m=metrics(pal);
+    return '<article class="bet"><div class="row">'+ico(con,pal,96)+ico(con,pal,56)+ico(con,pal,32)+ico(con,pal,16)+'</div>'
+     +'<h3><span class="code">'+b.k+'</span>'+esc(b.t)+'</h3>'
+     +'<p><b>Por quê.</b> '+esc(b.why)+'</p><p><b>Cuidado.</b> '+esc(b.care)+'</p>'
+     +'<p class="stats">Glifo '+fmt(m.g)+' · acento '+fmt(m.a)+' · tela escura '+fmt(m.dark)+' · tela clara '+fmt(m.light)+'</p>'
+     +'<button type="button" class="btn pri" data-sel="'+b.k+'" data-go="1">Ver na bancada</button></article>';
+  }).join('');
+}
+
+function renderMatrix(){
+  var h='<span></span>'+PAL.map(function(p){
+    return '<button type="button" class="mx-col'+(p.tag==='referência'?' ref':'')+'" data-p="'+p.id+'" aria-label="Paleta '+p.id+', '+esc(p.name)+'"><i style="background:linear-gradient(180deg,'+p.bg[0]+','+p.bg[1]+')"></i>'+p.id+'</button>';
+  }).join('');
+  CON.forEach(function(c,ci){
+    if(ci===1)h+='<span class="mx-sep"></span>';
+    h+='<button type="button" class="mx-row'+(c.ref?' ref':'')+'" data-c="'+c.id+'"><b>'+c.id+'</b><span>'+esc(c.short)+'</span></button>';
+    PAL.forEach(function(p){
+      h+='<button type="button" class="mx-cell" data-sel="'+c.id+p.id+'" aria-label="'+c.id+p.id+': '+esc(c.name)+' em '+esc(p.name)+'">'+ico(c,p,0)+'</button>';
+    });
+  });
+  $('#matrix').innerHTML=h;
+  $('#leg').innerHTML=PAL.map(function(p){
+    return '<li><i style="background:linear-gradient(180deg,'+p.bg[0]+','+p.bg[1]+')"></i><div><b>'+p.id+' · '+esc(p.name)+(p.tag?' ('+p.tag+')':'')+'</b><span>'+esc(p.note)+'</span></div></li>';
+  }).join('');
+}
+
+function renderBig(){
+  var s=sel(),con=s.con,pal=s.pal;
+  $('#big').innerHTML=svg(con,pal);
+  var el=$('#big svg'),g=el.querySelector('.glyph'),bb=g.getBBox(),pad=con.sw/2;
+  var w=bb.width+con.sw,h=bb.height+con.sw,cx=bb.x+bb.width/2,cy=bb.y+bb.height/2,size=Math.max(w,h);
+  var ov='';
+  if(S.safe)ov+='<g fill="none" stroke-width=".9"><circle cx="50" cy="50" r="30.56" stroke="#fff" stroke-opacity=".95" stroke-dasharray="2.4 2"/><circle cx="50" cy="50" r="30.56" stroke="#000" stroke-opacity=".4" stroke-dasharray="2.4 2" stroke-dashoffset="2.2"/></g>';
+  if(S.align)ov+='<g fill="none" stroke-width=".5"><path d="M50 0V100M0 50H100" stroke="#FF2D95"/><rect x="'+f(bb.x-pad)+'" y="'+f(bb.y-pad)+'" width="'+f(w)+'" height="'+f(h)+'" stroke="#FFD400" stroke-dasharray="1.6 1.2"/><circle cx="'+f(cx)+'" cy="'+f(cy)+'" r="1.2" fill="#FFD400" stroke="none"/></g>';
+  if(ov)el.insertAdjacentHTML('beforeend',ov);
+  var dx=cx-50,dy=cy-50,off=Math.max(Math.abs(dx),Math.abs(dy));
+  var sz=size>=44&&size<=61?'ok':'mid',al=off<=1?'ok':off<=2.5?'mid':'bad';
+  var n1=function(v){return v.toFixed(1).replace('.',',')};
+  $('#pv-measures').innerHTML=
+   '<div><dt>Tamanho do desenho</dt><dd class="st-'+sz+'">'+Math.round(size)+'% do lado</dd></div>'
+   +'<div><dt>Ideal no Android</dt><dd>44% a 61%</dd></div>'
+   +'<div><dt>Centro fora do meio</dt><dd class="st-'+al+'">'+(dx>=0?'+':'')+n1(dx)+' · '+(dy>=0?'+':'')+n1(dy)+'</dd></div>';
+}
+
+function renderMeta(){
+  var s=sel(),con=s.con,pal=s.pal,k=curKey();
+  $('#pv-code').textContent=k;
+  $('#pv-name').textContent=con.name;
+  $('#pv-pal').textContent='Paleta '+pal.id+' · '+pal.name+(pal.tag?' ('+pal.tag+')':'');
+  $('#pv-idea').textContent=con.idea;
+  $('#pv-risk').textContent='Cuidado: '+con.risk;
+  var fav=S.favs.indexOf(k)>=0;
+  $('#b-fav').textContent=fav?'Guardado (tirar)':'Guardar para comparar';
+  $('#b-fav').classList.toggle('on',fav);
+  $('#t-safe').checked=!!S.safe;$('#t-align').checked=!!S.align;
+}
+
+function renderSelection(){
+  $$('.mx-cell').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-sel')===curKey())});
+  $$('.mx-row').forEach(function(b){b.classList.toggle('on',+b.getAttribute('data-c')===S.c)});
+  $$('.mx-col').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-p')===S.p)});
+  $$('#tbl tbody tr').forEach(function(r){r.classList.toggle('on',r.getAttribute('data-p')===S.p)});
+}
+
+function renderSizes(){
+  var s=sel(),sizes=[[16,'aba do navegador'],[24,'notificação'],[32,'barra do app'],[48,'lista'],[64,'tela inicial'],[96,'loja'],[144,'grande']];
+  $('#sizes').innerHTML=sizes.map(function(z){return '<figure>'+ico(s.con,s.pal,z[0])+'<figcaption><b>'+z[0]+' px</b>'+z[1]+'</figcaption></figure>'}).join('');
+}
+
+function card(title,body,note){return '<article class="ctx"><h4>'+title+'</h4><div class="cb">'+body+'</div>'+(note?'<p class="cn">'+note+'</p>':'')+'</article>'}
+function renderCtx(){
+  var s=sel(),con=s.con,pal=s.pal,out=[];
+  var wall=function(cls){return '<div class="wall '+cls+'">'+['Agenda','Notemusic','Câmera','Relógio'].map(function(n,i){
+    return i===1?'<div class="app">'+ico(con,pal,54)+'<small>'+n+'</small></div>':'<div class="app"><span class="nb nb'+i+'"></span><small>'+n+'</small></div>'}).join('')+'</div>'};
+  out.push(card('Tela inicial, escura e clara','<div class="two">'+wall('dk')+wall('lt')+'</div>','Ao lado de outros ícones. Se o seu some em uma das duas, o fundo está perto demais da tela.'));
+  var bar=function(cls){return '<div class="appbg '+cls+'">'+ico(con,pal,34)+'<span class="wm">Notemusic</span><span class="grow"></span><span class="dotx"></span><span class="dotx"></span></div>'};
+  out.push(card('Dentro do app',bar('dk')+bar('lt'),'Sobre os fundos reais do app: #0F1419 e #D9E1E9.'));
+  var tabs=function(cls){return '<div class="tabs '+cls+'"><div class="tab">'+ico(con,pal,16)+'Notemusic</div><div class="tab ghost">Nova guia</div></div>'};
+  out.push(card('Aba do navegador (16 px)',tabs('lt')+tabs('dk'),'O tamanho mais cruel: aqui o desenho vira mancha ou continua legível.'));
+  out.push(card('Loja de apps','<div class="store">'+ico(con,pal,84,{r:'30%'})+'<div><b>Notemusic</b><span>De músico para músico</span><button type="button" class="btn pri" tabindex="-1">Instalar</button></div></div>','A loja aplica o arredondamento dela (cerca de 30% no Google Play).'));
+  var ios=function(m,n){return '<figure>'+ico(con,pal,64,{mode:m,r:'22%'})+n+'</figure>'};
+  out.push(card('iOS 18: claro, escuro e tingido','<div class="plate ios"><div class="row3">'+ios('light','Claro')+ios('dark','Escuro')+ios('tint','Tingido')+'</div></div>','O tingido é só luminosidade com uma cor por cima: o verde precisa continuar diferente do branco.'));
+  var th=function(bg,fg,n){return '<figure>'+'<span class="ico" style="width:64px;height:64px;--r:50%">'+svg(con,pal,{colors:mono(fg,bg)})+'</span>'+n+'</figure>'};
+  out.push(card('Android 13+: ícone temático','<div class="row3">'+th('#CFE5EC','#0A4254','Claro')+th('#2C4A55','#BFE6F3','Escuro')+'</div>','Uma cor só: tudo que era verde e branco vira a mesma cor. O desenho ainda se entende?'));
+  var st=function(cls,col){return '<div class="status '+cls+'"><span>9:41</span><span class="tiny">'+sil(con,pal,24,col)+sil(con,pal,16,col)+'</span></div>'};
+  out.push(card('Notificação e barra de status',st('dk','#FFFFFF')+st('lt','#1B1F23'),'Silhueta de uma cor em 24 e 16 px, sem fundo.'));
+  $('#ctx').innerHTML=out.join('');
+}
+
+function renderTable(){
+  var rows=PAL.map(function(p){
+    var m=metrics(p),cell=function(v){var g=grade(v);return '<td>'+fmt(v)+'<span class="badge '+g[0]+'">'+g[1]+'</span></td>'};
+    return '<tr data-p="'+p.id+'"><td><span class="nm"><i style="background:linear-gradient(180deg,'+p.bg[0]+','+p.bg[1]+')"></i><span>'+p.id+' · '+esc(p.name)+'</span></span></td>'+cell(m.g)+cell(m.a)+cell(m.dark)+cell(m.light)+'</tr>';
+  }).join('');
+  $('#tbl').innerHTML='<thead><tr><th>Paleta</th><th>Desenho</th><th>Acento</th><th>Tela escura</th><th>Tela clara</th></tr></thead><tbody>'+rows+'</tbody>';
+}
+
+function renderFavs(){
+  var cardFav=function(k,ref){
+    var kp=key(k),con=kp[0],pal=kp[1];
+    return '<div class="fav"><button type="button" class="fav-ico" data-sel="'+k+'" aria-label="Abrir '+k+' na bancada">'+ico(con,pal,96)+'</button>'
+     +'<div class="fav-row">'+ico(con,pal,48)+ico(con,pal,32)+ico(con,pal,16)+'</div>'
+     +'<div class="fav-t"><span class="code">'+k+'</span> '+esc(con.short)+' · '+esc(pal.name)+'</div>'
+     +(ref?'<span class="dim" style="font-size:12px">referência</span>':'<button type="button" class="lnk" data-unfav="'+k+'">tirar</button>')+'</div>';
+  };
+  var h=cardFav('0G',true)+S.favs.map(function(k){return cardFav(k,false)}).join('');
+  if(!S.favs.length)h+='<p class="empty">Ainda não há combinações guardadas. Use &ldquo;Guardar para comparar&rdquo; na bancada (até 6).</p>';
+  $('#favs').innerHTML=h;
+}
+
+function applyView(){
+  var lab=$('#lab');
+  ['gray','prot','deut','trit','blur'].forEach(function(v){lab.classList.toggle('v-'+v,S.view===v)});
+  lab.style.setProperty('--r',MASKS[S.mask]);
+  $$('#seg-view button').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-view')===S.view?'true':'false')});
+  $$('#seg-mask button').forEach(function(b){b.setAttribute('aria-pressed',b.getAttribute('data-mask')===S.mask?'true':'false')});
+  $('#view-note').textContent=VIEWS[S.view];
+}
+
+function renderAll(){renderMeta();renderBig();renderSelection();renderSizes();renderCtx();renderFavs();applyView();store.set()}
+
+function select(k,go){
+  var kp=key(k);S.c=kp[0].id;S.p=kp[1].id;renderAll();
+  if(go){var t=$('#lab');if(t&&t.scrollIntoView)t.scrollIntoView({behavior:'smooth',block:'start'})}
+}
+
+function say(msg){var t=$('#toast');t.textContent=msg;clearTimeout(say.t);say.t=setTimeout(function(){t.textContent=''},2600)}
+function copySvg(){
+  var s=sel(),code=standalone(s.con,s.pal);
+  var fallback=function(){var box=$('#copybox'),ta=$('#copyta');box.style.display='block';ta.value=code;ta.focus();ta.select();say('Selecione e copie (Ctrl+C).')};
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(code).then(function(){say('SVG copiado.')},fallback)}
+    else fallback();
+  }catch(e){fallback()}
+}
+
+/* ---------- eventos ---------- */
+document.addEventListener('click',function(e){
+  var t=e.target.closest('[data-sel],[data-c],[data-p],[data-view],[data-mask],[data-unfav],#b-fav,#b-copy');
+  if(!t)return;
+  if(t.hasAttribute('data-sel')){select(t.getAttribute('data-sel'),t.hasAttribute('data-go'));return}
+  if(t.hasAttribute('data-unfav')){var k=t.getAttribute('data-unfav');S.favs=S.favs.filter(function(x){return x!==k});renderMeta();renderFavs();store.set();return}
+  if(t.classList.contains('mx-row')){S.c=+t.getAttribute('data-c');renderAll();return}
+  if(t.classList.contains('mx-col')){S.p=t.getAttribute('data-p');renderAll();return}
+  if(t.tagName==='TR'||t.closest('tr')&&t.hasAttribute('data-p')){S.p=t.getAttribute('data-p');renderAll();return}
+  if(t.hasAttribute('data-view')){S.view=t.getAttribute('data-view');applyView();store.set();return}
+  if(t.hasAttribute('data-mask')){S.mask=t.getAttribute('data-mask');applyView();store.set();return}
+  if(t.id==='b-fav'){
+    var kk=curKey(),i=S.favs.indexOf(kk);
+    if(i>=0)S.favs.splice(i,1);else if(S.favs.length>=6){say('Já são 6 guardadas: tire uma antes.');return}else S.favs.push(kk);
+    renderMeta();renderFavs();store.set();return;
+  }
+  if(t.id==='b-copy'){copySvg();return}
+});
+document.addEventListener('change',function(e){
+  if(e.target.id==='t-safe'){S.safe=e.target.checked;renderBig();store.set()}
+  if(e.target.id==='t-align'){S.align=e.target.checked;renderBig();store.set()}
+});
+
+/* ---------- início ---------- */
+renderBets();renderMatrix();renderTable();
+$$('[data-calc]').forEach(function(el){el.textContent=fmt(calc(el.getAttribute('data-calc')))});
+renderAll();
+})();
+</script>
