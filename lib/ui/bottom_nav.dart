@@ -13,7 +13,7 @@ class BottomNavItem {
 }
 
 /// Barra de baixo: todos os nomes ficam à vista; a aba atual ganha uma linha verde no topo,
-/// uma cápsula atrás do ícone e o nome em destaque. O ponto laranja avisa que há novidade.
+/// uma cápsula neutra atrás do ícone e o nome em destaque. O ponto laranja avisa que há novidade.
 class BottomNav extends StatelessWidget {
   final List<BottomNavItem> items;
   final int selected;
@@ -53,7 +53,7 @@ class _Item extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = on ? AppColors.accent : AppColors.textDim;
+    final color = on ? AppColors.text : AppColors.textDim;
     return Semantics(
       button: true,
       selected: on,
@@ -83,7 +83,7 @@ class _Item extends StatelessWidget {
                   width: 52,
                   height: 28,
                   decoration: BoxDecoration(
-                    color: on ? AppColors.accent.withValues(alpha: 0.2) : Colors.transparent,
+                    color: on ? AppColors.text.withValues(alpha: 0.1) : Colors.transparent,
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(item.icon, size: 22, color: color),
