@@ -8,6 +8,7 @@ import 'hub_section.dart' show shareTeacherInvite;
 import 'safe_input.dart';
 import '../ai/coach_ai.dart';
 import 'design_system.dart';
+import 'gamify_ui.dart' show StudyShareCard;
 import 'dictation_button.dart';
 import 'dart:async';
 import 'markdown_lite.dart';
@@ -122,6 +123,7 @@ class StudentPage extends StatelessWidget {
             child: app.fichaNovaOn ? _novaFicha(context, s, sum, tips) : ListView(
               padding: Ds.screen,
               children: [
+                StudyShareCard(app: app, student: s),
                 ..._linkNotices(context, s),
                 AppCard(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -361,6 +363,7 @@ class StudentPage extends StatelessWidget {
     return ListView(
       padding: Ds.screen,
       children: [
+        StudyShareCard(app: app, student: s),
         _box(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             StudentIdentity(app: app, student: s),

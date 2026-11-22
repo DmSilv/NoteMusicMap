@@ -20,6 +20,7 @@ import 'open_slots_page.dart';
 import 'hello_bar.dart';
 import 'link_bar.dart' show confirmTeacherLink;
 import 'meeting_link.dart';
+import 'gamify_ui.dart' show StudyRankCard;
 import 'study_hub.dart';
 import 'library_page.dart' show openLibrary;
 import 'materials_sheet.dart';
@@ -77,6 +78,7 @@ class HubSection extends StatelessWidget {
       // Quem chegou sozinho vê aqui o mesmo "Seu primeiro passo" do Afinador (some ao concluir ou ao esconder).
       if (!isT && app.firstStepVisible) Padding(padding: const EdgeInsets.only(top: Ds.s12), child: FirstStepCard(app: app)),
       if (!isT) ...[const SizedBox(height: Ds.s12), StudyHubCard(app: app)],
+      if (isT) ...[const SizedBox(height: Ds.s12), StudyRankCard(app: app)],
       const SizedBox(height: Ds.gap),
       // Tela larga (tablet ou computador em pé): o bloco de alunos e a organização ficam lado a lado, em vez de esticar na largura toda.
       if (isT && wide && tiles.length == 1)

@@ -302,6 +302,8 @@ Precisa do Upstash Redis. Sem ele devolve 503 e o app segue só neste aparelho.
 | `mi_get` | — |
 | `photo_put` | foto do perfil (só aparece para quem está vinculado e só se a pessoa escolheu mostrar) photo_put { photo }  -> guarda (ou, vazia, apaga) a foto e avisa quem está vinculado (a versão "pv" vai em cada vínculo) photo_get { other }  -> a foto de quem está vinculado a você (nunca a de um desconhecido) |
 | `photo_get` | — |
+| `study_put` | Resumo da semana de estudo: o aluno que escolheu compartilhar guarda um texto pequeno (números e até 3 notas); o professor lê o dos seus alunos. Sem áudio, sem nome além do apelido que o vínculo já tem. |
+| `study_get` | — |
 | `rev` | Consulta barata: o perfil já foi lido na autenticação, então não custa nenhum comando a mais. lr = aulas novas, dr = tarefas marcadas pelos alunos, kr = vínculos mudaram. |
 | `rq_put` | msg_put { x }   -> resposta curta (só depois de o administrador escrever; limites por hora e por sequência) msg_ok { yes }  -> aceita ou recusa ser citado pelo apelido no boletim rq_put { x, v?, p? } -> relato de problema para o administrador (não abre conversa; ele decide abrir ou fechar) |
 | `msg_get` | — |

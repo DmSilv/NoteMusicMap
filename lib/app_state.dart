@@ -3574,6 +3574,9 @@ class AppState extends ChangeNotifier {
       }
       linkOnline = true;
       _supportNotice(r);
+      // Resumo de estudo: o aluno envia o dele (se escolheu) e o professor baixa os dos alunos; os dois têm limite de tempo.
+      unawaited(pushStudyShare());
+      unawaited(loadStudyShares());
       // 3) Envia o que só existe aqui (cadastrado sem conexão ou antes do vínculo online).
       var sent = false;
       final srvStudents = {for (final x in r.asTeacher) x.code};
@@ -4727,6 +4730,124 @@ class AppState extends ChangeNotifier {
   List<Insight> get insights =>
       analyzePractice(sessionRecords, flats: flatsForText);
 
+  // ---------------- Gamificação e resumo da semana para o professor ----------------
+  /// O aluno escolheu mostrar o resumo da semana (tempo, acerto, tarefas) aos professores vinculados. Desligado por padrão.
+  bool shareStudy = false;
+  bool _studyOffPending = false; // desligou sem internet: avisar o servidor depois
+  String _studyPushedKey = '';
+  DateTime? _studyPushedAt;
+  bool _studyBusy = false;
+
+  /// PROFESSOR: resumos dos alunos que compartilham (código do aluno -> resumo).
+  final Map<String, StudyShare> studyShares = {};
+  DateTime? _studySharesAt;
+
+  List<Achievement> get achievementList =>
+      achievements(secs: studySeconds, sessions: sessionRecords, today: DateTime.now(), dailyGoalMinutes: dailyGoalMinutes);
+
+  /// O resumo desta semana, no formato que vai ao servidor (só números e até 3 notas).
+  Map<String, dynamic> studyShareMap() {
+    final now = DateTime.now();
+    var done = 0, total = 0;
+    for (final l in myLessons) {
+      if (l.date.isBefore(now.subtract(const Duration(days: 14)))) continue;
+      for (final t in l.tasks) {
+        total++;
+        final st = taskStateOf(l, t);
+        if (st == StudentTaskState.validated || st == StudentTaskState.claimed) done++;
+      }
+    }
+    return buildStudyShare(
+      secs: studySeconds,
+      sessions: sessionRecords,
+      today: now,
+      dailyGoalMinutes: dailyGoalMinutes,
+      tasksDone: done,
+      tasksTotal: total,
+      noteOf: (m) => scaleNoteName(m, ascending: true),
+    );
+  }
+
+  /// Liga ou desliga o compartilhamento. Desligar apaga o resumo que estava no servidor.
+  Future<void> setShareStudy(bool v) async {
+    shareStudy = v;
+    _prefs?.setBool('share_study', v);
+    notifyListeners();
+    if (v) {
+      _studyOffPending = false;
+      _prefs?.setBool('share_study_off', false);
+      await pushStudyShare(force: true);
+    } else {
+      _studyPushedKey = '';
+      _studyPushedAt = null;
+      await _studyOff();
+    }
+  }
+
+  Future<void> _studyOff() async {
+    if (!linkEnabled || linkUnavailable) return;
+    _studyOffPending = true;
+    _prefs?.setBool('share_study_off', true);
+    final r = await links.studyOff(profile.shareCode, profile.secret);
+    if (r.ok) {
+      _studyOffPending = false;
+      _prefs?.setBool('share_study_off', false);
+    } else if (r.offline) {
+      linkOnline = false;
+    }
+  }
+
+  /// Envia o resumo (no máximo a cada 30 min, e só se mudou ou passaram 12 h). Custa 2 comandos no servidor.
+  Future<void> pushStudyShare({bool force = false}) async {
+    if (_studyBusy || !linkEnabled || linkUnavailable) return;
+    if (!shareStudy) {
+      if (_studyOffPending) await _studyOff();
+      return;
+    }
+    if (myTeachers.isEmpty) return;
+    final map = studyShareMap();
+    final key = jsonEncode(map);
+    final now = DateTime.now();
+    if (!force && _studyPushedAt != null) {
+      if (now.difference(_studyPushedAt!) < const Duration(minutes: 30)) return;
+      if (key == _studyPushedKey && now.difference(_studyPushedAt!) < const Duration(hours: 12)) return;
+    }
+    _studyBusy = true;
+    try {
+      final r = await links.studyPut(profile.shareCode, profile.secret, map);
+      if (r.unavailable) return _markLinkUnavailable();
+      if (r.ok) {
+        _studyPushedKey = key;
+        _studyPushedAt = now;
+      } else if (r.offline) {
+        linkOnline = false;
+      }
+    } finally {
+      _studyBusy = false;
+    }
+  }
+
+  /// PROFESSOR: baixa os resumos dos alunos (no máximo a cada 10 min, ou na hora com [force]).
+  Future<void> loadStudyShares({bool force = false}) async {
+    if (!teacherMode || !linkEnabled || linkUnavailable || students.isEmpty) return;
+    final now = DateTime.now();
+    if (!force && _studySharesAt != null && now.difference(_studySharesAt!) < const Duration(minutes: 10)) return;
+    _studySharesAt = now;
+    final r = await links.studyGet(profile.shareCode, profile.secret);
+    if (r.unavailable) return _markLinkUnavailable();
+    if (!r.ok) {
+      if (r.offline) linkOnline = false;
+      _studySharesAt = null;
+      return;
+    }
+    studyShares
+      ..clear()
+      ..addAll(r.study);
+    notifyListeners();
+  }
+
+  StudyShare? studyShareOf(Student s) => s.code == null ? null : studyShares[s.code];
+
   /// Deixa o treinador ler as observações que o professor escreveu (sem nomes). Desligado por padrão.
   bool aiTeacherContext = false;
 
@@ -5072,6 +5193,8 @@ class AppState extends ChangeNotifier {
     news = parseNews(p.getString('news_json') ?? '') ?? [];
     _newsSeen = (p.getStringList('news_seen') ?? const <String>[]).toSet();
     aiTeacherContext = p.getBool('ai_teacher_ctx') ?? false;
+    shareStudy = p.getBool('share_study') ?? false;
+    _studyOffPending = p.getBool('share_study_off') ?? false;
     newsPeekMs = p.getInt('news_peek') ?? 0;
     scaleNames = StaffNames.values[(p.getInt('scale_names') ?? StaffNames.none.index).clamp(0, StaffNames.values.length - 1)];
     // Meta simples para quem chega agora (5 min); quem já usava e nunca mexeu continua com 20.

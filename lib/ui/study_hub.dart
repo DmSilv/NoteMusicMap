@@ -5,6 +5,7 @@ import '../ai/coach_ai.dart';
 import '../app_state.dart';
 import 'design_system.dart';
 import 'evolution_page.dart';
+import 'gamify_ui.dart';
 import 'markdown_lite.dart';
 import 'scale_exercise_page.dart' show InsightTile;
 import 'study_card.dart';
@@ -177,7 +178,7 @@ class StudyHubPage extends StatelessWidget {
           child: TabBarView(children: [
             ListenableBuilder(
               listenable: app,
-              builder: (context, _) => ListView(padding: Ds.screen, children: [StudyCard(app: app)]),
+              builder: (context, _) => ListView(padding: Ds.screen, children: [StudyCard(app: app), const DsGap(Ds.gap), GamifyCard(app: app)]),
             ),
             EvolutionBody(app: app),
             CoachTab(app: app),

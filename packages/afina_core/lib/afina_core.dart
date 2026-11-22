@@ -23,6 +23,7 @@ export 'markdown_lite.dart';
 export 'hub_view.dart';
 export 'start_checklist.dart';
 export 'study_streak.dart';
+export 'gamify.dart';
 export 'errors.dart';
 export 'error_report.dart';
 export 'methods.dart';

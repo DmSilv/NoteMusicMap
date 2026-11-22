@@ -22,6 +22,7 @@ Tudo guardado no servidor é anônimo: código de perfil, apelido, datas e o nec
 | `tk:<code>` | horários já pegos (trava contra dois alunos): idHorário -> aluno |
 | `vd:<code>` | decisões do professor sobre as tarefas deste aluno: "professor:idAula:idTarefa" -> JSON |
 | `lb:<code>` | acervo do professor: idItem -> JSON (só links) |
+| `sh:<code>` | resumo da semana de estudo (campo d), só quando o aluno escolhe compartilhar com os professores |
 | `ph:<code>` | foto do perfil (campo d), só quando a pessoa escolhe mostrar aos vinculados |
 
 ### Índice de perfis para o painel (`api/_lib/profiles.js`)
@@ -198,6 +199,8 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `sens` | app_state.dart |
 | `sessions` | app_state.dart |
 | `sessions2` | app_state.dart |
+| `share_study` | app_state.dart |
+| `share_study_off` | app_state.dart |
 | `showFreq` | app_state.dart |
 | `sn_seen` | app_state.dart |
 | `sound` | app_state.dart |
@@ -238,4 +241,4 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `verdict_rev` | app_state.dart |
 | `verdicts` | app_state.dart |
 
-Total: **162** chaves locais.
+Total: **164** chaves locais.

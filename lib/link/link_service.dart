@@ -136,7 +136,11 @@ class LinkReply {
 
   /// A pessoa aceitou a cópia na nuvem (só chega na sincronização completa).
   final bool cloudOn;
+
+  /// Resumos de estudo dos alunos que compartilham (resposta de `study_get`): código do aluno -> resumo.
+  final Map<String, StudyShare> study;
   const LinkReply({
+    this.study = const {},
     this.ok = false,
     this.unavailable = false,
     this.offline = false,
@@ -272,6 +276,7 @@ class LinkService {
         secs: _mirrorSecs(j['secs']),
         items: _mirrorItems(j['mitems']),
         stale: j['stale'] == true,
+        study: _studyShares(j['study']),
         photo: cleanPhoto(j['photo'] as String?) ?? '',
         pv: RegExp(r'^[0-9a-f]{8}$').hasMatch((j['pv'] as String?) ?? '') ? j['pv'] as String : '',
         libItems: [for (final x in ((j['items'] as List?) ?? const []).take(kLibMaxItems)) ?LibItem.tryFrom(x)],
@@ -321,6 +326,17 @@ class LinkService {
       final u = (m['u'] as num?)?.toInt() ?? 0;
       if (u <= 0) continue;
       out[k] = RemoteSection(u, deleted: m['x'] == 1);
+    }
+    return out;
+  }
+
+  static Map<String, StudyShare> _studyShares(Object? v) {
+    final out = <String, StudyShare>{};
+    if (v is! Map) return out;
+    for (final e in v.entries.take(80)) {
+      final s = StudyShare.tryFrom(e.value);
+      final k = '${e.key}';
+      if (s != null && isValidShareCode(k)) out[k] = s;
     }
     return out;
   }
@@ -412,6 +428,16 @@ class LinkService {
 
   /// Mostra (ou, com texto vazio, tira) a foto do perfil para quem está vinculado.
   Future<LinkReply> photoPut(String code, String secret, String photo) => _post({..._auth(code, secret, null), 'action': 'photo_put', 'photo': photo});
+
+  /// ALUNO: guarda o resumo da semana de estudo para os professores vinculados verem (só quando a pessoa escolheu compartilhar).
+  Future<LinkReply> studyPut(String code, String secret, Map<String, dynamic> study) =>
+      _post({..._auth(code, secret, null), 'action': 'study_put', 'study': study});
+
+  /// ALUNO: para de compartilhar e apaga o resumo guardado.
+  Future<LinkReply> studyOff(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'study_put', 'on': false});
+
+  /// PROFESSOR: os resumos dos alunos que escolheram compartilhar (código do aluno -> resumo).
+  Future<LinkReply> studyGet(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'study_get'});
 
   /// A foto de uma pessoa vinculada a este perfil.
   Future<LinkReply> photoGet(String code, String secret, String other) => _post({..._auth(code, secret, null), 'action': 'photo_get', 'other': other});

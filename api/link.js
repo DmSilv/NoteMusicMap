@@ -53,6 +53,10 @@ const MAX_BODY = 2048; // bytes: o pedido comum tem ~200
 const PHOTO_MAX_BYTES = 24000; // igual ao do app (kMaxPhotoBytes)
 const PHOTO_MAX_SIDE = 512; // pixels por lado (o app manda 160; igual a kMaxPhotoSide)
 const PHOTO_PUTS_PER_HOUR = 10; // trocas de foto por perfil
+const STUDY_PUTS_PER_HOUR = 12; // resumos de estudo enviados por aluno
+const STUDY_GETS_PER_HOUR = 60; // consultas do professor aos resumos
+const STUDY_MAX_AGE_MS = 14 * 86400000; // resumo mais velho que isso não aparece
+const STUDY_MAX_STUDENTS = 80; // alunos lidos de uma vez
 const MAX_MIRROR_BODY = 270000; // uma seção do espelho (até 120 mil caracteres) e o envelope
 const MIRROR_PUTS_PER_HOUR = 600; // gravações do espelho por perfil
 const MIRROR_PULLS_PER_HOUR = 240; // listas e baixadas do espelho por perfil
@@ -176,6 +180,7 @@ const TK = (code) => `tk:${code}`; // horários já pegos (trava contra dois alu
 const VD = (code) => `vd:${code}`; // decisões do professor sobre as tarefas deste aluno: "professor:idAula:idTarefa" -> JSON
 const DN = (code) => `dn:${code}`;
 const LB = (code) => `lb:${code}`; // acervo do professor: idItem -> JSON (só links)
+const SH = (code) => `sh:${code}`; // resumo da semana de estudo (campo d), só quando o aluno escolhe compartilhar com os professores
 const PH = (code) => `ph:${code}`; // foto do perfil (campo d), só quando a pessoa escolhe mostrar aos vinculados
 const LBREP = 'lbrep'; // denúncias do acervo: "professor:idItem" -> JSON { n, t } // tarefas que os alunos deste professor marcaram: "aluno:idAula:idTarefa" -> JSON
 
@@ -421,6 +426,37 @@ function makeHandler(deps = {}) {
         const pv = await store.hget(U(other), 'pv');
         if (!photo || !pv) return send(410, { error: 'Sem foto.' }); // 410 (não 404): o app trata 404 como "servidor sem o recurso"
         return send(200, { ok: true, photo, pv });
+      }
+
+      // Resumo da semana de estudo: o aluno que escolheu compartilhar guarda um texto pequeno (números e até 3 notas);
+      // o professor lê o dos seus alunos. Sem áudio, sem nome além do apelido que o vínculo já tem.
+      if (action === 'study_put') {
+        const n = await store.incr(`stput:${me}:${hour}`, 3600);
+        if (n.n > STUDY_PUTS_PER_HOUR) return send(429, { error: 'Muitos envios. Tente mais tarde.' });
+        if (b.on === false || b.on === 0) {
+          await store.hdel(SH(me), 'd');
+          return send(200, { ok: true, on: false });
+        }
+        const clean = cleanStudy(b.study);
+        if (!clean) return send(400, { error: 'Resumo inválido.' });
+        await store.hset(SH(me), 'd', JSON.stringify({ ...clean, at: clock() }));
+        return send(200, { ok: true, on: true });
+      }
+
+      if (action === 'study_get') {
+        const n = await store.incr(`stget:${me}:${hour}`, 3600);
+        if (n.n > STUDY_GETS_PER_HOUR) return send(429, { error: 'Muitas consultas. Tente mais tarde.' });
+        const students = Object.keys((await store.hgetall(T(me))) || {}).slice(0, STUDY_MAX_STUDENTS);
+        const items = {};
+        for (const other of students) {
+          const raw = await store.hget(SH(other), 'd');
+          if (!raw) continue;
+          try {
+            const j = JSON.parse(raw);
+            if (clock() - Number(j.at || 0) <= STUDY_MAX_AGE_MS) items[other] = j;
+          } catch (_) { /* resumo estragado: ignora */ }
+        }
+        return send(200, { ok: true, study: items });
       }
 
       // Consulta barata: o perfil já foi lido na autenticação, então não custa nenhum comando a mais.
@@ -934,6 +970,24 @@ function imageSize(b) {
 }
 
 /** Texto base64 de uma imagem JPEG, PNG ou WebP de até 24 mil bytes e até 512 px por lado (o mesmo que o app confere); senão null. */
+/** Resumo da semana do aluno: só números e até 3 notas curtas; qualquer outra coisa é cortada. */
+function cleanStudy(s) {
+  if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
+  const int = (v, max) => { const x = Math.round(Number(v)); return Number.isFinite(x) ? Math.max(0, Math.min(max, x)) : 0; };
+  const w = String(s.w || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(w)) return null;
+  const acc = Math.round(Number(s.a));
+  const out = { w, m: int(s.m, 6000), g: int(s.g, 6000), d: int(s.d, 7), a: Number.isFinite(acc) ? Math.max(-1, Math.min(100, acc)) : -1, tk: int(s.tk, 99), tt: int(s.tt, 99), n: int(s.n, 999) };
+  if (Array.isArray(s.weak)) {
+    out.weak = s.weak.map((x) => String(x)).filter((x) => /^[\p{L}#♯♭0-9]{1,6}$/u.test(x)).slice(0, 3);
+  }
+  if (s.up && typeof s.up === 'object') {
+    const title = String(s.up.t || '').replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, '').trim().slice(0, 40);
+    if (title) out.up = { t: title, a: int(s.up.a, 100), b: int(s.up.b, 100) };
+  }
+  return out;
+}
+
 function cleanPhotoText(v) {
   if (typeof v !== 'string' || v.length > 33000 || !/^[A-Za-z0-9+/]+={0,2}$/.test(v)) return null;
   const b = Buffer.from(v, 'base64');

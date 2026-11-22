@@ -50,6 +50,7 @@
 | `lib/ui/evolution_page.dart` | "Evolução": os dados de estudo e os gráficos (resumo da semana, últimos 7 dias e taxa de acerto nas escalas). Mora na página Estudo, na aba Evolução; as orientações ficam na aba Treinador. |
 | `lib/ui/exit_sheet.dart` | Pergunta antes de fechar o app (botão voltar na tela principal). Devolve true só se a pessoa tocar em "Sair do app": tocar fora, arrastar para baixo ou apertar voltar de novo significa FICAR. O botão grande e… |
 | `lib/ui/feedback_sheet.dart` | Dar uma nota de 1 a 5 ao app (com comentário opcional). |
+| `lib/ui/gamify_ui.dart` | ALUNO (aba Hoje do Estudo): dias seguidos, meta da semana, conquistas e a opção de mostrar o resumo ao professor. |
 | `lib/ui/grid_board.dart` | A grade principal, no estilo do Tonemap: 12 colunas (Dó a Si) e uma linha por oitava, com os agudos em cima. Cada quadrado mostra o nome da nota, a cor da última vez que foi tocada, quantas vezes (×3) e, na nota que… |
 | `lib/ui/grid_cell.dart` | Um quadrado da grade de entonação (nota, cor da última vez, brilho e contagem). |
 | `lib/ui/grid_fullscreen.dart` | Grade em tela cheia para usar durante o estudo: notas nas colunas (Dó a Si) e oitavas nas linhas (agudos no topo), em pé ou deitado. Embaixo: legenda de cores e navegação de oitavas. |
@@ -146,6 +147,7 @@
 | `packages/afina_core/lib/device_tags.dart` | Rótulos curtos e ANÔNIMOS de aparelho para as estatísticas do painel. Só categorias (nunca o texto cru do navegador): cada rótulo tem até 10 letras ou números minúsculos, o que permite combinar filtros sem… |
 | `packages/afina_core/lib/error_report.dart` | Montagem do relatório de erro que o app envia ao servidor: trilha de telas (breadcrumbs), ambiente (versão, aparelho), modo de envio e freio contra repetição. Dart puro e testável. Nada de conteúdo pessoal: só nomes… |
 | `packages/afina_core/lib/errors.dart` | Erros do app: um catálogo único de códigos e textos em português, a classificação de qualquer exceção num [AppError], a higienização dos detalhes técnicos (nunca saem nomes, códigos de perfil, e-mails nem segredos) e… |
+| `packages/afina_core/lib/gamify.dart` | Gamificação do estudo (Dart puro): meta da semana, conquistas e o resumo que o aluno pode mostrar ao professor. Tudo sai dos dados que o aparelho já tem (segundos por dia e escalas feitas); nada é enviado daqui. |
 | `packages/afina_core/lib/greeting.dart` | Saudação conforme a hora do dia (relógio local do aparelho). 5h às 11h59: "Bom dia" · 12h às 17h59: "Boa tarde" · o resto: "Boa noite". |
 | `packages/afina_core/lib/hub.dart` | Regras do hub "Meu espaço": o que vai no bloco grande (destaque) e os textos dos blocos menores, sempre dizendo o que fazer quando não há nada. Dart puro e testável. |
 | `packages/afina_core/lib/hub_view.dart` | Visões do "Meu espaço": quem é professor também pode ser aluno de outra pessoa, então o hub tem duas visões separadas (Aluno e Professor) e cada destino aparece UMA vez por visão. Dart puro e testável: a tela só… |
@@ -223,6 +225,7 @@
 | `packages/afina_core/test/error_report_test.dart` | Testes do módulo `error_report`. |
 | `packages/afina_core/test/errors_test.dart` | Testes do módulo `errors`. |
 | `packages/afina_core/test/fast_notes_test.dart` | Sinal de violino sintético: escala de Sol maior (Sol3 a Sol4) com notas de [noteMs] cada, ligadas (sem pausa), com vibrato e um pouco de ruído. |
+| `packages/afina_core/test/gamify_test.dart` | Testes do módulo `gamify`. |
 | `packages/afina_core/test/greeting_test.dart` | Testes do módulo `greeting`. |
 | `packages/afina_core/test/grid_replay_test.dart` | Toca [cents] por [seconds] (quadros de 30 ms) a partir de [t0]; devolve o instante final. |
 | `packages/afina_core/test/hub_test.dart` | a aula das 13:00 (60 min) acaba às 14:00: no instante do fim já não é "em andamento" |
@@ -369,6 +372,7 @@
 | `api/relink.test.js` | Aluno desvincula e volta ao mesmo professor: `node --test api/relink.test.js` |
 | `api/remind_choice.test.js` | Testes do lembrete escolhido pelo professor (chave `lembrete_escolha`): `node --test api/remind_choice.test.js` |
 | `api/stats.test.js` | Testes das métricas anônimas e do painel de admin, sem rede: `node --test api/stats.test.js` |
+| `api/study_share.test.js` | Resumo da semana de estudo que o aluno escolhe mostrar ao professor: `node --test api/study_share.test.js` |
 | `api/support.test.js` | Testes do suporte do painel (vínculo, agenda, código de liberação e aviso ao usuário), sem rede: `node --test api/support.test.js` |
 | `api/support_key.test.js` | Chave de suporte: abre só o atendimento; excluir/publicar/custos ficam só no admin. `node --test api/support_key.test.js` |
 | `api/survey.test.js` | Pesquisa rápida no painel: quem respondeu (perfil), de qual aparelho; `node --test api/survey.test.js` |
@@ -402,4 +406,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **359** arquivos mapeados.
+Total: **363** arquivos mapeados.
