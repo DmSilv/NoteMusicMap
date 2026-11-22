@@ -50,7 +50,15 @@ class CoachAi extends ChangeNotifier {
   String? _ticket; // lugar reservado na fila do servidor
 
   static const int maxAttempts = 5;
-  static const int _clientDailyLimit = 5;
+  /// Quantos pedidos cabem por dia neste aparelho (o servidor também limita). A tela mostra "X de {dailyLimit}".
+  static const int dailyLimit = 5;
+  static const int _clientDailyLimit = dailyLimit;
+
+  /// Quantos já foram usados hoje (para mostrar o limite sem esperar).
+  int usedCount = 0;
+
+  /// Avisa o app quando um pedido termina (certo ou não): se a pessoa saiu da tela, o app deixa um aviso "pronto".
+  void Function(String kind, bool ok)? onFinished;
   static const Duration _cooldown = Duration(seconds: 20);
   static const Duration _timeout = Duration(seconds: 58);
 
@@ -70,6 +78,7 @@ class CoachAi extends ChangeNotifier {
     planText = p.getString('ai_plan_text');
     planAt = DateTime.tryParse(p.getString('ai_plan_at') ?? '');
     planFingerprint = p.getString('ai_plan_fp');
+    usedCount = await usedToday();
     if (text != null || planText != null) phase = AiPhase.done;
     notifyListeners();
   }
@@ -103,6 +112,7 @@ class CoachAi extends ChangeNotifier {
     final n = await usedToday();
     await p.setString('ai_day', _today);
     await p.setInt('ai_count', n + 1);
+    usedCount = n + 1;
   }
 
   Uri? _endpoint() {
@@ -197,11 +207,13 @@ class CoachAi extends ChangeNotifier {
           await _countUse();
           phase = AiPhase.done;
           notifyListeners();
+          onFinished?.call(kind, true);
           return;
         }
         if (r.statusCode == 429) {
           final why = data['error'];
           if (why == 'user_daily' || why == 'daily_global') {
+            if (why == 'user_daily') usedCount = dailyLimit;
             _fail(why == 'user_daily'
                 ? tr('Você atingiu o limite de hoje. Volte amanhã!')
                 : tr('A IA gratuita atingiu o limite do dia. Tente amanhã.'));
@@ -272,6 +284,7 @@ class CoachAi extends ChangeNotifier {
     message = m;
     phase = AiPhase.failed;
     notifyListeners();
+    onFinished?.call(lastKind ?? 'session_summary', false);
   }
 
   void clear() {

@@ -4364,7 +4364,20 @@ class AppState extends ChangeNotifier {
 
   // ---------------- Primeiro uso ----------------
   /// Análise por IA do treinador (opcional, via Vercel).
-  final CoachAi ai = CoachAi();
+  late final CoachAi ai = CoachAi()..onFinished = _coachFinished;
+
+  /// Quantas telas do treinador estão abertas agora (se ninguém está olhando, o fim do pedido vira um aviso).
+  int coachViewers = 0;
+
+  void _coachFinished(String kind, bool ok) {
+    if (coachViewers > 0 || kind == 'session_summary') return;
+    final msg = !ok
+        ? tr('O treinador não conseguiu responder agora. Abra o treinador para tentar de novo.')
+        : (kind == 'study_plan' ? tr('Seu plano da semana está pronto. Toque para ver.') : tr('O treinador respondeu à sua pergunta. Toque para ver.'));
+    addNotice('coach', msg);
+    say(msg);
+    notifyListeners();
+  }
 
   /// Nota do app e pesquisa rápida.
   final FeedbackService feedback = FeedbackService();

@@ -102,6 +102,6 @@ void main() {
   test('avisos: cada visão tem os seus e não há tipo em duas visões', () {
     final s = kNoticeKindsByView[HubView.student]!, t = kNoticeKindsByView[HubView.teacher]!;
     expect(s.intersection(t), isEmpty);
-    expect(s.union(t), {'teacher', 'lesson', 'task', 'done', 'pick'});
+    expect(s.union(t), {'teacher', 'lesson', 'task', 'coach', 'done', 'pick'});
   });
 }

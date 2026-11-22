@@ -72,7 +72,14 @@ class StudyHubCard extends StatelessWidget {
                     Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
                   ]),
                   const SizedBox(height: Ds.s8),
-                  Text(coachHeadline(app), maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, height: 1.35)),
+                  if (app.ai.busy)
+                    Row(children: [
+                      const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                      const SizedBox(width: Ds.s12),
+                      Expanded(child: Text(app.ai.phase == AiPhase.queued ? tr('Você está na fila: o treinador responde assim que chegar a sua vez.') : tr('O treinador está preparando a resposta…'), style: const TextStyle(fontSize: 15, height: 1.35))),
+                    ])
+                  else
+                    Text(coachHeadline(app), maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 15, height: 1.35)),
                   const SizedBox(height: Ds.s12),
                   Align(
                     alignment: Alignment.centerLeft,
@@ -181,9 +188,28 @@ class StudyHubPage extends StatelessWidget {
 }
 
 /// A aba Treinador: o plano da semana (IA, guardado), as dicas do dia (calculadas no aparelho, de graça) e perguntas prontas.
-class CoachTab extends StatelessWidget {
+class CoachTab extends StatefulWidget {
   final AppState app;
   const CoachTab({super.key, required this.app});
+
+  @override
+  State<CoachTab> createState() => _CoachTabState();
+}
+
+class _CoachTabState extends State<CoachTab> {
+  AppState get app => widget.app;
+
+  @override
+  void initState() {
+    super.initState();
+    app.coachViewers++;
+  }
+
+  @override
+  void dispose() {
+    app.coachViewers--;
+    super.dispose();
+  }
 
   static List<String> get _questions => [
         tr('Por que erro a mesma nota?'),
@@ -227,7 +253,10 @@ class CoachTab extends StatelessWidget {
         final ctx = app.studyContextText();
         final can = canAskNewPlan(planAt: ai.planAt, planFingerprint: ai.planFingerprint, currentFingerprint: studyContextFingerprint(ctx), now: DateTime.now());
         final busy = ai.busy;
+        final left = (CoachAi.dailyLimit - ai.usedCount).clamp(0, CoachAi.dailyLimit);
         return ListView(padding: Ds.screen, children: [
+          _UsageRow(used: CoachAi.dailyLimit - left, limit: CoachAi.dailyLimit),
+          const DsGap(Ds.s12),
           AppCard(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               DsCardTitle(Icons.checklist_rounded, tr('Plano da semana')),
@@ -248,7 +277,7 @@ class CoachTab extends StatelessWidget {
               if (busy) _AiProgress(ai: ai) else ...[
                 Wrap(spacing: Ds.s8, runSpacing: Ds.s8, crossAxisAlignment: WrapCrossAlignment.center, children: [
                   FilledButton.icon(
-                    onPressed: can ? () => _plan(context) : null,
+                    onPressed: can && left > 0 ? () => _plan(context) : null,
                     icon: const Icon(Icons.auto_awesome, size: 18),
                     label: Text(ai.planText == null ? tr('Gerar meu plano') : tr('Atualizar o plano')),
                   ),
@@ -257,7 +286,10 @@ class CoachTab extends StatelessWidget {
                     icon: const Icon(Icons.copy, size: 18),
                     label: Text(tr('Copiar resumo')),
                   ),
-                  if (ai.planText != null && !can) Text(tr('O plano está em dia.'), style: Ds.support()),
+                  if (left == 0)
+                    Text(tr('Você usou os {0} pedidos de hoje. Volte amanhã.', [CoachAi.dailyLimit]), style: TextStyle(color: AppColors.attention, fontSize: 13))
+                  else if (ai.planText != null && !can)
+                    Text(tr('O plano está em dia.'), style: Ds.support()),
                 ]),
               ],
               if (ai.phase == AiPhase.failed && ai.message != null)
@@ -288,7 +320,7 @@ class CoachTab extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(12),
-                      onTap: busy ? null : () => _ask(context, q),
+                      onTap: busy || left == 0 ? null : () => _ask(context, q),
                       child: Container(
                         constraints: const BoxConstraints(minHeight: Ds.tap),
                         padding: const EdgeInsets.symmetric(horizontal: Ds.s12, vertical: Ds.s8),
@@ -347,13 +379,48 @@ class _AiProgress extends StatelessWidget {
             ? tr('Muita gente usando agora. Você é o {0}º da fila: sua vez em {1}s.', [ai.queuePosition, ai.queuedSeconds])
             : tr('Muita gente usando agora. Você está na fila: nova tentativa em {0}s (tentativa {1}/{2}).', [ai.queuedSeconds, ai.attempt, CoachAi.maxAttempts])),
         const SizedBox(height: Ds.s8),
+        Text(tr('Pode sair desta tela e usar o app: avisamos quando ficar pronto. Se fechar o app, peça de novo.'), style: Ds.support()),
+        const SizedBox(height: Ds.s8),
         OutlinedButton(onPressed: ai.cancel, child: Text(tr('Cancelar'))),
       ]);
     }
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Row(children: [
+        const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+        const SizedBox(width: Ds.s12),
+        Expanded(child: Text(tr('O treinador está pensando…'))),
+      ]),
+      const SizedBox(height: Ds.s8),
+      Text(tr('Pode levar até 1 minuto. Pode sair desta tela e usar o app: avisamos quando ficar pronto.'), style: Ds.support()),
+    ]);
+  }
+}
+
+/// O limite do dia, sempre à vista: bolinhas cheias = pedidos usados; a conta renova amanhã.
+class _UsageRow extends StatelessWidget {
+  final int used;
+  final int limit;
+  const _UsageRow({required this.used, required this.limit});
+
+  @override
+  Widget build(BuildContext context) {
+    final left = limit - used;
     return Row(children: [
-      const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-      const SizedBox(width: Ds.s12),
-      Expanded(child: Text(tr('O treinador está pensando…'))),
+      Icon(Icons.speed_rounded, size: 18, color: AppColors.textDim),
+      const SizedBox(width: Ds.s8),
+      Expanded(
+        child: Text(
+          left == 0 ? tr('Pedidos de hoje: acabaram. Voltam amanhã.') : tr('Pedidos ao treinador hoje: {0} de {1} usados', [used, limit]),
+          style: TextStyle(color: left == 0 ? AppColors.attention : AppColors.textDim, fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+      ),
+      for (var i = 0; i < limit; i++)
+        Container(
+          width: 9,
+          height: 9,
+          margin: const EdgeInsets.only(left: 4),
+          decoration: BoxDecoration(shape: BoxShape.circle, color: i < used ? (left == 0 ? AppColors.attention : AppColors.info) : AppColors.outline),
+        ),
     ]);
   }
 }

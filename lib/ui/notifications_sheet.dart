@@ -8,6 +8,7 @@ import 'teacher_page.dart';
 import 'design_system.dart';
 import 'dev_chat_sheet.dart';
 import 'undo_snack.dart';
+import 'study_hub.dart' show StudyHubPage;
 import 'theme.dart';
 import 'package:afina_core/afina_core.dart';
 
@@ -19,6 +20,7 @@ IconData noticeIcon(String kind) => switch (kind) {
       'pick' => Icons.event_available_outlined,
       'support' => Icons.support_agent,
       'dev' => Icons.forum_outlined,
+      'coach' => Icons.auto_awesome,
       _ => Icons.school_outlined,
     };
 
@@ -45,6 +47,8 @@ void openNoticeTarget(BuildContext context, AppState app, AppNotice n) {
       nav.push(MaterialPageRoute<void>(builder: (_) => AgendaPage(app: app)));
     case 'dev':
       showDevChatSheet(context, app);
+    case 'coach':
+      nav.push(MaterialPageRoute<void>(builder: (_) => StudyHubPage(app: app, initialTab: 2)));
     case 'done':
       nav.push(MaterialPageRoute<void>(builder: (_) => TeacherPage(app: app)));
     default:

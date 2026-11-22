@@ -92,6 +92,6 @@ List<HubDest> heroActions(HubView v, HeroKind kind, {required bool hasStudents, 
 
 /// Avisos que pertencem a cada visão (o sino mostra todos; o hub mostra os da visão atual).
 const Map<HubView, Set<String>> kNoticeKindsByView = {
-  HubView.student: {'teacher', 'lesson', 'task'},
+  HubView.student: {'teacher', 'lesson', 'task', 'coach'},
   HubView.teacher: {'done', 'pick'},
 };
