@@ -147,6 +147,63 @@ for (const im of contents.images) {
   out(`ios/Runner/Assets.xcassets/AppIcon.appiconset/${im.filename}`, Math.round(base * scale), 'full');
 }
 
+// ---- Apple touch icon (página inicial do iPhone): quadrado cheio, o iOS arredonda ----
+out('web/icons/apple-touch-icon.png', 180, 'full');
+
+// ---- Tela de abertura: iOS (LaunchImage) e Android (launch_logo) ----
+out('ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage.png', 120, 'rounded');
+out('ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@2x.png', 240, 'rounded');
+out('ios/Runner/Assets.xcassets/LaunchImage.imageset/LaunchImage@3x.png', 360, 'rounded');
+out('android/app/src/main/res/drawable-nodpi/launch_logo.png', 240, 'rounded');
+
+// ---- Android: ícone adaptativo (fundo + primeiro plano + camada de uma cor) ----
+// Camada de 108 dp; o desenho (60% do lado) fica dentro da zona segura de 66 dp.
+const V = 108, v = (n) => +(n * V).toFixed(2);
+function adaptiveParts(mono) {
+  const tick = mono ? '#FF000000' : C.tick, green = mono ? '#FF000000' : C.green, hub = mono ? '#FF000000' : C.hub;
+  const col = (c) => (c.length === 7 ? '#FF' + c.slice(1) : c);
+  let s = '';
+  for (const a of TICK_A) {
+    const p = pt(a, TICK_R0), q = pt(a, TICK_R1);
+    s += `    <path android:pathData="M${v(p.x)},${v(p.y)} L${v(q.x)},${v(q.y)}" android:strokeColor="${col(tick)}" android:strokeWidth="${v(TICK_W)}" android:strokeLineCap="round"/>
+`;
+  }
+  const [a, b, c] = NEEDLE;
+  s += `    <path android:pathData="M${v(a.x)},${v(a.y)} L${v(b.x)},${v(b.y)} L${v(c.x)},${v(c.y)} Z" android:fillColor="${col(green)}" android:strokeColor="${col(green)}" android:strokeWidth="${v(NEEDLE_PAD * 2)}" android:strokeLineJoin="round"/>
+`;
+  const r = v(HUB_R), cx = v(PV.x), cy = v(PV.y);
+  s += `    <path android:pathData="M${(cx - r).toFixed(2)},${cy} a${r},${r} 0 1,0 ${(2 * r).toFixed(2)},0 a${r},${r} 0 1,0 -${(2 * r).toFixed(2)},0 Z" android:fillColor="${col(hub)}"/>
+`;
+  return s;
+}
+const vec = (body) => `<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+${body}</vector>
+`;
+const RES = 'android/app/src/main/res/';
+function res(path, text) { mkdirSync(dirname(RES + path), { recursive: true }); writeFileSync(RES + path, text); console.log('ok', RES + path); }
+res('drawable/ic_launcher_foreground.xml', vec(adaptiveParts(false)));
+res('drawable/ic_launcher_monochrome.xml', vec(adaptiveParts(true)));
+res('drawable/ic_launcher_background.xml', `<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:pathData="M0,0h108v108h-108z">
+        <aapt:attr name="android:fillColor">
+            <gradient android:startX="54" android:startY="0" android:endX="54" android:endY="108" android:type="linear"
+                android:startColor="#FF${C.top.slice(1)}" android:endColor="#FF${C.bottom.slice(1)}"/>
+        </aapt:attr>
+    </path>
+</vector>
+`);
+res('mipmap-anydpi-v26/ic_launcher.xml', `<?xml version="1.0" encoding="utf-8"?>
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@drawable/ic_launcher_background"/>
+    <foreground android:drawable="@drawable/ic_launcher_foreground"/>
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome"/>
+</adaptive-icon>
+`);
+
 // ---- SVG ----
 const S = 1024;
 const f = (n) => (n * S).toFixed(1);

@@ -42,7 +42,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Notemusic">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
@@ -193,7 +193,18 @@
   <!-- Motor de áudio (SoLoud) para a web -->
   <script src="assets/packages/flutter_soloud/web/init_soloud.js" defer></script>
 </head>
-<body>
+<body style="background:#0F1419">
+  <!-- Abertura: logo sobre o fundo do app até o Flutter desenhar o primeiro quadro (sem tela branca). -->
+  <div id="nm-boot" style="position:fixed;inset:0;z-index:2147483000;background:#0F1419;display:flex;align-items:center;justify-content:center">
+    <img src="icons/Icon-192.png" width="96" height="96" alt="Notemusic" style="border-radius:22%">
+  </div>
+  <script>
+    (function () {
+      function done() { var b = document.getElementById('nm-boot'); if (b) b.remove(); }
+      window.addEventListener('flutter-first-frame', done);
+      setTimeout(done, 20000);
+    })();
+  </script>
   <noscript>
     <div style="font-family:system-ui,sans-serif;max-width:640px;margin:40px auto;padding:0 18px;color:#e8eef2;background:#101418">
       <h1>Notemusic</h1>
