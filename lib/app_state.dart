@@ -452,8 +452,11 @@ class AppState extends ChangeNotifier {
       _prefs?.setString('custom_inst', customInstrumentsToJson(customInstruments));
       _prefs?.setString('turmas', turmasToJson(turmas));
       _prefs?.setStringList('teach_inst', teachInstruments);
-      if (next.teacherMode && !teacherMode && linkEnabled) {
+      // Professor em outro aparelho da conta: este também vira professor. Se o vínculo estava desligado por padrão
+      // (nunca escolhido), liga; se foi desligado de propósito, entra no modo e a barra avisa que está sem vínculo.
+      if (next.teacherMode && !teacherMode) {
         teacherMode = true;
+        if (!linkEnabled && linkPref != 'off') _ensureLinkOn();
         _saveTeacher();
       }
     } else if (sec == 'SE') {
@@ -835,14 +838,8 @@ class AppState extends ChangeNotifier {
 
   void setTeacherMode(bool v) {
     teacherMode = v;
-    if (v && !linkEnabled) {
-      // Professor precisa receber os avisos dos alunos: liga o vínculo junto.
-      linkEnabled = true;
-      _linkPrefOn();
-      _saveLinks();
-      linkUnavailable = false;
-      unawaited(syncLinks());
-    }
+    // Professor precisa receber os avisos dos alunos: liga o vínculo junto (e grava a escolha, mesmo que antes estivesse "desligado").
+    if (v) _ensureLinkOn(quiet: true);
     if (!v) {
       activeStudentId = null; // sem modo professor, tudo volta a ser do próprio usuário
       teacherUnlocked = false;
@@ -1394,6 +1391,24 @@ class AppState extends ChangeNotifier {
   void _linkPrefOn() {
     linkPref = 'on';
     _prefs?.setString('link_pref', 'on');
+  }
+
+  /// Uma ação que depende do vínculo (virar professor, adicionar aluno com código, vincular professor) liga o vínculo e
+  /// grava a escolha como "ligado": sem isso, um "desligado" antigo desligava tudo de novo ao abrir o app.
+  /// Avisa uma vez quando foi preciso ligar sozinho.
+  void _ensureLinkOn({bool quiet = false}) {
+    final was = linkEnabled;
+    if (was && linkPref == 'on') return;
+    linkEnabled = true;
+    _linkPrefOn();
+    linkUnavailable = false;
+    _saveLinks();
+    if (!was) {
+      if (!quiet) say(tr('Vínculo online ligado: é ele que leva tarefas e avisos entre professor e aluno.'));
+      unawaited(syncLinks());
+      if (_linkWatchers > 0) _startLinkTimer();
+    }
+    notifyListeners();
   }
 
   /// null = ainda não tentou; true = o servidor respondeu; false = sem conexão.
@@ -3191,8 +3206,7 @@ class AppState extends ChangeNotifier {
   Future<void> linkStudentOnline(Student s) async {
     final code = s.code;
     if (code == null) return;
-    linkEnabled = true;
-    _saveLinks();
+    _ensureLinkOn();
     final r = await links.link(profile.shareCode, profile.secret, role: 'teacher', other: code, name: profile.name);
     if (r.unavailable) {
       _markLinkUnavailable();

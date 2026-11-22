@@ -562,4 +562,5 @@ const Map<String, String> kEnB14 = {
   '{0} voltou. Reenviar as {1} tarefas em aberto?': '{0} is back. Resend the {1} open tasks?',
   'Reenviar': 'Resend',
   'Os envios de antes foram apagados quando ele saiu.': 'Earlier deliveries were erased when they left.',
+  'Vínculo online ligado: é ele que leva tarefas e avisos entre professor e aluno.': 'Online link on: it carries tasks and alerts between teacher and student.',
 };
