@@ -106,6 +106,16 @@ function main() {
     else badIndex = true;
   }
   const unused = [...dict.keys()].filter((k) => !keys.has(k));
+  // Texto traduzido guardado numa variável de nível de arquivo ou estática nasce uma vez só e fica no idioma de antes quando a pessoa troca
+  // de idioma (no celular a troca vale na hora, sem recarregar). Tem de ser um getter: `List<String> get x => [tr('...')]`.
+  const stale = [];
+  for (const f of dartFiles()) {
+    const rel = path.relative(ROOT, f).split(path.sep).join('/');
+    if (rel.includes('i18n_en')) continue;
+    fs.readFileSync(f, 'utf8').split(/\r?\n/).forEach((l, i) => {
+      if (/^(\s{0,2}static\s+)?(final|const)\s[^=(]*=.*\btr\(/.test(l) && !/^\s{2,}(?!static)/.test(l)) stale.push([`${rel}:${i + 1}`, l.trim().slice(0, 80)]);
+    });
+  }
   if (process.argv.includes('--list')) {
     for (const [k, w] of missing) console.log(`${w.file}:${w.line}\t${JSON.stringify(k)}`);
     return;
@@ -113,6 +123,7 @@ function main() {
   console.log(`Inglês: ${keys.size} textos no código, ${dict.size} traduções.`);
   let bad = 0;
   const show = (title, arr, fmt) => { if (arr.length) { bad += arr.length; console.log(`\n${title} (${arr.length}):`); arr.slice(0, 40).forEach((x) => console.log('  - ' + fmt(x))); if (arr.length > 40) console.log(`  ... e mais ${arr.length - 40}`); } };
+  show('Texto traduzido guardado em variável que não acompanha a troca de idioma (use getter)', stale, ([w, l]) => `${w}  ${l}`);
   show('Sem tradução', missing, ([k, w]) => `${w.file}:${w.line}  ${JSON.stringify(k)}`);
   show('Marcadores {n} que o original não tem', badSlots, ([k, v]) => `${JSON.stringify(k)} -> ${JSON.stringify(v)}`);
   show('Tradução com cara de português', looksPt, ([k, v]) => `${JSON.stringify(k)} -> ${JSON.stringify(v)}`);

@@ -465,7 +465,7 @@ class _HomeShellState extends State<HomeShell> {
   /// a abertura do app e evita construir telas que talvez nunca sejam usadas.
   final Set<int> _visited = {kHomeTab};
 
-  static final _titles = [tr('Afinador'), tr('Metrônomo'), tr('Grade'), tr('Escalas'), tr('Meu espaço')];
+  static List<String> get _titles => [tr('Afinador'), tr('Metrônomo'), tr('Grade'), tr('Escalas'), tr('Meu espaço')];
 
   static const _tabNames = ['tuner', 'metronome', 'grid', 'scales', 'study'];
 
@@ -623,7 +623,7 @@ class _HomeShellState extends State<HomeShell> {
           case kTabScales:
             return _BarChip(
                 icon: Icons.music_note_rounded,
-                text: tr('{0} · {1} oit.', [app.scaleType.display(app.scaleTonicName), app.scaleOctaves]),
+                text: app.scaleType.display(app.scaleTonicName),
                 onTap: () => showScaleSettings(context, app, exercise: false));
           default:
             final next = app.nextClass;
@@ -760,8 +760,7 @@ class _BarChip extends StatelessWidget {
     final inner = Row(mainAxisSize: MainAxisSize.min, children: [
       Icon(icon, size: 16, color: AppColors.info),
       const SizedBox(width: 6),
-      Flexible(child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700))),
-      if (onTap != null) ...[const SizedBox(width: 2), Icon(Icons.expand_more_rounded, size: 16, color: AppColors.textDim)],
+      Flexible(child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700))),
     ]);
     if (onTap == null) return inner;
     return Semantics(
@@ -774,7 +773,7 @@ class _BarChip extends StatelessWidget {
           onTap: onTap,
           child: ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 36),
-            child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), child: inner),
+            child: Padding(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6), child: inner),
           ),
         ),
       ),

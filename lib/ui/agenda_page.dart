@@ -14,7 +14,7 @@ import 'theme.dart';
 import 'widgets.dart';
 
 String _two(int n) => n.toString().padLeft(2, '0');
-final _dow = [tr('segunda'), tr('terça'), tr('quarta'), tr('quinta'), tr('sexta'), tr('sábado'), tr('domingo')];
+List<String> get _dow => [tr('segunda'), tr('terça'), tr('quarta'), tr('quinta'), tr('sexta'), tr('sábado'), tr('domingo')];
 final _months = [
   tr('janeiro'), tr('fevereiro'), tr('março'), tr('abril'), tr('maio'), tr('junho'), tr('julho'), tr('agosto'), tr('setembro'), tr('outubro'), tr('novembro'), tr('dezembro')
 ];

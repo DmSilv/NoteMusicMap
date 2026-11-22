@@ -19,7 +19,7 @@ import 'tuning_pick.dart';
 import 'widgets.dart';
 
 final String kAppName = 'Notemusic';
-final String kAppVersion = tr('0.1 (protótipo)');
+String get kAppVersion => tr('0.1 (protótipo)');
 
 /// E-mail de contato mostrado na política de privacidade. Defina a variável `CONTACT_EMAIL`
 /// na Vercel (e faça um novo deploy); vazio, o app orienta a usar o botão Avaliar o app.

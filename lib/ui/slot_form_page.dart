@@ -13,7 +13,7 @@ import 'theme.dart';
 import 'widgets.dart';
 
 String _two(int n) => n.toString().padLeft(2, '0');
-final _dow = [tr('segunda'), tr('terça'), tr('quarta'), tr('quinta'), tr('sexta'), tr('sábado'), tr('domingo')];
+List<String> get _dow => [tr('segunda'), tr('terça'), tr('quarta'), tr('quinta'), tr('sexta'), tr('sábado'), tr('domingo')];
 
 /// Abre o formulário de aula marcada. Devolve true se salvou.
 Future<bool> openSlotForm(BuildContext context, AppState app, {ClassSlot? edit, DateTime? day, String? studentCode}) async {

@@ -4,7 +4,7 @@ import 'design_system.dart';
 import 'theme.dart';
 import 'package:afina_core/afina_core.dart';
 
-final _heads = [tr('seg'), tr('ter'), tr('qua'), tr('qui'), tr('sex'), tr('sáb'), tr('dom')];
+List<String> get _heads => [tr('seg'), tr('ter'), tr('qua'), tr('qui'), tr('sex'), tr('sáb'), tr('dom')];
 final _monthNames = [
   tr('janeiro'), tr('fevereiro'), tr('março'), tr('abril'), tr('maio'), tr('junho'), tr('julho'), tr('agosto'), tr('setembro'), tr('outubro'), tr('novembro'), tr('dezembro')
 ];

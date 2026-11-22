@@ -593,7 +593,6 @@ const Map<String, String> kEnB14 = {
   'Se perder este celular, você perde o acesso à conta. Guarde a chave de recuperação.': 'If you lose this phone, you lose access to your account. Keep the recovery key.',
   'Minha conta: falta guardar a chave de recuperação': 'My account: the recovery key is not saved yet',
   '{0} bpm · {1}/4': '{0} bpm · {1}/4',
-  '{0} · {1} oit.': '{0} · {1} oct.',
   'Aula hoje {0}': 'Lesson today {0}',
   'Aula: {0}': 'Lesson: {0}',
   'Avaliar tarefa': 'Review task',

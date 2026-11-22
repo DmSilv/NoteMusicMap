@@ -57,7 +57,7 @@ class _RatingSheetState extends State<_RatingSheet> {
     super.dispose();
   }
 
-  static final _labels = ['', tr('Ruim'), tr('Pode melhorar'), tr('Bom'), tr('Muito bom'), tr('Excelente')];
+  static List<String> get _labels => ['', tr('Ruim'), tr('Pode melhorar'), tr('Bom'), tr('Muito bom'), tr('Excelente')];
 
   Future<void> _send() async {
     setState(() => _busy = true);

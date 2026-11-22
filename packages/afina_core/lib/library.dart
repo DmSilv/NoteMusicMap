@@ -135,7 +135,7 @@ List<String> libraryFolders(Iterable<LibItem> items, {String? kind}) {
 /// Uma tarefa "Material do professor" aponta para o acervo: [subject] é o título do item (ou da pasta, ou
 /// vazio = acervo todo) e [detail] é a pasta. Nada novo vai ao servidor: é o texto da própria tarefa.
 /// Texto de uma tarefa que aponta para o acervo inteiro.
-final String kMaterialAll = tr('Material do professor');
+String get kMaterialAll => tr('Material do professor');
 
 /// A pasta padrão é gravada como "Geral" (dado); na tela aparece no idioma de hoje. Pastas que o professor criou ficam como estão.
 String folderLabel(String folder) => folder == 'Geral' ? tr('Geral') : folder;

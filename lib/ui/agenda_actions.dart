@@ -8,7 +8,7 @@ import 'agenda_sheets.dart';
 /// Toda mudança mostra antes o que vai acontecer e quem é avisado, e só vale se couber na agenda (sem choque).
 
 String _two(int n) => n.toString().padLeft(2, '0');
-final _dow = [tr('seg'), tr('ter'), tr('qua'), tr('qui'), tr('sex'), tr('sáb'), tr('dom')];
+List<String> get _dow => [tr('seg'), tr('ter'), tr('qua'), tr('qui'), tr('sex'), tr('sáb'), tr('dom')];
 String _when(DateTime d) => '${_dow[d.weekday - 1]} ${fmtDayMonth(d)} ${_two(d.hour)}:${_two(d.minute)}';
 
 String _nameOf(AppState app, ClassSlot s) => app.studentByCode(s.studentCode)?.name ?? tr('o aluno');

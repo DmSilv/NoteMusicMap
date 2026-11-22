@@ -8,7 +8,7 @@ import 'design_system.dart';
 import 'theme.dart';
 import 'widgets.dart';
 
-final _days = [tr('segunda'), tr('terça'), tr('quarta'), tr('quinta'), tr('sexta'), tr('sábado'), tr('domingo')];
+List<String> get _days => [tr('segunda'), tr('terça'), tr('quarta'), tr('quinta'), tr('sexta'), tr('sábado'), tr('domingo')];
 
 String _two(int n) => n.toString().padLeft(2, '0');
 

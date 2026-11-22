@@ -9,7 +9,7 @@ import 'package:afina_core/afina_core.dart';
 /// Não conhecem o app: recebem as regras por funções ([check] e [commit]), o que deixa tudo testável.
 
 String _two(int n) => n.toString().padLeft(2, '0');
-final _dow = [tr('seg'), tr('ter'), tr('qua'), tr('qui'), tr('sex'), tr('sáb'), tr('dom')];
+List<String> get _dow => [tr('seg'), tr('ter'), tr('qua'), tr('qui'), tr('sex'), tr('sáb'), tr('dom')];
 
 /// "qui 12/11 · 15:00".
 String whenText(DateTime d) => '${_dow[d.weekday - 1]} ${fmtDayMonth(d)} · ${_two(d.hour)}:${_two(d.minute)}';

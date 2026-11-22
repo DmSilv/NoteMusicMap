@@ -13,7 +13,7 @@ class EvolutionPage extends StatelessWidget {
   final AppState app;
   const EvolutionPage({super.key, required this.app});
 
-  static final _dias = [tr('seg'), tr('ter'), tr('qua'), tr('qui'), tr('sex'), tr('sáb'), tr('dom')];
+  static List<String> get _dias => [tr('seg'), tr('ter'), tr('qua'), tr('qui'), tr('sex'), tr('sáb'), tr('dom')];
 
   @override
   Widget build(BuildContext context) {

@@ -492,7 +492,7 @@ String? validatePlan(SlotPlan plan, List<ClassSlot> current, int nowMs, {String 
 }
 
 /// Novo id de aula marcada.
-final _kDiasSemana = [tr('segunda'), tr('terça'), tr('quarta'), tr('quinta'), tr('sexta'), tr('sábado'), tr('domingo')];
+List<String> get _kDiasSemana => [tr('segunda'), tr('terça'), tr('quarta'), tr('quinta'), tr('sexta'), tr('sábado'), tr('domingo')];
 
 /// 'Terça, 12/11 às 15:00 · 60 min' (aula avulsa) ou 'Toda terça às 15:00 · 60 min' (toda semana).
 /// Usado nas telas e no aviso de sucesso, para dizerem sempre a mesma coisa.
