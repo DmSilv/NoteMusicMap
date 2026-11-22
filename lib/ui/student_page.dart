@@ -985,7 +985,8 @@ class StudentPage extends StatelessWidget {
 
   /// "N tarefas ainda não enviadas" com o botão de enviar (fora de aula e com envio possível).
   Widget _pendingBanner(Student s) {
-    final n = app.pendingTaskCount(s);
+    final t = app.pendingTaskCount(s), o = app.pendingNoteCount(s);
+    final n = t + o;
     if (n == 0 || !app.deliveryFor(s).canSend) return const SizedBox.shrink();
     return Container(
       margin: const EdgeInsets.only(top: 4, bottom: 6),
@@ -998,7 +999,12 @@ class StudentPage extends StatelessWidget {
         Icon(Icons.schedule_send_outlined, size: 20, color: AppColors.flat),
         const SizedBox(width: 10),
         Expanded(
-          child: Text(tr('{0} tarefa{1} ainda não enviada{2} a {3}.', [n, n == 1 ? '' : 's', n == 1 ? '' : 's', s.name]),
+          child: Text(
+              o == 0
+                  ? tr('{0} tarefa{1} ainda não enviada{2} a {3}.', [n, n == 1 ? '' : 's', n == 1 ? '' : 's', s.name])
+                  : (t == 0
+                      ? (n == 1 ? tr('1 observação ainda não enviada a {0}.', [s.name]) : tr('{0} observações ainda não enviadas a {1}.', [n, s.name]))
+                      : tr('{0} itens ainda não enviados a {1}.', [n, s.name])),
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
         ),
         FilledButton.tonal(
@@ -1092,7 +1098,7 @@ class StudentPage extends StatelessWidget {
                 ? tr('{0} · tarefas enviadas fora de aula', [fmtDayMonth(l.endedAt)])
                 : tr('{0} · aula de {1}', [fmtDayMonth(l.endedAt), fmtLessonDuration(l.durationSec)])),
             subtitle: Text(
-              tr('{0} tarefa{1}{2} · {3}', [l.taskCount, l.taskCount == 1 ? '' : 's', l.noteCount > 0 ? tr(', {0} observaç{1}', [l.noteCount, l.noteCount == 1 ? tr('ão') : tr('ões')]) : '', l.sent == true ? tr('enviada ao aluno') : (l.sent == false ? tr('aguardando envio') : tr('só neste aparelho'))]),
+              '${tr('Aula {0}', [lessonDisplayId(l.id)])}\n${tr('{0} tarefa{1}{2} · {3}', [l.taskCount, l.taskCount == 1 ? '' : 's', l.noteCount > 0 ? tr(', {0} observaç{1}', [l.noteCount, l.noteCount == 1 ? tr('ão') : tr('ões')]) : '', l.sent == true ? tr('enviada ao aluno') : (l.sent == false ? tr('aguardando envio') : tr('só neste aparelho'))])}',
               style: Ds.support(),
             ),
             trailing: l.sent == false ? TextButton(onPressed: app.flushLessons, child: Text(tr('Enviar'))) : null,
@@ -1128,7 +1134,7 @@ class StudentPage extends StatelessWidget {
 
   Future<void> _newNote(BuildContext context, Student s) async {
     final t = await askText(context, tr('Nova observação'), tr('O que anotar?'), multiline: true, voice: app);
-    if (t != null) app.addTeacherNote(s, t);
+    if (t != null) app.say(app.addTeacherNote(s, t));
   }
 }
 

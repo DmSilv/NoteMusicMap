@@ -1006,11 +1006,20 @@ class AppState extends ChangeNotifier {
     return true;
   }
 
-  void addTeacherNote(Student s, String text) {
-    if (text.trim().isEmpty) return;
-    s.notes.insert(0, TeacherNote(DateTime.now(), text.trim()));
+  /// Anota uma observação sobre [s] e devolve o que acontece com ela: em aula, vai ao aluno quando a aula acabar; fora de
+  /// aula e com envio possível, sai agora (ou na fila); sem como enviar, fica só na ficha.
+  String addTeacherNote(Student s, String text) {
+    if (text.trim().isEmpty) return '';
+    s.notes.insert(0, TeacherNote(DateTime.now(), text.trim(), sent: false));
     _saveTeacher();
     notifyListeners();
+    final rule = deliveryFor(s);
+    if (rule.mode == DeliveryMode.inLesson) {
+      return tr('Observação anotada. Vai para {0} quando você encerrar a aula.', [s.name]);
+    }
+    if (!rule.canSend) return tr('Observação anotada. Fica só na sua ficha: {0} ainda não pode receber.', [s.name]);
+    if (rule.mode == DeliveryMode.now) celebrateNextDelivery(s.code);
+    return sendPendingTasks(s);
   }
 
   void addAssignment(Student s,
@@ -2826,6 +2835,10 @@ class AppState extends ChangeNotifier {
   void _afterPackage(Student s, LessonRecord rec) {
     final ids = taskIdsOf(rec);
     _markTasksSent(s, ids);
+    final sentNotes = {for (final x in (rec.wire?['notes'] as List? ?? const [])) if (x is String) x.trim()};
+    for (final n in s.notes) {
+      if (n.sent == false && sentNotes.contains(n.text.trim())) n.sent = true;
+    }
     reopenReviews(s);
     for (final id in ids) {
       _claimLesson[id] = rec.id;
@@ -2857,6 +2870,9 @@ class AppState extends ChangeNotifier {
 
   /// Quantas tarefas de [s] ainda esperam envio.
   int pendingTaskCount(Student s) => pendingTasks(s).length;
+
+  /// Quantas observações de [s] (feitas fora de aula) ainda esperam envio.
+  int pendingNoteCount(Student s) => pendingNotes(s).length;
 
   /// Tarefas de [s] que ainda não foram concluídas.
   int openTaskCount(Student s) => s.tasks.where((t) => !t.done).length;
@@ -2895,7 +2911,7 @@ class AppState extends ChangeNotifier {
     }
     if (!rule.canSend) return rule.text;
     final rec = buildTasksPackage(s, DateTime.now(), teacherName: profile.name ?? '');
-    if (rec == null) return tr('Nenhuma tarefa esperando envio.');
+    if (rec == null) return tr('Nada esperando envio.');
     rec.sent = false;
     s.lessons.insert(0, rec);
     while (s.lessons.length > 200) {
@@ -2906,8 +2922,10 @@ class AppState extends ChangeNotifier {
     _saveTeacher();
     notifyListeners();
     unawaited(flushLessons());
-    final n = rec.taskCount;
-    final what = tr('{0} tarefa{1}', [n, n == 1 ? '' : 's']);
+    final n = rec.taskCount, m = rec.noteCount;
+    final tasksTxt = tr('{0} tarefa{1}', [n, n == 1 ? '' : 's']);
+    final notesTxt = m == 1 ? tr('1 observação') : tr('{0} observações', [m]);
+    final what = m == 0 ? tasksTxt : (n == 0 ? notesTxt : tr('{0} e {1}', [tasksTxt, notesTxt]));
     return rule.mode == DeliveryMode.now ? tr('Enviando {0} para {1}…', [what, s.name]) : tr('{0} na fila de envio. {1}', [what, rule.text]);
   }
 

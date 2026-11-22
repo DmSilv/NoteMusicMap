@@ -113,8 +113,11 @@ class SharedLesson {
   /// Pacote só de tarefas (sem aula): o professor passou tarefas fora de uma aula.
   bool get tasksOnly => durationSec == 0 && tasks.isNotEmpty;
 
-  /// "Aula de segunda, 09/11" ou, se foram só tarefas, "Tarefas de segunda, 09/11".
-  String get label => tr('{0} de {1}@@dia', [tasksOnly ? tr('Tarefas') : tr('Aula'), fmtLessonDay(date)]);
+  /// Pacote só de observações (sem aula e sem tarefas): o professor anotou algo fora de uma aula.
+  bool get notesOnly => durationSec == 0 && tasks.isEmpty && notes.isNotEmpty;
+
+  /// "Aula de segunda, 09/11" ou, se foram só tarefas, "Tarefas de segunda, 09/11" (ou "Observações de …").
+  String get label => tr('{0} de {1}@@dia', [tasksOnly ? tr('Tarefas') : (notesOnly ? tr('Observações') : tr('Aula')), fmtLessonDay(date)]);
 
   /// Quem passou: "Marina · K7QM-4TXD" (nome e código), só o código ou "Professor".
   String get teacherLabel {
@@ -215,6 +218,23 @@ class LessonRecord {
   }
 }
 
+/// Observações que vão com uma aula: as feitas durante ela e as que ficaram esperando envio (feitas fora de aula).
+/// As que já foram enviadas (sent == true) nunca vão de novo.
+List<TeacherNote> lessonNotes(Student s, DateTime start, DateTime end) {
+  bool inside(DateTime d) =>
+      !d.isBefore(start.subtract(const Duration(seconds: 1))) && !d.isAfter(end.add(const Duration(seconds: 1)));
+  return [
+    for (final n in s.notes)
+      if (n.text.trim().isNotEmpty && n.sent != true && (inside(n.date) || n.sent == false)) n
+  ].take(kMaxLessonNotes).toList();
+}
+
+/// Observações do aluno que ainda esperam envio (feitas fora de uma aula, mais recentes primeiro).
+List<TeacherNote> pendingNotes(Student s) => [
+      for (final n in s.notes)
+        if (n.sent == false && n.text.trim().isNotEmpty) n
+    ];
+
 /// Monta o pacote da aula encerrada: as tarefas e observações criadas entre o início
 /// e o fim. Devolve o registro (com o pacote) para o histórico do aluno.
 LessonRecord buildLessonRecord(Student s, ActiveLesson l, DateTime end, {String teacherName = ''}) {
@@ -229,10 +249,7 @@ LessonRecord buildLessonRecord(Student s, ActiveLesson l, DateTime end, {String 
     for (final t in s.tasks)
       if (t.sent != true && (inside(t.created) || t.sent == false)) t
   ].take(kMaxLessonTasks).toList();
-  final notes = [
-    for (final n in s.notes)
-      if (inside(n.date) && n.text.trim().isNotEmpty) n.text.trim()
-  ].take(kMaxLessonNotes).toList();
+  final notes = [for (final n in lessonNotes(s, start, end)) n.text.trim()];
   final secs = l.elapsed(end).inSeconds.clamp(0, 86400);
   final pkg = SharedLesson(
     id: l.id,
@@ -251,6 +268,15 @@ LessonRecord buildLessonRecord(Student s, ActiveLesson l, DateTime end, {String 
     noteCount: notes.length,
     wire: {...pkg.toWire(), if (teacherName.isNotEmpty) 'tn': cleanText(teacherName, max: kMaxName)},
   );
+}
+
+/// O número de uma aula para conversar sobre ela ("a aula 7K2M-9QX4"): o mesmo no aparelho do professor e no do aluno.
+/// Vem do identificador interno (que nasce do relógio em microssegundos e por isso não se repete): os 8 últimos caracteres, em
+/// maiúsculas, em dois grupos de 4.
+String lessonDisplayId(String id) {
+  final c = id.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+  final t = c.length > 8 ? c.substring(c.length - 8) : c.padLeft(8, '0');
+  return '${t.substring(0, 4)}-${t.substring(4)}';
 }
 
 /// "1 h 05 min", "42 min" ou "3 min 20 s".
@@ -276,20 +302,21 @@ List<Assignment> pendingTasks(Student s) => [
         if (t.sent == false) t
     ];
 
-/// Pacote só com as tarefas ainda não enviadas, para mandar fora de uma aula. Sai sem
-/// duração (durationSec 0): o aluno vê "Tarefas de …" em vez de "Aula de …". Null se não há nada.
+/// Pacote só com as tarefas e observações ainda não enviadas, para mandar fora de uma aula. Sai sem
+/// duração (durationSec 0): o aluno vê "Tarefas de …" ou "Observações de …" em vez de "Aula de …". Null se não há nada.
 LessonRecord? buildTasksPackage(Student s, DateTime now, {String teacherName = '', String? id}) {
   final tasks = pendingTasks(s).take(kMaxLessonTasks).toList();
-  if (tasks.isEmpty) return null;
+  final notes = [for (final n in pendingNotes(s).take(kMaxLessonNotes)) n.text.trim()];
+  if (tasks.isEmpty && notes.isEmpty) return null;
   final pkgId = id ?? now.microsecondsSinceEpoch.toRadixString(36);
-  final pkg = SharedLesson(id: pkgId, atMs: now.millisecondsSinceEpoch, durationSec: 0, tasks: tasks);
+  final pkg = SharedLesson(id: pkgId, atMs: now.millisecondsSinceEpoch, durationSec: 0, tasks: tasks, notes: notes);
   return LessonRecord(
     id: pkgId,
     startedAt: now,
     endedAt: now,
     durationSec: 0,
     taskCount: tasks.length,
-    noteCount: 0,
+    noteCount: notes.length,
     wire: {...pkg.toWire(), if (teacherName.isNotEmpty) 'tn': cleanText(teacherName, max: kMaxName)},
   );
 }

@@ -16,13 +16,18 @@ import 'i18n.dart';
 class TeacherNote {
   final DateTime date;
   final String text;
-  const TeacherNote(this.date, this.text);
 
-  Map<String, dynamic> toJson() => {'d': date.toIso8601String(), 't': text};
+  /// Só do lado do professor: já foi enviada ao aluno (true), espera envio (false) ou não se aplica / dado antigo (null).
+  /// Nunca vai para o servidor. É o que faz uma observação feita FORA de uma aula chegar ao aluno.
+  bool? sent;
+  TeacherNote(this.date, this.text, {this.sent});
+
+  Map<String, dynamic> toJson() => {'d': date.toIso8601String(), 't': text, if (sent != null) 'sn': sent};
   static TeacherNote? tryFrom(Map<String, dynamic> j) {
     try {
       return TeacherNote(DateTime.parse(j['d'] as String),
-          cleanText(j['t'] as String?, max: kMaxNote, multiline: true));
+          cleanText(j['t'] as String?, max: kMaxNote, multiline: true),
+          sent: j['sn'] as bool?);
     } catch (_) {
       return null;
     }

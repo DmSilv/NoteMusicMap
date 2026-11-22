@@ -660,20 +660,19 @@ class _TeacherPageState extends State<TeacherPage> {
           Text(text, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: color)),
         ]),
       );
+      // Todos os números têm a mesma altura de toque (48) e o mesmo centro: o que é botão ("para validar") não fica
+      // mais alto nem mais baixo que os outros, nem fora de linha com o "Gerenciar".
+      final centered = ConstrainedBox(constraints: const BoxConstraints(minHeight: Ds.tap), child: Center(widthFactor: 1, child: box));
       return onTap == null
-          ? box
-          : InkWell(
-              borderRadius: BorderRadius.circular(Ds.tap / 2),
-              onTap: onTap,
-              child: ConstrainedBox(constraints: const BoxConstraints(minHeight: Ds.tap), child: Center(widthFactor: 1, child: box)),
-            );
+          ? centered
+          : InkWell(borderRadius: BorderRadius.circular(Ds.tap / 2), onTap: onTap, child: centered);
     }
 
     final n = app.students.length;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Expanded(child: Wrap(spacing: 8, runSpacing: 8, children: [
+      child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        Expanded(child: Wrap(spacing: 8, runSpacing: 0, crossAxisAlignment: WrapCrossAlignment.center, children: [
         chip(Icons.groups_outlined, n == 1 ? tr('1 aluno') : tr('{0} alunos', [n])),
         if (waiting > 0)
           chip(Icons.fact_check_outlined, tr('{0} para validar', [waiting]),

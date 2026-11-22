@@ -268,6 +268,7 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
               decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.outline)),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(fmtDayMonth(l.date), style: const TextStyle(fontWeight: FontWeight.w800)),
+                Text(tr('Aula {0}', [lessonDisplayId(l.id)]), style: Ds.support()),
                 for (final t in l.tasks)
                   Padding(padding: const EdgeInsets.only(top: 6), child: Text('• ${t.title}', style: const TextStyle(fontSize: 14))),
                 for (final n in l.notes)
@@ -345,7 +346,7 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
             childrenPadding: const EdgeInsets.only(bottom: Ds.s8),
             expandedCrossAxisAlignment: CrossAxisAlignment.stretch,
             title: Text(l.label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-            subtitle: Text('$who · ${n == 0 ? tr('sem tarefas') : (n == 1 ? tr('1 tarefa') : tr('{0} tarefas', [n]))}', style: Ds.support()),
+            subtitle: Text('$who · ${n == 0 ? tr('sem tarefas') : (n == 1 ? tr('1 tarefa') : tr('{0} tarefas', [n]))}\n${tr('Aula {0}', [lessonDisplayId(l.id)])}', style: Ds.support()),
             children: [
               if (l.notes.isNotEmpty) _notesRow(l),
               for (final (t, overdue) in tasks) _taskRow(l, t, overdue),
@@ -368,6 +369,7 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
           listenable: app,
           children: (c) => [
             Text(l.label, style: Ds.section()),
+            Text(tr('Aula {0}', [lessonDisplayId(l.id)]), style: Ds.support()),
             const SizedBox(height: Ds.s12),
             for (final n in l.notes) Padding(padding: const EdgeInsets.only(bottom: Ds.s12), child: Text(n, style: const TextStyle(fontSize: Ds.fontBody, height: 1.4))),
           ],

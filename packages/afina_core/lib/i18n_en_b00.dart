@@ -100,7 +100,6 @@ const Map<String, String> kEnB00 = {
   'Há uma aula em andamento com {0}. Encerre-a antes de começar outra.': 'There is a lesson in progress with {0}. End it before starting another.',
   'Encerrar aula': 'End lesson',
   'Há uma aula em andamento com {0}: as tarefas vão quando você encerrar a aula.': 'There is a lesson in progress with {0}: the tasks go out when you end the lesson.',
-  'Nenhuma tarefa esperando envio.': 'No tasks waiting to be sent.',
   '{0} tarefa{1}': '{0} task{1}',
   'Enviando {0} para {1}…': 'Sending {0} to {1}…',
   '{0} na fila de envio. {1}': '{0} in the send queue. {1}',
