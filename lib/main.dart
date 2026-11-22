@@ -36,6 +36,9 @@ import 'ui/theme.dart';
 import 'ui/success_moment.dart';
 import 'ui/toast.dart';
 import 'ui/welcome_tour.dart';
+import 'ui/scale_settings.dart' show showScaleSettings;
+import 'ui/settings_page.dart' show QuickSettings, showQuickSettings;
+import 'ui/tuning_pick.dart' show tuningSystemName;
 import 'ui/tuner_page.dart';
 
 AppState? _app;
@@ -597,6 +600,39 @@ class _HomeShellState extends State<HomeShell> {
     return TickerMode(enabled: active, child: page);
   }
 
+  /// O atalho da aba aberta (muda com a aba e com o estado do app).
+  Widget _barChip(AppState app) {
+    return ListenableBuilder(
+      listenable: app,
+      builder: (context, _) {
+        switch (_index) {
+          case kTabTuner:
+            return _BarChip(icon: Icons.tune_rounded, text: tr('{0} Hz · {1}', [app.refA == app.refA.roundToDouble() ? app.refA.toStringAsFixed(0) : app.refA.toStringAsFixed(1), tuningSystemName(app.system)]), onTap: () => showQuickSettings(context, app, QuickSettings.tuning));
+          case kTabMetronome:
+            return _BarChip(
+                icon: Icons.timer_outlined,
+                text: tr('{0} bpm · {1}/4', [app.metro.bpm.round(), app.metro.beatsPerBar]),
+                onTap: () => showQuickSettings(context, app, QuickSettings.metronome));
+          case kTabGrid:
+            final mem = {HistoryMode.short: tr('1 s'), HistoryMode.medium: tr('3 s'), HistoryMode.long: tr('30 s'), HistoryMode.unlimited: tr('da sessão')}[app.history] ?? '';
+            return _BarChip(icon: Icons.grid_view_rounded, text: tr('Memória {0}', [mem]), onTap: () => showQuickSettings(context, app, QuickSettings.grid));
+          case kTabScales:
+            return _BarChip(
+                icon: Icons.music_note_rounded,
+                text: tr('{0} · {1} oit.', [app.scaleType.display(app.scaleTonicName), app.scaleOctaves]),
+                onTap: () => showScaleSettings(context, app, exercise: false));
+          default:
+            final next = app.nextClass;
+            if (next == null) return Text(_titles[_index]);
+            final now = DateTime.now();
+            final today = next.start.year == now.year && next.start.month == now.month && next.start.day == now.day;
+            final hm = '${next.start.hour.toString().padLeft(2, '0')}:${next.start.minute.toString().padLeft(2, '0')}';
+            return _BarChip(icon: Icons.event_outlined, text: today ? tr('Aula hoje {0}', [hm]) : tr('Aula: {0}', [fmtSlotWhen(next.start, now)]));
+        }
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final app = widget.app;
@@ -615,7 +651,8 @@ class _HomeShellState extends State<HomeShell> {
             children: [
               const AppLogo(size: 30),
               const SizedBox(width: 10),
-              Text(split ? 'Notemusic' : _titles[_index]),
+              // A aba já se chama embaixo: aqui vai um atalho útil dela (referência, tempo, escala, próxima aula).
+              Flexible(child: split ? const Text('Notemusic') : _barChip(app)),
             ],
           ),
           actions: [
@@ -702,6 +739,40 @@ class _HomeShellState extends State<HomeShell> {
                   ],
                 ),
               ),
+      ),
+    );
+  }
+}
+
+/// Atalho de uma aba na barra de cima: o valor que mais se confere ali. Tocar abre o ajuste certo (quando há).
+class _BarChip extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final VoidCallback? onTap;
+  const _BarChip({required this.icon, required this.text, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final inner = Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(icon, size: 16, color: AppColors.accent),
+      const SizedBox(width: 6),
+      Flexible(child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700))),
+      if (onTap != null) ...[const SizedBox(width: 2), Icon(Icons.expand_more_rounded, size: 16, color: AppColors.textDim)],
+    ]);
+    if (onTap == null) return inner;
+    return Semantics(
+      button: true,
+      child: Material(
+        color: AppColors.surface2,
+        shape: StadiumBorder(side: BorderSide(color: AppColors.outline)),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 36),
+            child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6), child: inner),
+          ),
+        ),
       ),
     );
   }

@@ -10,77 +10,138 @@ import 'teacher_page.dart' show StudentPage;
 import 'theme.dart';
 import 'widgets.dart';
 
-/// Modal "Como foi esta tarefa?": o professor decide sozinho (o aluno não precisa marcar nada).
-/// Três saídas: está boa (valida), refazer (o aluno vê "refazer") ou levar para a próxima aula.
+/// Modal "Avaliar tarefa": quem é o aluno e o que foi passado, o que o app já mediu (melhor acerto contra a meta), um recado
+/// opcional ao aluno e as três saídas: está boa (valida), refazer (o aluno continua nela) ou levar para a próxima aula.
+/// O recado vai ao aluno como observação (pelo mesmo caminho das observações do professor).
 Future<void> showReviewSheet(BuildContext context, AppState app, Student student, Assignment task) {
+  final note = TextEditingController();
   return showDsSheet(
     context,
-    title: tr('Como foi esta tarefa?'),
+    title: tr('Avaliar tarefa'),
     listenable: app,
     children: (c) {
       final t = student.tasks.where((x) => x.id == task.id).firstOrNull ?? task;
       void pick(TaskReview r, String msg) {
+        final recado = note.text.trim();
         app.reviewAssignment(student, t.id, r);
         Navigator.of(c).pop();
-        app.say(msg);
+        // O recado entra como observação do aluno e segue a regra de entrega (agora, na fila ou só na ficha).
+        app.say(recado.isEmpty ? msg : '$msg ${app.addTeacherNote(student, '${t.title}: $recado')}');
       }
 
-      Widget option({required IconData icon, required String label, required String hint, required VoidCallback onTap, bool primary = false}) => Padding(
-            padding: const EdgeInsets.only(bottom: Ds.s16),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              SizedBox(
-                height: Ds.primaryHeight,
-                child: primary
-                    ? FilledButton.icon(onPressed: onTap, icon: Icon(icon), label: Text(label, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)))
-                    : OutlinedButton.icon(onPressed: onTap, icon: Icon(icon), label: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700))),
-              ),
-              const SizedBox(height: Ds.s4),
-              Text(hint, textAlign: TextAlign.center, style: Ds.support()),
-            ]),
-          );
+      // O que o app mediu desta mesma escala/arpejo: melhor acerto e quantas vezes esta semana.
+      final weekAgo = DateTime.now().subtract(const Duration(days: 7));
+      final mine = t.isScale ? [for (final s in student.sessions) if (s.title == t.title) s] : <SessionRecord>[];
+      final best = mine.isEmpty ? null : mine.map((s) => s.accuracy).reduce((x, y) => x > y ? x : y);
+      final week = mine.where((s) => s.date.isAfter(weekAgo)).length;
 
       return [
         Row(children: [
-          DsIconBadge(taskKindIcon(t.kind), size: 40),
+          PersonAvatar(name: student.name, photo: app.photoOfStudent(student), tint: studentTint(student), radius: 22),
           const SizedBox(width: Ds.s12),
-          Expanded(child: Text(t.title, style: const TextStyle(fontSize: Ds.fontBody, fontWeight: FontWeight.w700))),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(t.title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+              Text(tr('{0} · passada em {1}', [app.labelOf(student), fmtDayMonth(t.created)]), style: Ds.support()),
+            ]),
+          ),
         ]),
+        if (t.awaitsValidation) ...[
+          const SizedBox(height: Ds.s12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.16), borderRadius: BorderRadius.circular(10)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Icon(Icons.fact_check_outlined, size: 15, color: AppColors.accent),
+                const SizedBox(width: 6),
+                Text(tr('{0} marcou como feita', [student.name]), style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700, fontSize: Ds.fontLabel)),
+              ]),
+            ),
+          ),
+        ],
         if (t.note.isNotEmpty) ...[
           const SizedBox(height: Ds.s12),
           Text(t.note, style: Ds.support()),
         ],
-        if (t.awaitsValidation) ...[
-          const SizedBox(height: Ds.s8),
-          Row(children: [
-            Icon(Icons.fact_check_outlined, size: 16, color: AppColors.accent),
-            const SizedBox(width: 6),
-            Text(tr('Aluno marcou como feita'), style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.w700, fontSize: Ds.fontLabel)),
-          ]),
-        ],
-        const SizedBox(height: Ds.s20),
-        if (!t.done)
-          option(
-            primary: true,
-            icon: Icons.check_rounded,
-            label: tr('Está boa'),
-            hint: tr('Finaliza a tarefa e avisa o aluno.'),
-            onTap: () => pick(TaskReview.ok, tr('Tarefa validada.')),
+        if (best != null) ...[
+          const SizedBox(height: Ds.s16),
+          DsGroupRow(
+            tr('Medido pelo app'),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(tr('Melhor acerto {0}% · meta {1}%', [(best * 100).round(), (t.goal * 100).round()]),
+                  style: TextStyle(fontWeight: FontWeight.w700, color: best >= t.goal ? AppColors.inTune : AppColors.flat)),
+              const SizedBox(height: Ds.s8),
+              LayoutBuilder(builder: (_, box) {
+                final w = box.maxWidth;
+                return SizedBox(
+                  height: 12,
+                  child: Stack(clipBehavior: Clip.none, children: [
+                    Container(height: 8, margin: const EdgeInsets.only(top: 2), decoration: BoxDecoration(color: AppColors.surface2, borderRadius: BorderRadius.circular(4))),
+                    Container(
+                      height: 8,
+                      width: w * best.clamp(0.0, 1.0),
+                      margin: const EdgeInsets.only(top: 2),
+                      decoration: BoxDecoration(color: best >= t.goal ? AppColors.inTune : AppColors.flat, borderRadius: BorderRadius.circular(4)),
+                    ),
+                    Positioned(left: w * t.goal.clamp(0.0, 1.0) - 1, top: 0, bottom: 0, child: Container(width: 2, color: AppColors.text)),
+                  ]),
+                );
+              }),
+              const SizedBox(height: Ds.s4),
+              Text(week == 1 ? tr('1 sessão nesta semana') : tr('{0} sessões nesta semana', [week]), style: Ds.support()),
+            ]),
           ),
-        option(
-          icon: Icons.replay_rounded,
-          label: tr('Refazer'),
-          hint: tr('O aluno vê "refazer" e continua estudando esta tarefa.'),
-          onTap: () => pick(TaskReview.back, tr('Devolvida para refazer.')),
+        ],
+        const SizedBox(height: Ds.s16),
+        TextField(
+          controller: note,
+          maxLines: 3,
+          minLines: 1,
+          maxLength: 300,
+          textCapitalization: TextCapitalization.sentences,
+          decoration: InputDecoration(labelText: tr('Recado para {0} (opcional)', [student.name]), helperText: tr('Vai junto, como observação.')),
         ),
-        option(
-          icon: Icons.redo_rounded,
-          label: tr('Passar para a próxima aula'),
-          hint: tr('A tarefa volta como pendente e é enviada de novo ao aluno na próxima aula.'),
-          onTap: () => pick(TaskReview.next, tr('A tarefa vai de novo ao aluno na próxima aula.')),
-        ),
+        const SizedBox(height: Ds.s12),
+        if (!t.done)
+          SizedBox(
+            height: Ds.primaryHeight,
+            child: FilledButton.icon(
+              onPressed: () => pick(TaskReview.ok, tr('Tarefa validada.')),
+              icon: const Icon(Icons.check_rounded),
+              label: Text(tr('Está boa'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+            ),
+          ),
+        const SizedBox(height: Ds.s12),
+        Row(children: [
+          Expanded(
+            child: SizedBox(
+              height: Ds.primaryHeight,
+              child: OutlinedButton.icon(
+                onPressed: () => pick(TaskReview.back, tr('Devolvida para refazer.')),
+                icon: const Icon(Icons.replay_rounded),
+                label: Text(tr('Refazer'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ),
+          const SizedBox(width: Ds.s12),
+          Expanded(
+            child: SizedBox(
+              height: Ds.primaryHeight,
+              child: OutlinedButton.icon(
+                onPressed: () => pick(TaskReview.next, tr('A tarefa vai de novo ao aluno na próxima aula.')),
+                icon: const Icon(Icons.redo_rounded),
+                label: Text(tr('Próxima aula'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ),
+        ]),
+        const SizedBox(height: Ds.s8),
+        Text(tr('Refazer: o aluno continua nesta tarefa. Próxima aula: ela volta como pendente e é enviada de novo.'), textAlign: TextAlign.center, style: Ds.support()),
       ];
     },
-  );
+  ).whenComplete(note.dispose);
 }
 
 /// Na ficha do aluno: as tarefas que esperam a decisão do professor. O aluno não precisa assinar nada;

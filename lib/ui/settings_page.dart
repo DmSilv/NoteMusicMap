@@ -711,6 +711,21 @@ class SettingsPage extends StatelessWidget {
   }
 }
 
+/// Ajustes que a barra de cima abre direto, sem passar pela lista de Ajustes.
+enum QuickSettings { tuning, metronome, grid }
+
+void showQuickSettings(BuildContext context, AppState app, QuickSettings which) {
+  final p = SettingsPage(app: app);
+  switch (which) {
+    case QuickSettings.tuning:
+      p._open(context, tr('Afinação e referência'), (c) => [p._tuningBasic(c), const DsGap(Ds.s12), DsGroup(icon: Icons.graphic_eq_rounded, title: tr('Som de referência'), children: [p._tone()])]);
+    case QuickSettings.metronome:
+      p._open(context, tr('Metrônomo'), (c) => [p._metronome()]);
+    case QuickSettings.grid:
+      p._open(context, tr('Grade'), (c) => [p._grid()]);
+  }
+}
+
 /// Restaurar ajustes, apagar os dados do aparelho ou excluir a conta (aberto em Minha conta › Acesso e segurança).
 void showResetSheet(BuildContext context, AppState app) {
   final page = SettingsPage(app: app);

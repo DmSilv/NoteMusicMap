@@ -128,7 +128,7 @@
 | `lib/ui/tuning_pick.dart` | Nome curto do sistema de afinação em uso ("Pitagórico"). |
 | `lib/ui/turmas_page.dart` | "Turmas": o lugar onde o professor se organiza quando tem mais de um grupo de alunos (mesmo dentro do mesmo instrumento). Cada turma tem o seu instrumento e os seus alunos; dali ele passa a mesma tarefa para vários… |
 | `lib/ui/undo_snack.dart` | Aviso de baixo com o botão "Desfazer": serve para toda ação que some com algo da tela (esconder um cartão, tirar um item). Fica 8 segundos (tempo de ler e decidir), é flutuante e o botão tem alvo de toque grande.… |
-| `lib/ui/validation_ui.dart` | Modal "Como foi esta tarefa?": o professor decide sozinho (o aluno não precisa marcar nada). Três saídas: está boa (valida), refazer (o aluno vê "refazer") ou levar para a próxima aula. |
+| `lib/ui/validation_ui.dart` | Modal "Avaliar tarefa": quem é o aluno e o que foi passado, o que o app já mediu (melhor acerto contra a meta), um recado opcional ao aluno e as três saídas: está boa (valida), refazer (o aluno continua nela) ou… |
 | `lib/ui/web_file_pick_stub.dart` | Fora do navegador o seletor é o do aparelho (image_picker); esta função só existe para o código compilar nas duas pontas. |
 | `lib/ui/web_file_pick_web.dart` | Abre o seletor de arquivos de imagem (ou a câmera, com [camera]) e devolve os bytes; null se a pessoa desistiu. Lança se o navegador não conseguir ler o arquivo. |
 | `lib/ui/welcome_tour.dart` | Para onde a pessoa quer ir depois da apresentação. |
