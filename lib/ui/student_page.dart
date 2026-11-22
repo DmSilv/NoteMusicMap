@@ -133,6 +133,7 @@ class StudentPage extends StatelessWidget {
             child: app.fichaNovaOn ? _novaFicha(context, s, sum, tips) : ListView(
               padding: Ds.screen,
               children: [
+                ..._linkNotices(context, s),
                 AppCard(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                     StudentIdentity(app: app, student: s, large: true),
@@ -326,6 +327,34 @@ class StudentPage extends StatelessWidget {
         ),
       );
 
+  /// O vínculo com este aluno: se ele saiu, "Convidar de novo"; se voltou, oferece reenviar as tarefas em aberto.
+  List<Widget> _linkNotices(BuildContext context, Student s) {
+    final out = <Widget>[];
+    if (s.linkState == 'ended') {
+      out.add(_notice(
+        icon: Icons.link_off_rounded,
+        text: tr('{0} encerrou o vínculo. O histórico é seu.', [s.name]),
+        color: AppColors.flat,
+        actionLabel: tr('Convidar de novo'),
+        actionIcon: Icons.send_rounded,
+        onAction: () => shareTeacherInvite(app),
+      ));
+    }
+    final open = app.openTaskCount(s);
+    if (app.relinkOffers.contains(s.id) && s.linkState == 'active') {
+      out.add(_notice(
+        icon: Icons.link_rounded,
+        text: open == 0 ? tr('{0} voltou a ser seu aluno.', [s.name]) : tr('{0} voltou. Reenviar as {1} tarefas em aberto?', [s.name, open]),
+        color: AppColors.inTune,
+        actionLabel: open == 0 ? null : tr('Reenviar'),
+        actionIcon: open == 0 ? null : Icons.send_rounded,
+        onAction: open == 0 ? null : () => app.say(app.resendOpenTasks(s)),
+      ));
+      out.add(_infoLine(Icons.close_rounded, tr('Os envios de antes foram apagados quando ele saiu.'), link: tr('Agora não'), onLink: () => app.dismissRelinkOffer(s)));
+    }
+    return [for (final w in out) Padding(padding: const EdgeInsets.only(bottom: Ds.s8), child: w)];
+  }
+
   Widget _novaFicha(BuildContext context, Student s, StudentSummary sum, List<Insight> tips) {
     final l = app.lesson;
     final mine = l != null && l.studentId == s.id;
@@ -383,6 +412,8 @@ class StudentPage extends StatelessWidget {
             onAction: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => StudentPage(app: app, studentId: other.id))),
           ),
         ],
+        const SizedBox(height: Ds.s8),
+        ..._linkNotices(context, s),
         if (awaiting.isNotEmpty) ...[
           const SizedBox(height: Ds.s8),
           _notice(

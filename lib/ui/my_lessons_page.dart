@@ -219,6 +219,35 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
                       for (final l in older) _lessonSection(l, [for (final t in l.tasks) (t, !app.lessonTaskDone(l, t) && !_carried.contains('${l.id}:${t.id}'))], expanded: false),
                     ],
                   ],
+                  if (app.formerTeachers.isNotEmpty) ...[
+                    const SizedBox(height: Ds.s20),
+                    Text(tr('Professores anteriores'), style: Ds.section()),
+                    const SizedBox(height: Ds.s8),
+                    for (final f in app.formerTeachers.values)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: Ds.s8),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(14),
+                          onTap: () => _openFormer(context, f),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.outline)),
+                            child: Row(children: [
+                              Icon(Icons.history_rounded, color: AppColors.textDim),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Text(f.name.isEmpty ? tr('Professor') : f.name, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14.5)),
+                                  Text(tr('{0} aulas guardadas · vínculo encerrado em {1}', [f.lessons.length, fmtDayMonth(DateTime.fromMillisecondsSinceEpoch(f.endedAtMs))]), style: Ds.support()),
+                                ]),
+                              ),
+                              Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
+                            ]),
+                          ),
+                        ),
+                      ),
+                    Text(tr('Só para ler. Se o vínculo voltar, as aulas voltam para a lista.'), style: Ds.support()),
+                  ],
                 ],
               ),
             ),
@@ -226,6 +255,26 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
         );
       },
     );
+  }
+
+  /// As aulas guardadas de um professor anterior: só leitura, neste aparelho.
+  void _openFormer(BuildContext context, FormerTeacher f) {
+    showDsSheet(context, title: f.name.isEmpty ? tr('Professor anterior') : f.name, listenable: app, children: (c) => [
+          for (final l in f.lessons)
+            Container(
+              width: double.infinity,
+              margin: const EdgeInsets.only(bottom: Ds.s12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.outline)),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(fmtDayMonth(l.date), style: const TextStyle(fontWeight: FontWeight.w800)),
+                for (final t in l.tasks)
+                  Padding(padding: const EdgeInsets.only(top: 6), child: Text('• ${t.title}', style: const TextStyle(fontSize: 14))),
+                for (final n in l.notes)
+                  Padding(padding: const EdgeInsets.only(top: 6), child: Text(n, style: Ds.support())),
+              ]),
+            ),
+        ]);
   }
 
   /// Aviso de conexão (desligado, servidor indisponível, sem internet): texto, ícone e cor; null se está tudo bem.

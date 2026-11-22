@@ -815,7 +815,13 @@ class _ProfilePageState extends State<ProfilePage> {
       context: context,
       builder: (c) => AlertDialog(
         title: Text(tr('Encerrar o vínculo?')),
-        content: Text(tr('Você sai da lista de {0} e ele sai da sua. Para vincular de novo, leia o QR outra vez.', [t.name.isEmpty ? tr('este professor') : t.name])),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(tr('As aulas com {0} ficam guardadas aqui, só para ler.', [t.name.isEmpty ? tr('este professor') : t.name])),
+          const SizedBox(height: 8),
+          Text(tr('As tarefas em aberto saem da sua lista e ele deixa de ver o seu estudo.')),
+          const SizedBox(height: 8),
+          Text(tr('Ele continua com o histórico. Para voltar, leia o QR dele de novo.')),
+        ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
           FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Encerrar'))),

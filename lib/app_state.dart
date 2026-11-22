@@ -61,6 +61,28 @@ class MetroBeat {
 /// Quanto tempo a nota afinada precisa ser segurada na escala guiada.
 enum ScaleHold { seconds, beat1, beat2 }
 
+/// ALUNO: um professor com quem o vínculo acabou e as aulas dele, guardadas só neste aparelho (leitura).
+class FormerTeacher {
+  final String code;
+  final String name;
+  final int endedAtMs;
+  final List<SharedLesson> lessons;
+  const FormerTeacher(this.code, this.name, this.endedAtMs, this.lessons);
+
+  Map<String, dynamic> toJson() => {'c': code, 'n': name, 't': endedAtMs, 'l': [for (final l in lessons) l.toJson()]};
+
+  static FormerTeacher? tryFrom(Object? x) {
+    if (x is! Map) return null;
+    final c = formatShareCode((x['c'] as String?) ?? '');
+    if (c == null) return null;
+    final name = cleanText(x['n'] as String?, max: kMaxName);
+    final ls = <SharedLesson>[
+      for (final y in ((x['l'] as List?) ?? const []).take(40)) ?SharedLesson.tryFromWire(y, teacherCode: c, teacherName: name),
+    ];
+    return FormerTeacher(c, name, (x['t'] as num?)?.toInt() ?? 0, ls);
+  }
+}
+
 /// Jeito de marcar o tempo de estudo.
 enum StudyMode { pomodoro, stopwatch, custom }
 
@@ -2605,6 +2627,12 @@ class AppState extends ChangeNotifier {
   /// ALUNO: aulas recebidas dos professores, mais recente primeiro.
   List<SharedLesson> myLessons = [];
 
+  /// ALUNO: professores anteriores (vínculo encerrado) com as aulas que o aluno já tinha, só neste aparelho. Máximo 8.
+  final Map<String, FormerTeacher> formerTeachers = {};
+
+  /// PROFESSOR: alunos que voltaram depois de encerrar o vínculo e para os quais o app oferece reenviar as tarefas em aberto.
+  final Set<String> relinkOffers = {};
+
   /// Revisão das aulas já trazida do servidor.
   int lessonsRev = 0;
 
@@ -2634,6 +2662,21 @@ class AppState extends ChangeNotifier {
     } catch (_) {
       myLessons = [];
     }
+    formerTeachers.clear();
+    try {
+      final raw = p.getString('former_teachers');
+      if (raw != null) {
+        for (final x in (jsonDecode(raw) as List).take(8)) {
+          final f = FormerTeacher.tryFrom(x);
+          if (f != null) formerTeachers[f.code] = f;
+        }
+      }
+    } catch (_) {
+      formerTeachers.clear();
+    }
+    relinkOffers
+      ..clear()
+      ..addAll((p.getStringList('relink_offer') ?? const []).take(100));
     lessonsRev = p.getInt('lessons_rev') ?? 0;
     doneOutbox
       ..clear()
@@ -2666,6 +2709,8 @@ class AppState extends ChangeNotifier {
       p.setString('lesson_active', jsonEncode(_lesson!.toJson()));
     }
     p.setString('lessons_in', jsonEncode([for (final l in myLessons) l.toJson()]));
+    p.setString('former_teachers', jsonEncode([for (final f in formerTeachers.values) f.toJson()]));
+    p.setStringList('relink_offer', relinkOffers.toList());
     p.setInt('lessons_rev', lessonsRev);
     p.setStringList('lessons_done', lessonTasksDone.toList());
   }
@@ -2797,6 +2842,34 @@ class AppState extends ChangeNotifier {
 
   /// Quantas tarefas de [s] ainda esperam envio.
   int pendingTaskCount(Student s) => pendingTasks(s).length;
+
+  /// Tarefas de [s] que ainda não foram concluídas.
+  int openTaskCount(Student s) => s.tasks.where((t) => !t.done).length;
+
+  /// O aluno voltou depois de encerrar o vínculo: reenvia as tarefas em aberto (o servidor apagou as de antes).
+  String resendOpenTasks(Student s) {
+    relinkOffers.remove(s.id);
+    _saveLessons();
+    var n = 0;
+    for (var i = 0; i < s.tasks.length; i++) {
+      if (!s.tasks[i].done) {
+        s.tasks[i] = s.tasks[i].copyWith(sent: false);
+        n++;
+      }
+    }
+    if (n == 0) {
+      notifyListeners();
+      return tr('Nenhuma tarefa em aberto para reenviar.');
+    }
+    return sendPendingTasks(s);
+  }
+
+  /// "Agora não": some a oferta de reenviar as tarefas.
+  void dismissRelinkOffer(Student s) {
+    relinkOffers.remove(s.id);
+    _saveLessons();
+    notifyListeners();
+  }
 
   /// Envia as tarefas pendentes de [s] fora de uma aula (a aula leva as suas sozinha).
   /// Devolve a mensagem para o professor.
@@ -3079,7 +3152,32 @@ class AppState extends ChangeNotifier {
   }
 
   /// Tira um professor da sua lista (e do servidor).
+  /// Guarda as aulas de um professor que saiu (só neste aparelho, para o aluno rever) antes de tirá-las da lista.
+  void _archiveTeacher(String code, String name) {
+    final ls = [for (final l in myLessons) if (l.teacherCode == code) l];
+    if (ls.isEmpty) return;
+    formerTeachers[code] = FormerTeacher(code, name, DateTime.now().millisecondsSinceEpoch, ls.take(40).toList());
+    while (formerTeachers.length > 8) {
+      final oldest = formerTeachers.values.reduce((a, b) => a.endedAtMs <= b.endedAtMs ? a : b);
+      formerTeachers.remove(oldest.code);
+    }
+  }
+
+  /// O professor voltou: as aulas de antes voltam à lista (as que já estão nela não repetem).
+  void _restoreTeacher(String code) {
+    final f = formerTeachers.remove(code);
+    if (f == null) return;
+    final known = {for (final l in myLessons) '${l.teacherCode}:${l.id}'};
+    myLessons = [
+      ...myLessons,
+      for (final l in f.lessons) if (!known.contains('${l.teacherCode}:${l.id}')) l,
+    ]..sort((a, b) => b.atMs.compareTo(a.atMs));
+    _saveLessons();
+  }
+
   void removeMyTeacher(String code) {
+    final name = [for (final t in myTeachers) if (t.code == code) t.name].firstOrNull ?? '';
+    _archiveTeacher(code, name);
     myTeachers.removeWhere((t) => t.code == code);
     myLessons.removeWhere((l) => l.teacherCode == code);
     _saveLessons();
@@ -3493,6 +3591,7 @@ class AppState extends ChangeNotifier {
   void _applyLinkLists(LinkReply r) {
     final newStudents = <String>[];
     final endedStudents = <String>[];
+    final returnedStudents = <String>[];
     final srvStudents = {for (final x in r.asTeacher) x.code: x};
     // Quem se vinculou a mim como professor aparece sozinho na minha lista de alunos.
     for (final x in r.asTeacher) {
@@ -3510,6 +3609,11 @@ class AppState extends ChangeNotifier {
         activeStudentId ??= s.id;
         newStudents.add(s.name);
       } else {
+        // O aluno que tinha encerrado o vínculo voltou: oferece reenviar as tarefas em aberto (o professor confirma na ficha).
+        if (s.linkState == 'ended') {
+          relinkOffers.add(s.id);
+          returnedStudents.add(s.name);
+        }
         s.linkState = 'active';
         // Acompanha o apelido novo do aluno enquanto o professor não renomeou.
         final auto = s.name == (s.remoteName ?? '') || isDefaultStudentName(s.name, x.code);
@@ -3530,8 +3634,14 @@ class AppState extends ChangeNotifier {
     final lost = [for (final t in myTeachers) if (t.since > 0 && !serverTeachers.any((x) => x.code == t.code)) t];
     myTeachers = [...serverTeachers, ...unconfirmed];
     if (lost.isNotEmpty) {
+      for (final t in lost) {
+        _archiveTeacher(t.code, t.name);
+      }
       myLessons.removeWhere((l) => lost.any((t) => t.code == l.teacherCode));
       _saveLessons();
+    }
+    for (final x in serverTeachers) {
+      if (formerTeachers.containsKey(x.code)) _restoreTeacher(x.code);
     }
     final newTeachers = [for (final x in serverTeachers) if (!before.contains(x.code)) x];
 
@@ -3553,6 +3663,10 @@ class AppState extends ChangeNotifier {
     }
     if (endedStudents.isNotEmpty) {
       say(tr('{0}: vínculo encerrado pelo aluno. O histórico ficou com você.', [endedStudents.join(', ')]));
+    }
+    if (returnedStudents.isNotEmpty) {
+      _saveLessons();
+      say(tr('{0} voltou a ser seu aluno. Abra a ficha para reenviar as tarefas em aberto.', [returnedStudents.first]));
     }
     if (lost.isNotEmpty) {
       say(tr('{0} encerrou o vínculo com você.', [lost.first.name.isEmpty ? tr('Um professor') : lost.first.name]));
@@ -5606,6 +5720,8 @@ class AppState extends ChangeNotifier {
     final p = _prefs ?? await SharedPreferences.getInstance();
     await p.clear();
     students = [];
+    formerTeachers.clear();
+    relinkOffers.clear();
     methodLibrary = [];
     repertoireLibrary = [];
     activeStudentId = null;

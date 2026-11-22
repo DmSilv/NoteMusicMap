@@ -17,16 +17,25 @@ class StudyPage extends StatelessWidget {
   final bool active;
   const StudyPage({super.key, required this.app, this.active = true});
 
+  /// Há o que mostrar no cartão de material (acervo próprio de quem não é professor, ou material dos professores dele)?
+  bool _hasMaterial() {
+    if (app.hubView == HubView.teacher) return false;
+    final own = app.libraryOn && !app.teacherMode;
+    return own || app.myTeachers.any((t) => app.libraryTeachers.contains(t.code));
+  }
+
   /// Acervo e repertório (só para professores liberados e seus alunos).
   Widget _materialCard(BuildContext context) {
     // Na visão de professor o acervo mora no cartão "Organização" do Meu espaço; aqui fica só o material de quem ensina o aluno.
     final asTeacher = app.hubView == HubView.teacher;
     final teachers = [for (final t in app.myTeachers) if (!asTeacher && app.libraryTeachers.contains(t.code)) t];
-    final both = app.libraryOn && !asTeacher && teachers.isNotEmpty;
+    // Quem também é professor tem o próprio acervo na visão de professor; na de aluno aparece só o material dos professores dele.
+    final ownHere = app.libraryOn && !asTeacher && !app.teacherMode;
+    final both = ownHere && teachers.isNotEmpty;
     return AppCard(
       padding: EdgeInsets.zero,
       child: Column(children: [
-        if (app.libraryOn && !asTeacher)
+        if (ownHere)
           _row(Icons.library_books_rounded, tr('Acervo e repertório'), tr('Seus métodos e peças, com link'), () => openLibrary(context, app)),
         if (both) const Divider(height: 1),
         for (final t in teachers)
@@ -68,7 +77,7 @@ class StudyPage extends StatelessWidget {
               // Agenda: próxima aula, as seguintes e os atalhos (marcar, horários livres, agenda completa).
               HubSection(app: app),
               const DsGap(Ds.gap),
-              if (app.libraryVisible && !(app.hubView == HubView.teacher)) ...[_materialCard(context), const DsGap(Ds.gap)],
+              if (_hasMaterial()) ...[_materialCard(context), const DsGap(Ds.gap)],
               FeedbackInviteCard(app: app),
             ],
           ),

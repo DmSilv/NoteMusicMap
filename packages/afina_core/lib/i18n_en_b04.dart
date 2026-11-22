@@ -219,7 +219,6 @@ const Map<String, String> kEnB04 = {
   'Encerrar vínculo': 'End link',
   'Adicionar outro professor': 'Add another teacher',
   'Encerrar o vínculo?': 'End the link?',
-  'Você sai da lista de {0} e ele sai da sua. Para vincular de novo, leia o QR outra vez.': 'You leave {0}\'s list and they leave yours. To link again, scan the QR once more.',
   'este professor': 'this teacher',
   'Encerrar': 'End',
   'Guarde em lugar seguro: com ela você leva o perfil a outro aparelho. Quem a tiver pode se passar por você.': 'Keep it somewhere safe: with it you take your profile to another device. Anyone who has it can pass as you.',
