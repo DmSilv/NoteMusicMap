@@ -42,9 +42,12 @@ class HubSection extends StatelessWidget {
   const HubSection({super.key, required this.app});
 
   @override
-  Widget build(BuildContext context) => _LiveWatch(app: app, child: _Ticker(builder: _content));
+  // A largura que vale é a da coluna onde o Meu espaço está (no computador ele fica numa coluna estreita), não a da janela.
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, box) => _LiveWatch(app: app, child: _Ticker(builder: (c) => _content(c, wide: box.maxWidth >= 640))),
+      );
 
-  Widget _content(BuildContext context) {
+  Widget _content(BuildContext context, {required bool wide}) {
     final now = DateTime.now();
     final view = app.hubView;
     final isT = view == HubView.teacher;
@@ -68,7 +71,6 @@ class HubSection extends StatelessWidget {
 
     // O bloco de agenda do aluno já está no destaque: não repete como cartão.
     final tiles = [for (final d in layout.tiles) if (d != HubDest.agendaStudent) _tileFor(context, d, now)];
-    final wide = MediaQuery.sizeOf(context).width >= 640;
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       _viewSwitch(context, view),
       _statusChip(context),
@@ -384,7 +386,7 @@ class HubSection extends StatelessWidget {
           style: OutlinedButton.styleFrom(minimumSize: const Size(0, Ds.tap), padding: const EdgeInsets.symmetric(horizontal: Ds.s8)),
           onPressed: f,
           icon: Icon(i, size: 18),
-          label: Text(t, maxLines: 1, overflow: TextOverflow.ellipsis),
+          label: FittedBox(fit: BoxFit.scaleDown, child: Text(t, maxLines: 1)),
         );
     final online = (nc != null && nc.slot.hasLink)
         ? FilledButton.icon(

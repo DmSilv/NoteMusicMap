@@ -12,7 +12,7 @@ import 'stats/stats_service.dart';
 import 'ui/app_locale.dart';
 import 'ui/app_logo.dart';
 import 'ui/bottom_nav.dart';
-import 'ui/desktop_dock.dart';
+import 'ui/desktop_dock.dart' show DesktopRail, DeskMiniScreen;
 import 'ui/exit_sheet.dart';
 import 'ui/hello_bar.dart';
 import 'ui/hub_section.dart' show linkTeacherByScan;
@@ -504,6 +504,11 @@ class _HomeShellState extends State<HomeShell> {
 
   void _go(int i) {
     widget.app.markTab(_tabNames[i]);
+    if (isDesktopLayout(MediaQuery.sizeOf(context)) && i == kTabStudy) {
+      widget.app.setDeskDock(true);
+      setState(() => _index = i);
+      return;
+    }
     if (isSplitLayout(MediaQuery.sizeOf(context))) {
       final a = widget.app;
       if (i != a.splitLeft && i != a.splitRight) {
@@ -607,16 +612,55 @@ class _HomeShellState extends State<HomeShell> {
         Expanded(child: Text(_titles[cur], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
         if (two)
           Container(
-            height: 28,
+            height: 32,
             padding: const EdgeInsets.symmetric(horizontal: 10),
             alignment: Alignment.center,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: focused ? AppColors.text : AppColors.outline),
+              border: Border.all(color: focused ? AppColors.text : AppColors.outline, width: focused ? 1.6 : 1),
             ),
-            child: Text(tr('Tela {0}', [left ? 1 : 2]), style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: focused ? AppColors.text : AppColors.textDim)),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              DeskMiniScreen(parts: [left ? '1' : '2'], color: focused ? AppColors.accent : AppColors.textDim, height: 16),
+              const SizedBox(width: 8),
+              Text(tr('Tela {0}', [left ? 1 : 2]), style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: focused ? AppColors.text : AppColors.textDim)),
+            ]),
           ),
       ]),
+    );
+  }
+
+  /// Computador: o Meu espaço inteiro (visão Aluno | Professor, próxima aula, tarefas...) numa coluna fixa à direita. É a mesma tela
+  /// do celular, então nada aparece em dois lugares: ele não é mais uma das ferramentas dos painéis.
+  Widget _homeColumn(double width) {
+    final a = widget.app;
+    return SizedBox(
+      width: width,
+      child: Container(
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: AppColors.bg,
+          borderRadius: BorderRadius.circular(Ds.radiusCard),
+          border: Border.all(color: AppColors.outline),
+        ),
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 6, 8),
+            child: Row(children: [
+              Icon(_icons[kTabStudy], size: 20, color: AppColors.text),
+              const SizedBox(width: 10),
+              Expanded(child: Text(_titles[kTabStudy], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
+              TextButton.icon(
+                onPressed: () => a.setDeskDock(false),
+                icon: const Icon(Icons.chevron_right_rounded, size: 20),
+                label: Text(tr('Ocultar')),
+                style: TextButton.styleFrom(foregroundColor: AppColors.textDim, minimumSize: const Size(0, 36), padding: const EdgeInsets.symmetric(horizontal: 8)),
+              ),
+            ]),
+          ),
+          const Divider(height: 1),
+          Expanded(child: KeyedSubtree(key: const ValueKey('home-col'), child: _pagePane(kTabStudy))),
+        ]),
+      ),
     );
   }
 
@@ -658,11 +702,15 @@ class _HomeShellState extends State<HomeShell> {
             ])),
           ),
         );
+    // No computador "Meu espaço" é a coluna da direita (não uma ferramenta): os painéis só mostram as quatro ferramentas, sem repetir.
+    final pl = desktop ? (a.splitLeft < 4 ? a.splitLeft : 0) : a.splitLeft;
+    var pr = desktop ? (a.splitRight < 4 ? a.splitRight : 1) : a.splitRight;
+    if (desktop && pl == pr) pr = (pl + 1) % 4;
     final panes = Row(children: [
-      pane(true, a.splitLeft, a.splitRight),
+      pane(true, pl, pr),
       if (!single) ...[
         if (desktop) const SizedBox(width: Ds.s12) else const VerticalDivider(width: 1),
-        pane(false, a.splitRight, a.splitLeft),
+        pane(false, pr, pl),
       ],
     ]);
     if (!desktop) {
@@ -672,30 +720,36 @@ class _HomeShellState extends State<HomeShell> {
     }
     // Computador: barra lateral à esquerda e, se ligado, o painel à direita.
     final labels = size.width >= kDesktopLabelsWidth;
-    final dockW = size.width >= kDesktopLabelsWidth ? 380.0 : 300.0;
+    final dockW = size.width >= kDesktopLabelsWidth ? 460.0 : 380.0;
     return Row(children: [
       ListenableBuilder(
         listenable: a,
         builder: (context, _) => DesktopRail(
           icons: _icons,
           titles: _titles,
-          selected: (single || !_focusRight) ? a.splitLeft : a.splitRight,
-          also: single ? null : ((!_focusRight) ? a.splitRight : a.splitLeft),
+          selected: (single || !_focusRight) ? pl : pr,
+          also: single ? null : ((!_focusRight) ? pr : pl),
           labels: labels,
+          homeOn: a.deskDock,
           two: !single,
           onTwo: (v) => a.setDeskSingle(!v),
-          tags: single ? const {} : {a.splitLeft: '1', a.splitRight: '2'},
-          alertOnLast: _index != kTabStudy && a.unseenNotices > 0,
+          tags: single ? const {} : {pl: '1', pr: '2'},
+          alertOnLast: !a.deskDock && a.unseenNotices > 0,
           onSelected: (i) {
+            // O último item é o Meu espaço: abre e fecha a coluna da direita.
+            if (i == kTabStudy) {
+              a.setDeskDock(!a.deskDock);
+              return;
+            }
             // Já está num dos painéis: só leva o foco para ele. Senão, entra no painel em foco.
-            if (i == a.splitLeft) {
+            if (i == pl) {
               setState(() {
                 _focusRight = false;
                 _index = i;
               });
               return;
             }
-            if (!single && i == a.splitRight) {
+            if (!single && i == pr) {
               setState(() {
                 _focusRight = true;
                 _index = i;
@@ -703,9 +757,9 @@ class _HomeShellState extends State<HomeShell> {
               return;
             }
             if (single || !_focusRight) {
-              a.setSplit(i, a.splitRight);
+              a.setSplit(i, pr);
             } else {
-              a.setSplit(a.splitLeft, i);
+              a.setSplit(pl, i);
             }
             a.markTab(_tabNames[i]);
             setState(() => _index = i);
@@ -718,7 +772,7 @@ class _HomeShellState extends State<HomeShell> {
         builder: (context, _) => a.deskDock
             ? Padding(
                 padding: const EdgeInsets.fromLTRB(0, Ds.s12, Ds.s12, Ds.s12),
-                child: DesktopDock(app: a, width: dockW, roomy: size.height >= 820),
+                child: _homeColumn(dockW),
               )
             : const SizedBox.shrink(),
       ),
@@ -796,19 +850,6 @@ class _HomeShellState extends State<HomeShell> {
             ],
           ),
           actions: [
-            if (isDesktopLayout(MediaQuery.sizeOf(context))) ...[
-              ListenableBuilder(
-                listenable: app,
-                builder: (context, _) => IconButton(
-                  tooltip: app.deskDock ? tr('Esconder o painel lateral') : tr('Mostrar o painel lateral'),
-                  icon: _BarCircle(
-                    fill: AppColors.surface2,
-                    child: Icon(app.deskDock ? Icons.vertical_split_rounded : Icons.vertical_split_outlined, size: 22, color: AppColors.text),
-                  ),
-                  onPressed: () => app.setDeskDock(!app.deskDock),
-                ),
-              ),
-            ],
             // Novidades do app (boletim): só aparece quando há uma publicada e chama atenção enquanto há uma não vista.
             NewsBell(app: app, wrap: (c) => _BarCircle(fill: AppColors.surface2, child: c)),
             // Dicas (apelido, instalar): lâmpada própria, só enquanto há dica; o sino fica só com avisos de verdade.

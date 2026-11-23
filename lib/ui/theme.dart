@@ -95,7 +95,8 @@ ThemeData buildTheme({required bool dark}) {
             shape: _squareShape,
             minimumSize: WidgetStateProperty.all(const Size(64, 48)),
             foregroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.disabled) ? AppColors.textDim.withValues(alpha: 0.5) : AppColors.text),
-            side: WidgetStateProperty.all(BorderSide(color: AppColors.outline, width: 1.2)))),
+            backgroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.disabled) ? Colors.transparent : AppColors.surface2),
+            side: WidgetStateProperty.resolveWith((s) => BorderSide(color: s.contains(WidgetState.disabled) ? AppColors.outline : Color.lerp(AppColors.outline, AppColors.text, 0.55)!, width: 1.4)))),
     textButtonTheme: TextButtonThemeData(style: ButtonStyle(shape: _squareShape, minimumSize: WidgetStateProperty.all(const Size(64, 48)), foregroundColor: WidgetStateProperty.resolveWith((s) => s.contains(WidgetState.disabled) ? AppColors.textDim.withValues(alpha: 0.5) : AppColors.info))),
     iconButtonTheme: IconButtonThemeData(style: ButtonStyle(shape: _squareShape)),
     navigationBarTheme: NavigationBarThemeData(
