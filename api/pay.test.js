@@ -131,6 +131,25 @@ test('pay_new: gera o Pix com o valor certo, referência do perfil e chave de id
   assert.equal((await call(H.a, { action: 'pay_new', code: P1, secret: S1, period: 'x' })).statusCode, 400, 'plano que não existe');
 });
 
+test('plano de teste (R$ 1): escondido da lista e só vale para os perfis de PAY_TEST_CODES', async () => {
+  const H = mk({ ...ON, testCodes: [P1] });
+  await born(H, P1, S1);
+  await born(H, P2, S2);
+  const st = (await call(H.a, { action: 'plan', code: P1, secret: S1 })).json();
+  assert.deepEqual(st.plans.map((p) => p.id), ['m', 'y'], 'o plano de teste nunca aparece na lista');
+  assert.equal((await call(H.a, { action: 'pay_new', code: P2, secret: S2, period: 't' })).statusCode, 400, 'outro perfil não compra o teste');
+  const r = await call(H.a, { action: 'pay_new', code: P1, secret: S1, period: 't' });
+  assert.equal(r.statusCode, 200);
+  assert.equal(r.json().amount, 1);
+  mpPay.status = 'approved';
+  await hook(H, r.json().id);
+  const a = (await call(H.a, { action: 'plan', code: P1, secret: S1 })).json();
+  assert.equal(a.until, NOW + pay.DAY, 'o teste soma 1 dia');
+  const none = mk({ ...ON, testCodes: [] });
+  await born(none, P1, S1);
+  assert.equal((await call(none.a, { action: 'pay_new', code: P1, secret: S1, period: 't' })).statusCode, 400, 'sem PAY_TEST_CODES ninguém compra o teste');
+});
+
 test('pay_new exige o dono do perfil (segredo certo)', async () => {
   const H = mk();
   await born(H, P1, S1);

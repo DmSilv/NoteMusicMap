@@ -15,7 +15,12 @@ const DAY = 86400000;
 const PLANS = {
   m: { id: 'm', name: 'Pro Professor · mensal', amount: 14.9, days: 30 },
   y: { id: 'y', name: 'Pro Professor · anual', amount: 149, days: 365 },
+  // Plano de TESTE (R$ 1 por 1 dia): escondido da lista e só vale para os perfis em PAY_TEST_CODES. Serve para provar um Pix real de ponta a ponta.
+  t: { id: 't', name: 'Teste do Pix', amount: 1, days: 1, hidden: true },
 };
+
+/** Planos que o app mostra (sem os escondidos). */
+const publicPlans = () => Object.values(PLANS).filter((p) => !p.hidden);
 
 /** O professor usa de graça até este número de alunos; o Pro tira o limite. */
 const FREE_STUDENTS = 3;
@@ -32,11 +37,15 @@ function payConfig(env = process.env) {
     token: t(env.MP_ACCESS_TOKEN),
     secret: t(env.MP_WEBHOOK_SECRET),
     publicUrl: t(env.PAY_PUBLIC_URL) || 'https://notemusicmap.vercel.app',
+    testCodes: t(env.PAY_TEST_CODES).toUpperCase().split(',').map((x) => x.trim()).filter(Boolean),
   };
 }
 
 /** Pode vender? Ligado por chave E com as duas credenciais. */
 const ready = (c) => !!(c && c.enabled && c.token && c.secret);
+
+/** Esse perfil pode comprar o plano? Os escondidos (teste) só os perfis de PAY_TEST_CODES. */
+const canBuy = (cfg, plan, code) => !plan.hidden || !!(cfg && cfg.testCodes && cfg.testCodes.includes(String(code).toUpperCase()));
 
 const planOf = (id) => (Object.prototype.hasOwnProperty.call(PLANS, id) ? PLANS[id] : null);
 
@@ -144,4 +153,4 @@ async function getPayment(fetchImpl, cfg, id) {
   };
 }
 
-module.exports = { PLANS, FREE_STUDENTS, PIX_MINUTES, DAY, payConfig, ready, planOf, extendUntil, statusOf, verifySignature, refOf, parseRef, createPix, getPayment };
+module.exports = { publicPlans, canBuy, PLANS, FREE_STUDENTS, PIX_MINUTES, DAY, payConfig, ready, planOf, extendUntil, statusOf, verifySignature, refOf, parseRef, createPix, getPayment };

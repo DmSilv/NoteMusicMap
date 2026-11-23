@@ -273,7 +273,7 @@ function makeHandler(deps = {}) {
         if (action === 'plan') {
           return send(200, {
             ok: true, enabled: pay.ready(pcfg), ...st, free: pay.FREE_STUDENTS,
-            plans: Object.values(pay.PLANS).map((p) => ({ id: p.id, name: p.name, amount: p.amount, days: p.days })),
+            plans: pay.publicPlans().map((p) => ({ id: p.id, name: p.name, amount: p.amount, days: p.days })),
           });
         }
         if (!pay.ready(pcfg)) return send(503, { error: 'pay_off' });
@@ -281,7 +281,7 @@ function makeHandler(deps = {}) {
         if (n.n > 30) return send(429, { error: 'Muitas tentativas. Tente mais tarde.' });
         if (action === 'pay_new') {
           const plan = pay.planOf(String(b.period || ''));
-          if (!plan) return send(400, { error: 'Plano inválido.' });
+          if (!plan || !pay.canBuy(pcfg, plan, o.code)) return send(400, { error: 'Plano inválido.' });
           // a mesma tentativa nos mesmos 5 minutos reaproveita o mesmo Pix (não cria dois ao tocar duas vezes)
           const slot = Math.floor(now / 300000);
           const idem = sha(`pix|${o.code}|${plan.id}|${slot}`).slice(0, 40);
