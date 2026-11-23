@@ -17,6 +17,7 @@
 | `lib/link/account_service.dart` | Um aparelho em que a conta está aberta (o servidor nunca manda o segredo dele). |
 | `lib/link/link_service.dart` | Cliente da API de vínculo (`/api/link`): vincular, aulas, tarefas feitas, decisões do professor, agenda, horários livres e notificações. Fala só com o servidor do app. |
 | `lib/link/mirror_engine.dart` | Onde o motor guarda o que já foi trocado (um texto por nome). |
+| `lib/link/pay_service.dart` | Resposta do plano Pro (Pix) de `/api/account`: `plan`, `pay_new` e `pay_check`. |
 | `lib/main.dart` | Abre o app. Se algo falhar ao iniciar, mostra a tela de erro (com "Tentar de novo") em vez de ficar em branco. Erros inesperados depois disso são classificados, guardados e avisados. |
 | `lib/platform/hard_reset.dart` | Apagar tudo e recarregar o app (botão "Apagar tudo e recomeçar"): escolhe a versão da web ou a de celular (importação condicional). |
 | `lib/platform/hard_reset_stub.dart` | Fora da web não há cache de página para limpar. |
@@ -79,6 +80,7 @@
 | `lib/ui/octave_colors.dart` | Uma cor para cada oitava do exercício (escalas e arpejos), diferente das cores de afinação (azul, verde, laranja): violeta, rosa, dourado e prata. |
 | `lib/ui/open_slots_page.dart` | Horários livres do professor (publicar e apagar) e "Pegar horário" do aluno. |
 | `lib/ui/paper_picker.dart` | A partitura está escura agora? ("Igual ao app" segue o tema.) |
+| `lib/ui/pay_test_page.dart` | Tela ESCONDIDA de teste do Pix (toque longo no título de "Minha conta"). Serve para provar um pagamento real de R$ 1 de ponta a ponta antes de existir a tela "Plano". Só funciona para o perfil liberado no servidor… |
 | `lib/ui/pedal_view.dart` | Modo "Pedal" do Afinador: escolha notas num teclado e elas soam juntas, sustentadas. Serve para tocar uma melodia por cima (bordão) e para treinar o ouvido com intervalos e acordes. Soa no sistema de afinação… |
 | `lib/ui/perf.dart` | Um [Listenable] que nunca avisa nada. Uma aba escondida escuta este em vez do app: assim ela não se reconstrói enquanto não está na tela, e volta a atualizar sozinha (o ListenableBuilder reassina) quando fica visível. |
 | `lib/ui/person_avatar.dart` | Fotos já decodificadas para bytes, para a lista não decodificar o texto base64 a cada quadro. |
@@ -409,4 +411,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **366** arquivos mapeados.
+Total: **368** arquivos mapeados.

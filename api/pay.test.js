@@ -137,6 +137,8 @@ test('plano de teste (R$ 1): escondido da lista e só vale para os perfis de PAY
   await born(H, P2, S2);
   const st = (await call(H.a, { action: 'plan', code: P1, secret: S1 })).json();
   assert.deepEqual(st.plans.map((p) => p.id), ['m', 'y'], 'o plano de teste nunca aparece na lista');
+  assert.equal(st.test, true, 'o servidor diz que este perfil pode testar');
+  assert.equal((await call(H.a, { action: 'plan', code: P2, secret: S2 })).json().test, false, 'o outro não');
   assert.equal((await call(H.a, { action: 'pay_new', code: P2, secret: S2, period: 't' })).statusCode, 400, 'outro perfil não compra o teste');
   const r = await call(H.a, { action: 'pay_new', code: P1, secret: S1, period: 't' });
   assert.equal(r.statusCode, 200);

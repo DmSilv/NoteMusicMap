@@ -272,7 +272,7 @@ function makeHandler(deps = {}) {
         const st = pay.statusOf(o.prof.pro, now);
         if (action === 'plan') {
           return send(200, {
-            ok: true, enabled: pay.ready(pcfg), ...st, free: pay.FREE_STUDENTS,
+            ok: true, enabled: pay.ready(pcfg), test: pay.canBuy(pcfg, pay.PLANS.t, o.code), ...st, free: pay.FREE_STUDENTS,
             plans: pay.publicPlans().map((p) => ({ id: p.id, name: p.name, amount: p.amount, days: p.days })),
           });
         }
