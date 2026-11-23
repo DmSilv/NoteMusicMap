@@ -25,6 +25,10 @@
 | `MAIL_API_URL` | config.js |
 | `MAIL_FROM` | config.js |
 | `MAIL_PEPPER` | config.js |
+| `MP_ACCESS_TOKEN` | pay.js |
+| `MP_WEBHOOK_SECRET` | pay.js |
+| `PAY_ENABLED` | pay.js |
+| `PAY_PUBLIC_URL` | pay.js |
 | `QSTASH_CURRENT_SIGNING_KEY` | config.js |
 | `QSTASH_NEXT_SIGNING_KEY` | config.js |
 | `QSTASH_TOKEN` | config.js |
@@ -40,4 +44,4 @@
 | `VERCEL_GIT_COMMIT_SHA` | admin.js |
 | `VERCEL_REGION` | admin.js |
 
-Total: **34** variáveis. Para o que cada uma faz e quais são obrigatórias, veja `docs/08_OPERACAO.md`.
+Total: **38** variáveis. Para o que cada uma faz e quais são obrigatórias, veja `docs/08_OPERACAO.md`.

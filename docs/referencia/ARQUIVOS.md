@@ -323,6 +323,7 @@
 | `api/_lib/metrics.js` | Métricas anônimas de uso: nomes das chaves, o dia (fuso de Brasília) e o contador que o servidor soma sozinho quando algo acontece (aula enviada, vínculo criado...). Falhar aqui NUNCA pode derrubar o que o usuário… |
 | `api/_lib/mirror.js` | Espelho da conta entre aparelhos: o que o professor (e a pessoa) guarda só no aparelho — alunos com tarefas, observações e aulas, agenda, métodos, histórico de estudo — passa a ficar também no servidor, para o outro… |
 | `api/_lib/news.js` | Boletim do app ("Novidades"): textos curtos que o administrador escreve, publica, oculta ou exclui no painel. O app só LÊ a lista publicada (GET /api/news, com cache de CDN), então o custo por usuário é praticamente… |
+| `api/_lib/pay.js` | Pagamento do plano Pro do professor por Pix (Mercado Pago, Checkout API). TUDO DESLIGADO por padrão: sem PAY_ENABLED=1 nada responde. Modelo: Pix avulso por período (sem renovação automática). O professor paga 30… |
 | `api/_lib/profiles.js` | Índice dos perfis anônimos (código + apelido) para o painel do administrador: quando entrou, última atividade, papel (professor / aluno) e bloqueio. NÃO há cadastro nem login. Custo: 3 comandos quando o perfil nasce;… |
 | `api/_lib/prompts.js` | Instruções de cada tipo de pedido. O texto recebido é DADO, nunca instrução. |
 | `api/_lib/providers.js` | Um adaptador por serviço de IA. Todos recebem {system, prompt} e devolvem {status: 'ok'\|'busy'\|'auth'\|'error', text?, model?, retryAfterMs?}. |
@@ -368,6 +369,7 @@
 | `api/news.test.js` | Boletim do app: o painel escreve, publica, oculta e exclui; o app só lê o que está publicado. `node --test api/news.test.js` |
 | `api/online.test.js` | Testes da aula online (link da aula, modo online/presencial, link padrão): `node --test api/online.test.js` |
 | `api/painel_precisao.test.js` | Painel mais preciso: saúde, custos, coortes, período anterior, horas, limpeza e erros do servidor. `node --test api/painel_precisao.test.js` |
+| `api/pay.test.js` | Testes do plano Pro por Pix (Mercado Pago simulado, sem rede nem credenciais): `node --test api/pay.test.js` |
 | `api/photo.test.js` | Foto de perfil mostrada a quem está vinculado, sem rede: `node --test api/photo.test.js` |
 | `api/presence.test.js` | Testes da presença (quem está online agora) no painel, sem rede: `node --test api/presence.test.js` |
 | `api/relink.test.js` | Aluno desvincula e volta ao mesmo professor: `node --test api/relink.test.js` |
@@ -407,4 +409,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **364** arquivos mapeados.
+Total: **366** arquivos mapeados.

@@ -26,6 +26,10 @@
 //   devices       { code, secret }                      -> { ok, max, devices: [{ id, ou, br, md, dn, c, l, me }] }
 //   device_remove { code, secret, id }                  -> tira um aparelho da conta (nunca o último)
 //   device_name   { code, secret, dn }                  -> dá um apelido a ESTE aparelho
+//   plan          { code, secret }                      -> { ok, enabled, pro, until, daysLeft, free, plans }: plano Pro (Pix); desligado = enabled false
+//   pay_new       { code, secret, period: 'm'|'y' }     -> { ok, id, qr, qrBase64, expires, amount }: gera o Pix (só com PAY_ENABLED=1)
+//   pay_check     { code, secret, id }                  -> { ok, status, pro, until }: confere um Pix (só do próprio perfil)
+//   (aviso do Mercado Pago: POST /api/account?mp=hook, sem corpo próprio; assinatura conferida; ver api/_lib/pay.js)
 //
 // APARELHOS: a mesma conta abre em até 5 aparelhos (api/_lib/devices.js). Entrar com e-mail ou chave ADICIONA o aparelho;
 // com 5 já na conta, responde 422 { error: 'device_limit', max, devices } e o app pergunta qual tirar (repete com drop: id).
@@ -43,6 +47,7 @@ const { _internal } = require('./link');
 const devices = require('./_lib/devices');
 const mirror = require('./_lib/mirror');
 const profilesLib = require('./_lib/profiles');
+const pay = require('./_lib/pay');
 
 const { normCode } = _internal;
 const OTP_TTL = 600; // segundos
@@ -154,6 +159,36 @@ function makeHandler(deps = {}) {
     const cfg = getCfg();
     const store = createStore(cfg, fetchImpl, clock, { allowMemory: !!deps.allowMemory });
     if (!store.durable) return send(503, { error: 'sync_unavailable' });
+    const pcfg = deps.pay || pay.payConfig();
+
+    // ---------------- aviso de pagamento do Mercado Pago (sem código nem segredo: vale a assinatura) ----------------
+    if (req.query && String(req.query.mp || '') === 'hook') {
+      try {
+        if (!pay.ready(pcfg)) return send(200, { ok: true }); // desligado: responde 200 para o Mercado Pago não insistir
+        const h = req.headers || {};
+        const dataId = String((req.query && (req.query['data.id'] || req.query.data_id)) || (req.body && req.body.data && req.body.data.id) || '');
+        if (!pay.verifySignature({ signature: h['x-signature'], requestId: h['x-request-id'], dataId, secret: pcfg.secret })) return send(401, { error: 'bad_signature' });
+        if (!/^\d{3,20}$/.test(dataId)) return send(200, { ok: true });
+        const got = await pay.getPayment(fetchImpl, pcfg, dataId);
+        const ref = pay.parseRef(got.ref);
+        const rec = `pay:${got.id}`;
+        if (!ref || got.method !== 'pix') return send(200, { ok: true }); // não é um Pix nosso
+        await store.hset(rec, 's', got.status);
+        if (got.status === 'approved' && Math.abs(got.amount - ref.plan.amount) < 0.005) {
+          // idempotente: só o primeiro aviso aprovado soma o período
+          if (await store.hsetnx(rec, 'g', String(clock()))) {
+            const cur = await store.hget(U(ref.code), 'pro');
+            const until = pay.extendUntil(cur, ref.plan, clock());
+            await store.hset(U(ref.code), 'pro', String(until));
+          }
+        }
+        return send(200, { ok: true });
+      } catch (e) {
+        console.error('pay hook error', e && e.message);
+        return send(500, { error: 'Erro no servidor.' }); // o Mercado Pago tenta de novo
+      }
+    }
+
     const b = readBody(req);
     if (!b) return send(400, { error: 'Corpo inválido.' });
 
@@ -227,6 +262,63 @@ function makeHandler(deps = {}) {
         const o = await owner();
         if (!o) return;
         return send(200, { ok: true, enabled: mailEnabled(cfg), linked: !!o.prof.eh, hint: o.prof.em || '', hasKey: !!o.prof.rk });
+      }
+
+      // ---------------- plano Pro (Pix) ----------------
+      if (action === 'plan' || action === 'pay_new' || action === 'pay_check') {
+        const o = await owner();
+        if (!o) return;
+        const now = clock();
+        const st = pay.statusOf(o.prof.pro, now);
+        if (action === 'plan') {
+          return send(200, {
+            ok: true, enabled: pay.ready(pcfg), ...st, free: pay.FREE_STUDENTS,
+            plans: Object.values(pay.PLANS).map((p) => ({ id: p.id, name: p.name, amount: p.amount, days: p.days })),
+          });
+        }
+        if (!pay.ready(pcfg)) return send(503, { error: 'pay_off' });
+        const n = await store.incr(`pay:calls:${o.code}:${hour}`, 3600);
+        if (n.n > 30) return send(429, { error: 'Muitas tentativas. Tente mais tarde.' });
+        if (action === 'pay_new') {
+          const plan = pay.planOf(String(b.period || ''));
+          if (!plan) return send(400, { error: 'Plano inválido.' });
+          // a mesma tentativa nos mesmos 5 minutos reaproveita o mesmo Pix (não cria dois ao tocar duas vezes)
+          const slot = Math.floor(now / 300000);
+          const idem = sha(`pix|${o.code}|${plan.id}|${slot}`).slice(0, 40);
+          let r;
+          try {
+            r = await pay.createPix(fetchImpl, pcfg, { code: o.code, plan, idem, nowMs: now, payerEmail: `${o.code.replace('-', '').toLowerCase()}@pagamento.notemusic.app` });
+          } catch (e) {
+            console.error('pay create error', e && e.status, e && e.detail);
+            return send(502, { error: 'pay_failed' });
+          }
+          await store.hset(`pay:${r.id}`, 'c', o.code);
+          await store.hset(`pay:${r.id}`, 'p', plan.id);
+          await store.hset(`pay:${r.id}`, 'a', String(plan.amount));
+          await store.hset(`pay:${r.id}`, 't', String(now));
+          await store.hset(`pay:${r.id}`, 's', r.status);
+          return send(200, { ok: true, id: r.id, qr: r.qr, qrBase64: r.qrBase64, expires: r.expires, amount: plan.amount });
+        }
+        // pay_check: só quem criou o Pix pode ver; consulta o Mercado Pago só se ainda está pendente
+        const id = String(b.id || '');
+        if (!/^\d{3,20}$/.test(id)) return send(400, { error: 'Pagamento inválido.' });
+        const rec = await store.hgetall(`pay:${id}`);
+        if (rec.c !== o.code) return send(404, { error: 'Pagamento não encontrado.' });
+        if (rec.s === 'pending' && !rec.g) {
+          try {
+            const got = await pay.getPayment(fetchImpl, pcfg, id);
+            await store.hset(`pay:${id}`, 's', got.status);
+            rec.s = got.status;
+            const plan = pay.planOf(rec.p);
+            if (got.status === 'approved' && plan && Math.abs(got.amount - plan.amount) < 0.005 && (await store.hsetnx(`pay:${id}`, 'g', String(clock())))) {
+              const until = pay.extendUntil(o.prof.pro, plan, clock());
+              await store.hset(U(o.code), 'pro', String(until));
+              o.prof.pro = String(until);
+            }
+          } catch (_) { /* a tela tenta de novo */ }
+        }
+        const after = pay.statusOf(o.prof.pro, clock());
+        return send(200, { ok: true, status: rec.s || 'pending', ...after });
       }
 
       if (!['bind_start', 'bind_verify', 'unbind', 'login_start', 'login_verify', 'rk_new', 'rk_login', 'devices', 'device_remove', 'device_name', 'pair_new', 'pair_join'].includes(action)) return send(400, { error: 'Ação inválida.' });

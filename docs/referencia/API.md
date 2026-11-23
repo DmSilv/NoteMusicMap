@@ -36,6 +36,10 @@ Ações (todas POST):
   devices       { code, secret }                      -> { ok, max, devices: [{ id, ou, br, md, dn, c, l, me }] }
   device_remove { code, secret, id }                  -> tira um aparelho da conta (nunca o último)
   device_name   { code, secret, dn }                  -> dá um apelido a ESTE aparelho
+  plan          { code, secret }                      -> { ok, enabled, pro, until, daysLeft, free, plans }: plano Pro (Pix); desligado = enabled false
+  pay_new       { code, secret, period: 'm'|'y' }     -> { ok, id, qr, qrBase64, expires, amount }: gera o Pix (só com PAY_ENABLED=1)
+  pay_check     { code, secret, id }                  -> { ok, status, pro, until }: confere um Pix (só do próprio perfil)
+  (aviso do Mercado Pago: POST /api/account?mp=hook, sem corpo próprio; assinatura conferida; ver api/_lib/pay.js)
 
 APARELHOS: a mesma conta abre em até 5 aparelhos (api/_lib/devices.js). Entrar com e-mail ou chave ADICIONA o aparelho;
 com 5 já na conta, responde 422 { error: 'device_limit', max, devices } e o app pergunta qual tirar (repete com drop: id).
@@ -49,6 +53,8 @@ Custo: ~6 comandos por pedido de código, ~8 ao confirmar; só quando a pessoa u
 | `notice` | — |
 | `devices` | Teto de pedidos por origem (barato: 1 comando). A consulta de aparelhos já é do dono (segredo) e tem o teto por perfil: não gasta o teto da origem (a tela de adicionar consulta a cada 10 s). |
 | `status` | status |
+| `plan` | plano Pro (Pix) |
+| `pay_new` | — |
 | `device_remove` | — |
 | `device_name` | — |
 | `pair_new` | ligar outro aparelho com um código de 10 minutos (sem e-mail e sem chave) O aparelho que já está na conta gera o código (pair_new) e o aparelho novo o digita (pair_join). Uso único, 5 tentativas, 10 minutos, só o hash fica guardado. |
