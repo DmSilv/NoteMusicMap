@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notemusic para computador</title>
+<style>
+:root{--bg:#0F1419;--surface:#171E26;--surface2:#202A35;--outline:#2E3B49;--text:#E8EEF4;--dim:#8FA0B1;--green:#1FE68F;--blue:#2E9BFF;--orange:#FF9226;--onacc:#062B1E}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#080B0F;color:var(--text);font:15px/1.4 Roboto,system-ui,Segoe UI,sans-serif;min-height:100vh}
+button{font-family:inherit}
+.bar{position:sticky;top:0;z-index:10;background:#0b0f14;border-bottom:1px solid var(--outline);padding:12px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.bar h1{font-size:16px;font-weight:800;margin-right:auto}
+.seg{display:flex;background:var(--surface);border:1px solid var(--outline);border-radius:12px;padding:3px;gap:2px}
+.seg button{background:none;border:1px solid transparent;color:var(--dim);font-weight:700;font-size:13px;padding:8px 14px;border-radius:9px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--surface2);color:var(--text);border-color:var(--text)}
+.stage{padding:24px 20px 20px;display:flex;justify-content:center}
+.win{width:1366px;height:768px;background:var(--bg);border:1px solid var(--outline);border-radius:14px;overflow:hidden;display:flex;box-shadow:0 30px 80px rgba(0,0,0,.55)}
+.win.pc{width:1920px;height:1080px}
+/* lateral */
+.side{width:78px;flex:none;background:#0c1116;border-right:1px solid var(--outline);padding:16px 10px;display:flex;flex-direction:column;gap:4px;align-items:stretch}
+.pc .side{width:236px;padding:20px 14px}
+.brand{display:flex;align-items:center;gap:10px;padding:0 4px 14px;font-weight:800;font-size:18px;justify-content:center}
+.pc .brand{justify-content:flex-start}
+.brand span{display:none}.pc .brand span{display:inline}
+.logo{width:36px;height:36px;border-radius:10px;background:#2B7388;display:grid;place-items:center;flex:none}
+.cap{font-size:11px;font-weight:700;color:var(--dim);letter-spacing:.05em;text-transform:uppercase}
+.side .cap{padding:12px 8px 4px;display:none}.pc .side .cap{display:block}
+.nav{display:flex;align-items:center;justify-content:center;gap:12px;padding:11px 0;border-radius:12px;color:var(--dim);font-weight:700;font-size:15px;cursor:pointer;border:1px solid transparent;background:none;width:100%;position:relative}
+.pc .nav{justify-content:flex-start;padding:11px 12px}
+.nav svg{width:21px;height:21px;flex:none}
+.nav span{display:none}.pc .nav span{display:inline}
+.nav:hover{background:var(--surface)}
+.nav.on{background:var(--surface2);color:var(--text);border-color:var(--text)}
+.nav .dot{position:absolute;top:8px;right:14px;width:8px;height:8px;border-radius:50%;background:var(--orange)}
+.pc .nav .dot{position:static;margin-left:auto}
+.sp{flex:1}
+.av{width:34px;height:34px;border-radius:50%;background:#3a2f55;color:#c9b6ff;display:grid;place-items:center;font-weight:800;flex:none}
+.who{display:flex;align-items:center;justify-content:center;gap:10px;padding:8px 0;border:1px solid var(--outline);border-radius:14px;background:var(--surface)}
+.pc .who{justify-content:flex-start;padding:10px}
+.who div:not(.av){display:none}.pc .who div:not(.av){display:block}
+.who small{display:block;color:var(--dim);font-size:12px}
+/* corpo */
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{height:60px;flex:none;display:flex;align-items:center;gap:14px;padding:0 22px;border-bottom:1px solid var(--outline)}
+.top h2{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.top .sub{color:var(--dim);font-size:13px}
+.right{margin-left:auto;display:flex;gap:10px;align-items:center}
+.pill{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--outline);background:var(--surface);border-radius:999px;padding:6px 13px;font-weight:700;font-size:12px}
+.pill i{width:9px;height:9px;border-radius:50%;background:var(--green);display:block}
+.ic{width:38px;height:38px;border-radius:12px;border:1px solid var(--outline);background:var(--surface);display:grid;place-items:center;position:relative;color:var(--dim);cursor:pointer}
+.ic svg{width:18px;height:18px}.ic.on{color:var(--text);border-color:var(--text);background:var(--surface2)}
+.ic b{position:absolute;top:7px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--orange)}
+.work{flex:1;min-height:0;display:flex;gap:14px;padding:14px}
+.pc .work{gap:18px;padding:18px}
+.panes{flex:1;min-width:0;display:flex;gap:14px}
+.pc .panes{gap:18px}
+.pane{flex:1;min-width:0;background:var(--surface);border:1px solid var(--outline);border-radius:18px;display:flex;flex-direction:column;overflow:hidden;container-type:inline-size}
+.ph{display:flex;gap:4px;padding:8px;border-bottom:1px solid var(--outline);flex:none;overflow:hidden}
+.ph button{background:none;border:1px solid transparent;color:var(--dim);font-weight:700;font-size:12.5px;padding:7px 8px;border-radius:10px;cursor:pointer;white-space:nowrap}
+.ph button.on{background:var(--surface2);color:var(--text);border-color:var(--text)}
+.ph button.pro{display:none}.teacher .ph button.pro{display:inline-block}
+.pb{flex:1;min-height:0;padding:16px;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.single .pane.b{display:none}
+/* dock do professor */
+.dock{width:300px;flex:none;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.pc .dock{width:400px;gap:16px}
+.dock.off{display:none}
+.dcard.pcx{display:none}.pc .dcard.pcx{display:flex}
+.dcard{flex:none;background:var(--surface);border:1px solid var(--outline);border-radius:18px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;min-height:0}
+.dcard h3{font-size:14px;font-weight:800;display:flex;align-items:center;gap:8px}
+.dcard h3 .chip{margin-left:auto}
+.next{font-size:24px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.next small{display:block;font-size:13px;font-weight:500;color:var(--dim);margin-top:3px}
+.btn{background:var(--green);color:var(--onacc);border:0;border-radius:11px;font-weight:800;font-size:13px;padding:9px 14px;cursor:pointer;white-space:nowrap}
+.btn.o{background:none;color:var(--text);border:1px solid var(--outline)}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.list{display:flex;flex-direction:column;gap:7px}
+.li{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--outline);border-radius:12px;background:var(--surface2);font-size:13px}
+.li .t{font-weight:800;min-width:44px}.li .t small{display:block;color:var(--dim);font-weight:500;font-size:10.5px}
+.li .n{font-weight:700;min-width:0}.li .n small{display:block;color:var(--dim);font-weight:500;font-size:11.5px}
+.li .r{margin-left:auto;color:var(--dim);font-weight:700;font-size:12px;white-space:nowrap}
+.li .av{width:26px;height:26px;font-size:12px}
+.chip{font-size:11px;font-weight:700;border-radius:999px;padding:3px 9px;border:1px solid var(--outline);color:var(--dim);white-space:nowrap}
+.chip.g{color:var(--green);border-color:#1e6a52}.chip.b{color:var(--blue);border-color:#245a8f}.chip.o{color:var(--orange);border-color:#8a5316}
+.bar2{height:7px;border-radius:5px;background:#1d2630;flex:1;overflow:hidden;min-width:30px}.bar2 i{display:block;height:100%;background:var(--green)}
+.online{width:8px;height:8px;border-radius:50%;background:var(--green);flex:none}.online.off{background:var(--outline)}
+.field{background:var(--surface2);border:1px solid var(--outline);border-radius:10px;padding:8px 10px;color:var(--dim);font-size:13px}
+/* ferramentas */
+.note{font-size:30cqw;line-height:1;font-weight:800;color:var(--orange);text-align:center;letter-spacing:-.04em}
+.meter{position:relative;height:12px;border-radius:8px;background:#1d2630;margin:14px 6px 4px}
+.meter .z{position:absolute;left:42%;width:16%;top:0;bottom:0;background:#1f6e53;border-radius:8px}
+.meter .n{position:absolute;top:-8px;bottom:-8px;width:5px;border-radius:3px;background:var(--orange);left:92%}
+.ticks{display:flex;justify-content:space-between;color:var(--dim);font-size:10px;padding:0 6px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);text-align:center}
+.stats b{display:block;font-size:max(15px,3.6cqw)}.stats span{color:var(--dim);font-size:11px}
+.verdict{color:var(--orange);font-weight:800;text-align:center;font-size:14px}
+.strings{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:auto}
+.str{border:1px solid var(--outline);background:var(--surface2);border-radius:12px;padding:10px 4px;text-align:center}
+.str b{font-size:17px}.str small{display:block;color:var(--dim);font-size:10px}
+.str.on{border-color:var(--green);background:#16372f}
+.bpm{font-size:22cqw;font-weight:800;text-align:center;line-height:1;letter-spacing:-.03em}
+.beats{display:flex;gap:10px;justify-content:center;margin:8px 0}
+.beats i{width:3.2cqw;min-width:22px;height:3.2cqw;min-height:22px;border-radius:50%;background:var(--surface2);border:1px solid var(--outline)}
+.beats i:first-child{background:var(--green);border-color:var(--green)}
+.staff{flex:1;min-height:0;background:#f6f6f2;border-radius:12px}
+.grid7{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.grid7 .str{padding:18px 4px}
+.week{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;flex:1}
+.week .col{display:flex;flex-direction:column;gap:7px}
+.week .li{flex-direction:column;align-items:flex-start;gap:2px}
+.free{border-style:dashed!important;background:none!important;color:var(--green)}
+.ptitle{display:flex;align-items:baseline;gap:8px}.ptitle h3{font-size:16px;font-weight:800}.ptitle small{color:var(--dim);font-size:12px}
+.hide{display:none!important}
+.legend{max-width:1180px;margin:0 auto;padding:6px 20px 50px;color:var(--dim);font-size:14px}
+.legend h2{color:var(--text);font-size:17px;margin:14px 0 8px}.legend li{margin:6px 0 6px 18px}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs>
+<symbol id="i-tuner" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M7 8v8M17 8v8M3 11v2M21 11v2"/></symbol>
+<symbol id="i-scales" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7h18M3 11h18M3 15h18M3 19h18"/></symbol>
+<symbol id="i-metro" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8l-2-17h-4zM12 17l4-8"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></symbol>
+<symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h6a3 3 0 013 3v12a2 2 0 00-2-2H4zM20 5h-6a3 3 0 00-3 3v12a2 2 0 012-2h7z"/></symbol>
+<symbol id="i-users" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0113 0M16 5a3.5 3.5 0 010 7M18 14a6 6 0 013.5 6"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 17V11a6 6 0 0112 0v6l1.5 2h-15zM10 21h4"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></symbol>
+<symbol id="i-split" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/></symbol>
+<symbol id="i-dock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></symbol>
+</defs></svg>
+
+<div class="bar">
+  <h1>Notemusic no computador · proposta 2</h1>
+  <div class="seg" role="group" aria-label="Aparelho"><button data-dev="nb" aria-pressed="true">Notebook 1366×768</button><button data-dev="pc" aria-pressed="false">PC 1920×1080</button></div>
+  <div class="seg" role="group" aria-label="Papel"><button data-role="prof" aria-pressed="true">Professor</button><button data-role="aluno" aria-pressed="false">Aluno</button></div>
+</div>
+
+<div class="stage"><div class="win teacher" id="win">
+  <aside class="side">
+    <div class="brand"><div class="logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 15a7 7 0 0114 0" stroke="#D5E9EF" stroke-width="2" stroke-linecap="round" stroke-dasharray="1 3.6"/><path d="M12 15l3-6" stroke="#1FE68F" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="15" r="1.7" fill="#fff"/></svg></div><span>Notemusic</span></div>
+    <div class="cap">Ferramentas</div>
+    <button class="nav" data-go="afinar" title="Afinador"><svg><use href="#i-tuner"/></svg><span>Afinador</span></button>
+    <button class="nav" data-go="escalas" title="Escalas"><svg><use href="#i-scales"/></svg><span>Escalas</span></button>
+    <button class="nav" data-go="metro" title="Metrônomo"><svg><use href="#i-metro"/></svg><span>Metrônomo</span></button>
+    <button class="nav" data-go="grade" title="Grade"><svg><use href="#i-grid"/></svg><span>Grade</span></button>
+    <div class="cap">Meu espaço</div>
+    <button class="nav" data-go="agenda" title="Agenda"><svg><use href="#i-cal"/></svg><span>Agenda</span><i class="dot"></i></button>
+    <button class="nav" data-go="estudo" title="Estudo"><svg><use href="#i-book"/></svg><span>Estudo</span></button>
+    <button class="nav pro" data-go="alunos" title="Alunos"><svg><use href="#i-users"/></svg><span>Alunos</span></button>
+    <div class="sp"></div>
+    <div class="who"><div class="av" id="av">M</div><div><b id="who">Marcos</b><small id="whosub">Professor · 6 alunos</small></div></div>
+  </aside>
+  <section class="main">
+    <header class="top">
+      <h2>Boa tarde, <span id="nm">Marcos</span></h2><span class="sub" id="sub">Terça, 24/11 · 3 aulas hoje</span>
+      <div class="right">
+        <span class="pill"><i></i>Microfone ligado</span>
+        <button class="ic on" id="b-split" title="Duas ferramentas lado a lado"><svg><use href="#i-split"/></svg></button>
+        <button class="ic on" id="b-dock" title="Painel lateral"><svg><use href="#i-dock"/></svg></button>
+        <span class="ic"><svg><use href="#i-bell"/></svg><b></b></span>
+        <span class="ic"><svg><use href="#i-gear"/></svg></span>
+      </div>
+    </header>
+    <div class="work" id="work">
+      <div class="panes" id="panes">
+        <div class="pane a" id="pa"></div>
+        <div class="pane b" id="pb"></div>
+      </div>
+      <aside class="dock" id="dock"></aside>
+    </div>
+  </section>
+</div></div>
+
+<div class="legend">
+  <h2>O que esta proposta mostra</h2>
+  <ul>
+    <li><b>Duas ferramentas lado a lado</b>, como já existe no tablet: cada lado tem o seu seletor. O botão de dois painéis no topo liga e desliga. A mesma ferramenta não aparece nos dois lados.</li>
+    <li><b>Painel do professor sempre à vista</b> na direita: próxima aula, aulas de hoje, quem estudou, pedidos de horário, alunos online e envio rápido de tarefa. O botão ao lado esconde o painel e dá o espaço às ferramentas.</li>
+    <li>Na visão de <b>aluno</b> o painel vira "Meu espaço": próxima aula, meta da semana e tarefas.</li>
+    <li>A lateral é um atalho: toca em um item e ele abre no lado esquerdo. No notebook ela fica só com ícones; no PC ganha os nomes.</li>
+    <li>Experimente: troque as ferramentas nos seletores, clique em Notebook/PC, Professor/Aluno e nos botões do topo.</li>
+    <li>É só desenho; nada foi programado no app e os dados são de exemplo.</li>
+  </ul>
+</div>
+
+<script>
+const win=document.getElementById('win'),$=id=>document.getElementById(id);
+const NAMES={afinar:'Afinador',escalas:'Escalas',metro:'Metrônomo',grade:'Grade',agenda:'Agenda',estudo:'Estudo',alunos:'Alunos'};
+const st={role:'prof',split:true,dock:true,a:'afinar',b:'metro'};
+const TOOLS={
+afinar:()=>`<div class="cap">Violino · corda 1 · Sol₃</div><div class="note">Sol</div><div class="meter"><div class="z"></div><div class="n"></div></div><div class="ticks"><span>−50</span><span>−25</span><span>0</span><span>+25</span><span>+50</span></div><div class="verdict">Agudo: desça a afinação</div><div class="stats"><div><b style="color:var(--orange)">+22,4 Hz</b><span>Desvio</span></div><div><b>217,9 Hz</b><span>Frequência</span></div><div><b>195,56 Hz</b><span>Alvo</span></div></div><div class="strings"><div class="str on"><b>Sol₃</b><small>195,6</small></div><div class="str"><b>Ré₄</b><small>293,3</small></div><div class="str"><b>Lá₄</b><small>440,0</small></div><div class="str"><b>Mi₅</b><small>660,0</small></div></div><div class="row"><button class="btn">Ouvir</button><button class="btn o">Lá 440</button></div>`,
+metro:()=>`<div class="ptitle"><h3>Metrônomo</h3><small>4/4 · acento no 1</small></div><div class="bpm" style="margin-top:6px">92</div><div class="cap" style="text-align:center">batidas por minuto</div><div class="beats"><i></i><i></i><i></i><i></i></div><div class="row" style="margin-top:auto"><button class="btn o">− 1</button><button class="btn">Iniciar</button><button class="btn o">+ 1</button></div><div class="row"><button class="btn o">3/4</button><button class="btn o">4/4</button><button class="btn o">6/8</button></div>`,
+grade:()=>`<div class="ptitle"><h3>Grade</h3><small>Toque uma nota</small></div><div class="grid7"><div class="str"><b>Sol₃</b></div><div class="str"><b>Lá₃</b></div><div class="str"><b>Si₃</b></div><div class="str on"><b>Dó₄</b></div><div class="str"><b>Ré₄</b></div><div class="str"><b>Mi₄</b></div><div class="str"><b>Fá♯₄</b></div><div class="str"><b>Sol₄</b></div></div><div class="row"><button class="btn o">Oitava 3</button><button class="btn">Oitava 4</button><button class="btn o">Oitava 5</button></div><div class="li" style="margin-top:auto"><span class="chip g">Afinada</span><span class="n">Dó₄ · +4 cents</span></div>`,
+escalas:()=>`<div class="ptitle"><h3>Escala de Sol Maior</h3><small>1 oitava · 4/4</small></div><div class="staff"><svg viewBox="0 0 900 360" width="100%" height="100%" preserveAspectRatio="xMidYMid meet"><g stroke="#111" stroke-width="1.6"><path d="M40 100h820M40 120h820M40 140h820M40 160h820M40 180h820M40 250h820M40 270h820M40 290h820M40 310h820M40 330h820M300 100v80M560 100v80M860 100v80"/></g><g fill="#111"><ellipse cx="120" cy="190" rx="12" ry="9"/><ellipse cx="190" cy="180" rx="12" ry="9"/><ellipse cx="260" cy="170" rx="12" ry="9"/><ellipse cx="350" cy="160" rx="12" ry="9"/><ellipse cx="420" cy="150" rx="12" ry="9"/><ellipse cx="490" cy="140" rx="12" ry="9"/><ellipse cx="620" cy="130" rx="12" ry="9"/><ellipse cx="700" cy="120" rx="12" ry="9"/></g><g stroke="#111" stroke-width="2.2"><path d="M132 190v-58M202 180v-58M272 170v-58M362 160v-58M432 150v-58M502 140v-58M632 130v-58M712 120v-58"/></g><circle cx="350" cy="160" r="24" fill="none" stroke="#1FE68F" stroke-width="3.5"/><text x="46" y="160" font-size="74" font-family="serif">𝄞</text></svg></div><div class="row"><div class="li"><span class="chip g">78%</span><span class="n">Acerto</span></div><div class="li"><span class="chip o">Fá♯₄</span><span class="n">alto</span></div></div><div class="row"><button class="btn o">Arpejos</button><button class="btn">Exercício guiado</button></div>`,
+agenda:()=>`<div class="ptitle"><h3>Semana de 23 a 29/11</h3><small>aulas e horários livres</small></div><div class="week"><div class="col"><div class="cap">Seg 23</div><div class="li"><b>16:00</b><small style="color:var(--dim)">Clara</small></div></div><div class="col"><div class="cap">Ter 24</div><div class="li"><b>16:00</b><small style="color:var(--dim)">Clara</small></div><div class="li free"><b>18:00 livre</b></div></div><div class="col"><div class="cap">Qua 25</div><div class="li"><b>18:30</b><small style="color:var(--dim)">Diego</small></div></div><div class="col"><div class="cap">Qui 26</div><div class="li"><b>17:00</b><small style="color:var(--dim)">Eva</small></div></div><div class="col"><div class="cap">Sex 27</div><div class="li"><b>15:00</b><small style="color:var(--dim)">Fellipe</small></div></div></div><div class="row"><button class="btn o">Abrir horário</button><button class="btn">Marcar aula</button></div>`,
+estudo:()=>`<div class="ptitle"><h3>Estudo de hoje</h3><small>tarefas e treino</small></div><div class="list"><div class="li"><span class="chip g">Feita</span><div class="n">Escala de Sol Maior, 80 bpm<small>22/11</small></div></div><div class="li"><span class="chip b">Hoje</span><div class="n">Arpejo de Ré Maior<small>22/11</small></div></div><div class="li"><span class="chip o">Atrasada</span><div class="n">Cordas soltas<small>18/11</small></div></div></div><div class="cap" style="margin-top:6px">Meta da semana</div><div class="li"><b>72 de 100 min</b><div class="bar2"><i style="width:72%"></i></div></div><div class="cap" style="margin-top:6px">Conquistas</div><div class="row"><span class="chip g">Primeiro estudo</span><span class="chip g">3 dias seguidos</span><span class="chip">7 dias</span></div>`,
+alunos:()=>`<div class="ptitle"><h3>Seus alunos</h3><small>6 · 4 mostram o estudo</small></div><div class="list"><div class="li"><span class="online"></span><div class="av">C</div><div class="n">Clara<small>5 de 7 dias</small></div><div class="bar2"><i style="width:92%"></i></div><span class="r">138 min</span></div><div class="li"><span class="online"></span><div class="av" style="background:#3d2a47;color:#f0a6ff">E</div><div class="n">Eva<small>4 de 7 dias</small></div><div class="bar2"><i style="width:70%"></i></div><span class="r">96 min</span></div><div class="li"><span class="online off"></span><div class="av" style="background:#2d3a52;color:#a6c8ff">D</div><div class="n">Diego<small>2 de 7 dias</small></div><div class="bar2"><i style="width:35%"></i></div><span class="r">41 min</span></div><div class="li"><span class="online off"></span><div class="av" style="background:#4a3a28;color:#ffd0a0">F</div><div class="n">Fellipe<small>não mostra</small></div><span class="r">—</span></div></div><div class="li" style="margin-top:auto"><span class="chip g">+9%</span><div class="n">Clara: Sol Maior de 62% para 71%</div></div>`
+};
+function pane(el,key,side){
+  const tabs=['afinar','metro','grade','escalas','agenda','estudo','alunos'];
+  el.innerHTML='<div class="ph">'+tabs.map(t=>`<button data-t="${t}" class="${t===key?'on':''} ${t==='alunos'?'pro':''}">${NAMES[t]}</button>`).join('')+'</div><div class="pb">'+TOOLS[key]()+'</div>';
+  el.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{set(side,b.dataset.t)});
+}
+function set(side,t){
+  const other=side==='a'?'b':'a';
+  if(st[other]===t&&st.split){st[other]=st[side];}
+  st[side]=t;render();
+}
+function dock(){
+  const d=$('dock');
+  if(st.role==='prof'){
+    d.innerHTML=`<div class="dcard"><h3>Próxima aula<span class="chip g">em 2 dias</span></h3><div class="next">Terça, 24/11, 16:00<small>Com Clara · Violino</small></div><div class="row"><button class="btn">Ficha de Clara</button><button class="btn o">Agenda</button></div></div>
+    <div class="dcard pcx"><h3>Hoje</h3><div class="list"><div class="li"><div class="t">16:00</div><div class="av">C</div><div class="n">Clara</div><span class="chip g">Online</span></div><div class="li"><div class="t">17:30</div><div class="av" style="background:#3d2a47;color:#f0a6ff">E</div><div class="n">Eva</div></div><div class="li"><div class="t">18:30</div><div class="av" style="background:#2d3a52;color:#a6c8ff">D</div><div class="n">Diego</div></div></div></div>
+    <div class="dcard"><h3>Quem mais estudou<span class="chip">7 dias</span></h3><div class="list"><div class="li"><b>1</b><div class="n">Clara</div><div class="bar2"><i style="width:92%"></i></div><span class="r">138 min</span></div><div class="li"><b>2</b><div class="n">Eva</div><div class="bar2"><i style="width:70%"></i></div><span class="r">96 min</span></div><div class="li"><b>3</b><div class="n">Diego</div><div class="bar2"><i style="width:35%"></i></div><span class="r">41 min</span></div></div></div>
+    <div class="dcard"><h3>Pedidos<span class="chip o">1</span></h3><div class="li"><div class="n">Eva<small>Quer Qui 26, 17:00</small></div><button class="btn" style="margin-left:auto;padding:7px 11px">Aceitar</button></div></div>
+    <div class="dcard pcx"><h3>Enviar tarefa</h3><div class="field">Aluno: Clara ▾</div><div class="field">Arpejo de Ré Maior, 80 bpm</div><button class="btn">Enviar</button></div>`;
+  }else{
+    d.innerHTML=`<div class="dcard"><h3>Sua próxima aula<span class="chip b">em 8 dias</span></h3><div class="next">Segunda, 30/11, 17:00<small>Com Marcos</small></div><div class="row"><button class="btn o">Agenda</button><button class="btn o">Pegar horário</button></div></div>
+    <div class="dcard"><h3>Aviso</h3><div class="li" style="border-color:#8a5316"><span class="chip o">Novo</span><div class="n">Marcos marcou uma aula: segunda, 30/11, 17:00</div></div></div>
+    <div class="dcard"><h3>Meta da semana<span class="chip g">3 dias seguidos</span></h3><div class="next">72 <small style="display:inline;font-size:13px">de 100 min</small></div><div class="bar2" style="flex:none;height:9px"><i style="width:72%"></i></div></div>
+    <div class="dcard"><h3>Tarefas</h3><div class="list"><div class="li"><span class="chip b">Hoje</span><div class="n">Arpejo de Ré Maior</div></div><div class="li"><span class="chip o">Atrasada</span><div class="n">Cordas soltas</div></div></div></div>
+    <div class="dcard pcx"><h3>Seu treinador</h3><div class="li"><div class="n">Faça um exercício guiado e o treinador começa a te orientar.</div></div></div>`;
+  }
+}
+function render(){
+  $('work').classList.toggle('single',!st.split);
+  $('panes').classList.toggle('single',!st.split);
+  pane($('pa'),st.a,'a');pane($('pb'),st.b,'b');
+  $('dock').classList.toggle('off',!st.dock);
+  $('b-split').classList.toggle('on',st.split);$('b-dock').classList.toggle('on',st.dock);
+  document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('on',n.dataset.go===st.a));
+  dock();
+}
+function fitZoom(){win.style.zoom=1;const w=(win.classList.contains('pc')?1920:1366)+2;win.style.zoom=Math.min(1,(document.body.clientWidth-40)/w);}
+document.querySelectorAll('.nav').forEach(n=>n.onclick=()=>set('a',n.dataset.go));
+$('b-split').onclick=()=>{st.split=!st.split;render()};
+$('b-dock').onclick=()=>{st.dock=!st.dock;render()};
+document.querySelectorAll('[data-dev]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-dev]').forEach(x=>x.setAttribute('aria-pressed',x===b));win.classList.toggle('pc',b.dataset.dev==='pc');fitZoom();});
+document.querySelectorAll('[data-role]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-role]').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  st.role=b.dataset.role;win.classList.toggle('teacher',st.role==='prof');
+  $('nm').textContent=st.role==='prof'?'Marcos':'Ana';$('who').textContent=st.role==='prof'?'Marcos':'Ana';$('av').textContent=st.role==='prof'?'M':'A';
+  $('whosub').textContent=st.role==='prof'?'Professor · 6 alunos':'Professor: Marcos';
+  $('sub').textContent=st.role==='prof'?'Terça, 24/11 · 3 aulas hoje':'Sua próxima aula é segunda, 30/11';
+  document.querySelector('.nav.pro').style.display=st.role==='prof'?'':'none';
+  if(st.role==='aluno'){if(st.a==='alunos')st.a='estudo';if(st.b==='alunos')st.b='metro';}
+  render();});
+window.addEventListener('resize',fitZoom);
+render();fitZoom();
+</script>
+</body>
+</html>

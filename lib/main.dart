@@ -12,6 +12,7 @@ import 'stats/stats_service.dart';
 import 'ui/app_locale.dart';
 import 'ui/app_logo.dart';
 import 'ui/bottom_nav.dart';
+import 'ui/desktop_dock.dart';
 import 'ui/exit_sheet.dart';
 import 'ui/hello_bar.dart';
 import 'ui/hub_section.dart' show linkTeacherByScan;
@@ -425,6 +426,14 @@ const double kSplitMinWidth = 900;
 
 bool isSplitLayout(Size s) => s.width >= kSplitMinWidth && s.width > s.height;
 
+/// A partir desta largura (notebook e PC) entram a barra lateral e o painel à direita.
+const double kDesktopMinWidth = 1200;
+
+/// Janela larga o bastante para os nomes na barra lateral (PC grande).
+const double kDesktopLabelsWidth = 1600;
+
+bool isDesktopLayout(Size s) => isSplitLayout(s) && s.width >= kDesktopMinWidth;
+
 class HomeShell extends StatefulWidget {
   final AppState app;
   const HomeShell({super.key, required this.app});
@@ -589,6 +598,9 @@ class _HomeShellState extends State<HomeShell> {
 
   Widget _splitBody() {
     final a = widget.app;
+    final size = MediaQuery.sizeOf(context);
+    final desktop = isDesktopLayout(size);
+    final single = desktop && a.deskSingle;
     Widget pane(bool left, int cur, int other) => Expanded(
           child: Column(children: [
             _paneSelector(left, cur, other),
@@ -596,16 +608,53 @@ class _HomeShellState extends State<HomeShell> {
             Expanded(child: KeyedSubtree(key: ValueKey('pane${left ? 'L' : 'R'}-$cur'), child: _pagePane(cur))),
           ]),
         );
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1500),
-        child: Row(children: [
-          pane(true, a.splitLeft, a.splitRight),
-          const VerticalDivider(width: 1),
-          pane(false, a.splitRight, a.splitLeft),
-        ]),
+    final panes = Row(children: [
+      pane(true, a.splitLeft, a.splitRight),
+      if (!single) ...[
+        const VerticalDivider(width: 1),
+        pane(false, a.splitRight, a.splitLeft),
+      ],
+    ]);
+    if (!desktop) {
+      return Center(
+        child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 1500), child: panes),
+      );
+    }
+    // Computador: barra lateral à esquerda e, se ligado, o painel à direita.
+    final labels = size.width >= kDesktopLabelsWidth;
+    final dockW = size.width >= kDesktopLabelsWidth ? 380.0 : 300.0;
+    return Row(children: [
+      ListenableBuilder(
+        listenable: a,
+        builder: (context, _) => DesktopRail(
+          icons: _icons,
+          titles: _titles,
+          selected: a.splitLeft,
+          labels: labels,
+          alertOnLast: _index != kTabStudy && a.unseenNotices > 0,
+          onSelected: (i) {
+            a.setSplit(i, a.splitRight);
+            a.markTab(_tabNames[i]);
+            setState(() {
+              _focusRight = false;
+              _index = i;
+            });
+          },
+        ),
       ),
-    );
+      Expanded(child: panes),
+      ListenableBuilder(
+        listenable: a,
+        builder: (context, _) => a.deskDock
+            ? Container(
+                width: dockW + 2 * Ds.s12,
+                decoration: BoxDecoration(border: Border(left: BorderSide(color: AppColors.outline))),
+                padding: const EdgeInsets.all(Ds.s12),
+                child: DesktopDock(app: a, width: dockW, roomy: size.height >= 820),
+              )
+            : const SizedBox.shrink(),
+      ),
+    ]);
   }
 
   Widget _page(int i) {
@@ -679,6 +728,30 @@ class _HomeShellState extends State<HomeShell> {
             ],
           ),
           actions: [
+            if (isDesktopLayout(MediaQuery.sizeOf(context))) ...[
+              ListenableBuilder(
+                listenable: app,
+                builder: (context, _) => IconButton(
+                  tooltip: app.deskSingle ? tr('Mostrar duas ferramentas') : tr('Mostrar uma ferramenta'),
+                  icon: _BarCircle(
+                    fill: AppColors.surface2,
+                    child: Icon(app.deskSingle ? Icons.crop_square_rounded : Icons.view_column_outlined, size: 22, color: AppColors.text),
+                  ),
+                  onPressed: () => app.setDeskSingle(!app.deskSingle),
+                ),
+              ),
+              ListenableBuilder(
+                listenable: app,
+                builder: (context, _) => IconButton(
+                  tooltip: app.deskDock ? tr('Esconder o painel lateral') : tr('Mostrar o painel lateral'),
+                  icon: _BarCircle(
+                    fill: AppColors.surface2,
+                    child: Icon(app.deskDock ? Icons.vertical_split_rounded : Icons.vertical_split_outlined, size: 22, color: AppColors.text),
+                  ),
+                  onPressed: () => app.setDeskDock(!app.deskDock),
+                ),
+              ),
+            ],
             // Novidades do app (boletim): só aparece quando há uma publicada e chama atenção enquanto há uma não vista.
             NewsBell(app: app, wrap: (c) => _BarCircle(fill: AppColors.surface2, child: c)),
             // Dicas (apelido, instalar): lâmpada própria, só enquanto há dica; o sino fica só com avisos de verdade.
@@ -734,7 +807,7 @@ class _HomeShellState extends State<HomeShell> {
               if (split || _index == 4) HelloBar(app: app),
               Expanded(
                 child: split
-                    ? _splitBody()
+                    ? ListenableBuilder(listenable: app, builder: (context, _) => _splitBody())
                     : IndexedStack(
                         index: _index,
                         children: [for (var i = 0; i < 5; i++) _page(i)],

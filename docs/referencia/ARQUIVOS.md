@@ -43,6 +43,7 @@
 | `lib/ui/bottom_nav.dart` | Uma aba da barra de baixo. |
 | `lib/ui/cloud_copy_body.dart` | Cópia das fichas na nuvem (chave `copia_nuvem`): explica o que vai para o servidor e só liga com o aceite da pessoa. |
 | `lib/ui/design_system.dart` | Design system do Notemusic. REGRA: toda tela nova ou alterada usa estes valores e estes componentes (ver docs/12_DESIGN_SYSTEM.md). Números soltos de espaçamento, raio ou altura de botão não entram em tela nova.… |
+| `lib/ui/desktop_dock.dart` | Barra lateral do computador: as cinco telas em atalhos, no lugar da barra de baixo. Mostra só os ícones numa janela média e os nomes numa janela larga. |
 | `lib/ui/dev_chat_sheet.dart` | Conversa particular com o desenvolvedor: só esta pessoa vê. Mensagens do administrador, resposta curta, e (quando ele pergunta) escolher se o apelido pode ser citado no boletim. O texto vem do servidor ao abrir. |
 | `lib/ui/devices_page.dart` | Nome do sistema como a pessoa reconhece ("Android", "iPhone ou iPad"...). |
 | `lib/ui/dictation_button.dart` | Botão de microfone para ditar num campo de texto. Use como `suffixIcon` do `InputDecoration`. Parado: microfone. Preparando: roda um indicador. Ouvindo: círculo vermelho que pulsa com o ícone de parar (tocar de novo… |
@@ -406,4 +407,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **363** arquivos mapeados.
+Total: **364** arquivos mapeados.
