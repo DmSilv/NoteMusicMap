@@ -20,6 +20,9 @@ class DesktopRail extends StatelessWidget {
   final List<IconData> icons;
   final List<String> titles;
   final int selected;
+
+  /// A ferramenta do outro painel: aparece com fundo, mas sem a borda do painel em foco.
+  final int? also;
   final ValueChanged<int> onSelected;
   final bool labels;
   final bool alertOnLast;
@@ -28,6 +31,7 @@ class DesktopRail extends StatelessWidget {
     required this.icons,
     required this.titles,
     required this.selected,
+    this.also,
     required this.onSelected,
     required this.labels,
     this.alertOnLast = false,
@@ -53,6 +57,7 @@ class DesktopRail extends StatelessWidget {
                 label: titles[i],
                 showLabel: labels,
                 on: i == selected,
+                shown: i == also,
                 alert: alertOnLast && i == icons.length - 1,
                 onTap: () => onSelected(i),
               ),
@@ -66,9 +71,9 @@ class DesktopRail extends StatelessWidget {
 class _RailItem extends StatelessWidget {
   final IconData icon;
   final String label;
-  final bool showLabel, on, alert;
+  final bool showLabel, on, shown, alert;
   final VoidCallback onTap;
-  const _RailItem({required this.icon, required this.label, required this.showLabel, required this.on, required this.alert, required this.onTap});
+  const _RailItem({required this.icon, required this.label, required this.showLabel, required this.on, this.shown = false, required this.alert, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +84,7 @@ class _RailItem extends StatelessWidget {
       child: Tooltip(
         message: showLabel ? '' : label,
         child: Material(
-          color: on ? AppColors.surface2 : Colors.transparent,
+          color: (on || shown) ? AppColors.surface2 : Colors.transparent,
           borderRadius: BorderRadius.circular(Ds.radiusControl),
           child: InkWell(
             borderRadius: BorderRadius.circular(Ds.radiusControl),
@@ -98,7 +103,7 @@ class _RailItem extends StatelessWidget {
                     smallSize: 8,
                     isLabelVisible: alert,
                     backgroundColor: AppColors.sharp,
-                    child: Icon(icon, size: 22, color: on ? AppColors.text : AppColors.textDim),
+                    child: Icon(icon, size: 22, color: (on || shown) ? AppColors.text : AppColors.textDim),
                   ),
                   if (showLabel) ...[
                     const SizedBox(width: 12),
@@ -107,7 +112,7 @@ class _RailItem extends StatelessWidget {
                         label,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: on ? AppColors.text : AppColors.textDim),
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: (on || shown) ? AppColors.text : AppColors.textDim),
                       ),
                     ),
                   ],

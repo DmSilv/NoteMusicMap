@@ -786,4 +786,6 @@ const Map<String, String> kEnB14 = {
   '1 tarefa para validar': '1 task to review',
   '{0} tarefas para validar': '{0} tasks to review',
   'Aulas e tarefas do seu professor': 'Your teacher\'s lessons and tasks',
+  'Trocar ferramenta': 'Switch tool',
+
 };

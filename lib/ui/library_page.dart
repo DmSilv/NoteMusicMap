@@ -141,7 +141,7 @@ class _LibraryPageState extends State<LibraryPage> {
         ],
       ),
       floatingActionButton: mine ? FloatingActionButton.extended(onPressed: () => _edit(null), icon: const Icon(Icons.add_link_rounded), label: Text(tr('Adicionar material'))) : null,
-      body: SafeArea(
+      body: DsPageSafe(
         child: ListenableBuilder(
           listenable: app,
           builder: (context, _) {

@@ -239,12 +239,21 @@ class _NewsBellState extends State<NewsBell> with SingleTickerProviderStateMixin
               final wiggle = t < 0.25 ? math.sin(t / 0.25 * math.pi * 4) * 0.22 * (1 - t / 0.25) : 0.0;
               return Stack(clipBehavior: Clip.none, alignment: Alignment.center, children: [
                 if (fresh && !still)
-                  Opacity(
-                    opacity: (1 - t).clamp(0.0, 1.0) * 0.7,
-                    child: Container(
-                      width: 36 + 14 * t,
-                      height: 36 + 14 * t,
-                      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.info, width: 2)),
+                  // O anel cresce por fora do ícone (Positioned não conta no tamanho): não empurra os vizinhos.
+                  Positioned.fill(
+                    child: OverflowBox(
+                      maxWidth: 64,
+                      maxHeight: 64,
+                      child: Center(
+                        child: Opacity(
+                          opacity: (1 - t).clamp(0.0, 1.0) * 0.7,
+                          child: Container(
+                            width: 36 + 14 * t,
+                            height: 36 + 14 * t,
+                            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: AppColors.info, width: 2)),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 widget.wrap(Transform.rotate(angle: wiggle, child: child)),

@@ -596,17 +596,88 @@ class _HomeShellState extends State<HomeShell> {
     );
   }
 
+  /// Computador: o cabeçalho de cada painel mostra o nome da ferramenta e um botão "Trocar" (um menu só), em vez de repetir
+  /// os cinco botões da barra lateral. O painel em foco (o último tocado) leva borda branca.
+  Widget _paneHeader(bool left, int cur, int other, {required bool focused}) {
+    final a = widget.app;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 10, 10, 8),
+      child: Row(children: [
+        Icon(_icons[cur], size: 20, color: AppColors.text),
+        const SizedBox(width: 10),
+        Expanded(child: Text(_titles[cur], maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
+        PopupMenuButton<int>(
+          tooltip: tr('Trocar ferramenta'),
+          position: PopupMenuPosition.under,
+          onSelected: (v) {
+            if (left) {
+              a.setSplit(v, a.splitRight);
+            } else {
+              a.setSplit(a.splitLeft, v);
+            }
+            a.markTab(_tabNames[v]);
+            setState(() {
+              _focusRight = !left;
+              _index = v;
+            });
+          },
+          itemBuilder: (_) => [
+            for (var i = 0; i < 5; i++)
+              PopupMenuItem<int>(
+                value: i,
+                enabled: i == cur || i != other, // a mesma tela não aparece nos dois lados
+                child: Row(children: [
+                  Icon(_icons[i], size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(_titles[i])),
+                  if (i == cur) const Icon(Icons.check_rounded, size: 18),
+                ]),
+              ),
+          ],
+          child: Container(
+            height: 36,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(Ds.radiusControl),
+              border: Border.all(color: focused ? AppColors.text : AppColors.outline),
+            ),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Text(tr('Trocar'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textDim)),
+              const SizedBox(width: 4),
+              Icon(Icons.expand_more_rounded, size: 18, color: AppColors.textDim),
+            ]),
+          ),
+        ),
+      ]),
+    );
+  }
+
   Widget _splitBody() {
     final a = widget.app;
     final size = MediaQuery.sizeOf(context);
     final desktop = isDesktopLayout(size);
     final single = desktop && a.deskSingle;
     Widget pane(bool left, int cur, int other) => Expanded(
-          child: Column(children: [
-            _paneSelector(left, cur, other),
-            const Divider(height: 1),
-            Expanded(child: KeyedSubtree(key: ValueKey('pane${left ? 'L' : 'R'}-$cur'), child: _pagePane(cur))),
-          ]),
+          child: Listener(
+            // O último painel tocado recebe o próximo atalho da barra lateral.
+            onPointerDown: (_) {
+              if (desktop && !single && _focusRight == left) setState(() => _focusRight = !left);
+            },
+            child: Column(children: [
+              if (desktop) _paneHeader(left, cur, other, focused: !single && _focusRight == !left) else _paneSelector(left, cur, other),
+              const Divider(height: 1),
+              // Uma ferramenta só numa janela larga: o conteúdo fica numa coluna centrada (botões não esticam por 1500 px).
+              Expanded(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: single ? 820 : double.infinity),
+                    child: KeyedSubtree(key: ValueKey('pane${left ? 'L' : 'R'}-$cur'), child: _pagePane(cur)),
+                  ),
+                ),
+              ),
+            ]),
+          ),
         );
     final panes = Row(children: [
       pane(true, a.splitLeft, a.splitRight),
@@ -629,16 +700,33 @@ class _HomeShellState extends State<HomeShell> {
         builder: (context, _) => DesktopRail(
           icons: _icons,
           titles: _titles,
-          selected: a.splitLeft,
+          selected: (single || !_focusRight) ? a.splitLeft : a.splitRight,
+          also: single ? null : ((!_focusRight) ? a.splitRight : a.splitLeft),
           labels: labels,
           alertOnLast: _index != kTabStudy && a.unseenNotices > 0,
           onSelected: (i) {
-            a.setSplit(i, a.splitRight);
+            // Já está num dos painéis: só leva o foco para ele. Senão, entra no painel em foco.
+            if (i == a.splitLeft) {
+              setState(() {
+                _focusRight = false;
+                _index = i;
+              });
+              return;
+            }
+            if (!single && i == a.splitRight) {
+              setState(() {
+                _focusRight = true;
+                _index = i;
+              });
+              return;
+            }
+            if (single || !_focusRight) {
+              a.setSplit(i, a.splitRight);
+            } else {
+              a.setSplit(a.splitLeft, i);
+            }
             a.markTab(_tabNames[i]);
-            setState(() {
-              _focusRight = false;
-              _index = i;
-            });
+            setState(() => _index = i);
           },
         ),
       ),

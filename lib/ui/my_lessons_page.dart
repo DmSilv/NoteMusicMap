@@ -181,7 +181,7 @@ class _MyLessonsPageState extends State<MyLessonsPage> {
               ),
             ],
           ),
-          body: SafeArea(
+          body: DsPageSafe(
             child: RefreshIndicator(
               onRefresh: () => _pull(),
               child: ListView(

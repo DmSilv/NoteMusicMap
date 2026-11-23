@@ -153,7 +153,7 @@ class _TaskFormPageState extends State<TaskFormPage> {
 
     return Scaffold(
       appBar: AppBar(title: Text(isEdit ? tr('Editar tarefa') : tr('Nova tarefa'))),
-      body: SafeArea(
+      body: DsPageSafe(
         child: Column(children: [
           Expanded(
             child: ListView(

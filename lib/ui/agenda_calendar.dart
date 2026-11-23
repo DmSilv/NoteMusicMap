@@ -27,6 +27,22 @@ class AgendaMonthGrid extends StatelessWidget {
     final first = DateTime(month.year, month.month, 1);
     final days = DateTime(month.year, month.month + 1, 0).day;
     final lead = first.weekday - 1;
+    // Em painel largo (computador) o calendário não estica: as células ficam quase quadradas e o mês fica centrado.
+    return Align(
+      alignment: Alignment.topCenter,
+      heightFactor: 1,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 460),
+        child: LayoutBuilder(builder: (context, box) {
+          final w = box.maxWidth.isFinite ? box.maxWidth : 460.0;
+          final cell = ((w - 6 * 4) / 7).clamp(40.0, 60.0);
+          return _grid(first, days, lead, cell);
+        }),
+      ),
+    );
+  }
+
+  Widget _grid(DateTime first, int days, int lead, double cell) {
     return Column(children: [
       Row(children: [
         for (final h in _heads)
@@ -41,7 +57,7 @@ class AgendaMonthGrid extends StatelessWidget {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         // Altura fixa da célula: em tela larga (tablet, navegador) o calendário não fica gigante.
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 7, mainAxisExtent: 58, mainAxisSpacing: 4, crossAxisSpacing: 4),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 7, mainAxisExtent: cell, mainAxisSpacing: 4, crossAxisSpacing: 4),
         children: [
           for (var i = 0; i < lead; i++) const SizedBox.shrink(),
           for (var d = 1; d <= days; d++) _cell(DateTime(first.year, first.month, d), counts[d] ?? 0),

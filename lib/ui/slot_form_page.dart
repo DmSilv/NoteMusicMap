@@ -150,7 +150,7 @@ class _SlotFormPageState extends State<SlotFormPage> {
 
     return Scaffold(
       appBar: AppBar(title: Text(isEdit ? tr('Editar aula') : tr('Marcar aula'))),
-      body: SafeArea(
+      body: DsPageSafe(
         child: Column(children: [
           Expanded(
             child: ListView(padding: const EdgeInsets.fromLTRB(Ds.screenPad, 0, Ds.screenPad, Ds.s24), children: [

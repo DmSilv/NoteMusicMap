@@ -62,7 +62,7 @@ class _OpenSlotsPageState extends State<OpenSlotsPage> {
             icon: const Icon(Icons.add),
             label: Text(tr('Novo horário')),
           ),
-          body: ListView(
+          body: DsPageSafe(child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
             children: [
               Text(
@@ -91,7 +91,7 @@ class _OpenSlotsPageState extends State<OpenSlotsPage> {
                     ),
                   ),
             ],
-          ),
+          )),
         );
       },
     );
@@ -323,7 +323,7 @@ class _PickSlotPageState extends State<PickSlotPage> {
     final who = teachers.where((t) => t.code == teacher).firstOrNull;
     return Scaffold(
       appBar: AppBar(title: Text(tr('Pegar horário'))),
-      body: ListView(
+      body: DsPageSafe(child: ListView(
         padding: Ds.screen,
         children: [
           if (teachers.isEmpty)
@@ -376,7 +376,7 @@ class _PickSlotPageState extends State<PickSlotPage> {
               for (final s in slots!) _slotCard(s),
           ],
         ],
-      ),
+      )),
     );
   }
 }

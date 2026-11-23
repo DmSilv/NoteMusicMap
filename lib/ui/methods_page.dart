@@ -7,6 +7,7 @@ import 'safe_input.dart';
 import 'dictation_button.dart';
 import 'theme.dart';
 import 'widgets.dart';
+import 'design_system.dart';
 
 /// "Meus métodos e lições": a biblioteca do professor. Cadastrar, editar,
 /// copiar a lista. Ela também cresce sozinha com o que
@@ -33,7 +34,7 @@ class MethodsPage extends StatelessWidget {
         icon: const Icon(Icons.add),
         label: Text(tr('Novo método')),
       ),
-      body: SafeArea(
+      body: DsPageSafe(
         child: ListenableBuilder(
           listenable: app,
           builder: (context, _) {

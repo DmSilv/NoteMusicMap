@@ -107,7 +107,7 @@ class _AgendaPageState extends State<AgendaPage> {
             icon: const Icon(Icons.add),
             label: Text(tr('Marcar aula')),
           ),
-          body: SafeArea(
+          body: DsPageSafe(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(14, 6, 14, 96),
               children: [
@@ -409,7 +409,7 @@ class _MyAgendaPageState extends State<MyAgendaPage> {
               ),
             ],
           ),
-          body: SafeArea(
+          body: DsPageSafe(
             child: ListView(
               padding: const EdgeInsets.fromLTRB(14, 6, 14, 24),
               children: [
