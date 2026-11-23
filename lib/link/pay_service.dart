@@ -65,6 +65,9 @@ class PayReply {
   final double amount;
   final String expires;
 
+  /// Quantos segundos o Pix fica aberto para pagar.
+  final int ttl;
+
   /// `pay_check`: pending, approved, rejected, cancelled...
   final String status;
   final String error;
@@ -93,6 +96,7 @@ class PayReply {
     this.qrBase64 = '',
     this.amount = 0,
     this.expires = '',
+    this.ttl = 1800,
     this.status = '',
     this.error = '',
   });
@@ -133,6 +137,7 @@ class PayService {
         qrBase64: (j['qrBase64'] as String?) ?? '',
         amount: (j['amount'] as num?)?.toDouble() ?? 0,
         expires: (j['expires'] as String?) ?? '',
+        ttl: ((j['ttl'] as num?)?.toInt() ?? 1800).clamp(60, 7200),
         status: (j['status'] as String?) ?? '',
         items: [for (final x in ((j['items'] as List?) ?? const []).take(50)) ?PayItem.tryFrom(x)],
         refundDays: (j['refundDays'] as num?)?.toInt() ?? 7,

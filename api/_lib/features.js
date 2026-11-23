@@ -44,6 +44,18 @@ const FEATURES = {
     scope: 'professor',
     students: false,
   },
+  plano_pro: {
+    name: 'Plano Pro (tela e pagamento)',
+    desc: 'Quem recebe vê a tela Plano e pode assinar o Pro por Pix. Sem a chave, só aparece para quem já tem Pro (cortesia ou pago) e para os perfis de teste. Ligue para todos só quando quiser abrir o pagamento.',
+    scope: 'professor',
+    students: false,
+  },
+  limite_alunos: {
+    name: 'Limite de 3 alunos no plano grátis',
+    desc: 'O professor sem o plano Pro só pode ter 3 alunos vinculados: quem já tem mais continua com eles, mas não adiciona outros. O professor com Pro (pago ou cortesia) não tem limite. Ligue só depois de abrir o pagamento para todos.',
+    scope: 'professor',
+    students: false,
+  },
   ficha_nova: {
     name: 'Ficha do aluno nova',
     desc: 'A ficha do aluno em três blocos: Agora, Caminho e Combinados (no lugar da tela única com o menu).',

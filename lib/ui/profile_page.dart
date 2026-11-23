@@ -388,6 +388,12 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 12.5)),
       );
 
+  String _dmy(int ms) {
+    final d = DateTime.fromMillisecondsSinceEpoch(ms);
+    String two(int n) => n.toString().padLeft(2, '0');
+    return '${two(d.day)}/${two(d.month)}/${d.year}';
+  }
+
   void _push(Widget page) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
 
   /// Tela principal: uma lista curta. Cada linha abre a sua tela.
@@ -522,6 +528,13 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ),
             ),
+            if (app.planVisible)
+              _row(Icons.workspace_premium_rounded, tr('Plano'),
+                  sub: app.proActive
+                      ? tr('Pro ativo até {0}', [_dmy(app.proUntil)])
+                      : (app.studentLimitOn ? tr('Plano grátis · {0} de {1} alunos', [app.students.length, AppState.kFreeStudents]) : tr('Plano grátis')),
+                  trailing: app.proActive ? _pill('PRO', AppColors.accent) : null,
+                  onTap: () => _push(PlanPage(app: app))),
             if (app.teacherMode)
               _row(Icons.groups_rounded, tr('Meus alunos'),
                   sub: app.students.isEmpty

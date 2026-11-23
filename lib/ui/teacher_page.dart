@@ -15,6 +15,7 @@ import 'qr_scan_page.dart';
 import 'person_avatar.dart';
 import 'student_identity.dart';
 import 'student_page.dart';
+import 'plan_page.dart';
 export 'student_page.dart' show StudentPage;
 import 'teaching_ui.dart';
 import 'materials_sheet.dart';
@@ -101,7 +102,23 @@ Future<(String, String?)?> _newStudentDialog(BuildContext context, AppState app,
 }
 
 /// Cadastra pelo nome e já abre a ficha do aluno (o próximo passo é passar uma tarefa ou marcar a aula).
+/// Plano grátis lotado: explica o limite e leva ao Plano. Devolve true se PODE adicionar.
+Future<bool> _checkStudentLimit(BuildContext context, AppState app) async {
+  if (app.canAddStudent) return true;
+  final go = await showDsConfirm(
+    context,
+    title: tr('Limite do plano grátis'),
+    body: tr('Você já tem {0} alunos e o plano grátis vai até {1}. O Pro tira o limite, e você continua com todos os que já tem.', [app.students.length, AppState.kFreeStudents]),
+    confirmLabel: tr('Ver o plano Pro'),
+    icon: Icons.workspace_premium_rounded,
+  );
+  if (go && context.mounted) await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PlanPage(app: app)));
+  return false;
+}
+
 Future<void> _addByName(BuildContext context, AppState app, {String? code0}) async {
+  if (!await _checkStudentLimit(context, app)) return;
+  if (!context.mounted) return;
   final r = await _newStudentDialog(context, app, code0: code0);
   if (r == null) return;
   final s = app.addStudent(r.$1, code: r.$2);
@@ -222,6 +239,8 @@ Future<void> handleIncomingStudentCode(BuildContext context, AppState app) async
     if (!context.mounted) return;
     app.setTeacherMode(true);
   }
+  if (!await _checkStudentLimit(context, app)) return;
+  if (!context.mounted) return;
   final r = await _newStudentDialog(context, app, code0: code);
   if (r != null) {
     app.addStudent(r.$1, code: r.$2);

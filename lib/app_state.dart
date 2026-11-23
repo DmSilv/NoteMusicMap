@@ -3474,6 +3474,12 @@ class AppState extends ChangeNotifier {
   void _applyFeatures(LinkReply r) {
     final f = r.ff.toSet();
     var changed = false;
+    // O plano Pro vem junto da sincronização (sem a data, o servidor diz que não há Pro).
+    if (r.pro != proUntil) {
+      proUntil = r.pro;
+      _prefs?.setInt('pro_until', r.pro);
+      changed = true;
+    }
     if (r.ml.isNotEmpty && meetDefault.isEmpty) {
       meetDefault = r.ml; // outro aparelho do mesmo professor já guardou o link padrão
       _prefs?.setString('meet_default', r.ml);
@@ -4253,6 +4259,21 @@ class AppState extends ChangeNotifier {
   // ---------------- Plano Pro ----------------
   /// Até quando o Pro vale (ms desde 1970; 0 = sem Pro). Vem do servidor e fica guardado só para mostrar o selo "Pro".
   int proUntil = 0;
+
+  /// A tela Plano aparece em Minha conta: o painel liberou o plano para este perfil ou ele já tem Pro (pago ou cortesia).
+  bool get planVisible => hasFeature('plano_pro') || proActive;
+
+  /// O plano Pro está ativo agora?
+  bool get proActive => proUntil > DateTime.now().millisecondsSinceEpoch;
+
+  /// Quantos alunos o professor do plano grátis pode ter.
+  static const int kFreeStudents = 3;
+
+  /// O limite do plano grátis vale para este professor (recurso ligado no painel) e ele não tem Pro.
+  bool get studentLimitOn => hasFeature('limite_alunos') && !proActive;
+
+  /// Pode cadastrar mais um aluno? Quem já passou de 3 antes do limite continua com os seus, mas não adiciona outro.
+  bool get canAddStudent => !studentLimitOn || students.length < kFreeStudents;
 
   void setProUntil(int ms) {
     if (ms == proUntil) return;

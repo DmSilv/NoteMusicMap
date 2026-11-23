@@ -85,7 +85,7 @@
 | `lib/ui/person_avatar.dart` | Fotos já decodificadas para bytes, para a lista não decodificar o texto base64 a cada quadro. |
 | `lib/ui/photo_editor.dart` | Resultado do editor: o texto da foto pronta (base64 de um JPEG pequeno) ou o motivo de não ter dado certo. |
 | `lib/ui/photo_pick.dart` | Pergunta de onde vem a foto (câmera, galeria ou remover), reduz a imagem e devolve o texto base64 pronto. Devolve: o texto da foto; '' para remover; null se a pessoa desistiu ou não deu para usar a imagem. |
-| `lib/ui/plan_page.dart` | Tela "Plano": mostra se o professor está no Pro e até quando, deixa assinar por Pix (mensal ou anual), lista os pagamentos e deixa pedir o reembolso integral em até 7 dias. Hoje abre por toque longo no título de… |
+| `lib/ui/plan_page.dart` | Tela "Plano": mostra se o professor está no Pro e até quando, explica o que o Pro libera e como funciona, deixa assinar por Pix (mensal ou anual), mostra o prazo do Pix, comemora quando o pagamento entra, lista os… |
 | `lib/ui/pomodoro_card.dart` | Timer de estudo (Pomodoro) com alarme sutil. |
 | `lib/ui/profile_page.dart` | "Minha conta": lista curta com o código que identifica você (sem cadastro) e a chave de recuperação, que permite levar o histórico para outro aparelho. |
 | `lib/ui/progress_cards.dart` | Verde: 80% ou mais; azul: 50 a 79%; laranja: abaixo de 50%. |
@@ -377,6 +377,7 @@
 | `api/pay_security.test.js` | Segurança do pagamento por Pix (tentativas de ataque e abuso), sem rede: `node --test api/pay_security.test.js` |
 | `api/photo.test.js` | Foto de perfil mostrada a quem está vinculado, sem rede: `node --test api/photo.test.js` |
 | `api/presence.test.js` | Testes da presença (quem está online agora) no painel, sem rede: `node --test api/presence.test.js` |
+| `api/pro_gift.test.js` | Pro de cortesia (painel) e limite de 3 alunos no plano grátis, sem rede: `node --test api/pro_gift.test.js` |
 | `api/relink.test.js` | Aluno desvincula e volta ao mesmo professor: `node --test api/relink.test.js` |
 | `api/remind_choice.test.js` | Testes do lembrete escolhido pelo professor (chave `lembrete_escolha`): `node --test api/remind_choice.test.js` |
 | `api/stats.test.js` | Testes das métricas anônimas e do painel de admin, sem rede: `node --test api/stats.test.js` |
@@ -414,4 +415,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **371** arquivos mapeados.
+Total: **372** arquivos mapeados.

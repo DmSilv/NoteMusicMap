@@ -25,7 +25,7 @@ const S1 = 'a'.repeat(64);
 const KEY = 'chave-de-admin-de-teste';
 const SUPPORT = 'chave-de-suporte-de-teste';
 const SECRET = 'segredo-mp';
-const ON = { enabled: true, token: 'APP_USR-x', secret: SECRET, publicUrl: 'https://exemplo.test', testCodes: [] };
+const ON = { enabled: true, token: 'APP_USR-x', secret: SECRET, publicUrl: 'https://exemplo.test', testCodes: [], gate: false };
 const DAY = pay.DAY;
 
 let NOW = Date.UTC(2026, 10, 24, 15, 0, 0);

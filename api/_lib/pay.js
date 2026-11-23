@@ -40,6 +40,7 @@ function payConfig(env = process.env) {
     token: t(env.MP_ACCESS_TOKEN),
     secret: t(env.MP_WEBHOOK_SECRET),
     publicUrl: t(env.PAY_PUBLIC_URL) || 'https://notemusicmap.vercel.app',
+    gate: t(env.PAY_GATE) !== '0', // vender só a quem o recurso "plano_pro" libera (o painel); '0' abre para todos, só em testes
     testCodes: t(env.PAY_TEST_CODES).toUpperCase().split(',').map((x) => x.trim()).filter(Boolean),
   };
 }

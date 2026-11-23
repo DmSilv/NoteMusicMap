@@ -26,7 +26,7 @@ const P1 = code(11111), P2 = code(22222);
 const S1 = 'a'.repeat(64), S2 = 'b'.repeat(64);
 const SECRET = 'segredo-do-webhook-de-teste';
 const TOKEN = 'APP_USR-token-super-secreto-123';
-const ON = { enabled: true, token: TOKEN, secret: SECRET, publicUrl: 'https://exemplo.test', testCodes: [] };
+const ON = { enabled: true, token: TOKEN, secret: SECRET, publicUrl: 'https://exemplo.test', testCodes: [], gate: false };
 const ADMIN = 'chave-admin-xyz', SUPPORT = 'chave-suporte-xyz';
 
 let NOW = Date.UTC(2026, 10, 24, 15, 0, 0);
@@ -320,4 +320,35 @@ test('estado do pagamento no painel: tipo da chave, contagens do dia e último a
   assert.ok(r.health.today.grant >= 1);
   assert.ok(r.health.today.lastHook > 0);
   assert.ok(!JSON.stringify(r.health).includes('abc'));
+});
+
+test('portão do plano: sem o recurso plano_pro (e sem ser de teste) ninguém compra, mas o reembolso continua valendo', async () => {
+  const features = require('./_lib/features');
+  features.resetCache();
+  const H = mk({ ...ON, gate: true, testCodes: [P2] });
+  await born(H, P1, S1);
+  await born(H, P2, S2);
+  // sem a chave ligada: o plano diz desligado e criar Pix é recusado (403), sem falar com o Mercado Pago
+  assert.equal((await planOf(H)).enabled, false);
+  const before = mpCalls;
+  assert.equal((await acc(H, { action: 'pay_new', code: P1, secret: S1, period: 'm' })).statusCode, 403);
+  assert.equal(mpCalls, before);
+  // o perfil de teste compra mesmo sem a chave
+  assert.equal((await planOf(H, P2, S2)).enabled, true);
+  assert.equal((await acc(H, { action: 'pay_new', code: P2, secret: S2, period: 'm' })).statusCode, 200);
+  // ligando o recurso para todos pelo painel, o outro perfil também compra
+  assert.equal((await adm(H, { action: 'feature_set', id: 'plano_pro', mode: 'all' })).statusCode, 200);
+  features.resetCache();
+  assert.equal((await planOf(H)).enabled, true);
+  const j = (await acc(H, { action: 'pay_new', code: P1, secret: S1, period: 'm' })).json();
+  assert.ok(j.id && j.ttl === 1800, 'devolve o prazo do Pix (30 min)');
+  mpPay.status = 'approved';
+  await hook(H, j.id);
+  assert.equal((await planOf(H)).pro, true);
+  // desligando o recurso de novo: não compra mais, mas pede reembolso e vê o histórico
+  await adm(H, { action: 'feature_set', id: 'plano_pro', mode: 'off' });
+  features.resetCache();
+  assert.equal((await planOf(H)).enabled, false);
+  assert.equal((await acc(H, { action: 'pay_hist', code: P1, secret: S1 })).json().items.length, 1);
+  assert.equal((await acc(H, { action: 'pay_refund', code: P1, secret: S1, id: String(j.id) })).statusCode, 200);
 });

@@ -99,6 +99,9 @@ Custo: ~6 comandos por pedido de código, ~8 ao confirmar; só quando a pessoa u
  Pagamentos do Pro (Pix, só o administrador; ver docs/PLANO_PAGAMENTO_PIX.md):
   pay_overview               receita bruta, taxa e líquido (30 dias e total), reembolsos e a lista dos últimos 100 pagamentos
   pay_refund {id}            devolve o Pix inteiro pelo Mercado Pago (sem o prazo de 7 dias) e tira os dias do Pro
+  pro_list                   quem tem Pro agora (pago ou cortesia), com o nome, até quando e a origem
+  pro_grant {code, days}     dá Pro de cortesia (soma dias ao que já tem); 1 a 3650 dias
+  pro_revoke {code}          tira o Pro do professor agora
   pay_import {id}            traz para o livro um pagamento antigo pelo número dele (sem liberar o Pro de novo)
  funnel                     ativação: quantos perfis fizeram cada coisa pela primeira vez (vincular, marcar aula, enviar tarefa…)
  agenda_pair {code, other}  compara a agenda do professor (code) com a que o aluno (other) recebeu: o que falta ou sobra
@@ -201,6 +204,8 @@ Custo: só quando o admin abre o painel (kpis ~35 comandos; lista de 25 = ~27; d
 | `bug` | — |
 | `bug_status` | — |
 | `pay_overview` | pagamentos do Pro (Pix) |
+| `pro_list` | — |
+| `pro_grant` | — |
 | `pay_refund` | — |
 | `log` | — |
 

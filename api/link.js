@@ -353,7 +353,7 @@ function makeHandler(deps = {}) {
         const stuList = parseLinks(asStudent);
         const feats = await features.forProfile(store, me, prof, legacy, clock());
         const libT = stuList.length ? await features.many(cmd, store, 'acervo', stuList.map((x) => x.code), legacy, clock()) : new Set();
-        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: stuList, ff: feats, ...(feats.includes('aula_online') && prof.ml ? { ml: prof.ml } : {}), lb: feats.includes('acervo') ? 1 : 0, lbT: stuList.map((x) => x.code).filter((c) => libT.has(c)), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...(await mirrorFlags(store, me, prof, clock())), ...(prof.cn === '1' ? { cn: 1 } : {}), ...noticeOf(prof) });
+        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: stuList, ff: feats, ...(Number(prof.pro) > clock() ? { pro: Number(prof.pro) } : {}), ...(feats.includes('aula_online') && prof.ml ? { ml: prof.ml } : {}), lb: feats.includes('acervo') ? 1 : 0, lbT: stuList.map((x) => x.code).filter((c) => libT.has(c)), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...(await mirrorFlags(store, me, prof, clock())), ...(prof.cn === '1' ? { cn: 1 } : {}), ...noticeOf(prof) });
       }
 
       // ---------------- excluir a própria conta (Ajustes › Excluir minha conta) ----------------
@@ -891,9 +891,18 @@ function makeHandler(deps = {}) {
       if (action === 'link') {
         const count = (await store.hlen(T(teacher))) + (await store.hlen(S(student)));
         if (count > MAX_LINKS * 2) return send(400, { error: 'Limite de vínculos atingido.' });
-        const existed = (await store.hgetall(T(teacher)))[student] !== undefined;
+        const tLinks = await store.hgetall(T(teacher));
+        const existed = tLinks[student] !== undefined;
         const otherProf = await store.hgetall(U(other));
         const now = clock();
+        // Limite do plano grátis (só quando o recurso "limite_alunos" está ligado para o professor): sem Pro, no máximo 3 alunos novos.
+        if (!existed) {
+          const tProf = teacher === me ? prof : otherProf;
+          const limitOn = features.isOn(await features.loadCfg(store, now), 'limite_alunos', teacher, tProf, null);
+          if (limitOn && !(Number(tProf.pro) > now) && Object.keys(tLinks).length >= 3) {
+            return send(402, { error: 'student_limit', message: 'Limite de alunos do plano grátis atingido.' });
+          }
+        }
         const myName = prof.n || '';
         const theirName = otherProf.n || '';
         // Cada lado guarda o apelido do outro, para listar sem consultas extras.

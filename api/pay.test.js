@@ -23,7 +23,7 @@ function code(seed) {
 const P1 = code(11111), P2 = code(22222);
 const S1 = 'a'.repeat(64), S2 = 'b'.repeat(64);
 const SECRET = 'segredo-de-teste';
-const ON = { enabled: true, token: 'APP_USR-teste', secret: SECRET, publicUrl: 'https://exemplo.test' };
+const ON = { enabled: true, token: 'APP_USR-teste', secret: SECRET, publicUrl: 'https://exemplo.test', gate: false };
 
 let NOW = Date.UTC(2026, 10, 24, 15, 0, 0);
 let ipN = 0;

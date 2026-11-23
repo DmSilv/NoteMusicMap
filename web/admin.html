@@ -865,6 +865,25 @@
         <div class="tw" id="payTbl"><div class="empty">Carregando…</div></div>
       </div>
 
+      <h2>Pro sem pagar (cortesia)</h2>
+      <p class="lead">Dê o plano Pro a um professor por um tempo, sem cobrar. Os dias somam ao que ele já tem, e dá para tirar quando quiser.</p>
+      <div class="card">
+        <div class="toolbar">
+          <label class="f">Código do professor<input id="giftCode" type="text" placeholder="ex.: JXYB-7EDW" autocomplete="off" autocapitalize="characters"></label>
+          <label class="f">Por quanto tempo<select id="giftDays"><option value="30">30 dias</option><option value="90">90 dias</option><option value="180">6 meses</option><option value="365">1 ano</option><option value="3650">10 anos (sem prazo prático)</option></select></label>
+          <button id="giftGo" class="primary" style="align-self:flex-end">Dar Pro</button>
+        </div>
+        <p class="note" id="giftMsg"></p>
+        <div class="tw" id="giftTbl"><div class="empty">Carregando…</div></div>
+      </div>
+
+      <h2>Limite de alunos no plano grátis</h2>
+      <p class="lead">O limite de 3 alunos é um recurso que você liga em Publicar › Recursos, para todos ou só para alguns professores.</p>
+      <div class="card">
+        <p class="note">Ligado, o professor sem Pro não adiciona o 4º aluno (quem já tem mais continua com os seus). Professor com Pro, pago ou de cortesia, não tem limite. Ligue só depois de abrir o pagamento para todos.</p>
+        <button id="giftToFeat">Abrir Publicar › Recursos</button>
+      </div>
+
       <h2>Trazer um pagamento antigo</h2>
       <p class="lead">Para um pagamento que ficou fora da lista: digite o número dele, que aparece no Mercado Pago. Isso não libera o Pro de novo.</p>
       <div class="card">
@@ -2106,7 +2125,47 @@
   // ---------------- Pagamentos do Pro (Pix) ----------------
   function brl(n) { return 'R$ ' + (Number(n) || 0).toFixed(2).replace('.', ','); }
   function payDate(ms) { if (!ms) return '–'; var d = new Date(ms), z = function (x) { return (x < 10 ? '0' : '') + x; }; return z(d.getDate()) + '/' + z(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); }
-  function loadPay() { post({ action: 'pay_overview' }).then(function (r) { if (r.status === 200) renderPay(r.j); else { fail(r.status); } }).catch(function () {}); }
+  function loadPro() { post({ action: 'pro_list' }).then(function (r) { if (r.status === 200) renderPro(r.j.items || []); }).catch(function () {}); }
+  function renderPro(items) {
+    var el = $('giftTbl'); el.textContent = '';
+    if (!items.length) { var e = document.createElement('div'); e.className = 'empty'; e.textContent = 'Ninguém tem Pro ainda.'; el.appendChild(e); return; }
+    var t = document.createElement('table'); var hd = document.createElement('tr');
+    ['Perfil', 'Nome', 'Pro até', 'Origem', ''].forEach(function (x) { var th = document.createElement('th'); th.textContent = x; hd.appendChild(th); }); t.appendChild(hd);
+    items.forEach(function (it) {
+      var tr = document.createElement('tr');
+      var origem = it.src === 'gift' ? 'Cortesia' + (it.gift ? ' (' + it.gift + ' dias)' : '') : (it.src === 'paid' ? 'Pago' : '–');
+      [it.code, it.name || '–', it.active ? payDate(it.until) : 'Venceu em ' + payDate(it.until), origem].forEach(function (x) { var td = document.createElement('td'); td.textContent = x; tr.appendChild(td); });
+      var td = document.createElement('td');
+      var plus = document.createElement('button'); plus.textContent = '+30 dias';
+      plus.onclick = function () { post({ action: 'pro_grant', code: it.code, days: 30 }).then(function (r) { if (r.status === 200) { toast('Somei 30 dias.'); loadPro(); } else toast(why(r), 'bad'); }); };
+      td.appendChild(plus);
+      if (it.active) {
+        var off = document.createElement('button'); off.textContent = 'Tirar Pro'; off.style.marginLeft = '6px';
+        off.onclick = function () {
+          askConfirm({ title: 'Tirar o Pro de ' + it.code + '?', body: 'Ele volta para o plano grátis agora, mesmo que tenha pago ou ganho mais dias.', facts: ['Para devolver o dinheiro de um pagamento, use Reembolsar na lista acima.'], ok: 'Tirar Pro', danger: true }).then(function (y) {
+            if (!y) return;
+            post({ action: 'pro_revoke', code: it.code }).then(function (r) { if (r.status === 200) { toast('Pro retirado.'); loadPro(); } else toast(why(r), 'bad'); });
+          });
+        };
+        td.appendChild(off);
+      }
+      tr.appendChild(td); t.appendChild(tr);
+    });
+    el.appendChild(t);
+  }
+  $('giftGo').onclick = function () {
+    var c = fixCode($('giftCode').value), d = Number($('giftDays').value);
+    if (!/^[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(c)) { $('giftMsg').textContent = 'Digite o código do professor (ex.: ABCD-EFGH).'; return; }
+    askConfirm({ title: 'Dar Pro para ' + c + '?', body: 'Ele fica com o plano Pro por ' + d + ' dias, sem pagar.', facts: ['Os dias somam ao que ele já tem.', 'Dá para tirar depois.'], ok: 'Dar Pro' }).then(function (y) {
+      if (!y) return;
+      post({ action: 'pro_grant', code: c, days: d }).then(function (r) {
+        if (r.status === 200) { $('giftMsg').textContent = 'Pronto: Pro até ' + payDate(r.j.until) + '.'; $('giftCode').value = ''; loadPro(); }
+        else $('giftMsg').textContent = r.status === 404 ? 'Não achei esse perfil.' : 'Não consegui (' + why(r) + ').';
+      });
+    });
+  };
+  $('giftToFeat').onclick = function () { showTab('features'); };
+  function loadPay() { loadPro(); post({ action: 'pay_overview' }).then(function (r) { if (r.status === 200) renderPay(r.j); else { fail(r.status); } }).catch(function () {}); }
   function ago(ms) { if (!ms) return 'nunca'; var m = Math.round((Date.now() - ms) / 60000); if (m < 1) return 'agora há pouco'; if (m < 60) return 'há ' + m + ' min'; var h = Math.round(m / 60); if (h < 48) return 'há ' + h + ' h'; return 'há ' + Math.round(h / 24) + ' dias'; }
   function payAlert(el, kind, text) { var d = document.createElement('div'); d.className = 'empty'; d.style.borderColor = kind === 'bad' ? 'var(--sharp)' : 'var(--flat)'; d.style.color = 'var(--text)'; d.style.marginBottom = '8px'; d.textContent = (kind === 'bad' ? 'Atenção: ' : 'Aviso: ') + text; el.appendChild(d); }
   function renderPayHealth(j) {

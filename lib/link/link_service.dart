@@ -115,6 +115,12 @@ class LinkReply {
   /// Recursos liberados para este perfil pelas chaves do painel (ex.: 'aula_online'). Vazio = nenhum.
   final List<String> ff;
 
+  /// Até quando o plano Pro vale (ms; 0 = sem Pro). Só vem na sincronização.
+  final int pro;
+
+  /// O servidor recusou o vínculo porque o professor do plano grátis já tem 3 alunos.
+  final bool studentLimit;
+
   /// Link padrão da aula online do professor (volta na sincronização, só com o recurso ligado).
   final String ml;
 
@@ -176,6 +182,8 @@ class LinkReply {
     this.lbT = const [],
     this.libItems = const [],
     this.ff = const [],
+    this.pro = 0,
+    this.studentLimit = false,
     this.ml = '',
     this.photo = '',
     this.pv = '',
@@ -251,6 +259,9 @@ class LinkService {
         return LinkReply(notReady: true, error: trOrNull(j['message'] as String?));
       }
       if (r.statusCode == 409 && j['error'] == 'mirror_off') return const LinkReply(rejected: true, mirrorOff: true);
+      if (r.statusCode == 402 && j['error'] == 'student_limit') {
+        return LinkReply(rejected: true, studentLimit: true, error: tr('Limite de alunos do plano grátis atingido. O plano Pro tira o limite.'));
+      }
       if (r.statusCode != 200) {
         // 5xx: servidor com problema, tentar depois. 4xx: o pedido foi recusado de vez.
         return LinkReply(
@@ -270,6 +281,7 @@ class LinkService {
         lbT: [for (final c in ((j['lbT'] as List?) ?? const []).take(60)) ?(c is String ? formatShareCode(c) : null)],
         ff: [for (final f in ((j['ff'] as List?) ?? const []).take(30)) if (f is String && RegExp(r'^[a-z][a-z0-9_]{1,30}$').hasMatch(f)) f],
         ml: meetingUrl(j['ml'] as String?) ?? '',
+        pro: ((j['pro'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),
         mirrorOn: j['mo'] == 1,
         cloudOn: j['cn'] == 1,
         mirrorRev: ((j['mr'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000),

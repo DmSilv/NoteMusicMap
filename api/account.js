@@ -49,6 +49,7 @@ const mirror = require('./_lib/mirror');
 const profilesLib = require('./_lib/profiles');
 const pay = require('./_lib/pay');
 const ledger = require('./_lib/pay_ledger');
+const features = require('./_lib/features');
 
 const { normCode } = _internal;
 const OTP_TTL = 600; // segundos
@@ -281,9 +282,11 @@ function makeHandler(deps = {}) {
         if (!o) return;
         const now = clock();
         const st = pay.statusOf(o.prof.pro, now);
+        // quem pode COMPRAR: o servidor tem as chaves E o painel liberou este perfil (recurso plano_pro) ou ele é de teste
+        const allowed = pay.ready(pcfg) && (pcfg.gate === false || pay.canBuy(pcfg, pay.PLANS.t, o.code) || features.isOn(await features.loadCfg(store, now), 'plano_pro', o.code, o.prof, null));
         if (action === 'plan') {
           return send(200, {
-            ok: true, enabled: pay.ready(pcfg), test: pay.canBuy(pcfg, pay.PLANS.t, o.code), ...st, free: pay.FREE_STUDENTS,
+            ok: true, enabled: allowed, test: pay.canBuy(pcfg, pay.PLANS.t, o.code), ...st, free: pay.FREE_STUDENTS,
             plans: pay.publicPlans().map((p) => ({ id: p.id, name: p.name, amount: p.amount, days: p.days })),
           });
         }
@@ -291,6 +294,7 @@ function makeHandler(deps = {}) {
         const n = await store.incr(`pay:calls:${o.code}:${hour}`, 3600);
         if (n.n > 30) return send(429, { error: 'Muitas tentativas. Tente mais tarde.' });
         if (action === 'pay_new') {
+          if (!allowed) return send(403, { error: 'plan_off' });
           // teto do dia para todo o servidor: ninguém enche o Mercado Pago e o banco de Pix falsos
           const cap = await store.incr(`pay:cap:${Math.floor(now / 86400000)}`, 86400);
           if (cap.n > 300) return send(429, { error: 'Muitas tentativas. Tente mais tarde.' });
@@ -309,7 +313,7 @@ function makeHandler(deps = {}) {
           }
           await ledger.stat(store, 'new_ok', now);
           await ledger.create(store, { id: r.id, code: o.code, plan, nowMs: now, status: r.status });
-          return send(200, { ok: true, id: r.id, qr: r.qr, qrBase64: r.qrBase64, expires: r.expires, amount: plan.amount });
+          return send(200, { ok: true, id: r.id, qr: r.qr, qrBase64: r.qrBase64, expires: r.expires, ttl: pay.PIX_MINUTES * 60, amount: plan.amount });
         }
         if (action === 'pay_hist') {
           const items = await ledger.listMine(store, o.code, clock());

@@ -14,6 +14,7 @@ const U = (code) => `u:${code}`;
 const REC = (id) => `pay:${id}`;
 const LOG = 'pay:log';
 const MINE = (code) => `pay:u:${code}`;
+const PRO_IDX = 'pro:idx'; // lista (com repetição) dos perfis que já tiveram Pro, do mais antigo ao mais novo
 
 /** Contador do dia (para o painel mostrar se o pagamento está saudável). Nunca derruba o pagamento se falhar. */
 const STATS = ['new_ok', 'new_fail', 'hook_ok', 'hook_bad', 'refund_ok', 'refund_fail', 'grant'];
@@ -65,7 +66,38 @@ async function grant(store, id, code, plan, got, nowMs) {
   }
   const cur = await store.hget(U(code), 'pro');
   await store.hset(U(code), 'pro', String(pay.extendUntil(cur, plan, nowMs)));
+  await store.hset(U(code), 'prosrc', 'paid');
+  await store.push(PRO_IDX, code, 2000);
   return true;
+}
+
+/** Cortesia do administrador: soma [days] dias ao Pro do professor sem cobrar. Devolve o novo "Pro até". */
+async function gift(store, code, days, nowMs) {
+  const cur = await store.hget(U(code), 'pro');
+  const until = pay.extendUntil(cur, { days }, nowMs);
+  await store.hset(U(code), 'pro', String(until));
+  if (!(await store.hget(U(code), 'prosrc'))) await store.hset(U(code), 'prosrc', 'gift');
+  await store.hset(U(code), 'progift', String((Number(await store.hget(U(code), 'progift')) || 0) + days));
+  await store.push(PRO_IDX, code, 2000);
+  return until;
+}
+
+/** Tira o Pro do professor agora (pago ou cortesia). */
+async function revokeAll(store, code) {
+  await store.hset(U(code), 'pro', '0');
+}
+
+/** Quem tem Pro agora (ou teve há pouco), do mais recente ao mais antigo, com o nome e a origem. */
+async function listPro(store, nowMs, n = 100) {
+  const codes = [...new Set((await store.recent(PRO_IDX, 2000)).reverse())].slice(0, n);
+  const out = [];
+  for (const code of codes) {
+    const p = await store.hgetall(U(code));
+    if (!p.h) continue; // perfil apagado
+    const until = Number(p.pro) || 0;
+    out.push({ code, name: p.n || '', until, active: until > nowMs, src: p.prosrc || '', gift: Number(p.progift) || 0 });
+  }
+  return out;
 }
 
 /** Marca o reembolso (só na primeira vez) e tira os dias deste pagamento. Devolve true se tirou agora. */
@@ -167,4 +199,4 @@ function summarize(list, nowMs, days = 30) {
   return { all: r(all), recent: r(recent), days, refundedCount, refundedAmount: round(refundedAmount), pending };
 }
 
-module.exports = { stat, readStats, touchHook, create, grant, markRefunded, refund, view, listMine, listAll, summarize, REC };
+module.exports = { gift, revokeAll, listPro, stat, readStats, touchHook, create, grant, markRefunded, refund, view, listMine, listAll, summarize, REC };

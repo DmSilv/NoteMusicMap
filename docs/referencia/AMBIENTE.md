@@ -28,6 +28,7 @@
 | `MP_ACCESS_TOKEN` | pay.js |
 | `MP_WEBHOOK_SECRET` | pay.js |
 | `PAY_ENABLED` | pay.js |
+| `PAY_GATE` | pay.js |
 | `PAY_PUBLIC_URL` | pay.js |
 | `PAY_TEST_CODES` | pay.js |
 | `QSTASH_CURRENT_SIGNING_KEY` | config.js |
@@ -45,4 +46,4 @@
 | `VERCEL_GIT_COMMIT_SHA` | admin.js |
 | `VERCEL_REGION` | admin.js |
 
-Total: **39** variáveis. Para o que cada uma faz e quais são obrigatórias, veja `docs/08_OPERACAO.md`.
+Total: **40** variáveis. Para o que cada uma faz e quais são obrigatórias, veja `docs/08_OPERACAO.md`.
