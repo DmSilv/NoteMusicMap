@@ -776,8 +776,6 @@ const Map<String, String> kEnB14 = {
   'Sem formulário. Seus dados ficam neste aparelho.': 'No forms. Your data stays on this device.',
   'Leia o QR ou digite o código': 'Scan the QR or type the code',
   'Alunos, agenda e tarefas': 'Students, schedule and tasks',
-  'Mostrar duas ferramentas': 'Show two tools',
-  'Mostrar uma ferramenta': 'Show one tool',
   'Esconder o painel lateral': 'Hide the side panel',
   'Mostrar o painel lateral': 'Show the side panel',
   'Nenhuma aula marcada.': 'No lesson booked.',
@@ -786,6 +784,11 @@ const Map<String, String> kEnB14 = {
   '1 tarefa para validar': '1 task to review',
   '{0} tarefas para validar': '{0} tasks to review',
   'Aulas e tarefas do seu professor': 'Your teacher\'s lessons and tasks',
-  'Trocar ferramenta': 'Switch tool',
 
+  'Tela {0}': 'Screen {0}',
+  'Uma tela': 'One screen',
+  'Duas telas': 'Two screens',
+  'Telas': 'Screens',
+  'Painel do professor': 'Teacher panel',
+  'Meu painel': 'My panel',
 };

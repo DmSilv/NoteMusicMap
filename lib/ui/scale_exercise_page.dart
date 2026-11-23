@@ -48,7 +48,11 @@ class ScaleExercisePage extends StatelessWidget {
         builder: (context) {
           final e = app.exercise;
           if (e == null || e.flow || e.finished || !app.listening) return const SizedBox.shrink();
-          return DecoratedBox(
+          return Center(
+            heightFactor: 1,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: DsPageSafe.maxWidth),
+              child: DecoratedBox(
             decoration: BoxDecoration(border: Border(top: BorderSide(color: AppColors.surface2))),
             child: SafeArea(
               top: false,
@@ -60,11 +64,13 @@ class ScaleExercisePage extends StatelessWidget {
                 ]),
               ),
             ),
+          ),
+            ),
           );
         },
       ),
       body: _ToastShift(
-        child: SafeArea(
+        child: DsPageSafe(
         child: _LiveGate(
           listenable: app.live,
           builder: (context) {

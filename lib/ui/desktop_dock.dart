@@ -26,6 +26,13 @@ class DesktopRail extends StatelessWidget {
   final ValueChanged<int> onSelected;
   final bool labels;
   final bool alertOnLast;
+
+  /// Duas ferramentas abertas ao mesmo tempo (ou uma só) e o que fazer ao trocar.
+  final bool two;
+  final ValueChanged<bool> onTwo;
+
+  /// Em duas telas: de qual tela (1 ou 2) é cada ferramenta aberta.
+  final Map<int, String> tags;
   const DesktopRail({
     super.key,
     required this.icons,
@@ -34,6 +41,9 @@ class DesktopRail extends StatelessWidget {
     this.also,
     required this.onSelected,
     required this.labels,
+    required this.two,
+    required this.onTwo,
+    this.tags = const {},
     this.alertOnLast = false,
   });
 
@@ -49,6 +59,10 @@ class DesktopRail extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _ScreensToggle(two: two, onChanged: onTwo, labels: labels),
+          const SizedBox(height: 10),
+          Divider(height: 1, color: AppColors.outline),
+          const SizedBox(height: 10),
           for (var i = 0; i < icons.length; i++)
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
@@ -58,6 +72,7 @@ class DesktopRail extends StatelessWidget {
                 showLabel: labels,
                 on: i == selected,
                 shown: i == also,
+                tag: tags[i],
                 alert: alertOnLast && i == icons.length - 1,
                 onTap: () => onSelected(i),
               ),
@@ -68,12 +83,67 @@ class DesktopRail extends StatelessWidget {
   }
 }
 
+/// "Telas": escolhe entre uma ferramenta ou duas lado a lado. Sempre à vista no alto da barra lateral.
+class _ScreensToggle extends StatelessWidget {
+  final bool two, labels;
+  final ValueChanged<bool> onChanged;
+  const _ScreensToggle({required this.two, required this.onChanged, required this.labels});
+
+  Widget _seg(BuildContext context, IconData icon, String text, bool value) {
+    final on = two == value;
+    return Expanded(
+      child: Semantics(
+        button: true,
+        selected: on,
+        label: text,
+        child: Tooltip(
+          message: text,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(Ds.radiusControl),
+            onTap: () => onChanged(value),
+            child: Container(
+              height: 40,
+              decoration: BoxDecoration(
+                color: on ? AppColors.surface2 : Colors.transparent,
+                borderRadius: BorderRadius.circular(Ds.radiusControl),
+                border: Border.all(color: on ? AppColors.text : Colors.transparent),
+              ),
+              child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Icon(icon, size: 20, color: on ? AppColors.text : AppColors.textDim),
+                if (labels) ...[
+                  const SizedBox(width: 6),
+                  Flexible(child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: on ? AppColors.text : AppColors.textDim))),
+                ],
+              ]),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final seg1 = _seg(context, Icons.crop_portrait_rounded, tr('Uma tela'), false);
+    final seg2 = _seg(context, Icons.vertical_split_rounded, tr('Duas telas'), true);
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (labels) Padding(padding: const EdgeInsets.only(left: 4, bottom: 6), child: Text(tr('Telas'), style: Ds.section())),
+      Container(
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(Ds.radiusControl + 3), border: Border.all(color: AppColors.outline)),
+        child: labels ? Row(children: [seg1, seg2]) : Column(children: [SizedBox(height: 40, child: Row(children: [seg1])), const SizedBox(height: 3), SizedBox(height: 40, child: Row(children: [seg2]))]),
+      ),
+    ]);
+  }
+}
+
 class _RailItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final bool showLabel, on, shown, alert;
+  final String? tag;
   final VoidCallback onTap;
-  const _RailItem({required this.icon, required this.label, required this.showLabel, required this.on, this.shown = false, required this.alert, required this.onTap});
+  const _RailItem({required this.icon, required this.label, required this.showLabel, required this.on, this.shown = false, this.tag, required this.alert, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -101,8 +171,9 @@ class _RailItem extends StatelessWidget {
                 children: [
                   Badge(
                     smallSize: 8,
-                    isLabelVisible: alert,
-                    backgroundColor: AppColors.sharp,
+                    label: tag == null ? null : Text(tag!, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.onAccent)),
+                    isLabelVisible: alert || tag != null,
+                    backgroundColor: tag != null ? AppColors.accent : AppColors.sharp,
                     child: Icon(icon, size: 22, color: (on || shown) ? AppColors.text : AppColors.textDim),
                   ),
                   if (showLabel) ...[
@@ -171,12 +242,25 @@ class _DesktopDockState extends State<DesktopDock> {
         builder: (context, _) {
           final teacher = app.hubView == HubView.teacher;
           final children = teacher ? _teacher() : _student();
-          return ListView.separated(
-            padding: EdgeInsets.zero,
-            itemCount: children.length,
-            separatorBuilder: (_, _) => const SizedBox(height: Ds.s12),
-            itemBuilder: (_, i) => children[i],
-          );
+          // Título do painel: diz de uma vez o que é esta coluna (separada das ferramentas).
+          return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 6, 4, Ds.s12),
+              child: Row(children: [
+                Icon(teacher ? Icons.school_outlined : Icons.person_outline_rounded, size: 20, color: AppColors.text),
+                const SizedBox(width: 10),
+                Expanded(child: Text(teacher ? tr('Painel do professor') : tr('Meu painel'), maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800))),
+              ]),
+            ),
+            Expanded(
+              child: ListView.separated(
+                padding: EdgeInsets.zero,
+                itemCount: children.length,
+                separatorBuilder: (_, _) => const SizedBox(height: Ds.s12),
+                itemBuilder: (_, i) => children[i],
+              ),
+            ),
+          ]);
         },
       ),
     );

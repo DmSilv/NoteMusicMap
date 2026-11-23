@@ -4252,7 +4252,7 @@ class AppState extends ChangeNotifier {
 
   // ---------------- Computador: uma ou duas ferramentas e o painel lateral ----------------
   /// Em janela larga (computador): mostra só uma ferramenta em vez de duas lado a lado.
-  bool deskSingle = false;
+  bool deskSingle = true;
 
   /// Em janela larga: mostra o painel lateral (próxima aula, hoje, quem estudou).
   bool deskDock = true;
@@ -5322,7 +5322,7 @@ class AppState extends ChangeNotifier {
     splitLeft = (p.getInt('split_l2') ?? 0).clamp(0, 4);
     splitRight = (p.getInt('split_r2') ?? 1).clamp(0, 4);
     if (splitLeft == splitRight) splitRight = (splitLeft + 1) % 5;
-    deskSingle = p.getBool('desk_single') ?? false;
+    deskSingle = p.getBool('desk_single') ?? true;
     deskDock = p.getBool('desk_dock') ?? true;
     updateHideUntil = p.getInt('upd_hide') ?? 0;
     installDone = p.getBool('install_done') ?? false;
