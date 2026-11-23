@@ -29,6 +29,8 @@ let NOW = Date.UTC(2026, 10, 24, 15, 0, 0);
 let ipN = 0;
 let mpPay; // pagamento simulado no "Mercado Pago"
 let mpCalls;
+let mpSeq = 0;
+let refundFail = false; // simula o Mercado Pago recusando o reembolso
 
 function mk(pcfg = ON) {
   hashes.clear();
@@ -36,13 +38,19 @@ function mk(pcfg = ON) {
   resetMem();
   NOW = Date.UTC(2026, 10, 24, 15, 0, 0);
   mpCalls = [];
+  mpSeq = 0;
+  refundFail = false;
   mpPay = { id: 987654321, status: 'pending', transaction_amount: 14.9, external_reference: '', payment_method_id: 'pix' };
   const fetch = async (url, init) => {
     mpCalls.push({ url: String(url), method: init && init.method, headers: init && init.headers, body: init && init.body ? JSON.parse(init.body) : null });
     if (String(url).endsWith('/v1/payments') && init.method === 'POST') {
       const body = JSON.parse(init.body);
-      mpPay = { id: 987654321, status: 'pending', transaction_amount: body.transaction_amount, external_reference: body.external_reference, payment_method_id: 'pix' };
+      mpPay = { id: 987654321 + mpSeq++, status: 'pending', transaction_amount: body.transaction_amount, external_reference: body.external_reference, payment_method_id: 'pix', transaction_details: { net_received_amount: Math.round(body.transaction_amount * 0.9901 * 100) / 100 } };
       return { ok: true, json: async () => ({ ...mpPay, date_of_expiration: body.date_of_expiration, point_of_interaction: { transaction_data: { qr_code: '000201PIXCOPIAECOLA', qr_code_base64: 'QUJD', ticket_url: 'https://mp.test/t' } } }) };
+    }
+    if (String(url).endsWith('/refunds')) {
+      if (refundFail) return { ok: false, status: 500, json: async () => ({ message: 'erro' }) };
+      return { ok: true, json: async () => ({ id: 1, status: 'approved' }) };
     }
     if (String(url).includes('/v1/payments/')) return { ok: true, json: async () => ({ ...mpPay }) };
     throw new Error('sem rede');
@@ -206,8 +214,9 @@ test('renovar antes de vencer soma ao que sobrou', async () => {
   mpPay.status = 'approved';
   await hook(H, j1.id);
   NOW += 10 * pay.DAY;
-  mpPay = { id: 555000111, status: 'approved', transaction_amount: 149, external_reference: `${P1}|y`, payment_method_id: 'pix' };
-  await hook(H, 555000111);
+  const j2 = (await call(H.a, { action: 'pay_new', code: P1, secret: S1, period: 'y' })).json();
+  mpPay.status = 'approved';
+  await hook(H, j2.id);
   const a = (await call(H.a, { action: 'plan', code: P1, secret: S1 })).json();
   assert.equal(a.until, Date.UTC(2026, 10, 24, 15, 0, 0) + 30 * pay.DAY + 365 * pay.DAY);
 });
@@ -232,7 +241,111 @@ test('pay_check: só o dono vê; confere pendente no Mercado Pago e libera quand
 test('pagamento que não é Pix nosso (sem referência) é ignorado com 200', async () => {
   const H = mk();
   await born(H, P1, S1);
-  mpPay = { id: 777000333, status: 'approved', transaction_amount: 14.9, external_reference: 'qualquer-coisa', payment_method_id: 'pix' };
+  mpPay = { id: 777000333, status: 'approved', transaction_amount: 14.9, external_reference: `${P1}|m`, payment_method_id: 'pix' };
   assert.equal((await hook(H, 777000333)).statusCode, 200);
   assert.equal((await call(H.a, { action: 'plan', code: P1, secret: S1 })).json().pro, false);
+});
+
+test('livro: guarda o líquido e a taxa quando o Mercado Pago informa', async () => {
+  const H = mk();
+  await born(H, P1, S1);
+  const j = (await call(H.a, { action: 'pay_new', code: P1, secret: S1, period: 'm' })).json();
+  mpPay.status = 'approved';
+  await hook(H, j.id);
+  const h = (await call(H.a, { action: 'pay_hist', code: P1, secret: S1 })).json();
+  assert.equal(h.items.length, 1);
+  assert.equal(h.items[0].amount, 14.9);
+  assert.equal(h.items[0].net, 14.75);
+  assert.equal(h.items[0].fee, 0.15);
+  assert.equal(h.items[0].refundable, true);
+  assert.equal(h.refundDays, 7);
+});
+
+test('reembolso: dentro de 7 dias devolve, tira os dias e não repete', async () => {
+  const H = mk();
+  await born(H, P1, S1);
+  const j = (await call(H.a, { action: 'pay_new', code: P1, secret: S1, period: 'm' })).json();
+  mpPay.status = 'approved';
+  await hook(H, j.id);
+  assert.equal((await call(H.a, { action: 'plan', code: P1, secret: S1 })).json().pro, true);
+  NOW += 3 * pay.DAY;
+  const r = await call(H.a, { action: 'pay_refund', code: P1, secret: S1, id: j.id });
+  assert.equal(r.statusCode, 200);
+  assert.equal(r.json().pro, false, 'sem o pagamento, não há mais Pro');
+  assert.equal(mpCalls.filter((c) => /refunds$/.test(c.url)).length, 1);
+  assert.equal((await call(H.a, { action: 'pay_refund', code: P1, secret: S1, id: j.id })).statusCode, 409, 'segundo pedido não reembolsa de novo');
+  assert.equal(mpCalls.filter((c) => /refunds$/.test(c.url)).length, 1);
+  const h = (await call(H.a, { action: 'pay_hist', code: P1, secret: S1 })).json();
+  assert.equal(h.items[0].status, 'refunded');
+  assert.equal(h.items[0].refundable, false);
+});
+
+test('reembolso: depois de 7 dias o professor não pede (too_late) e outro perfil não vê', async () => {
+  const H = mk();
+  await born(H, P1, S1);
+  await born(H, P2, S2);
+  const j = (await call(H.a, { action: 'pay_new', code: P1, secret: S1, period: 'm' })).json();
+  mpPay.status = 'approved';
+  await hook(H, j.id);
+  assert.equal((await call(H.a, { action: 'pay_refund', code: P2, secret: S2, id: j.id })).statusCode, 404);
+  NOW += 8 * pay.DAY;
+  const r = await call(H.a, { action: 'pay_refund', code: P1, secret: S1, id: j.id });
+  assert.equal(r.statusCode, 409);
+  assert.equal(r.json().error, 'too_late');
+  assert.equal(mpCalls.filter((c) => /refunds$/.test(c.url)).length, 0);
+});
+
+test('reembolso de um pagamento tira só os dias dele (o outro continua)', async () => {
+  const H = mk();
+  await born(H, P1, S1);
+  const a = (await call(H.a, { action: 'pay_new', code: P1, secret: S1, period: 'm' })).json();
+  mpPay.status = 'approved';
+  await hook(H, a.id);
+  NOW += 1 * pay.DAY;
+  const b = (await call(H.a, { action: 'pay_new', code: P1, secret: S1, period: 'y' })).json();
+  mpPay.status = 'approved';
+  await hook(H, b.id);
+  const before = (await call(H.a, { action: 'plan', code: P1, secret: S1 })).json().until;
+  await call(H.a, { action: 'pay_refund', code: P1, secret: S1, id: b.id });
+  const after = (await call(H.a, { action: 'plan', code: P1, secret: S1 })).json();
+  assert.equal(after.until, before - 365 * pay.DAY);
+  assert.equal(after.pro, true);
+});
+
+test('reembolso: se o Mercado Pago recusar, nada muda (o Pro continua)', async () => {
+  const H = mk();
+  await born(H, P1, S1);
+  const j = (await call(H.a, { action: 'pay_new', code: P1, secret: S1, period: 'm' })).json();
+  mpPay.status = 'approved';
+  await hook(H, j.id);
+  refundFail = true;
+  assert.equal((await call(H.a, { action: 'pay_refund', code: P1, secret: S1, id: j.id })).statusCode, 502);
+  assert.equal((await call(H.a, { action: 'plan', code: P1, secret: S1 })).json().pro, true);
+});
+
+test('reembolso feito pelo painel do Mercado Pago (aviso refunded) também tira o Pro, uma vez', async () => {
+  const H = mk();
+  await born(H, P1, S1);
+  const j = (await call(H.a, { action: 'pay_new', code: P1, secret: S1, period: 'm' })).json();
+  mpPay.status = 'approved';
+  await hook(H, j.id);
+  mpPay.status = 'refunded';
+  await hook(H, j.id);
+  await hook(H, j.id, { requestId: 'req-9' });
+  assert.equal((await call(H.a, { action: 'plan', code: P1, secret: S1 })).json().pro, false);
+});
+
+test('resumo: soma bruto, taxa e líquido e tira o reembolsado', () => {
+  const ledger = require('./_lib/pay_ledger');
+  const now = Date.UTC(2026, 10, 24);
+  const list = [
+    { id: '1', amount: 14.9, net: 14.75, fee: 0.15, paid: now - pay.DAY, status: 'approved' },
+    { id: '2', amount: 149, net: 147.52, fee: 1.48, paid: now - 2 * pay.DAY, status: 'approved' },
+    { id: '3', amount: 14.9, net: 14.75, fee: 0.15, paid: now - 3 * pay.DAY, status: 'refunded', refunded: now },
+    { id: '4', amount: 14.9, paid: 0, status: 'pending' },
+  ];
+  const sm = ledger.summarize(list, now);
+  assert.deepEqual(sm.all, { count: 2, gross: 163.9, fee: 1.63, net: 162.27 });
+  assert.equal(sm.refundedCount, 1);
+  assert.equal(sm.pending, 1);
 });

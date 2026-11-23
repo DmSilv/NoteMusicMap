@@ -25,6 +25,9 @@ const publicPlans = () => Object.values(PLANS).filter((p) => !p.hidden);
 /** O professor usa de graça até este número de alunos; o Pro tira o limite. */
 const FREE_STUDENTS = 3;
 
+/** O professor pode pedir o reembolso integral até este número de dias depois da liberação (direito de arrependimento). */
+const REFUND_DAYS = 7;
+
 /** Quanto o Pix fica aberto para pagar (minutos). */
 const PIX_MINUTES = 30;
 
@@ -54,6 +57,15 @@ function extendUntil(currentUntilMs, plan, nowMs) {
   const base = Math.max(Number(currentUntilMs) || 0, nowMs);
   return base + plan.days * DAY;
 }
+
+/** Tira da conta os dias de UM pagamento reembolsado. Se sobrar menos que agora, o Pro acaba. */
+function revokeUntil(currentUntilMs, plan, nowMs) {
+  const next = (Number(currentUntilMs) || 0) - plan.days * DAY;
+  return next > nowMs ? next : 0;
+}
+
+/** Ainda dá para o professor pedir o reembolso? (7 dias depois da liberação) */
+const refundWindowOk = (grantedMs, nowMs) => nowMs - Number(grantedMs) <= REFUND_DAYS * DAY;
 
 /** O plano da conta agora: { pro, until, daysLeft }. */
 function statusOf(untilMs, nowMs) {
@@ -144,13 +156,24 @@ async function createPix(fetchImpl, cfg, { code, plan, idem, nowMs, payerEmail }
 /** Consulta um pagamento (para o aviso e para a tela conferir). */
 async function getPayment(fetchImpl, cfg, id) {
   const j = await mp(fetchImpl, cfg, 'GET', `/v1/payments/${encodeURIComponent(String(id))}`);
+  const net = j.transaction_details && j.transaction_details.net_received_amount;
+  const amount = Number(j.transaction_amount) || 0;
   return {
     id: String(j.id),
     status: String(j.status || ''),
-    amount: Number(j.transaction_amount) || 0,
+    amount,
     ref: String(j.external_reference || ''),
     method: String(j.payment_method_id || ''),
+    currency: String(j.currency_id || ''),
+    // o que sobra para você depois da taxa do Mercado Pago (quando ele informa)
+    net: net != null && Number.isFinite(Number(net)) ? Number(net) : null,
+    fee: net != null && Number.isFinite(Number(net)) ? Math.round((amount - Number(net)) * 100) / 100 : null,
   };
 }
 
-module.exports = { publicPlans, canBuy, PLANS, FREE_STUDENTS, PIX_MINUTES, DAY, payConfig, ready, planOf, extendUntil, statusOf, verifySignature, refOf, parseRef, createPix, getPayment };
+/** Devolve o Pix inteiro (corpo vazio = reembolso total). [idem] evita devolver duas vezes. */
+async function refundPayment(fetchImpl, cfg, id, idem) {
+  return mp(fetchImpl, cfg, 'POST', `/v1/payments/${encodeURIComponent(String(id))}/refunds`, {}, { 'X-Idempotency-Key': idem });
+}
+
+module.exports = { REFUND_DAYS, revokeUntil, refundWindowOk, refundPayment, publicPlans, canBuy, PLANS, FREE_STUDENTS, PIX_MINUTES, DAY, payConfig, ready, planOf, extendUntil, statusOf, verifySignature, refOf, parseRef, createPix, getPayment };

@@ -42,6 +42,12 @@ Decidido em 23/11/2026. **Nada disso opera para ninguém ainda:** tudo nasce des
 - Perguntar ao suporte do Mercado Pago sobre uso de conta de pessoa física para cobrança recorrente de um serviço.
 - Falar com um contador (imposto sobre a receita no CPF e quando abrir uma ME no Simples).
 
+## Estado em 23/11/2026
+
+- **Funcionando em produção:** gerar o Pix, aviso assinado, liberar o Pro uma vez, plano de teste de R$ 1 (pagamento real conferido: R$ 0,99 líquidos).
+- **Pronto, ainda não publicado:** reembolso (7 dias pelo professor; qualquer hora pelo admin), histórico, tela **Plano** no app (selo Pro, "Pro até", renovar mensal e anual, reembolso), aba **Pagamentos** no painel e painel reorganizado em 7 áreas.
+- **Falta:** limite de 3 alunos no grátis, aviso de vencimento (5 dias antes), acesso público à tela Plano (hoje toque longo no título de Minha conta) e política/termos.
+
 ## Pontos em aberto
 
 - Lista final dos recursos do Pro.

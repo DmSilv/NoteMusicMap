@@ -8,7 +8,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../app_state.dart';
 import 'account_email.dart';
 import 'my_lessons_page.dart';
-import 'pay_test_page.dart';
+import 'plan_page.dart';
 import 'safe_input.dart';
 import '../link/link_service.dart' show LinkedPerson;
 import 'qr_scan_page.dart';
@@ -358,7 +358,7 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       // Toque longo no título: tela escondida de teste do Pix (só funciona para o perfil liberado no servidor).
-      appBar: AppBar(title: GestureDetector(onLongPress: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PayTestPage(app: app))), child: Text(tr('Minha conta')))),
+      appBar: AppBar(title: GestureDetector(onLongPress: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PlanPage(app: app))), child: Text(tr('Minha conta')))),
       body: DsPageSafe(child: _mainList()),
     );
   }

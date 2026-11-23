@@ -22,6 +22,10 @@
 //   presence                   quem está online agora (sinal nos últimos 12 min) e quem esteve há pouco
 //  costs                      comandos do Redis no mês (estimativa) e o que foi medido nos últimos 30 dias (measured)
 //  cost_report {users,fx,basis,commercial,m}  quanto custa manter a plataforma hoje e para N usuários (conta pura, 0 comandos no Redis)
+//  Pagamentos do Pro (Pix, só o administrador; ver docs/PLANO_PAGAMENTO_PIX.md):
+//   pay_overview               receita bruta, taxa e líquido (30 dias e total), reembolsos e a lista dos últimos 100 pagamentos
+//   pay_refund {id}            devolve o Pix inteiro pelo Mercado Pago (sem o prazo de 7 dias) e tira os dias do Pro
+//   pay_import {id}            traz para o livro um pagamento antigo pelo número dele (sem liberar o Pro de novo)
 //  funnel                     ativação: quantos perfis fizeram cada coisa pela primeira vez (vincular, marcar aula, enviar tarefa…)
 //  agenda_pair {code, other}  compara a agenda do professor (code) com a que o aluno (other) recebeu: o que falta ou sobra
 //  Recursos liberados aos poucos (docs/PLANO_AULA_ONLINE_AGENDA_ADMIN.md, seção 6):
@@ -174,6 +178,9 @@ function parseLinks(h) {
 }
 
 // Ações liberadas à chave de suporte: atendimento e ações reversíveis. Excluir, publicar, custos e sistema ficam só no admin.
+const pay = require('./_lib/pay');
+const ledger = require('./_lib/pay_ledger');
+
 const SUPPORT_ACTIONS = new Set(['whoami', 'list', 'detail', 'block', 'unblock', 'inbox_list', 'inbox_thread', 'inbox_send', 'inbox_resolve',
   'rq_list', 'rq_close', 'rq_open', 'bugs', 'bug', 'bug_status', 'support_code', 'support_cancel', 'features', 'group_list', 'feature_why']);
 
@@ -1278,6 +1285,53 @@ function makeHandler(deps = {}) {
         await cmd.pipeline(list);
         await log('bug_' + status, fp);
         return send(200, { ok: true, status });
+      }
+
+      // ---------------- pagamentos do Pro (Pix) ----------------
+      if (action === 'pay_overview') {
+        const items = await ledger.listAll(store, now, 100);
+        const pcfg = deps.pay || pay.payConfig();
+        return send(200, {
+          ok: true,
+          enabled: pay.ready(pcfg),
+          plans: Object.values(pay.PLANS).filter((p) => !p.hidden).map((p) => ({ id: p.id, name: p.name, amount: p.amount, days: p.days })),
+          refundDays: pay.REFUND_DAYS,
+          summary: ledger.summarize(items.filter((x) => x.plan !== 't'), now), // o plano de teste não entra na receita
+          // estado do pagamento, para ver de relance se está tudo bem (nada secreto: só o tipo da chave e contagens)
+          health: {
+            mode: !pcfg.token ? 'sem chave' : (/^TEST-/.test(pcfg.token) ? 'teste' : (/^APP_USR-/.test(pcfg.token) ? 'produção' : 'desconhecido')),
+            hasToken: !!pcfg.token,
+            hasSecret: !!pcfg.secret,
+            testCodes: (pcfg.testCodes || []).length,
+            today: await ledger.readStats(store, now),
+          },
+          items,
+        });
+      }
+      if (action === 'pay_refund' || action === 'pay_import') {
+        const pcfg = deps.pay || pay.payConfig();
+        if (!pay.ready(pcfg)) return send(503, { error: 'pay_off' });
+        const id = String(b.id || '');
+        if (!/^\d{3,20}$/.test(id)) return send(400, { error: 'Número de pagamento inválido.' });
+        if (action === 'pay_refund') {
+          const r = await ledger.refund(store, fetchImpl, pcfg, id, { admin: true, nowMs: now });
+          if (r.error) return send(r.error === 'failed' ? 502 : (r.error === 'not_found' ? 404 : 409), { error: r.error });
+          await log('pay_refund', r.code, id);
+          return send(200, { ok: true });
+        }
+        const got = await pay.getPayment(fetchImpl, pcfg, id);
+        const ref = pay.parseRef(got.ref);
+        if (!ref || got.method !== 'pix') return send(404, { error: 'not_ours' });
+        if (await store.hget(`pay:${id}`, 'c')) return send(409, { error: 'already' });
+        await ledger.create(store, { id, code: ref.code, plan: ref.plan, nowMs: now, status: got.status });
+        if (got.status === 'approved') {
+          // traz o pagamento para o livro SEM somar dias de novo (o Pro dele já foi liberado pelo aviso)
+          await store.hset(`pay:${id}`, 'g', String(now));
+          if (got.net != null) await store.hset(`pay:${id}`, 'n', String(got.net));
+          if (got.fee != null) await store.hset(`pay:${id}`, 'f', String(got.fee));
+        }
+        await log('pay_import', ref.code, id);
+        return send(200, { ok: true });
       }
 
       if (action === 'log') {

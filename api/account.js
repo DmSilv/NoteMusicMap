@@ -48,6 +48,7 @@ const devices = require('./_lib/devices');
 const mirror = require('./_lib/mirror');
 const profilesLib = require('./_lib/profiles');
 const pay = require('./_lib/pay');
+const ledger = require('./_lib/pay_ledger');
 
 const { normCode } = _internal;
 const OTP_TTL = 600; // segundos
@@ -167,21 +168,31 @@ function makeHandler(deps = {}) {
         if (!pay.ready(pcfg)) return send(200, { ok: true }); // desligado: responde 200 para o Mercado Pago não insistir
         const h = req.headers || {};
         const dataId = String((req.query && (req.query['data.id'] || req.query.data_id)) || (req.body && req.body.data && req.body.data.id) || '');
-        if (!pay.verifySignature({ signature: h['x-signature'], requestId: h['x-request-id'], dataId, secret: pcfg.secret })) return send(401, { error: 'bad_signature' });
+        if (!pay.verifySignature({ signature: h['x-signature'], requestId: h['x-request-id'], dataId, secret: pcfg.secret })) {
+          // quem manda aviso falso gasta um contador por hora e por origem; passando de 60, nem conta mais (não gasta o banco)
+          const hr = Math.floor(clock() / 3600000);
+          const bad = await store.incr(`pay:hbad:${sha(clientIp(req)).slice(0, 16)}:${hr}`, 3600);
+          if (bad.n > 60) return send(429, { error: 'too_many' });
+          await ledger.stat(store, 'hook_bad', clock());
+          return send(401, { error: 'bad_signature' });
+        }
+        await ledger.touchHook(store, clock());
         if (!/^\d{3,20}$/.test(dataId)) return send(200, { ok: true });
         const got = await pay.getPayment(fetchImpl, pcfg, dataId);
         const ref = pay.parseRef(got.ref);
         const rec = `pay:${got.id}`;
         if (!ref || got.method !== 'pix') return send(200, { ok: true }); // não é um Pix nosso
+        // vale o NOSSO registro (perfil e plano guardados ao criar o Pix), não só o que o aviso diz
+        const mine = await store.hgetall(rec);
+        if (!mine.c || mine.c !== ref.code || mine.p !== ref.plan.id) return send(200, { ok: true });
+        if (got.currency && got.currency !== 'BRL') return send(200, { ok: true });
         await store.hset(rec, 's', got.status);
         if (got.status === 'approved' && Math.abs(got.amount - ref.plan.amount) < 0.005) {
-          // idempotente: só o primeiro aviso aprovado soma o período
-          if (await store.hsetnx(rec, 'g', String(clock()))) {
-            const cur = await store.hget(U(ref.code), 'pro');
-            const until = pay.extendUntil(cur, ref.plan, clock());
-            await store.hset(U(ref.code), 'pro', String(until));
-          }
+          await ledger.grant(store, got.id, ref.code, ref.plan, got, clock()); // idempotente: só o primeiro aviso soma o período
         }
+        // reembolsado ou contestado pelo painel do Mercado Pago: tira os dias (também idempotente)
+        if (got.status === 'refunded' || got.status === 'charged_back') await ledger.markRefunded(store, got.id, ref.code, ref.plan, clock());
+        await ledger.stat(store, 'hook_ok', clock());
         return send(200, { ok: true });
       } catch (e) {
         console.error('pay hook error', e && e.message);
@@ -265,7 +276,7 @@ function makeHandler(deps = {}) {
       }
 
       // ---------------- plano Pro (Pix) ----------------
-      if (action === 'plan' || action === 'pay_new' || action === 'pay_check') {
+      if (action === 'plan' || action === 'pay_new' || action === 'pay_check' || action === 'pay_hist' || action === 'pay_refund') {
         const o = await owner();
         if (!o) return;
         const now = clock();
@@ -280,6 +291,9 @@ function makeHandler(deps = {}) {
         const n = await store.incr(`pay:calls:${o.code}:${hour}`, 3600);
         if (n.n > 30) return send(429, { error: 'Muitas tentativas. Tente mais tarde.' });
         if (action === 'pay_new') {
+          // teto do dia para todo o servidor: ninguém enche o Mercado Pago e o banco de Pix falsos
+          const cap = await store.incr(`pay:cap:${Math.floor(now / 86400000)}`, 86400);
+          if (cap.n > 300) return send(429, { error: 'Muitas tentativas. Tente mais tarde.' });
           const plan = pay.planOf(String(b.period || ''));
           if (!plan || !pay.canBuy(pcfg, plan, o.code)) return send(400, { error: 'Plano inválido.' });
           // a mesma tentativa nos mesmos 5 minutos reaproveita o mesmo Pix (não cria dois ao tocar duas vezes)
@@ -290,14 +304,23 @@ function makeHandler(deps = {}) {
             r = await pay.createPix(fetchImpl, pcfg, { code: o.code, plan, idem, nowMs: now, payerEmail: `${o.code.replace('-', '').toLowerCase()}@pagamento.notemusic.app` });
           } catch (e) {
             console.error('pay create error', e && e.status, e && e.detail);
+            await ledger.stat(store, 'new_fail', now);
             return send(502, { error: 'pay_failed' });
           }
-          await store.hset(`pay:${r.id}`, 'c', o.code);
-          await store.hset(`pay:${r.id}`, 'p', plan.id);
-          await store.hset(`pay:${r.id}`, 'a', String(plan.amount));
-          await store.hset(`pay:${r.id}`, 't', String(now));
-          await store.hset(`pay:${r.id}`, 's', r.status);
+          await ledger.stat(store, 'new_ok', now);
+          await ledger.create(store, { id: r.id, code: o.code, plan, nowMs: now, status: r.status });
           return send(200, { ok: true, id: r.id, qr: r.qr, qrBase64: r.qrBase64, expires: r.expires, amount: plan.amount });
+        }
+        if (action === 'pay_hist') {
+          const items = await ledger.listMine(store, o.code, clock());
+          return send(200, { ok: true, ...st, refundDays: pay.REFUND_DAYS, items });
+        }
+        if (action === 'pay_refund') {
+          const rid = String(b.id || '');
+          if (!/^\d{3,20}$/.test(rid)) return send(400, { error: 'Pagamento inválido.' });
+          const rr = await ledger.refund(store, fetchImpl, pcfg, rid, { code: o.code, admin: false, nowMs: clock() });
+          if (rr.error) return send(rr.error === 'failed' ? 502 : (rr.error === 'not_found' ? 404 : 409), { error: rr.error });
+          return send(200, { ok: true, ...pay.statusOf(await store.hget(U(o.code), 'pro'), clock()) });
         }
         // pay_check: só quem criou o Pix pode ver; consulta o Mercado Pago só se ainda está pendente
         const id = String(b.id || '');
@@ -310,10 +333,9 @@ function makeHandler(deps = {}) {
             await store.hset(`pay:${id}`, 's', got.status);
             rec.s = got.status;
             const plan = pay.planOf(rec.p);
-            if (got.status === 'approved' && plan && Math.abs(got.amount - plan.amount) < 0.005 && (await store.hsetnx(`pay:${id}`, 'g', String(clock())))) {
-              const until = pay.extendUntil(o.prof.pro, plan, clock());
-              await store.hset(U(o.code), 'pro', String(until));
-              o.prof.pro = String(until);
+            if (got.status === 'approved' && plan && Math.abs(got.amount - plan.amount) < 0.005) {
+              await ledger.grant(store, id, o.code, plan, got, clock());
+              o.prof.pro = (await store.hget(U(o.code), 'pro')) || o.prof.pro;
             }
           } catch (_) { /* a tela tenta de novo */ }
         }

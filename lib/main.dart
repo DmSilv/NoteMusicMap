@@ -13,6 +13,7 @@ import 'ui/app_locale.dart';
 import 'ui/app_logo.dart';
 import 'ui/bottom_nav.dart';
 import 'ui/desktop_dock.dart' show DesktopRail, DeskMiniScreen;
+import 'ui/plan_page.dart' show PlanPage, ProPill;
 import 'ui/exit_sheet.dart';
 import 'ui/hello_bar.dart';
 import 'ui/hub_section.dart' show linkTeacherByScan;
@@ -850,6 +851,8 @@ class _HomeShellState extends State<HomeShell> {
             ],
           ),
           actions: [
+            // Selo "Pro": só enquanto o plano está ativo; toca e abre a tela Plano.
+            ProPill(app: app, onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => PlanPage(app: app)))),
             // Novidades do app (boletim): só aparece quando há uma publicada e chama atenção enquanto há uma não vista.
             NewsBell(app: app, wrap: (c) => _BarCircle(fill: AppColors.surface2, child: c)),
             // Dicas (apelido, instalar): lâmpada própria, só enquanto há dica; o sino fica só com avisos de verdade.

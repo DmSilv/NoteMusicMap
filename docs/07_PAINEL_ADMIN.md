@@ -7,16 +7,20 @@ Página estática (`web/admin.html`, JavaScript puro, sem bibliotecas) que fala 
 - Errou a chave 10 vezes na hora → bloqueio temporário (429).
 - Sem `ADMIN_KEY`/`FEEDBACK_ADMIN_KEY` configuradas, o painel responde 404 ("falta a variável").
 
-## Mapa do painel: 5 áreas, cada uma responde a uma pergunta
+## Mapa do painel: 7 áreas, cada uma responde a uma pergunta
 O painel tem **duas fileiras de navegação**: em cima as **áreas** (poucas e grandes), embaixo as **telas** da área escolhida (a frase embaixo das áreas diz para que serve a área). Há ainda a área **Ajuda**, com o **Guia do painel** dentro da própria tela.
 
 | Área | Pergunta que responde | Telas |
 |---|---|---|
 | **Início** | "Está tudo bem?" | Visão geral |
-| **Quem usa** | "Quem é o meu público?" | Visitantes, Uso, Aparelhos |
-| **Pessoas** | "Quem é fulano e o que ele disse?" | Pessoas, Pesquisa, Conversas |
+| **Dados** | "Quem é o meu público?" | Visitantes, Uso, Aparelhos |
+| **Usuários** | "Quem é fulano?" | Pessoas, Pesquisa |
+| **Suporte** | "Quem pediu ajuda?" | Conversas, Bugs (com selo vermelho quando há erro grave) |
 | **Publicar** | "O que eu mostro aos usuários?" | Publicações, Recursos, Partituras |
-| **Saúde e custos** | "O app está bem e quanto custa?" | Bugs (com selo vermelho quando há erro grave), Custos, Sistema |
+| **Pagamentos** | "Quanto entrou, quanto sobrou e quanto custa manter?" | Pagamentos (receita bruta, taxa e líquido, lista e reembolso), Custos |
+| **Sistema** | "O servidor está bem?" | Sistema |
+
+**Aba Pagamentos** (só o administrador; a chave de suporte não vê nem reembolsa): "Recebido nos últimos 30 dias", "Recebido no total" (líquido do Mercado Pago, já sem a taxa), reembolsos, a lista dos últimos 100 pagamentos com o botão **Reembolsar** (qualquer hora, com confirmação) e "Trazer um pagamento antigo" pelo número. O plano de teste de R$ 1 não entra na receita. Ações: `pay_overview`, `pay_refund`, `pay_import`.
 
 ### Dúvidas comuns (o mesmo texto está na aba Ajuda do painel)
 - **Avisar todo mundo de uma novidade:** Publicar › Publicações. Escreva (ou use uma sugestão pronta), publique; chega em até 5 minutos. Errou? Ocultar (fica no histórico) ou Excluir (some de vez).

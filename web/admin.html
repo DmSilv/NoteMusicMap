@@ -430,10 +430,12 @@
       <div class="navwrap">
       <div class="groups" id="groups" role="tablist" aria-label="Áreas do painel">
         <button data-group="inicio" class="on" role="tab" aria-selected="true" title="O resumo do dia: quem está usando agora e se está tudo bem"><svg class="i" aria-hidden="true"><use href="#i-home"/></svg><span>Início</span></button>
-        <button data-group="publico" role="tab" aria-selected="false" title="Quantas pessoas abrem o app, de onde vêm, em que aparelhos e o que mais usam"><svg class="i" aria-hidden="true"><use href="#i-chart"/></svg><span>Quem usa</span></button>
-        <button data-group="pessoas" role="tab" aria-selected="false" title="Cada usuário: perfis e vínculos, respostas da pesquisa e conversas particulares"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg><span>Pessoas</span></button>
+        <button data-group="dados" role="tab" aria-selected="false" title="Quantas pessoas abrem o app, de onde vêm, em que aparelhos e o que mais usam"><svg class="i" aria-hidden="true"><use href="#i-chart"/></svg><span>Dados</span></button>
+        <button data-group="usuarios" role="tab" aria-selected="false" title="Cada usuário: perfis e vínculos e as respostas da pesquisa"><svg class="i" aria-hidden="true"><use href="#i-users"/></svg><span>Usuários</span></button>
+        <button data-group="suporte" role="tab" aria-selected="false" title="Atender quem pediu ajuda: conversas, erros e perfis"><svg class="i" aria-hidden="true"><use href="#i-bug"/></svg><span>Suporte</span> <span id="bugBadge2" class="tag x" hidden></span></button>
         <button data-group="publicar" role="tab" aria-selected="false" title="O que os usuários veem: boletim de novidades, recursos liberados aos poucos e dedilhados"><svg class="i" aria-hidden="true"><use href="#i-news"/></svg><span>Publicar</span></button>
-        <button data-group="saude" role="tab" aria-selected="false" title="Erros do app, quanto custa manter e o estado do servidor"><svg class="i" aria-hidden="true"><use href="#i-server"/></svg><span>Saúde e custos</span> <span id="bugBadge2" class="tag x" hidden></span></button>
+        <button data-group="dinheiro" role="tab" aria-selected="false" title="Pagamentos do plano Pro, reembolsos, lucro e quanto custa manter o app"><svg class="i" aria-hidden="true"><use href="#i-coin"/></svg><span>Pagamentos</span></button>
+        <button data-group="sistema" role="tab" aria-selected="false" title="Banco de dados, servidor e chaves configuradas"><svg class="i" aria-hidden="true"><use href="#i-server"/></svg><span>Sistema</span></button>
         <button data-group="ajuda" role="tab" aria-selected="false" title="Para que serve cada tela e respostas para as dúvidas mais comuns"><svg class="i" aria-hidden="true"><use href="#i-help"/></svg><span>Ajuda</span></button>
       </div>
       <div class="groupdesc" id="groupDesc"></div>
@@ -449,6 +451,7 @@
       <button data-tab="features" role="tab" aria-selected="false" title="Liberar novidades aos poucos"><svg class="i" aria-hidden="true"><use href="#i-toggle"/></svg><span>Recursos</span></button>
       <button data-tab="news" role="tab" aria-selected="false" title="Boletim do app: escreva, publique, oculte e veja o histórico das novidades que os usuários leem"><svg class="i" aria-hidden="true"><use href="#i-news"/></svg><span>Publicações</span></button>
       <button data-tab="fing" role="tab" aria-selected="false" title="Corrigir ou incluir o dedilhado do violino (método de Flesch) que o app mostra nas partituras"><svg class="i" aria-hidden="true"><use href="#i-music"/></svg><span>Partituras</span></button>
+      <button data-tab="pay" role="tab" aria-selected="false" title="Quanto entrou com o plano Pro, a taxa do Mercado Pago, o lucro e os reembolsos"><svg class="i" aria-hidden="true"><use href="#i-coin"/></svg><span>Pagamentos</span></button>
       <button data-tab="costs" role="tab" aria-selected="false" title="Quanto custa manter o app e projeções"><svg class="i" aria-hidden="true"><use href="#i-coin"/></svg><span>Custos</span></button>
       <button data-tab="system" role="tab" aria-selected="false" title="Banco de dados, servidor e chaves configuradas"><svg class="i" aria-hidden="true"><use href="#i-server"/></svg><span>Sistema</span></button>
         <button data-tab="help" role="tab" aria-selected="false" title="Guia do painel: para que serve cada tela e as dúvidas mais comuns"><svg class="i" aria-hidden="true"><use href="#i-help"/></svg><span>Guia</span></button>
@@ -835,6 +838,44 @@
     </main>
 
     <!-- ===== Custos ===== -->
+    <main id="tab-pay" hidden>
+      <h2>Estado do pagamento</h2>
+      <p class="lead">Se o Pix está ligado, com que chave e se os avisos do Mercado Pago estão chegando. Vermelho pede ação agora.</p>
+      <div id="payAlerts"></div>
+      <div class="grid" id="payHealth">
+        <div class="card"><div class="k">Pagamento</div><div class="v" id="hOn">–</div><div class="s" id="hOnS">–</div></div>
+        <div class="card"><div class="k">Chave do Mercado Pago</div><div class="v" id="hMode">–</div><div class="s" id="hModeS">–</div></div>
+        <div class="card"><div class="k">Último aviso recebido</div><div class="v" id="hHook">–</div><div class="s" id="hHookS">–</div></div>
+        <div class="card"><div class="k">Hoje</div><div class="v" id="hToday">–</div><div class="s" id="hTodayS">–</div></div>
+      </div>
+
+      <h2>Receita do plano Pro</h2>
+      <p class="lead">Quanto entrou com o plano Pro (Pix pelo Mercado Pago), quanto ficou na taxa e quanto sobrou para você.</p>
+      <div id="payOff" class="empty" hidden>O pagamento está desligado no servidor (PAY_ENABLED). Os números abaixo são dos pagamentos que já aconteceram.</div>
+      <div class="grid" id="payKpis">
+        <div class="card"><div class="k">Recebido nos últimos 30 dias</div><div class="v" id="pNet30">–</div><div class="s" id="pNet30s">–</div></div>
+        <div class="card"><div class="k">Recebido no total</div><div class="v" id="pNetAll">–</div><div class="s" id="pNetAllS">–</div></div>
+        <div class="card"><div class="k">Reembolsos</div><div class="v" id="pRef">–</div><div class="s" id="pRefS">–</div></div>
+      </div>
+      <p class="note" id="payNote"></p>
+
+      <h2>Pagamentos e reembolsos</h2>
+      <p class="lead">Os últimos pagamentos, do mais novo ao mais antigo. O professor pede reembolso sozinho em até 7 dias; aqui você reembolsa a qualquer hora.</p>
+      <div class="card">
+        <div class="tw" id="payTbl"><div class="empty">Carregando…</div></div>
+      </div>
+
+      <h2>Trazer um pagamento antigo</h2>
+      <p class="lead">Para um pagamento que ficou fora da lista: digite o número dele, que aparece no Mercado Pago. Isso não libera o Pro de novo.</p>
+      <div class="card">
+        <div class="toolbar">
+          <label class="f">Número do pagamento<input id="payImpId" type="text" inputmode="numeric" placeholder="ex.: 190146930531"></label>
+          <button id="payImpGo" class="primary" style="align-self:flex-end">Trazer para a lista</button>
+        </div>
+        <p class="note" id="payImpMsg"></p>
+      </div>
+    </main>
+
     <main id="tab-costs" hidden>
       <h2>Comandos do Redis no mês (estimativa) <button class="help" data-def="cost">?</button></h2>
       <p class="lead">Estimativa do uso do banco no mês e se vai caber no plano gratuito.</p>
@@ -2062,6 +2103,75 @@
     bars($('cDays'), j.perDay.map(function (d) { return d.total; }), j.perDay.map(function (d) { return dm(d.day); }), true);
     $('cAxA').textContent = dm(j.perDay[0].day); $('cAxB').textContent = dm(j.perDay[j.perDay.length - 1].day); $('cNote').textContent = j.note;
   }
+  // ---------------- Pagamentos do Pro (Pix) ----------------
+  function brl(n) { return 'R$ ' + (Number(n) || 0).toFixed(2).replace('.', ','); }
+  function payDate(ms) { if (!ms) return '–'; var d = new Date(ms), z = function (x) { return (x < 10 ? '0' : '') + x; }; return z(d.getDate()) + '/' + z(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + z(d.getHours()) + ':' + z(d.getMinutes()); }
+  function loadPay() { post({ action: 'pay_overview' }).then(function (r) { if (r.status === 200) renderPay(r.j); else { fail(r.status); } }).catch(function () {}); }
+  function ago(ms) { if (!ms) return 'nunca'; var m = Math.round((Date.now() - ms) / 60000); if (m < 1) return 'agora há pouco'; if (m < 60) return 'há ' + m + ' min'; var h = Math.round(m / 60); if (h < 48) return 'há ' + h + ' h'; return 'há ' + Math.round(h / 24) + ' dias'; }
+  function payAlert(el, kind, text) { var d = document.createElement('div'); d.className = 'empty'; d.style.borderColor = kind === 'bad' ? 'var(--sharp)' : 'var(--flat)'; d.style.color = 'var(--text)'; d.style.marginBottom = '8px'; d.textContent = (kind === 'bad' ? 'Atenção: ' : 'Aviso: ') + text; el.appendChild(d); }
+  function renderPayHealth(j) {
+    var h = j.health || { today: {} }, t = h.today || {};
+    $('hOn').textContent = j.enabled ? 'Ligado' : 'Desligado';
+    $('hOnS').textContent = j.enabled ? 'vendendo para quem acessa a tela Plano' : 'PAY_ENABLED=0 ou faltam as chaves: nada é cobrado';
+    $('hMode').textContent = h.mode ? h.mode.charAt(0).toUpperCase() + h.mode.slice(1) : '–';
+    $('hModeS').textContent = (h.hasToken ? 'token ok' : 'sem token') + ' · ' + (h.hasSecret ? 'assinatura do aviso ok' : 'sem assinatura do aviso');
+    $('hHook').textContent = ago(t.lastHook);
+    $('hHookS').textContent = 'o Mercado Pago avisa cada Pix pago ou reembolsado';
+    $('hToday').textContent = fmt(t.new_ok || 0) + ' gerado(s) · ' + fmt(t.grant || 0) + ' pago(s)';
+    $('hTodayS').textContent = fmt(t.refund_ok || 0) + ' reembolso(s) · ' + fmt(t.hook_bad || 0) + ' aviso(s) falso(s) · ' + fmt((t.new_fail || 0) + (t.refund_fail || 0)) + ' falha(s)';
+    var al = $('payAlerts'); al.textContent = '';
+    if (j.enabled && h.mode === 'teste') payAlert(al, 'warn', 'o pagamento está ligado com a chave de TESTE: nenhum dinheiro real entra.');
+    if (j.enabled && h.mode === 'produção' && h.testCodes) payAlert(al, 'bad', 'PAY_TEST_CODES ainda está preenchida (' + h.testCodes + ' perfil): apague na Vercel depois do teste do plano de R$ 1.');
+    if (h.hasToken && !h.hasSecret) payAlert(al, 'bad', 'falta a assinatura do aviso (MP_WEBHOOK_SECRET): o Pix seria cobrado, mas o Pro não liberaria sozinho.');
+    if (!h.hasToken && j.enabled === false && h.hasSecret) payAlert(al, 'warn', 'falta o token do Mercado Pago (MP_ACCESS_TOKEN).');
+    if ((t.hook_bad || 0) >= 10) payAlert(al, 'bad', 'muitos avisos falsos hoje (' + t.hook_bad + '): alguém está testando o endereço do aviso. Eles são barrados, mas fique de olho.');
+    if ((t.new_fail || 0) + (t.refund_fail || 0) > 0) payAlert(al, 'warn', 'houve falha ao falar com o Mercado Pago hoje. Confira o status deles e os pagamentos pendentes.');
+    if (j.enabled && (t.new_ok || 0) > (t.grant || 0) + 2 && !t.lastHook) payAlert(al, 'warn', 'Pix gerados e nenhum aviso recebido ainda: confira o webhook no painel do Mercado Pago.');
+  }
+  function renderPay(j) {
+    renderPayHealth(j);
+    $('payOff').hidden = !!j.enabled;
+    var sm = j.summary || { all: {}, recent: {} };
+    $('pNet30').textContent = brl(sm.recent.net);
+    $('pNet30s').textContent = fmt(sm.recent.count) + ' pagamento(s) · bruto ' + brl(sm.recent.gross) + ' · taxa ' + brl(sm.recent.fee);
+    $('pNetAll').textContent = brl(sm.all.net);
+    $('pNetAllS').textContent = fmt(sm.all.count) + ' pagamento(s) · bruto ' + brl(sm.all.gross) + ' · taxa ' + brl(sm.all.fee);
+    $('pRef').textContent = fmt(sm.refundedCount || 0);
+    $('pRefS').textContent = (sm.refundedCount ? brl(sm.refundedAmount) + ' devolvidos' : 'nenhum reembolso') + (sm.pending ? ' · ' + fmt(sm.pending) + ' Pix aguardando' : '');
+    $('payNote').textContent = 'Líquido = o que o Mercado Pago deposita depois da taxa (cerca de 1% no Pix). Imposto e custo de manter o app ficam de fora: veja a aba Custos. Reembolsado sai da receita. O plano de teste (R$ 1) não entra na conta.';
+    var el = $('payTbl'); el.textContent = '';
+    var items = j.items || [];
+    if (!items.length) { var e = document.createElement('div'); e.className = 'empty'; e.textContent = 'Nenhum pagamento ainda.'; el.appendChild(e); return; }
+    var t = document.createElement('table'); var hd = document.createElement('tr');
+    ['Quando', 'Perfil', 'Plano', 'Valor', 'Líquido', 'Situação', ''].forEach(function (x) { var th = document.createElement('th'); th.textContent = x; hd.appendChild(th); }); t.appendChild(hd);
+    items.forEach(function (it) {
+      var tr = document.createElement('tr');
+      var st = it.status === 'refunded' ? 'Reembolsado' : (it.paid ? 'Pago' : (it.status === 'pending' ? 'Aguardando' : it.status));
+      [payDate(it.paid || it.created), it.code, it.name, brl(it.amount), it.net != null ? brl(it.net) : '–', st].forEach(function (x) { var td = document.createElement('td'); td.textContent = x; tr.appendChild(td); });
+      var td = document.createElement('td');
+      if (it.paid && it.status !== 'refunded') {
+        var b = document.createElement('button'); b.textContent = 'Reembolsar';
+        b.onclick = function () {
+          askConfirm({ title: 'Reembolsar ' + brl(it.amount) + ' para ' + it.code + '?', body: 'O Pix volta inteiro para a pessoa e os dias deste pagamento saem do Pro dela.', facts: ['Não dá para desfazer.'], ok: 'Reembolsar', danger: true }).then(function (y) {
+            if (!y) return;
+            post({ action: 'pay_refund', id: it.id }).then(function (r) { if (r.status === 200) { toast('Reembolso feito.'); loadPay(); } else toast('Não consegui reembolsar (' + ((r.j && r.j.error) || r.status) + ').', 'bad'); }).catch(function () {});
+          });
+        };
+        td.appendChild(b);
+      }
+      tr.appendChild(td); t.appendChild(tr);
+    });
+    el.appendChild(t);
+  }
+  $('payImpGo').onclick = function () {
+    var id = ($('payImpId').value || '').replace(/\D/g, '');
+    if (id.length < 3) { $('payImpMsg').textContent = 'Digite o número do pagamento.'; return; }
+    post({ action: 'pay_import', id: id }).then(function (r) {
+      $('payImpMsg').textContent = r.status === 200 ? 'Pagamento trazido para a lista.' : (r.j && r.j.error === 'already' ? 'Esse pagamento já está na lista.' : (r.j && r.j.error === 'not_ours' ? 'Esse pagamento não é do Notemusic.' : 'Não consegui trazer (' + ((r.j && r.j.error) || r.status) + ').'));
+      if (r.status === 200) loadPay();
+    }).catch(function () {});
+  };
+
   function loadCosts() { post({ action: 'costs' }).then(function (r) { if (r.status === 200) renderCosts(r.j); else fail(r.status); }).catch(function () {}); }
 
   // ---------------- Visitantes (sem cadastro) ----------------
@@ -2789,16 +2899,18 @@
   // As telas ficam agrupadas em poucas áreas: cada área mostra só as suas telas na segunda fileira.
   var GROUPS = {
     inicio: { tabs: ['overview'], desc: 'O resumo do dia: quem está usando agora e se está tudo bem.' },
-    publico: { tabs: ['visitors', 'usage', 'devices'], desc: 'Quantas pessoas abrem o app, de onde vêm, em que aparelhos e o que mais usam.' },
-    pessoas: { tabs: ['people', 'survey', 'chat'], desc: 'Cada usuário: perfis e vínculos, o que responderam na pesquisa e as conversas particulares.' },
+    dados: { tabs: ['visitors', 'usage', 'devices'], desc: 'Quantas pessoas abrem o app, de onde vêm, em que aparelhos e o que mais usam.' },
+    usuarios: { tabs: ['people', 'survey'], desc: 'Cada usuário: perfis e vínculos e o que responderam na pesquisa.' },
+    suporte: { tabs: ['chat', 'bugs'], desc: 'Atender quem pediu ajuda: conversas particulares e erros do app.' },
     publicar: { tabs: ['news', 'features', 'fing'], desc: 'O que os usuários veem: boletim de novidades, recursos liberados aos poucos e dedilhados.' },
-    saude: { tabs: ['bugs', 'costs', 'system'], desc: 'Erros do app, quanto custa mantê-lo e o estado do servidor.' },
+    dinheiro: { tabs: ['pay', 'costs'], desc: 'Pagamentos do plano Pro, reembolsos, lucro e quanto custa manter o app.' },
+    sistema: { tabs: ['system'], desc: 'Banco de dados, servidor e chaves configuradas.' },
     ajuda: { tabs: ['help'], desc: 'Para que serve cada tela e respostas para as dúvidas mais comuns.' }
   };
   // Chave de SUPORTE: só atendimento (perfis, conversas, bugs); o resto fica de fora e o servidor também recusa.
   var ALL_GROUPS = GROUPS;
   var SUP_GROUPS = {
-    pessoas: { tabs: ['people', 'chat', 'bugs'], desc: 'Atendimento: achar o perfil, conversar com a pessoa e ver os bugs. Publicar, custos e excluir ficam só com o administrador.' },
+    suporte: { tabs: ['people', 'chat', 'bugs'], desc: 'Atendimento: achar o perfil, conversar com a pessoa e ver os bugs. Publicar, pagamentos, custos e excluir ficam só com o administrador.' },
     ajuda: GROUPS.ajuda
   };
   // Mostra só a seção que começa em um título (até o próximo título): o resto da tela some no modo suporte.
@@ -2837,7 +2949,7 @@
   function showTab(name) {
     current = name;
     paintGroups(name);
-    ['overview', 'visitors', 'usage', 'devices', 'people', 'survey', 'chat', 'bugs', 'features', 'news', 'fing', 'costs', 'system', 'help'].forEach(function (t) { $('tab-' + t).hidden = t !== name; });
+    ['overview', 'visitors', 'usage', 'devices', 'people', 'survey', 'chat', 'bugs', 'features', 'news', 'fing', 'pay', 'costs', 'system', 'help'].forEach(function (t) { $('tab-' + t).hidden = t !== name; });
     var bs = $('tabs').querySelectorAll('button'); for (var i = 0; i < bs.length; i++) { var isOn = bs[i].getAttribute('data-tab') === name; bs[i].className = isOn ? 'on' : ''; bs[i].setAttribute('aria-selected', isOn ? 'true' : 'false'); }
     var mainEl = $('tab-' + name); mainEl.classList.add('enter'); setTimeout(function () { mainEl.classList.remove('enter'); }, 1200);
     moveInd();
@@ -2848,6 +2960,7 @@
     if (name === 'people') { loadList(); if (role !== 'support') { loadLog(); loadPresence(); loadLibrary(); } }
     if (name === 'bugs') { loadBugs(); if (role !== 'support') loadPush(); }
     if (name === 'costs') loadCosts();
+    if (name === 'pay') loadPay();
     if (name === 'features') loadFeatures();
     if (name === 'news') loadNews();
     if (name === 'fing') loadFing();

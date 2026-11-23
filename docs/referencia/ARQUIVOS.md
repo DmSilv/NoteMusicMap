@@ -17,7 +17,7 @@
 | `lib/link/account_service.dart` | Um aparelho em que a conta está aberta (o servidor nunca manda o segredo dele). |
 | `lib/link/link_service.dart` | Cliente da API de vínculo (`/api/link`): vincular, aulas, tarefas feitas, decisões do professor, agenda, horários livres e notificações. Fala só com o servidor do app. |
 | `lib/link/mirror_engine.dart` | Onde o motor guarda o que já foi trocado (um texto por nome). |
-| `lib/link/pay_service.dart` | Resposta do plano Pro (Pix) de `/api/account`: `plan`, `pay_new` e `pay_check`. |
+| `lib/link/pay_service.dart` | Um pagamento do histórico do professor. |
 | `lib/main.dart` | Abre o app. Se algo falhar ao iniciar, mostra a tela de erro (com "Tentar de novo") em vez de ficar em branco. Erros inesperados depois disso são classificados, guardados e avisados. |
 | `lib/platform/hard_reset.dart` | Apagar tudo e recarregar o app (botão "Apagar tudo e recomeçar"): escolhe a versão da web ou a de celular (importação condicional). |
 | `lib/platform/hard_reset_stub.dart` | Fora da web não há cache de página para limpar. |
@@ -80,12 +80,12 @@
 | `lib/ui/octave_colors.dart` | Uma cor para cada oitava do exercício (escalas e arpejos), diferente das cores de afinação (azul, verde, laranja): violeta, rosa, dourado e prata. |
 | `lib/ui/open_slots_page.dart` | Horários livres do professor (publicar e apagar) e "Pegar horário" do aluno. |
 | `lib/ui/paper_picker.dart` | A partitura está escura agora? ("Igual ao app" segue o tema.) |
-| `lib/ui/pay_test_page.dart` | Tela ESCONDIDA de teste do Pix (toque longo no título de "Minha conta"). Serve para provar um pagamento real de R$ 1 de ponta a ponta antes de existir a tela "Plano". Só funciona para o perfil liberado no servidor… |
 | `lib/ui/pedal_view.dart` | Modo "Pedal" do Afinador: escolha notas num teclado e elas soam juntas, sustentadas. Serve para tocar uma melodia por cima (bordão) e para treinar o ouvido com intervalos e acordes. Soa no sistema de afinação… |
 | `lib/ui/perf.dart` | Um [Listenable] que nunca avisa nada. Uma aba escondida escuta este em vez do app: assim ela não se reconstrói enquanto não está na tela, e volta a atualizar sozinha (o ListenableBuilder reassina) quando fica visível. |
 | `lib/ui/person_avatar.dart` | Fotos já decodificadas para bytes, para a lista não decodificar o texto base64 a cada quadro. |
 | `lib/ui/photo_editor.dart` | Resultado do editor: o texto da foto pronta (base64 de um JPEG pequeno) ou o motivo de não ter dado certo. |
 | `lib/ui/photo_pick.dart` | Pergunta de onde vem a foto (câmera, galeria ou remover), reduz a imagem e devolve o texto base64 pronto. Devolve: o texto da foto; '' para remover; null se a pessoa desistiu ou não deu para usar a imagem. |
+| `lib/ui/plan_page.dart` | Tela "Plano": mostra se o professor está no Pro e até quando, deixa assinar por Pix (mensal ou anual), lista os pagamentos e deixa pedir o reembolso integral em até 7 dias. Hoje abre por toque longo no título de… |
 | `lib/ui/pomodoro_card.dart` | Timer de estudo (Pomodoro) com alarme sutil. |
 | `lib/ui/profile_page.dart` | "Minha conta": lista curta com o código que identifica você (sem cadastro) e a chave de recuperação, que permite levar o histórico para outro aparelho. |
 | `lib/ui/progress_cards.dart` | Verde: 80% ou mais; azul: 50 a 79%; laranja: abaixo de 50%. |
@@ -326,6 +326,7 @@
 | `api/_lib/mirror.js` | Espelho da conta entre aparelhos: o que o professor (e a pessoa) guarda só no aparelho — alunos com tarefas, observações e aulas, agenda, métodos, histórico de estudo — passa a ficar também no servidor, para o outro… |
 | `api/_lib/news.js` | Boletim do app ("Novidades"): textos curtos que o administrador escreve, publica, oculta ou exclui no painel. O app só LÊ a lista publicada (GET /api/news, com cache de CDN), então o custo por usuário é praticamente… |
 | `api/_lib/pay.js` | Pagamento do plano Pro do professor por Pix (Mercado Pago, Checkout API). TUDO DESLIGADO por padrão: sem PAY_ENABLED=1 nada responde. Modelo: Pix avulso por período (sem renovação automática). O professor paga 30… |
+| `api/_lib/pay_ledger.js` | Livro dos pagamentos do Pix: cada Pix é um hash `pay:<id>` (c = perfil, p = plano, a = valor, t = criado, s = status do Mercado Pago, g = quando o Pro foi liberado, n = o que você recebeu líquido, f = a taxa, r =… |
 | `api/_lib/profiles.js` | Índice dos perfis anônimos (código + apelido) para o painel do administrador: quando entrou, última atividade, papel (professor / aluno) e bloqueio. NÃO há cadastro nem login. Custo: 3 comandos quando o perfil nasce;… |
 | `api/_lib/prompts.js` | Instruções de cada tipo de pedido. O texto recebido é DADO, nunca instrução. |
 | `api/_lib/providers.js` | Um adaptador por serviço de IA. Todos recebem {system, prompt} e devolvem {status: 'ok'\|'busy'\|'auth'\|'error', text?, model?, retryAfterMs?}. |
@@ -348,6 +349,7 @@
 | `api/account_delete.test.js` | O usuário exclui a própria conta: `node --test api/account_delete.test.js` |
 | `api/admin.test.js` | Testes do painel do administrador (indicadores e gestão de perfis), sem rede: `node --test api/admin.test.js` |
 | `api/admin_design.test.js` | O painel segue o mesmo design system do app: `node --test api/admin_design.test.js` (cores iguais às de lib/ui/theme.dart, escala de espaço, abas com ícone, frase de apoio em todo título, movimento que se desliga). |
+| `api/admin_pay.test.js` | Pagamentos no painel do administrador (receita, lista, reembolso, importar), sem rede: `node --test api/admin_pay.test.js` |
 | `api/admin_push.test.js` | Aviso de bug grave ao admin (Web Push), precisão dos bugs e busca por nome, sem rede: `node --test api/admin_push.test.js` |
 | `api/agenda.test.js` | Testes da agenda e dos lembretes, sem rede: `node --test api/agenda.test.js` |
 | `api/agenda_control.test.js` | Testes do controle da agenda (trocar o aluno de uma aula, remarcar uma data, pausar): `node --test api/agenda_control.test.js` |
@@ -372,6 +374,7 @@
 | `api/online.test.js` | Testes da aula online (link da aula, modo online/presencial, link padrão): `node --test api/online.test.js` |
 | `api/painel_precisao.test.js` | Painel mais preciso: saúde, custos, coortes, período anterior, horas, limpeza e erros do servidor. `node --test api/painel_precisao.test.js` |
 | `api/pay.test.js` | Testes do plano Pro por Pix (Mercado Pago simulado, sem rede nem credenciais): `node --test api/pay.test.js` |
+| `api/pay_security.test.js` | Segurança do pagamento por Pix (tentativas de ataque e abuso), sem rede: `node --test api/pay_security.test.js` |
 | `api/photo.test.js` | Foto de perfil mostrada a quem está vinculado, sem rede: `node --test api/photo.test.js` |
 | `api/presence.test.js` | Testes da presença (quem está online agora) no painel, sem rede: `node --test api/presence.test.js` |
 | `api/relink.test.js` | Aluno desvincula e volta ao mesmo professor: `node --test api/relink.test.js` |
@@ -411,4 +414,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **368** arquivos mapeados.
+Total: **371** arquivos mapeados.

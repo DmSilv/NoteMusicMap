@@ -55,6 +55,8 @@ Custo: ~6 comandos por pedido de código, ~8 ao confirmar; só quando a pessoa u
 | `status` | status |
 | `plan` | plano Pro (Pix) |
 | `pay_new` | — |
+| `pay_hist` | — |
+| `pay_refund` | — |
 | `device_remove` | — |
 | `device_name` | — |
 | `pair_new` | ligar outro aparelho com um código de 10 minutos (sem e-mail e sem chave) O aparelho que já está na conta gera o código (pair_new) e o aparelho novo o digita (pair_join). Uso único, 5 tentativas, 10 minutos, só o hash fica guardado. |
@@ -94,6 +96,10 @@ Custo: ~6 comandos por pedido de código, ~8 ao confirmar; só quando a pessoa u
   presence                   quem está online agora (sinal nos últimos 12 min) e quem esteve há pouco
  costs                      comandos do Redis no mês (estimativa) e o que foi medido nos últimos 30 dias (measured)
  cost_report {users,fx,basis,commercial,m}  quanto custa manter a plataforma hoje e para N usuários (conta pura, 0 comandos no Redis)
+ Pagamentos do Pro (Pix, só o administrador; ver docs/PLANO_PAGAMENTO_PIX.md):
+  pay_overview               receita bruta, taxa e líquido (30 dias e total), reembolsos e a lista dos últimos 100 pagamentos
+  pay_refund {id}            devolve o Pix inteiro pelo Mercado Pago (sem o prazo de 7 dias) e tira os dias do Pro
+  pay_import {id}            traz para o livro um pagamento antigo pelo número dele (sem liberar o Pro de novo)
  funnel                     ativação: quantos perfis fizeram cada coisa pela primeira vez (vincular, marcar aula, enviar tarefa…)
  agenda_pair {code, other}  compara a agenda do professor (code) com a que o aluno (other) recebeu: o que falta ou sobra
  Recursos liberados aos poucos (docs/PLANO_AULA_ONLINE_AGENDA_ADMIN.md, seção 6):
@@ -194,6 +200,8 @@ Custo: só quando o admin abre o painel (kpis ~35 comandos; lista de 25 = ~27; d
 | `costs` | Custos (estimativa de comandos do Redis) |
 | `bug` | — |
 | `bug_status` | — |
+| `pay_overview` | pagamentos do Pro (Pix) |
+| `pay_refund` | — |
 | `log` | — |
 
 ## `/api/ai-status`

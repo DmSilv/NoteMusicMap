@@ -4250,6 +4250,17 @@ class AppState extends ChangeNotifier {
     _prefs?.setInt('split_r2', splitRight);
   }
 
+  // ---------------- Plano Pro ----------------
+  /// Até quando o Pro vale (ms desde 1970; 0 = sem Pro). Vem do servidor e fica guardado só para mostrar o selo "Pro".
+  int proUntil = 0;
+
+  void setProUntil(int ms) {
+    if (ms == proUntil) return;
+    proUntil = ms;
+    _prefs?.setInt('pro_until', ms);
+    notifyListeners();
+  }
+
   // ---------------- Computador: uma ou duas ferramentas e o painel lateral ----------------
   /// Em janela larga (computador): mostra só uma ferramenta em vez de duas lado a lado.
   bool deskSingle = true;
@@ -5322,6 +5333,7 @@ class AppState extends ChangeNotifier {
     splitLeft = (p.getInt('split_l2') ?? 0).clamp(0, 4);
     splitRight = (p.getInt('split_r2') ?? 1).clamp(0, 4);
     if (splitLeft == splitRight) splitRight = (splitLeft + 1) % 5;
+    proUntil = p.getInt('pro_until') ?? 0;
     deskSingle = p.getBool('desk_single') ?? true;
     deskDock = p.getBool('desk_dock') ?? true;
     updateHideUntil = p.getInt('upd_hide') ?? 0;
