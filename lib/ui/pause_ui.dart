@@ -99,7 +99,7 @@ Future<void> showStudentControlSheet(BuildContext context, AppState app, Student
   return showDsSheet(context, title: tr('Controle do aluno'), listenable: app, children: (c) {
     final linked = s.code != null && s.linkState == 'active';
     if (!linked) {
-      return [Text(tr('Estas opções valem quando o aluno está vinculado online. Depois do vínculo, você decide aqui o que {0} pode fazer na agenda.', [app.labelOf(s)]), style: Ds.support())];
+      return [Text(tr('Disponível quando {0} estiver vinculado online.', [app.labelOf(s)]), style: Ds.support())];
     }
     return [
       Text(tr('A agenda é sua. Aqui você escolhe o que {0} pode fazer sozinho.', [app.labelOf(s)]), style: Ds.support()),

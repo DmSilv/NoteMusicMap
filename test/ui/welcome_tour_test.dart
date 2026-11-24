@@ -39,10 +39,10 @@ void main() {
     tester,
   ) async {
     await _abre(tester, () async {
-      expect(find.textContaining('Tocou a nota e ficou'), findsOneWidget);
+      expect(find.textContaining('está afinada'), findsOneWidget);
       expect(find.text('Continuar'), findsOneWidget);
       expect(find.text('Pular'), findsOneWidget);
-      expect(find.textContaining('Sem cadastro'), findsOneWidget);
+      expect(find.byType(TextField), findsNothing); // a promessa não pede nada
     });
   });
 
@@ -52,7 +52,7 @@ void main() {
       await _abre(tester, () async {
         await tester.tap(find.text('Continuar'));
         await tester.pumpAndSettle();
-        expect(find.textContaining('Uma caixa de ferramentas'), findsOneWidget);
+        expect(find.textContaining('sem bagunça'), findsOneWidget);
         await tester.tap(find.text('Continuar'));
         await tester.pumpAndSettle();
         expect(
@@ -61,7 +61,7 @@ void main() {
         ); // o seletor da tela 3
         await tester.tap(find.text('Sou professor'));
         await tester.pumpAndSettle();
-        expect(find.textContaining('sem planilha'), findsOneWidget);
+        expect(find.textContaining('Agenda e alunos'), findsOneWidget);
         await tester.tap(find.text('Continuar'));
         await tester.pumpAndSettle();
         expect(find.text('Quero estudar'), findsOneWidget);
@@ -121,12 +121,12 @@ void main() {
     'celular bem baixo (320 × 568): continua sem estouro e esconde só o apoio',
     (tester) async {
       await _abre(tester, () async {
-        expect(find.textContaining('Tocou a nota e ficou'), findsOneWidget);
-        expect(find.textContaining('Sem cadastro'), findsNothing);
+        expect(find.textContaining('está afinada'), findsOneWidget);
+        expect(find.textContaining('Sem formulário'), findsNothing);
         await tester.tap(find.text('Pular'));
         await tester.pumpAndSettle();
         expect(find.text('Quero estudar'), findsOneWidget);
-        expect(find.textContaining('Sem cadastro'), findsOneWidget);
+        expect(find.textContaining('Sem formulário'), findsNothing); // celular baixo: o texto de apoio some, as portas ficam
       }, size: const Size(320, 568));
     },
   );

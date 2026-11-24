@@ -127,7 +127,7 @@ Map<String, dynamic> buildStudyShare({
     'tt': tasksTotal,
     'n': studyStreak(secs, today).days,
     'weak': [for (final e in weak.take(3)) noteOf(60 + e.key)],
-    if (up != null) 'up': up,
+    'up': ?up,
   };
 }
 

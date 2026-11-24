@@ -190,7 +190,7 @@ Future<void> showAgendaHistorySheet(BuildContext context, AppState app) {
 Future<void> showAgendaControlSheet(BuildContext context, AppState app) {
   return showDsSheet(context, title: tr('Controle da agenda'), listenable: app, children: (c) {
     return [
-      Text(tr('Você decide o que o aluno pode fazer. A agenda é sua: o aluno só vê, avisa e, nos horários que você liberar, pede ou pega.'), style: Ds.support()),
+      Text(tr('A agenda é sua. O aluno só vê, avisa e, nos horários que você liberar, pede ou pega.'), style: Ds.support()),
       const SizedBox(height: Ds.s12),
       AppCard(
         padding: EdgeInsets.zero,
@@ -211,7 +211,7 @@ Future<void> showAgendaControlSheet(BuildContext context, AppState app) {
         ),
       ),
       const SizedBox(height: Ds.s8),
-      Text(tr('Para um aluno só (liga ou desliga "pegar horário" e os avisos dele), abra a ficha do aluno › Controle do aluno.'), style: Ds.support()),
+      Text(tr('Para um aluno só, abra a ficha dele › Controle do aluno.'), style: Ds.support()),
       const SizedBox(height: Ds.s12),
       AppCard(
         padding: EdgeInsets.zero,
