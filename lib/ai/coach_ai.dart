@@ -68,6 +68,9 @@ class CoachAi extends ChangeNotifier {
   String? answerText;
   String? answerQuestion;
 
+  /// Ids das últimas perguntas feitas (as mais recentes primeiro): a lista do dia evita repetir.
+  List<String> recentQuestionIds = [];
+
   /// Quem respondeu ("Gemini", "Claude"...) e a posição na fila, se houver.
   String? provider;
   int? queuePosition;
@@ -112,6 +115,7 @@ class CoachAi extends ChangeNotifier {
       // Quem já tinha um plano guardado vê ele no histórico também.
       history = [CoachEntry(kind: 'plan', title: 'plan', text: planText!, at: planAt ?? DateTime.now())];
     }
+    recentQuestionIds = p.getStringList('ai_qids') ?? [];
     usedCount = await usedToday();
     if (text != null || planText != null) phase = AiPhase.done;
     notifyListeners();
@@ -172,11 +176,13 @@ class CoachAi extends ChangeNotifier {
   }
 
   /// Pergunta ao treinador (uma resposta por vez; conta no limite do dia como qualquer pedido).
-  Future<void> askQuestion(String request, String question) async {
-    await ask(request, kind: 'question');
+  Future<void> askQuestion(String request, String question, {required String qid}) async {
+    await ask(request, kind: 'question', qid: qid);
     if (phase == AiPhase.done && lastKind == 'question' && lastResult != null) {
       answerText = lastResult;
       answerQuestion = question;
+      recentQuestionIds = [qid, ...recentQuestionIds.where((x) => x != qid)].take(14).toList();
+      (await _p).setStringList('ai_qids', recentQuestionIds);
       await _remember(CoachEntry(kind: 'question', title: question, text: lastResult!, at: DateTime.now()));
       notifyListeners();
     }
@@ -203,7 +209,7 @@ class CoachAi extends ChangeNotifier {
   Future<int> leftToday() async => (_clientDailyLimit - await usedToday()).clamp(0, _clientDailyLimit);
 
   /// Pede a análise. [summary] é o texto só com números (sem áudio).
-  Future<void> ask(String summary, {String kind = 'session_summary'}) async {
+  Future<void> ask(String summary, {String kind = 'session_summary', String? qid}) async {
     if (busy) return;
     final ep = _endpoint();
     if (ep == null) {
@@ -243,7 +249,7 @@ class CoachAi extends ChangeNotifier {
             .post(
               ep,
               headers: {'Content-Type': 'application/json', 'X-Device-Id': id},
-              body: jsonEncode({'summary': summary, 'kind': kind, if (_ticket != null) 'ticket': _ticket, if (Lang.isEn) 'lang': 'en'}),
+              body: jsonEncode({'summary': summary, 'kind': kind, 'qid': ?qid, if (_ticket != null) 'ticket': _ticket, if (Lang.isEn) 'lang': 'en'}),
             )
             .timeout(_timeout);
         final data = _json(r.body);

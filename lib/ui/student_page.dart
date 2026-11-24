@@ -817,8 +817,8 @@ class StudentPage extends StatelessWidget {
 
   /// Relatório pedagógico por IA. Vai só um resumo numérico, SEM nome e SEM observações.
   Future<void> _aiReport(BuildContext context, Student s) async {
-    if (s.sessions.isEmpty) {
-      app.say(tr('Sem exercícios ainda: faça uma sessão com o aluno primeiro.'));
+    if (s.sessions.length < kReportMinSessions) {
+      app.say(tr('Poucos exercícios ainda: o relatório com IA abre com {0} sessões do aluno.', [kReportMinSessions]));
       return;
     }
     if (!app.ai.consent) {

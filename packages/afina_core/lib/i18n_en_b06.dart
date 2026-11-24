@@ -194,7 +194,6 @@ const Map<String, String> kEnB06 = {
   'Enviar convite': 'Send invite',
   'Ainda não chegou. Veja o motivo no cartão.': 'It hasn\'t arrived yet. See the reason on the card.',
   'Tentar agora': 'Try now',
-  'Sem exercícios ainda: faça uma sessão com o aluno primeiro.': 'No exercises yet: do a session with the student first.',
   'O app envia à IA um resumo só com números do aluno (afinação por nota, escalas e taxas de acerto). O nome e as suas observações NÃO são enviados. Nunca vai áudio.': 'The app sends the AI a summary with numbers only about the student (tuning per note, scales and accuracy rates). The name and your notes are NOT sent. Never audio.',
   'Autorizar': 'Allow',
   'Relatório de {0}': '{0}\'s report',

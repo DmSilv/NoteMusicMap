@@ -5403,6 +5403,12 @@ class AppState extends ChangeNotifier {
     );
   }
 
+  /// O treinador (IA) só abre depois de {kCoachUnlockMinutes} min de estudo; quem já usava continua com ele.
+  CoachGate get coachGateState => coachGate(
+        studySeconds: studySeconds,
+        grandfathered: ai.planText != null || ai.history.isNotEmpty || ai.text != null,
+      );
+
   String aiSummary() =>
       buildAiPrompt(sessionRecords, instrument: instrument.name, flats: flatsForText);
 

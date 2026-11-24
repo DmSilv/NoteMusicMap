@@ -239,6 +239,10 @@ AI_PROVIDERS, AI_ROUTE_<TIPO>, AI_RPM_<SERVIÇO>, AI_USER_DAILY, AI_COOLDOWN_S,
 AI_RPD, AI_MAX_WAIT_MS, AI_TICKET_SECRET, MODEL_<SERVIÇO>_<FAST|SMART>.
 ```
 
+| Ação / tipo | Descrição (comentário do código) |
+|---|---|
+| `question` | — |
+
 ## `/api/errors`
 
 ```text

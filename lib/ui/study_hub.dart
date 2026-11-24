@@ -30,7 +30,44 @@ String coachHeadline(AppState app) {
     if (l.isNotEmpty) return l;
   }
   if (app.sessionRecords.isNotEmpty && app.insights.isNotEmpty) return app.insights.first.text;
+  final g = app.coachGateState;
+  if (!g.open) return tr('Estude mais {0} min e o treinador abre para montar o seu plano.', [g.left]);
   return tr('Faça um exercício guiado e o treinador começa a te orientar.');
+}
+
+/// O treinador ainda está fechado: mostra quanto falta e o que ele vai fazer, sem gastar IA.
+class CoachLocked extends StatelessWidget {
+  final AppState app;
+  final VoidCallback? onStudy;
+  const CoachLocked({super.key, required this.app, this.onStudy});
+
+  @override
+  Widget build(BuildContext context) {
+    final g = app.coachGateState;
+    return AppCard(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        DsCardTitle(Icons.lock_outline_rounded, tr('O treinador abre com o seu estudo'), subtitle: tr('Ele usa o que você tocou para montar o plano e responder.')),
+        const SizedBox(height: Ds.s12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: LinearProgressIndicator(value: g.progress, minHeight: 8, backgroundColor: AppColors.outline, color: AppColors.accent),
+        ),
+        const SizedBox(height: Ds.s8),
+        Text(tr('{0} de {1} min de estudo', [g.minutes, kCoachUnlockMinutes]), style: const TextStyle(fontWeight: FontWeight.w700)),
+        const SizedBox(height: Ds.s4),
+        Text(tr('Vale estudar no afinador, nas escalas, no metrônomo e na grade. Faltam {0} min.', [g.left]), style: Ds.support()),
+        if (onStudy != null) ...[
+          const SizedBox(height: Ds.s12),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(minimumSize: const Size(0, Ds.tap)),
+            onPressed: onStudy,
+            icon: const Icon(Icons.auto_stories_rounded, size: 18),
+            label: Text(tr('Ver o meu estudo')),
+          ),
+        ],
+      ]),
+    );
+  }
 }
 
 /// O estudo do aluno num lugar só (Meu espaço): o treinador em destaque no topo e, embaixo, o resumo do estudo. Tocar abre a
@@ -87,8 +124,8 @@ class StudyHubCard extends StatelessWidget {
                     alignment: Alignment.centerLeft,
                     child: FilledButton.tonalIcon(
                       onPressed: () => _open(context, 2),
-                      icon: Icon(hasPlan ? Icons.checklist_rounded : Icons.auto_awesome, size: 18),
-                      label: Text(hasPlan ? tr('Ver o plano da semana') : tr('Abrir o treinador')),
+                      icon: Icon(hasPlan ? Icons.checklist_rounded : (app.coachGateState.open ? Icons.auto_awesome : Icons.lock_outline_rounded), size: 18),
+                      label: Text(hasPlan ? tr('Ver o plano da semana') : (app.coachGateState.open ? tr('Abrir o treinador') : tr('Ver o que falta'))),
                     ),
                   ),
                 ]),
@@ -216,11 +253,13 @@ class _CoachTabState extends State<CoachTab> {
     super.dispose();
   }
 
-  static List<String> get _questions => [
-        tr('Por que erro a mesma nota?'),
-        tr('Como estudo bem em 15 minutos?'),
-        tr('O que ensaiar antes da próxima aula?'),
-      ];
+  /// As três perguntas de hoje: giram todo dia, evitam as feitas há pouco e só incluem o que faz sentido para a pessoa.
+  List<CoachQuestion> _todayQuestions() => pickCoachQuestions(
+        day: DateTime.now(),
+        recent: app.ai.recentQuestionIds.toSet(),
+        hasSessions: app.sessionRecords.isNotEmpty,
+        hasTeacher: app.myTeachers.isNotEmpty,
+      );
 
   Future<bool> _ensureConsent(BuildContext context) async {
     final ai = app.ai;
@@ -243,10 +282,10 @@ class _CoachTabState extends State<CoachTab> {
     await app.ai.askPlan(req, studyContextFingerprint(ctx));
   }
 
-  Future<void> _ask(BuildContext context, String q) async {
+  Future<void> _ask(BuildContext context, CoachQuestion q) async {
     if (!await _ensureConsent(context)) return;
     final ctx = app.studyContextText();
-    await app.ai.askQuestion(buildQuestionRequest(q, ctx, scalesPrompt: app.aiSummary()), q);
+    await app.ai.askQuestion(buildQuestionRequest(q.text, ctx, scalesPrompt: app.aiSummary()), q.text, qid: q.id);
   }
 
   void _read(CoachEntry e, {bool canDelete = false}) {
@@ -266,6 +305,23 @@ class _CoachTabState extends State<CoachTab> {
         final left = (CoachAi.dailyLimit - ai.usedCount).clamp(0, CoachAi.dailyLimit);
         final plan = ai.planText == null ? null : CoachEntry(kind: 'plan', title: 'plan', text: ai.planText!, at: ai.planAt ?? DateTime.now());
         final ready = !busy && ai.answerText != null && ai.history.isNotEmpty && ai.history.first.text == ai.answerText && _openedText != ai.answerText;
+        if (!app.coachGateState.open) {
+          // Fechado: só o que falta e as dicas do dia (calculadas no aparelho, sem gastar IA).
+          return ListView(padding: Ds.screen, children: [
+            CoachLocked(app: app),
+            const DsGap(Ds.gap),
+            AppCard(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                DsCardTitle(Icons.lightbulb_outline_rounded, tr('Dicas de hoje'), subtitle: tr('Calculadas no aparelho, sem gastar IA.')),
+                const SizedBox(height: Ds.s8),
+                if (app.sessionRecords.isEmpty)
+                  Text(tr('Faça um exercício guiado para receber orientações.'), style: Ds.support())
+                else
+                  for (final i in app.insights) InsightTile(insight: i),
+              ]),
+            ),
+          ]);
+        }
         return ListView(padding: Ds.screen, children: [
           _UsageRow(used: CoachAi.dailyLimit - left, limit: CoachAi.dailyLimit),
           const DsGap(Ds.s12),
@@ -315,13 +371,13 @@ class _CoachTabState extends State<CoachTab> {
           const DsGap(Ds.gap),
           AppCard(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              DsCardTitle(Icons.forum_outlined, tr('Pergunte ao treinador'), subtitle: tr('Toque numa pergunta e a resposta fica no histórico.')),
+              DsCardTitle(Icons.forum_outlined, tr('Pergunte ao treinador'), subtitle: tr('As perguntas mudam todo dia. A resposta fica no histórico.')),
               const SizedBox(height: Ds.s12),
               if (ready) ...[
                 _ReadyTile(question: ai.answerQuestion ?? '', onTap: () => _read(ai.history.first, canDelete: true)),
                 const SizedBox(height: Ds.s8),
               ],
-              for (final q in _questions)
+              for (final q in _todayQuestions())
                 Padding(
                   padding: const EdgeInsets.only(bottom: Ds.s8),
                   child: Material(
@@ -335,7 +391,7 @@ class _CoachTabState extends State<CoachTab> {
                         padding: const EdgeInsets.symmetric(horizontal: Ds.s12, vertical: Ds.s8),
                         decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.outline)),
                         child: Row(children: [
-                          Expanded(child: Text(q, style: const TextStyle(fontSize: 14.5))),
+                          Expanded(child: Text(q.text, style: const TextStyle(fontSize: 14.5))),
                           Icon(Icons.north_east_rounded, size: 18, color: AppColors.textDim),
                         ]),
                       ),

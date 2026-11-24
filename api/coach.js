@@ -23,7 +23,8 @@ const crypto = require('node:crypto');
 const { config, LABELS } = require('./_lib/config');
 const { createStore, memory } = require('./_lib/store');
 const { callProvider, pickModels, finishText } = require('./_lib/providers');
-const { PROMPTS } = require('./_lib/prompts');
+const { PROMPTS, OFF_TOPIC } = require('./_lib/prompts');
+const questions = require('./_lib/coach_questions');
 const { KINDS, isKind, candidates, markBad } = require('./_lib/router');
 const queue = require('./_lib/queue');
 
@@ -64,10 +65,26 @@ function validate(body) {
   if (summary.length > 8000) return { error: 'Resumo longo demais (máximo 8000 caracteres).' };
   const kind = body.kind == null ? 'session_summary' : String(body.kind);
   if (!isKind(kind)) return { error: 'Tipo de pedido desconhecido.' };
+  // Pergunta: só as da lista (o aluno não digita). App novo manda o id; app antigo manda o texto de uma das 3 perguntas de antes.
+  let finalSummary = summary;
+  if (kind === 'question') {
+    const q = typeof body.qid === 'string' ? questions.byId(body.qid) : null;
+    if (q) finalSummary = `Pergunta do aluno: ${q.pt}\n\n${questions.withoutQuestionLine(summary)}`.trim();
+    else if (!questions.legacyMatch(summary)) return { error: body.lang === 'en' ? 'Choose one of the questions on the list.' : 'Escolha uma das perguntas da lista.' };
+  }
   const ticket = typeof body.ticket === 'string' ? body.ticket.slice(0, 120) : '';
   // Idioma da resposta: o app em inglês pede "en"; sem o campo (apps antigos) segue em português.
   const lang = body.lang === 'en' ? 'en' : 'pt';
-  return { summary, kind, ticket, lang };
+  return { summary: finalSummary, kind, ticket, lang };
+}
+
+/** Limpa a resposta: sem links, sem blocos de código. */
+function cleanReply(text) {
+  return String(text || '')
+    .replace(/```[\s\S]*?```/g, '')
+    .replace(/\bhttps?:\/\/\S+/gi, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 function send(res, status, obj, extraHeaders = {}) {
@@ -177,8 +194,14 @@ function makeHandler(deps = {}) {
         env: cfg.env,
       });
       if (r.status === 'ok') {
+        // Fora do assunto: a IA devolve só a marca. O pedido já foi contado (não dá para enganar o limite).
+        if (new RegExp(OFF_TOPIC).test(String(r.text || '').slice(0, 40))) {
+          return send(res, 422, { error: v.lang === 'en' ? 'The coach only helps with string instrument practice: intonation, scales and routine.' : 'O treinador só ajuda com estudo de instrumento de arco: afinação, escalas e rotina.' });
+        }
+        const clean = cleanReply(finishText(r.text, r.truncated));
+        if (!clean) return send(res, 502, { error: 'Nenhum serviço de IA conseguiu responder agora.' });
         return send(res, 200, {
-          text: finishText(r.text, r.truncated), truncated: !!r.truncated, provider: pid, label: LABELS[pid], model: r.model, kind: v.kind, remainingToday,
+          text: clean, truncated: !!r.truncated, provider: pid, label: LABELS[pid], model: r.model, kind: v.kind, remainingToday,
         });
       }
       console.error(`ia ${pid} falhou: ${r.status}${r.httpStatus ? ' ' + r.httpStatus : ''}`);
@@ -197,4 +220,4 @@ function makeHandler(deps = {}) {
 
 module.exports = makeHandler();
 module.exports.makeHandler = makeHandler;
-module.exports._internal = { config, validate, cleanText, KINDS, PROMPTS, pickModels, memory };
+module.exports._internal = { config, validate, cleanText, cleanReply, KINDS, PROMPTS, pickModels, memory };

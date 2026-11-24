@@ -155,6 +155,7 @@
 | `packages/afina_core/lib/agenda.dart` | Agenda de aulas: o professor marca aulas com os alunos (uma vez ou toda semana) e o aluno vê as suas. Dart puro e testável: o relógio é sempre passado de fora. A aula que se repete toda semana é UMA regra só (não uma… |
 | `packages/afina_core/lib/agenda_ics.dart` | Exporta aulas para o calendário do celular (arquivo .ics, padrão iCalendar). Dart puro e testável: nada vai ao servidor. |
 | `packages/afina_core/lib/class_rules.dart` | Regra única das aulas: em que fase está cada aula, o que dá para mudar nela e quais aulas entram na agenda mostrada. Hub (Meu espaço), agenda e lembretes usam estas mesmas funções, para nunca mostrarem números ou… |
+| `packages/afina_core/lib/coach_gate.dart` | Quando o treinador (IA) abre e quais perguntas ele oferece. Dart puro e testável. A IA custa (e tem limite grátis), então ela só abre para quem já estudou de verdade no app: [kCoachUnlockMinutes] minutos de estudo… |
 | `packages/afina_core/lib/device_tags.dart` | Rótulos curtos e ANÔNIMOS de aparelho para as estatísticas do painel. Só categorias (nunca o texto cru do navegador): cada rótulo tem até 10 letras ou números minúsculos, o que permite combinar filtros sem… |
 | `packages/afina_core/lib/error_report.dart` | Montagem do relatório de erro que o app envia ao servidor: trilha de telas (breadcrumbs), ambiente (versão, aparelho), modo de envio e freio contra repetição. Dart puro e testável. Nada de conteúdo pessoal: só nomes… |
 | `packages/afina_core/lib/errors.dart` | Erros do app: um catálogo único de códigos e textos em português, a classificação de qualquer exceção num [AppError], a higienização dos detalhes técnicos (nunca saem nomes, códigos de perfil, e-mails nem segredos) e… |
@@ -233,6 +234,7 @@
 | `packages/afina_core/test/agenda_test.dart` | 18/11/2026 é quarta-feira. |
 | `packages/afina_core/test/arpeggio_test.dart` | Testes do módulo `arpeggio`. |
 | `packages/afina_core/test/class_rules_test.dart` | Testes do módulo `class_rules`. |
+| `packages/afina_core/test/coach_gate_test.dart` | Testes do módulo `coach_gate`. |
 | `packages/afina_core/test/device_tags_test.dart` | Testes do módulo `device_tags`. |
 | `packages/afina_core/test/error_report_test.dart` | Testes do módulo `error_report`. |
 | `packages/afina_core/test/errors_test.dart` | Testes do módulo `errors`. |
@@ -322,6 +324,7 @@
 |---|---|
 | `api/_lib/admin_push.js` | Aviso (Web Push) para o administrador quando aparece um bug GRAVE novo (ou um grave reaberto). As inscrições do navegador do admin ficam em `adm:ps` (feitas no painel, com a chave de admin). Custo: zero quando não há… |
 | `api/_lib/agenda.js` | Agenda de aulas no servidor: limpeza do que chega, cálculo da próxima aula e agendamento do lembrete (QStash), uma mensagem por vez (a aula semanal agenda a próxima ao disparar). |
+| `api/_lib/coach_questions.js` | Perguntas que o treinador aceita. O aluno NÃO digita nada: escolhe uma da lista, o app manda só o "id" e o servidor monta o texto. Assim ninguém usa a IA como bate-papo livre. O mesmo banco existe no app… |
 | `api/_lib/config.js` | Configuração lida das variáveis de ambiente da Vercel. NENHUMA chave fica no código. |
 | `api/_lib/cost_model.js` | Quanto custa manter a plataforma: projeção de gastos por número de usuários. Função pura (sem rede, sem Redis), usada pelo painel (aba Custos › Contas) e testada em api/cost_model.test.js. De onde vêm os números: -… |
 | `api/_lib/devices.js` | Aparelhos de uma conta: a mesma conta (código do perfil) pode ser usada em até MAX_DEVICES aparelhos ao mesmo tempo. Antes, entrar em um aparelho novo (e-mail ou chave de 25) TROCAVA o dono: o segredo do aparelho… |
@@ -427,4 +430,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **384** arquivos mapeados.
+Total: **387** arquivos mapeados.
