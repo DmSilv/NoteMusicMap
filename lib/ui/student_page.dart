@@ -6,6 +6,7 @@ import '../app_state.dart';
 import 'agenda_actions.dart' show absenceFlow;
 import 'hub_section.dart' show shareTeacherInvite;
 import 'safe_input.dart';
+import 'pause_ui.dart';
 import '../ai/coach_ai.dart';
 import 'design_system.dart';
 import 'gamify_ui.dart' show StudyShareCard;
@@ -114,6 +115,7 @@ class StudentPage extends StatelessWidget {
                   PopupMenuItem(value: 'data', child: Text(tr('Copiar dados (para outro aparelho)'))),
                   PopupMenuItem(value: 'code', child: Text(tr('Código do aluno'))),
                   PopupMenuItem(value: 'rename', child: Text(tr('Renomear'))),
+                  PopupMenuItem(value: 'pause', child: Text(s.paused ? tr('Reativar aluno') : tr('Desativar aluno'))),
                   PopupMenuItem(value: 'delete', child: Text(tr('Excluir aluno'))),
                 ],
               ),
@@ -123,6 +125,7 @@ class StudentPage extends StatelessWidget {
             child: app.fichaNovaOn ? _novaFicha(context, s, sum, tips) : ListView(
               padding: Ds.screen,
               children: [
+                PausedBanner(app: app, student: s),
                 StudyShareCard(app: app, student: s),
                 ..._linkNotices(context, s),
                 AppCard(
@@ -172,6 +175,8 @@ class StudentPage extends StatelessWidget {
         await editStudentCode(context, app, s);
       case 'rename':
         await renameStudent(context, app, s);
+      case 'pause':
+        await togglePauseStudent(context, app, s);
       case 'delete':
         final ok = await confirmDelete(context, tr('Excluir {0}?', [app.labelOf(s)]),
             tr('Apaga o histórico, as tarefas e as observações deste aluno neste aparelho{0}. Não dá para desfazer.', [app.hasLessonWith(s.id) ? tr(', e descarta a aula em andamento com ele') : '']));
@@ -363,6 +368,7 @@ class StudentPage extends StatelessWidget {
     return ListView(
       padding: Ds.screen,
       children: [
+        PausedBanner(app: app, student: s),
         StudyShareCard(app: app, student: s),
         _box(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -650,6 +656,13 @@ class StudentPage extends StatelessWidget {
         ]),
       ),
       const SizedBox(height: Ds.gap),
+      OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(Ds.tap)),
+        onPressed: () => _menu(context, s, 'pause'),
+        icon: Icon(s.paused ? Icons.play_circle_outline_rounded : Icons.pause_circle_outline_rounded),
+        label: Text(s.paused ? tr('Reativar aluno') : tr('Desativar aluno')),
+      ),
+      const SizedBox(height: Ds.s8),
       OutlinedButton.icon(
         style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(Ds.tap), foregroundColor: AppColors.sharp),
         onPressed: () => _menu(context, s, 'delete'),

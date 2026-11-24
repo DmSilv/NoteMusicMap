@@ -40,7 +40,7 @@ O perfil `u:<code>` guarda carimbos de tempo que mudam quando há novidade:
 |---|---|---|
 | `lr` | aulas novas (aluno) | professor publica aula |
 | `dr` | tarefas marcadas (professor) | aluno marca "fiz" |
-| `kr` | vínculos | link/unlink |
+| `kr` | vínculos | link/unlink/pause (aluno desativado) |
 | `sr` | agenda (aluno) | professor marca/muda aula; aluno pega horário |
 | `vr` | decisões (aluno) | professor valida/devolve |
 | `ar` | horários pegos (professor) | aluno pega horário |

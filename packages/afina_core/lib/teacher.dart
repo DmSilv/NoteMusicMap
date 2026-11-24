@@ -223,6 +223,9 @@ class Student {
   /// Apelido que o aluno informou ao se vincular (para acompanhar mudanças dele).
   String? remoteName;
 
+  /// Aluno desativado (pausado) pelo professor: sai do dia a dia, mantém o histórico e não conta no limite do plano grátis.
+  bool paused;
+
   /// Foto do aluno (texto base64 de uma imagem pequena). Só neste aparelho: o professor escolhe; nunca vai para o servidor.
   String? photo;
 
@@ -248,6 +251,7 @@ class Student {
     this.code,
     this.linkState,
     this.remoteName,
+    this.paused = false,
     this.photo,
     this.instrument,
     this.turma,
@@ -271,6 +275,7 @@ class Student {
         if (code != null) 'code': code,
         if (linkState != null) 'lk': linkState,
         if (remoteName != null) 'rn': remoteName,
+        if (paused) 'pz': 1,
         if (photo != null) 'ph': photo,
         if (instrument != null) 'ins': instrument,
         if (turma != null) 'tu': turma,
@@ -290,6 +295,7 @@ class Student {
         code: formatShareCode((j['code'] as String?) ?? ''),
         linkState: (j['lk'] as String?),
         remoteName: (j['rn'] as String?) == null ? null : cleanText(j['rn'] as String?, max: kMaxName),
+        paused: j['pz'] == 1 || j['pz'] == true,
         photo: cleanPhoto(j['ph'] as String?),
         instrument: teachingById(j['ins'] as String?)?.id,
         turma: RegExp(r'^t[a-z0-9]{1,20}$').hasMatch((j['tu'] as String?) ?? '') ? j['tu'] as String : null,

@@ -80,6 +80,7 @@
 | `lib/ui/octave_colors.dart` | Uma cor para cada oitava do exercício (escalas e arpejos), diferente das cores de afinação (azul, verde, laranja): violeta, rosa, dourado e prata. |
 | `lib/ui/open_slots_page.dart` | Horários livres do professor (publicar e apagar) e "Pegar horário" do aluno. |
 | `lib/ui/paper_picker.dart` | A partitura está escura agora? ("Igual ao app" segue o tema.) |
+| `lib/ui/pause_ui.dart` | PROFESSOR: desativa ou reativa um aluno, com a explicação antes e o aviso do limite do plano grátis depois. |
 | `lib/ui/pedal_view.dart` | Modo "Pedal" do Afinador: escolha notas num teclado e elas soam juntas, sustentadas. Serve para tocar uma melodia por cima (bordão) e para treinar o ouvido com intervalos e acordes. Soa no sistema de afinação… |
 | `lib/ui/perf.dart` | Um [Listenable] que nunca avisa nada. Uma aba escondida escuta este em vez do app: assim ela não se reconstrói enquanto não está na tela, e volta a atualizar sozinha (o ListenableBuilder reassina) quando fica visível. |
 | `lib/ui/person_avatar.dart` | Fotos já decodificadas para bytes, para a lista não decodificar o texto base64 a cada quadro. |
@@ -275,6 +276,7 @@
 | `packages/afina_core/test/staff_notation_test.dart` | Leitor independente: lê a partitura como um músico (armadura + acidentes valem até a barra de compasso) e devolve a nota MIDI que cada evento representa. Se bater com a sequência do exercício, a escrita está certa. |
 | `packages/afina_core/test/start_checklist_test.dart` | Testes do módulo `start_checklist`. |
 | `packages/afina_core/test/student_label_test.dart` | Testes do módulo `student_label`. |
+| `packages/afina_core/test/student_paused_test.dart` | Testes do módulo `student_paused`. |
 | `packages/afina_core/test/study_clock_test.dart` | Testes do módulo `study_clock`. |
 | `packages/afina_core/test/study_context_test.dart` | Testes do módulo `study_context`. |
 | `packages/afina_core/test/study_streak_test.dart` | estudou 0,1,3,5,6: faltaram 2 e 4; o 2º vazio vem logo depois do 1º perdão -> quebra |
@@ -373,6 +375,7 @@
 | `api/news.test.js` | Boletim do app: o painel escreve, publica, oculta e exclui; o app só lê o que está publicado. `node --test api/news.test.js` |
 | `api/online.test.js` | Testes da aula online (link da aula, modo online/presencial, link padrão): `node --test api/online.test.js` |
 | `api/painel_precisao.test.js` | Painel mais preciso: saúde, custos, coortes, período anterior, horas, limpeza e erros do servidor. `node --test api/painel_precisao.test.js` |
+| `api/pause.test.js` | Aluno pausado, vários professores (conflito de horário) e resumo de estudo por professor: `node --test api/pause.test.js` |
 | `api/pay.test.js` | Testes do plano Pro por Pix (Mercado Pago simulado, sem rede nem credenciais): `node --test api/pay.test.js` |
 | `api/pay_security.test.js` | Segurança do pagamento por Pix (tentativas de ataque e abuso), sem rede: `node --test api/pay_security.test.js` |
 | `api/photo.test.js` | Foto de perfil mostrada a quem está vinculado, sem rede: `node --test api/photo.test.js` |
@@ -415,4 +418,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **372** arquivos mapeados.
+Total: **375** arquivos mapeados.

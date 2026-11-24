@@ -164,7 +164,7 @@ class _StudyRankCardState extends State<StudyRankCard> {
     return ListenableBuilder(
       listenable: app,
       builder: (context, _) {
-        final linked = [for (final s in app.students) if (s.code != null && s.linkState != 'ended') s];
+        final linked = [for (final s in app.students) if (s.code != null && s.linkState != 'ended' && !s.paused) s];
         if (linked.isEmpty) return const SizedBox.shrink();
         final rows = [
           for (final s in linked)

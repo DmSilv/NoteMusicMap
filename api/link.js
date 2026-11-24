@@ -202,10 +202,23 @@ function parseLinks(h) {
   for (const [code, raw] of Object.entries(h)) {
     try {
       const j = JSON.parse(raw);
-      out.push({ code, name: j.n || '', since: j.t || 0, by: j.by || '', ...(j.pv ? { pv: j.pv } : {}) });
+      out.push({ code, name: j.n || '', since: j.t || 0, by: j.by || '', ...(j.pv ? { pv: j.pv } : {}), ...(j.pz ? { pz: 1 } : {}) });
     } catch (_) { /* linha ruim */ }
   }
   return out.sort((a, b) => a.since - b.since);
+}
+
+/** Vínculos que contam no limite do plano grátis: os pausados (pz) não contam. */
+function activeLinks(h) {
+  let n = 0;
+  for (const raw of Object.values(h)) {
+    try { if (!JSON.parse(raw).pz) n++; } catch (_) { n++; }
+  }
+  return n;
+}
+
+function isPaused(raw) {
+  try { return !!JSON.parse(raw).pz; } catch (_) { return false; }
 }
 
 function makeHandler(deps = {}) {
@@ -439,6 +452,13 @@ function makeHandler(deps = {}) {
         }
         const clean = cleanStudy(b.study);
         if (!clean) return send(400, { error: 'Resumo inválido.' });
+        // "to": só estes professores veem o resumo (ausente = todos os vinculados, como antes).
+        if (Array.isArray(b.to)) {
+          const to = [...new Set(b.to.map(normCode).filter(Boolean))].slice(0, 50);
+          await store.hset(SH(me), 'to', JSON.stringify(to));
+        } else {
+          await store.hdel(SH(me), 'to');
+        }
         await store.hset(SH(me), 'd', JSON.stringify({ ...clean, at: clock() }));
         return send(200, { ok: true, on: true });
       }
@@ -446,11 +466,17 @@ function makeHandler(deps = {}) {
       if (action === 'study_get') {
         const n = await store.incr(`stget:${me}:${hour}`, 3600);
         if (n.n > STUDY_GETS_PER_HOUR) return send(429, { error: 'Muitas consultas. Tente mais tarde.' });
-        const students = Object.keys((await store.hgetall(T(me))) || {}).slice(0, STUDY_MAX_STUDENTS);
+        const students = Object.entries((await store.hgetall(T(me))) || {}).filter(([, v]) => !isPaused(v)).map(([k]) => k).slice(0, STUDY_MAX_STUDENTS);
         const items = {};
         for (const other of students) {
-          const raw = await store.hget(SH(other), 'd');
+          const sh = await store.hgetall(SH(other));
+          const raw = sh && sh.d;
           if (!raw) continue;
+          if (sh.to) {
+            let to = null;
+            try { to = JSON.parse(sh.to); } catch (_) { to = null; }
+            if (Array.isArray(to) && !to.includes(me)) continue;
+          }
           try {
             const j = JSON.parse(raw);
             if (clock() - Number(j.at || 0) <= STUDY_MAX_AGE_MS) items[other] = j;
@@ -693,7 +719,9 @@ function makeHandler(deps = {}) {
         const sid = String(b.slot || '');
         if (!teacher || teacher === me) return send(400, { error: 'Falta o código do professor.' });
         if (!/^[a-z0-9]{2,40}$/.test(sid)) return send(400, { error: 'Horário inválido.' });
-        if ((await store.hget(S(me), teacher)) === undefined) return send(403, { error: 'Este professor não está vinculado a você.' });
+        const takeLink = await store.hget(S(me), teacher);
+        if (takeLink === undefined) return send(403, { error: 'Este professor não está vinculado a você.' });
+        if (isPaused(takeLink)) return send(409, { error: 'student_paused', message: 'Suas aulas com este professor estão pausadas.' });
         const rawOpen = await store.hget(AV(teacher), sid);
         if (rawOpen === undefined) return send(409, { error: 'slot_gone', message: 'Este horário não está mais disponível.' });
         let open;
@@ -714,6 +742,11 @@ function makeHandler(deps = {}) {
         for (const j of Object.values(classes)) {
           let c; try { c = JSON.parse(j); } catch (_) { continue; }
           if (slotsOverlap(open, c, now)) return send(409, { error: 'slot_conflict', message: 'Este horário bate com outra aula do professor.' });
+        }
+        // Não pode bater com outra aula do próprio aluno (com este ou com outro professor).
+        for (const j of Object.values(mineSS)) {
+          let c; try { c = JSON.parse(j); } catch (_) { continue; }
+          if (slotsOverlap(open, c, now)) return send(409, { error: 'student_conflict', message: 'Você já tem outra aula nesse horário.' });
         }
         // Trava: só o primeiro leva.
         if (!(await store.hsetnx(TK(teacher), sid, me))) return send(409, { error: 'slot_taken', message: 'Alguém acabou de pegar este horário.' });
@@ -755,9 +788,11 @@ function makeHandler(deps = {}) {
       if (action === 'sched_put') {
         const student = normCode(b.other);
         if (!student || student === me) return send(400, { error: 'Falta o código do aluno.' });
-        if ((await store.hget(T(me), student)) === undefined) {
+        const schedLink = await store.hget(T(me), student);
+        if (schedLink === undefined) {
           return send(403, { error: 'Este aluno não está vinculado a você.' });
         }
+        if (isPaused(schedLink)) return send(409, { error: 'student_paused', message: 'Este aluno está pausado. Reative para marcar aulas.' });
         // Como nas aulas: só entrega para um perfil que o aluno JÁ reivindicou.
         const sp = await store.hgetall(U(student));
         if (!sp.h) return send(409, { error: 'student_not_ready', message: 'O aluno ainda não abriu o app com o vínculo online ligado.' });
@@ -784,10 +819,16 @@ function makeHandler(deps = {}) {
           await store.hset(U(oldStudent), 'sr', String(clock()));
         }
         await store.hset(U(student), 'sr', String(clock())); // o aluno vê que a agenda mudou
+        // Aviso (não bloqueia): o aluno já tem outra aula, com outro professor, nesse horário.
+        let clash = false;
+        for (const [f, j] of Object.entries(await store.hgetall(SS(student)))) {
+          if (f.startsWith(`${me}:`)) continue;
+          try { if (slotsOverlap(slot, JSON.parse(j), clock())) { clash = true; break; } } catch (_) { /* ruim */ }
+        }
         const reminder = await scheduleNext(cfg, fetchImpl, me, student, slot, clock());
         await metric('slot');
         await mileFor(me, prof, 'klass');
-        return send(200, { ok: true, reminder });
+        return send(200, { ok: true, reminder, ...(clash ? { clash: 1 } : {}) });
       }
 
       const other = normCode(b.other);
@@ -859,9 +900,11 @@ function makeHandler(deps = {}) {
         // O PROFESSOR publica uma aula encerrada para um aluno vinculado a ele.
         const student = normCode(b.other);
         if (!student || student === me) return send(400, { error: 'Falta o código do aluno.' });
-        if ((await store.hgetall(T(me)))[student] === undefined) {
+        const lessonLink = (await store.hgetall(T(me)))[student];
+        if (lessonLink === undefined) {
           return send(403, { error: 'Este aluno não está vinculado a você.' });
         }
+        if (isPaused(lessonLink)) return send(409, { error: 'student_paused', message: 'Este aluno está pausado. Reative para enviar aulas.' });
         // Só entrega para um perfil que o aluno JÁ reivindicou (abriu o app com o vínculo ligado):
         // senão quem conhecesse o código poderia reivindicá-lo antes e ler as aulas.
         const sp = await store.hgetall(U(student));
@@ -899,7 +942,7 @@ function makeHandler(deps = {}) {
         if (!existed) {
           const tProf = teacher === me ? prof : otherProf;
           const limitOn = features.isOn(await features.loadCfg(store, now), 'limite_alunos', teacher, tProf, null);
-          if (limitOn && !(Number(tProf.pro) > now) && Object.keys(tLinks).length >= 3) {
+          if (limitOn && !(Number(tProf.pro) > now) && activeLinks(tLinks) >= 3) {
             return send(402, { error: 'student_limit', message: 'Limite de alunos do plano grátis atingido.' });
           }
         }
@@ -922,6 +965,38 @@ function makeHandler(deps = {}) {
         await mileFor(me, prof, 'linked');
         await mileFor(other, otherProf, 'linked');
         return send(200, { ok: true, created: !existed, other: { code: other, name: theirName } });
+      }
+
+      // O PROFESSOR pausa (ou reativa) um aluno: o histórico fica, o aluno sai do dia a dia e não conta no limite grátis.
+      if (action === 'pause') {
+        if (role !== 'teacher') return send(403, { error: 'Só o professor pausa um aluno.' });
+        const rawT = await store.hget(T(me), student);
+        if (rawT === undefined) return send(404, { error: 'Este aluno não está vinculado a você.' });
+        const on = b.on === true || b.on === 1;
+        let j;
+        try { j = JSON.parse(rawT); } catch (_) { j = {}; }
+        const was = !!j.pz;
+        if (!on && was) {
+          const now0 = clock();
+          const limitOn = features.isOn(await features.loadCfg(store, now0), 'limite_alunos', me, prof, null);
+          if (limitOn && !(Number(prof.pro) > now0) && activeLinks(await store.hgetall(T(me))) >= 3) {
+            return send(402, { error: 'student_limit', message: 'Limite de alunos do plano grátis atingido.' });
+          }
+        }
+        if (on === was) return send(200, { ok: true, paused: on });
+        if (on) j.pz = 1; else delete j.pz;
+        await store.hset(T(me), student, JSON.stringify(j));
+        const rawS = await store.hget(S(student), me);
+        if (rawS !== undefined) {
+          let k;
+          try { k = JSON.parse(rawS); } catch (_) { k = {}; }
+          if (on) k.pz = 1; else delete k.pz;
+          await store.hset(S(student), me, JSON.stringify(k));
+        }
+        const nowP = clock();
+        await store.hset(U(me), 'kr', String(nowP));
+        await store.hset(U(student), 'kr', String(nowP));
+        return send(200, { ok: true, paused: on });
       }
 
       if (action === 'unlink') {

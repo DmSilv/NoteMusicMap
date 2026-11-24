@@ -237,9 +237,27 @@ class _PickSlotPageState extends State<PickSlotPage> {
   void initState() {
     super.initState();
     if (app.myTeachers.isNotEmpty) {
-      teacher = app.myTeachers.first.code;
+      teacher = _defaultTeacher();
       _load();
     }
+  }
+
+  /// O professor que abre primeiro: o da aula mais próxima (ou o primeiro que não está pausado).
+  String _defaultTeacher() {
+    final open = [for (final t in app.myTeachers) if (!t.paused) t];
+    final list = open.isEmpty ? app.myTeachers : open;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    String? best;
+    var bestMs = 1 << 62;
+    for (final t in list) {
+      final o = nextOccurrence([for (final s in app.myAgenda) if (s.teacherCode == t.code) s], now);
+      final ms = o?.start.millisecondsSinceEpoch ?? (1 << 61);
+      if (ms < bestMs) {
+        bestMs = ms;
+        best = t.code;
+      }
+    }
+    return best ?? list.first.code;
   }
 
   Future<void> _load() async {

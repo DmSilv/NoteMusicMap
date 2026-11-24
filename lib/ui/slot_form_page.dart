@@ -57,7 +57,7 @@ class _SlotFormPageState extends State<SlotFormPage> {
   late int remind = widget.edit?.remindLead ?? app.remindDefault;
   String? error;
 
-  List<Student> get _choices => [for (final s in app.students) if (s.code != null) s];
+  List<Student> get _choices => [for (final s in app.students) if (s.code != null && !s.paused) s];
 
   @override
   void dispose() {

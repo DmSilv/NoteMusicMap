@@ -15,9 +15,12 @@ class LinkedPerson {
 
   /// Versão da foto que a pessoa escolheu mostrar a quem está vinculado (vazio = sem foto).
   final String pv;
-  const LinkedPerson(this.code, this.name, this.since, [this.pv = '']);
 
-  Map<String, dynamic> toJson() => {'code': code, 'name': name, 'since': since, if (pv.isNotEmpty) 'pv': pv};
+  /// O professor pausou este vínculo (o histórico fica; não há aulas novas até reativar).
+  final bool paused;
+  const LinkedPerson(this.code, this.name, this.since, [this.pv = '', this.paused = false]);
+
+  Map<String, dynamic> toJson() => {'code': code, 'name': name, 'since': since, if (pv.isNotEmpty) 'pv': pv, if (paused) 'pz': 1};
   static LinkedPerson? tryFrom(Object? j) {
     try {
       final m = (j as Map).cast<String, dynamic>();
@@ -26,7 +29,7 @@ class LinkedPerson {
       if (code == null) return null;
       final since = ((m['since'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000);
       final pv = (m['pv'] as String?) ?? '';
-      return LinkedPerson(code, cleanText(m['name'] as String?, max: kMaxName), since, RegExp(r'^[0-9a-f]{8}$').hasMatch(pv) ? pv : '');
+      return LinkedPerson(code, cleanText(m['name'] as String?, max: kMaxName), since, RegExp(r'^[0-9a-f]{8}$').hasMatch(pv) ? pv : '', m['pz'] == 1 || m['pz'] == true);
     } catch (_) {
       return null;
     }
@@ -121,6 +124,9 @@ class LinkReply {
   /// O servidor recusou o vínculo porque o professor do plano grátis já tem 3 alunos.
   final bool studentLimit;
 
+  /// A aula marcada bate com outra aula do aluno (com outro professor).
+  final bool clash;
+
   /// Link padrão da aula online do professor (volta na sincronização, só com o recurso ligado).
   final String ml;
 
@@ -184,6 +190,7 @@ class LinkReply {
     this.ff = const [],
     this.pro = 0,
     this.studentLimit = false,
+    this.clash = false,
     this.ml = '',
     this.photo = '',
     this.pv = '',
@@ -277,6 +284,7 @@ class LinkService {
         asTeacher: list(j['asTeacher']),
         asStudent: list(j['asStudent']),
         created: j['created'] == true,
+        clash: j['clash'] == 1 || j['clash'] == true,
         lb: j['lb'] == 1 || j['lb'] == true,
         lbT: [for (final c in ((j['lbT'] as List?) ?? const []).take(60)) ?(c is String ? formatShareCode(c) : null)],
         ff: [for (final f in ((j['ff'] as List?) ?? const []).take(30)) if (f is String && RegExp(r'^[a-z][a-z0-9_]{1,30}$').hasMatch(f)) f],
@@ -425,6 +433,10 @@ class LinkService {
   Future<LinkReply> link(String code, String secret, {required String role, required String other, String? name}) =>
       _post({..._auth(code, secret, name), 'action': 'link', 'role': role, 'other': other});
 
+  /// PROFESSOR: pausa ([on] true) ou reativa um aluno. O histórico fica; o aluno pausado não conta no limite do plano grátis.
+  Future<LinkReply> pause(String code, String secret, {required String other, required bool on}) =>
+      _post({..._auth(code, secret, null), 'action': 'pause', 'role': 'teacher', 'other': other, 'on': on});
+
   Future<LinkReply> unlink(String code, String secret, {required String role, required String other}) =>
       _post({..._auth(code, secret, null), 'action': 'unlink', 'role': role, 'other': other});
 
@@ -442,8 +454,8 @@ class LinkService {
   Future<LinkReply> photoPut(String code, String secret, String photo) => _post({..._auth(code, secret, null), 'action': 'photo_put', 'photo': photo});
 
   /// ALUNO: guarda o resumo da semana de estudo para os professores vinculados verem (só quando a pessoa escolheu compartilhar).
-  Future<LinkReply> studyPut(String code, String secret, Map<String, dynamic> study) =>
-      _post({..._auth(code, secret, null), 'action': 'study_put', 'study': study});
+  Future<LinkReply> studyPut(String code, String secret, Map<String, dynamic> study, {List<String>? to}) =>
+      _post({..._auth(code, secret, null), 'action': 'study_put', 'study': study, 'to': ?to});
 
   /// ALUNO: para de compartilhar e apaga o resumo guardado.
   Future<LinkReply> studyOff(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'study_put', 'on': false});

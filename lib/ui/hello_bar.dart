@@ -2,6 +2,7 @@ import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
 import '../app_state.dart';
+import '../link/link_service.dart' show LinkedPerson;
 import 'design_system.dart';
 import 'safe_input.dart';
 import 'theme.dart';
@@ -159,12 +160,14 @@ String? _who(AppState app) {
   final parts = <String>[];
   final t = app.myTeachers;
   if (t.isNotEmpty) {
-    final last = t.last;
-    final nm = last.name.trim().isEmpty ? last.code : last.name.trim();
-    parts.add(t.length == 1 ? tr('Professor(a): {0}', [nm]) : tr('{0} professores', [t.length]));
+    String nmOf(LinkedPerson p) => p.name.trim().isEmpty ? p.code : p.name.trim();
+    final firsts = [for (final p in t) nmOf(p).split(' ').first];
+    parts.add(t.length == 1
+        ? tr('Professor(a): {0}', [nmOf(t.first)])
+        : (t.length == 2 ? tr('Professores: {0} e {1}', [firsts[0], firsts[1]]) : tr('{0} professores', [t.length])));
   }
   if (app.teacherMode) {
-    final n = app.students.length;
+    final n = app.activeStudentCount;
     parts.add(n == 0 ? tr('Modo professor') : (n == 1 ? tr('1 aluno') : tr('{0} alunos', [n])));
   }
   return parts.isEmpty ? null : parts.join(' · ');

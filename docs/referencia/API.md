@@ -347,6 +347,7 @@ Precisa do Upstash Redis. Sem ele devolve 503 e o app segue só neste aparelho.
 | `done` | O ALUNO marca (ou desmarca) como feita uma tarefa que recebeu de um professor vinculado. |
 | `verdict` | O PROFESSOR decide sobre uma tarefa de um aluno vinculado: 'ok' valida, 'back' devolve, vazio apaga a decisão. O aluno vê isso como o status oficial. |
 | `link` | — |
+| `pause` | O PROFESSOR pausa (ou reativa) um aluno: o histórico fica, o aluno sai do dia a dia e não conta no limite grátis. |
 | `unlink` | — |
 
 ## `/api/news`

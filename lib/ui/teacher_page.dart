@@ -16,6 +16,7 @@ import 'person_avatar.dart';
 import 'student_identity.dart';
 import 'student_page.dart';
 import 'plan_page.dart';
+import 'pause_ui.dart';
 export 'student_page.dart' show StudentPage;
 import 'teaching_ui.dart';
 import 'materials_sheet.dart';
@@ -108,7 +109,7 @@ Future<bool> _checkStudentLimit(BuildContext context, AppState app) async {
   final go = await showDsConfirm(
     context,
     title: tr('Limite do plano grátis'),
-    body: tr('Você já tem {0} alunos e o plano grátis vai até {1}. O Pro tira o limite, e você continua com todos os que já tem.', [app.students.length, AppState.kFreeStudents]),
+    body: tr('Você já tem {0} alunos ativos e o plano grátis vai até {1}. Desative um aluno ou use o Pro, que tira o limite.', [app.activeStudentCount, AppState.kFreeStudents]),
     confirmLabel: tr('Ver o plano Pro'),
     icon: Icons.workspace_premium_rounded,
   );
@@ -360,6 +361,7 @@ class _TeacherPageState extends State<TeacherPage> {
 
   /// Modo "Gerenciar": caixas de seleção para excluir vários alunos.
   bool _manage = false;
+  bool _showPaused = false;
   final Set<String> _selected = {};
   final _search = TextEditingController();
   String _query = '';
@@ -612,7 +614,8 @@ class _TeacherPageState extends State<TeacherPage> {
       return o != null && o.start.year == now.year && o.start.month == now.month && o.start.day == now.day;
     }
 
-    final all = app.students.where(_matches).toList();
+    final all = app.activeStudents.where(_matches).toList();
+    final paused = app.pausedStudents.where(_matches).toList();
     final today = <Student>[], waiting = <Student>[], rest = <Student>[];
     for (final s in all) {
       if (hasClassToday(s)) {
@@ -640,6 +643,22 @@ class _TeacherPageState extends State<TeacherPage> {
             ]),
           ),
         for (final s in g.$3) _studentCard(context, s),
+      ],
+      if (paused.isNotEmpty) ...[
+        InkWell(
+          borderRadius: BorderRadius.circular(Ds.radiusControl),
+          onTap: () => setState(() => _showPaused = !_showPaused),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(4, 12, 0, 8),
+            child: Row(children: [
+              Icon(Icons.pause_circle_outline_rounded, size: 16, color: AppColors.textDim),
+              const SizedBox(width: 6),
+              Expanded(child: Text(tr('Inativos · {0}', [paused.length]), style: Ds.section())),
+              Icon(_showPaused ? Icons.expand_less : Icons.expand_more, color: AppColors.textDim),
+            ]),
+          ),
+        ),
+        if (_showPaused) for (final s in paused) Opacity(opacity: 0.7, child: _studentCard(context, s)),
       ],
     ];
   }
@@ -671,7 +690,7 @@ class _TeacherPageState extends State<TeacherPage> {
           : InkWell(borderRadius: BorderRadius.circular(Ds.tap / 2), onTap: onTap, child: centered);
     }
 
-    final n = app.students.length;
+    final n = app.activeStudentCount;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
@@ -784,6 +803,8 @@ class _TeacherPageState extends State<TeacherPage> {
                         await editStudentCode(context, app, s);
                       case 'instrument':
                         await showStudentInstrumentSheet(context, app, s);
+                      case 'pause':
+                        await togglePauseStudent(context, app, s);
                       case 'delete':
                         final ok = await confirmDelete(context, tr('Excluir {0}?', [app.labelOf(s)]),
                             tr('Apaga o histórico, as tarefas e as observações deste aluno neste aparelho{0}. Não dá para desfazer.', [app.hasLessonWith(s.id) ? tr(', e descarta a aula em andamento com ele') : '']));
@@ -798,6 +819,7 @@ class _TeacherPageState extends State<TeacherPage> {
                     PopupMenuItem(value: 'rename', child: Text(tr('Renomear'))),
                     PopupMenuItem(value: 'code', child: Text(tr('Código do aluno'))),
                     PopupMenuItem(value: 'instrument', child: Text(tr('Instrumento do aluno'))),
+                    PopupMenuItem(value: 'pause', child: Text(s.paused ? tr('Reativar aluno') : tr('Desativar aluno'))),
                     PopupMenuItem(value: 'delete', child: Text(tr('Excluir aluno'))),
                   ],
                 ),

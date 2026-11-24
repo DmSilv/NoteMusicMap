@@ -210,7 +210,7 @@ class _PlanPageState extends State<PlanPage> {
       Text(tr('Até {0} alunos. O Pro tira o limite de alunos.', [p.free]), style: TextStyle(color: AppColors.textDim, fontSize: Ds.fontSupport, height: 1.4)),
       if (widget.app.studentLimitOn) ...[
         const SizedBox(height: Ds.s8),
-        Text(tr('Você tem {0} de {1} alunos.', [widget.app.students.length, p.free]), style: const TextStyle(fontWeight: FontWeight.w700)),
+        Text(tr('Você tem {0} de {1} alunos.', [widget.app.activeStudentCount, p.free]), style: const TextStyle(fontWeight: FontWeight.w700)),
       ],
     ]);
   }

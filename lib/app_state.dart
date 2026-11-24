@@ -1393,7 +1393,6 @@ class AppState extends ChangeNotifier {
   Set<String> get teacherCodes => {for (final t in myTeachers) t.code};
 
   /// O professor mais recente (ou null).
-  String? get myTeacherCode => myTeachers.isEmpty ? null : myTeachers.last.code;
 
   /// O vínculo online está ligado? Fica ligado na primeira vez que o usuário vincula
   /// alguém (ler QR ou digitar código), e pode ser desligado no perfil.
@@ -1881,7 +1880,7 @@ class AppState extends ChangeNotifier {
   /// As aulas marcadas (não canceladas) do professor com o aluno [code].
   List<ClassSlot> slotsOf(String code) => [for (final s in agenda) if (!s.canceled && s.studentCode == code) s];
 
-  bool _canSendTo(Student s) => s.code != null && s.linkState != 'ended';
+  bool _canSendTo(Student s) => s.code != null && s.linkState != 'ended' && !s.paused;
 
   /// Marca ou muda uma aula. Devolve o motivo se não der (aluno, horário que passou, choque
   /// com outra aula); null se salvou.
@@ -1983,6 +1982,7 @@ class AppState extends ChangeNotifier {
         if (r.ok || r.rejected) {
           // aceito (ou recusado de vez: não adianta insistir); a aula só deixa de estar na fila
           agenda[i] = agenda[i].copyWith(pending: false);
+          if (r.ok && r.clash) say(tr('{0} já tem outra aula, com outro professor, nesse horário.', [st.name]));
           deliveryIssue.remove(s.studentCode);
           changed = true;
           if (!r.ok) fail(tr('Não foi possível avisar {0} da aula.', [st.name]), where: tr('Agenda do professor'), detail: r.error);
@@ -2081,6 +2081,8 @@ class AppState extends ChangeNotifier {
         'slot_soon' => tr('Falta pouco para este horário: peça direto ao professor.'),
         'slot_conflict' => tr('Este horário bate com outra aula do professor.'),
         'pick_limit' => tr('Você já tem muitas aulas marcadas com este professor.'),
+        'student_conflict' => tr('Você já tem outra aula nesse horário.'),
+        'student_paused' => tr('Suas aulas com este professor estão pausadas.'),
         _ => code ?? tr('tente de novo.'),
       };
 
@@ -2762,6 +2764,7 @@ class AppState extends ChangeNotifier {
   /// Começa a aula com [s]. Devolve o motivo se não der (já há outra aula em andamento).
   String? startLesson(Student s) {
     crumb(tr('Começar aula'));
+    if (s.paused) return tr('{0} está desativado. Reative o aluno para dar aula.', [s.name]);
     final cur = lesson;
     if (cur != null) {
       final other = studentById(cur.studentId);
@@ -2832,7 +2835,7 @@ class AppState extends ChangeNotifier {
     }
     final rec = buildLessonRecord(s, l, end, teacherName: profile.name ?? '');
     // Aluno com código: a enviar pelo vínculo online. Sem código: fica só aqui.
-    rec.sent = (s.code != null && s.linkState != 'ended') ? false : null;
+    rec.sent = (s.code != null && s.linkState != 'ended' && !s.paused) ? false : null;
     if (rec.sent == null) rec.wire = null;
     s.lessons.insert(0, rec);
     while (s.lessons.length > 200) {
@@ -3669,6 +3672,7 @@ class AppState extends ChangeNotifier {
           code: x.code,
           linkState: 'active',
           remoteName: x.name,
+          paused: x.paused,
         );
         students.add(s);
         activeStudentId ??= s.id;
@@ -3680,6 +3684,7 @@ class AppState extends ChangeNotifier {
           returnedStudents.add(s.name);
         }
         s.linkState = 'active';
+        s.paused = x.paused; // o servidor manda (outro aparelho do professor pode ter pausado)
         // Acompanha o apelido novo do aluno enquanto o professor não renomeou.
         final auto = s.name == (s.remoteName ?? '') || isDefaultStudentName(s.name, x.code);
         if (x.name.isNotEmpty && auto) s.name = x.name;
@@ -4273,7 +4278,33 @@ class AppState extends ChangeNotifier {
   bool get studentLimitOn => hasFeature('limite_alunos') && !proActive;
 
   /// Pode cadastrar mais um aluno? Quem já passou de 3 antes do limite continua com os seus, mas não adiciona outro.
-  bool get canAddStudent => !studentLimitOn || students.length < kFreeStudents;
+  bool get canAddStudent => !studentLimitOn || activeStudentCount < kFreeStudents;
+
+  /// Alunos do dia a dia (sem os desativados). Os desativados ficam na seção "Inativos" e não contam no limite.
+  List<Student> get activeStudents => [for (final s in students) if (!s.paused) s];
+  List<Student> get pausedStudents => [for (final s in students) if (s.paused) s];
+  int get activeStudentCount => students.where((s) => !s.paused).length;
+
+  /// PROFESSOR: desativa ([on] true) ou reativa um aluno. O histórico e as tarefas ficam.
+  /// Devolve null se deu certo; 'limit' se a vaga do plano grátis está cheia; 'offline' ou 'wait' se não deu para avisar o servidor agora.
+  Future<String?> setStudentPaused(String id, bool on) async {
+    final s = studentById(id);
+    if (s == null || s.paused == on) return null;
+    if (!on && studentLimitOn && activeStudentCount >= kFreeStudents) return 'limit';
+    if (s.code != null && s.linkState == 'pending') return 'wait';
+    final online = s.code != null && s.linkState == 'active';
+    if (online) {
+      if (!linkEnabled || linkUnavailable) return 'offline';
+      final r = await links.pause(profile.shareCode, profile.secret, other: s.code!, on: on);
+      if (r.studentLimit) return 'limit';
+      if (!r.ok) return 'offline';
+    }
+    s.paused = on;
+    if (on && activeStudentId == s.id) activeStudentId = null;
+    _saveTeacher();
+    notifyListeners();
+    return null;
+  }
 
   void setProUntil(int ms) {
     if (ms == proUntil) return;
@@ -4789,6 +4820,22 @@ class AppState extends ChangeNotifier {
   DateTime? _studyPushedAt;
   bool _studyBusy = false;
 
+  /// Professores que NÃO veem o meu resumo de estudo (o padrão é todos verem, quando o compartilhamento está ligado).
+  final Set<String> studyBlocked = {};
+
+  bool studySeenBy(String teacherCode) => shareStudy && !studyBlocked.contains(teacherCode);
+
+  Future<void> setStudySeenBy(String teacherCode, bool seen) async {
+    if (seen) {
+      studyBlocked.remove(teacherCode);
+    } else {
+      studyBlocked.add(teacherCode);
+    }
+    _prefs?.setStringList('study_block', studyBlocked.toList());
+    notifyListeners();
+    if (shareStudy) await pushStudyShare(force: true);
+  }
+
   /// PROFESSOR: resumos dos alunos que compartilham (código do aluno -> resumo).
   final Map<String, StudyShare> studyShares = {};
   DateTime? _studySharesAt;
@@ -4865,7 +4912,8 @@ class AppState extends ChangeNotifier {
     }
     _studyBusy = true;
     try {
-      final r = await links.studyPut(profile.shareCode, profile.secret, map);
+      final to = [for (final t in myTeachers) if (!studyBlocked.contains(t.code)) t.code];
+      final r = await links.studyPut(profile.shareCode, profile.secret, map, to: studyBlocked.isEmpty ? null : to);
       if (r.unavailable) return _markLinkUnavailable();
       if (r.ok) {
         _studyPushedKey = key;
@@ -5245,6 +5293,9 @@ class AppState extends ChangeNotifier {
     _newsSeen = (p.getStringList('news_seen') ?? const <String>[]).toSet();
     aiTeacherContext = p.getBool('ai_teacher_ctx') ?? false;
     shareStudy = p.getBool('share_study') ?? false;
+    studyBlocked
+      ..clear()
+      ..addAll(p.getStringList('study_block') ?? const []);
     _studyOffPending = p.getBool('share_study_off') ?? false;
     newsPeekMs = p.getInt('news_peek') ?? 0;
     scaleNames = StaffNames.values[(p.getInt('scale_names') ?? StaffNames.none.index).clamp(0, StaffNames.values.length - 1)];

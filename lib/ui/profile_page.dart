@@ -532,7 +532,7 @@ class _ProfilePageState extends State<ProfilePage> {
               _row(Icons.workspace_premium_rounded, tr('Plano'),
                   sub: app.proActive
                       ? tr('Pro ativo até {0}', [_dmy(app.proUntil)])
-                      : (app.studentLimitOn ? tr('Plano grátis · {0} de {1} alunos', [app.students.length, AppState.kFreeStudents]) : tr('Plano grátis')),
+                      : (app.studentLimitOn ? tr('Plano grátis · {0} de {1} alunos', [app.activeStudentCount, AppState.kFreeStudents]) : tr('Plano grátis')),
                   trailing: app.proActive ? _pill('PRO', AppColors.accent) : null,
                   onTap: () => _push(PlanPage(app: app))),
             if (app.teacherMode)
@@ -892,13 +892,24 @@ class _ProfilePageState extends State<ProfilePage> {
                   : Icon(t.since > 0 ? Icons.link : Icons.sync_problem, color: t.since > 0 ? AppColors.inTune : AppColors.flat),
               title: Text(t.name.isEmpty ? tr('Professor {0}', [t.code]) : t.name,
                   style: const TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text(t.since > 0 ? tr('Código {0} · vinculado', [t.code]) : tr('Código {0} · a vincular quando houver conexão', [t.code])),
+              subtitle: Text(t.paused
+                  ? tr('Código {0} · aulas pausadas pelo professor', [t.code])
+                  : (t.since > 0 ? tr('Código {0} · vinculado', [t.code]) : tr('Código {0} · a vincular quando houver conexão', [t.code]))),
               trailing: IconButton(
                 tooltip: tr('Encerrar vínculo'),
                 icon: const Icon(Icons.link_off),
                 onPressed: () => _confirmRemoveTeacher(context, t),
               ),
             ),
+          if (app.shareStudy && teachers.length > 1)
+            for (final t in teachers)
+              SwitchListTile(
+                contentPadding: const EdgeInsets.only(left: 8),
+                dense: true,
+                title: Text(tr('{0} vê o meu estudo', [t.name.isEmpty ? t.code : t.name])),
+                value: app.studySeenBy(t.code),
+                onChanged: (v) => app.setStudySeenBy(t.code, v),
+              ),
           if (app.hasTeacherSide) ...[
             const SizedBox(height: 8),
             OutlinedButton.icon(
