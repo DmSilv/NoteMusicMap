@@ -91,3 +91,18 @@ Ver [07_PAINEL_ADMIN.md](07_PAINEL_ADMIN.md) e [CUSTOS_E_REGRESSAO.md](CUSTOS_E_
 11. **Ligar outro aparelho com um código** (`/api/account`, `pair_new` e `pair_join`; não depende de e-mail nem de chave): um aparelho que já está na conta pede `pair_new` (só o dono; 10 por hora por perfil) e recebe `XXXX-XXXX` (8 símbolos do alfabeto dos códigos, 40 bits), guardado só como hash em `acct:pair:<hash>` por **10 minutos**, **uso único**. O aparelho novo manda `pair_join { pair, secret, drop? }`: se o código vale, o aparelho entra na lista da conta (item 9) e o código é gasto; com a conta cheia responde **422** `device_limit` e o código continua valendo para escolher qual sai. Código errado ou vencido: 403 e conta nas tentativas erradas por origem (20/h). Conta bloqueada não entra. O QR do app é o link `<app>/?pair=XXXX-XXXX`: a câmera comum abre o app, que confirma antes de trocar de conta.
 
 12. **Espelho da conta entre aparelhos** (`/api/link`, `mi_list`, `mi_get`, `mi_put`, `mi_del`; lógica em [`api/_lib/mirror.js`](../api/_lib/mirror.js)): só vale com **2+ aparelhos** na conta (senão 409 `mirror_off`, e quem usa um aparelho só não gasta comando). O servidor guarda **seções** de texto (`mi:<código>` com o conteúdo e `mm:<código>` com versão, tamanho e marca de apagada): `S:<código do aluno>` ou `S:i:<id>`, `AG` (agenda), `OS` (horários livres), `ME` (métodos), `PR` (ajustes) e `SE` (histórico de estudo). Limites: 120 mil caracteres por seção, 400 seções e 4 MB por conta, 600 gravações e 240 leituras por hora. Versão mais antiga que a guardada é ignorada; apagar deixa uma marca. A revisão `mr` e o aviso `mo` vão na consulta barata `rev` (sem chamada extra). Voltar a 1 aparelho apaga o espelho. No app (`lib/link/mirror_engine.dart` e `packages/afina_core/lib/mirror.dart`): cada rodada lista, decide por seção (enviar, baixar, juntar, apagar) e junta sem perder nada (tarefas, observações, aulas e faltas somam; a versão mais nova de cada aula vale). Aluno "de fábrica" (só o vínculo) nunca é enviado nem sobrescreve o do outro aparelho, e apagar em massa é barrado.
+
+## Agenda com o professor no comando (ações de `/api/link`)
+| Ação | Quem | O que faz |
+|---|---|---|
+| `avail_take` (+`cv:2`) | aluno | pega o horário ou, se `cf`, cria um pedido (`requested`) |
+| `t_inbox` | professor | pedidos (`reqs`) e avisos (`warns`) dos alunos |
+| `req_answer` | professor | aceita ou recusa um pedido (aceitar cria a aula) |
+| `pick_undo` | aluno | desfaz o horário que pegou há até 10 min |
+| `pick_allow` | professor | liga/desliga "pegar horário" de um aluno (`np`) |
+| `warn_put` | aluno | avisa o professor (`no`, `rs`, `late`) sobre uma aula |
+| `warn_answer` | professor | responde: `ok`, `rs` ou `ig` |
+| `warn_mute` / `warn_global` | professor | silencia os avisos de um aluno / de todos |
+| `s_inbox` | aluno | respostas do professor (7 dias) |
+| `pause` | professor | desativa/reativa o aluno (`pz`) |
+Campos novos no horário: `cf` (confirmo antes), `z` (fuso), `e` (data final). Campos novos no vínculo: `pz`, `np`, `wm`. Chaves Redis: `pq:<professor>` (`aluno:horário`), `pw:<professor>` (`aluno:aula:início`), `pa:<aluno>` (`r:professor:horário`, `w:professor:aula:início`). O sync do professor devolve `wm` quando ele silenciou todos os avisos. Erros: `needs_update`, `req_limit`, `pick_off`, `warn_off`, `warn_limit`, `class_gone`, `class_past`, `undo_closed`, `req_gone`, `warn_gone`, `student_paused`, `student_conflict`.

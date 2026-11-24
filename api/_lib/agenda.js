@@ -60,6 +60,18 @@ function cleanSlot(s, now) {
     if (REMIND_OPTIONS.includes(r)) out.r = r;
   }
   if (s.c === 1 || s.c === true) out.c = 1;
+  // "Confirmo antes" (horário livre): o aluno faz um pedido e o professor decide.
+  if (s.cf === 1 || s.cf === true) out.cf = 1;
+  // Fuso de quem marcou (minutos de diferença para o UTC, ex.: -180), para o outro lado mostrar "horário de Brasília".
+  if (s.z !== undefined && s.z !== null) {
+    const z = Math.round(Number(s.z));
+    if (Number.isFinite(z) && z >= -840 && z <= 840 && z % 15 === 0) out.z = z;
+  }
+  // Data final da aula semanal (ms): a última aula é a que começa até essa data.
+  if (out.w && s.e !== undefined && s.e !== null) {
+    const e = Math.round(Number(s.e));
+    if (Number.isFinite(e) && e > start && e <= start + 5 * 366 * DAY) out.e = e;
+  }
   return out;
 }
 
@@ -71,6 +83,7 @@ function nextStart(slot, after) {
   let k = after <= slot.s ? 0 : Math.ceil((after - slot.s) / WEEK);
   for (let i = 0; i < MAX_SKIPS + 2; i++, k++) {
     const s = slot.s + k * WEEK;
+    if (slot.e && s > slot.e) return null;
     if (!skipped.has(s)) return s;
   }
   return null;
@@ -88,6 +101,7 @@ function occurrences(slot, from, to) {
   let k = from <= slot.s ? 0 : Math.ceil((from - slot.s) / WEEK);
   for (; slot.s + k * WEEK < to && out.length < 400; k++) {
     const s = slot.s + k * WEEK;
+    if (slot.e && s > slot.e) break;
     if (!skipped.has(s)) out.push(s);
   }
   return out;

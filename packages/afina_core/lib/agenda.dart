@@ -111,6 +111,15 @@ class ClassSlot {
   /// PROFESSOR: ainda precisa ser enviada ao servidor (false = já foi, null = não se aplica).
   final bool? pending;
 
+  /// Horário livre "confirmo antes": o aluno faz um pedido e o professor decide.
+  final bool confirmFirst;
+
+  /// Fuso de quem marcou, em minutos de diferença para o UTC (ex.: -180 = horário de Brasília); null = não informado.
+  final int? tzMin;
+
+  /// Data final da aula semanal (ms): a última aula é a que começa até essa data; null = sem fim.
+  final int? endMs;
+
   const ClassSlot({
     required this.id,
     this.studentCode = '',
@@ -127,6 +136,9 @@ class ClassSlot {
     this.mode = kModeNone,
     this.link = '',
     this.remindMin,
+    this.confirmFirst = false,
+    this.tzMin,
+    this.endMs,
   });
 
   /// Antecedência do lembrete desta aula, em minutos (0 = sem lembrete).
@@ -150,6 +162,9 @@ class ClassSlot {
     String? mode,
     String? link,
     int? remindMin,
+    bool? confirmFirst,
+    Object? tzMin = _keep,
+    Object? endMs = _keep,
   }) =>
       ClassSlot(
         id: id,
@@ -167,6 +182,9 @@ class ClassSlot {
         mode: mode ?? this.mode,
         link: link ?? this.link,
         remindMin: remindMin ?? this.remindMin,
+        confirmFirst: confirmFirst ?? this.confirmFirst,
+        tzMin: identical(tzMin, _keep) ? this.tzMin : tzMin as int?,
+        endMs: identical(endMs, _keep) ? this.endMs : endMs as int?,
       );
 
   /// Início da primeira ocorrência que começa em [afterMs] ou depois e não foi cancelada.
@@ -179,6 +197,7 @@ class ClassSlot {
     var k = afterMs <= startMs ? 0 : ((afterMs - startMs) + kMsWeek - 1) ~/ kMsWeek;
     for (var i = 0; i < kMaxSlotSkips + 2; i++, k++) {
       final s = startMs + k * kMsWeek;
+      if (endMs != null && s > endMs!) return null;
       if (!skipped.contains(s)) return s;
     }
     return null;
@@ -189,6 +208,7 @@ class ClassSlot {
     if (canceled) return null;
     final s = weekly ? _lastStartAtOrBefore(nowMs) : (startMs <= nowMs ? startMs : null);
     if (s == null || skipped.contains(s)) return null;
+    if (weekly && endMs != null && s > endMs!) return null;
     return nowMs < s + endOffsetMs ? s : null;
   }
 
@@ -209,6 +229,7 @@ class ClassSlot {
     while (out.length < max) {
       final s = startMs + k * kMsWeek;
       if (s >= toMs) break;
+      if (endMs != null && s > endMs!) break;
       if (!skipped.contains(s)) out.add(s);
       k++;
     }
@@ -232,6 +253,10 @@ class ClassSlot {
         if (mode != kModeNone) 'm': mode,
         if (mode == kModeOnline && link.isNotEmpty) 'l': link,
         if (remindMin != null) 'r': remindMin,
+        // Sempre enviados (0 quando não há): é assim que o servidor sabe que o professor APAGOU, em vez de manter o valor antigo.
+        'cf': confirmFirst ? 1 : 0,
+        'e': weekly ? (endMs ?? 0) : 0,
+        if (tzMin != null) 'z': tzMin,
       };
 
   Map<String, dynamic> toJson() => {
@@ -248,6 +273,16 @@ class ClassSlot {
   static int? _remindFrom(Object? v) {
     final n = v is num ? v.toInt() : null;
     return n != null && kRemindOptions.contains(n) ? n : null;
+  }
+
+  static int? _tzFrom(Object? v) {
+    final n = v is num ? v.toInt() : null;
+    return n != null && n >= -840 && n <= 840 && n % 15 == 0 ? n : null;
+  }
+
+  static int? _endFrom(Object? v, int start, bool weekly) {
+    final n = v is num ? v.toInt() : null;
+    return weekly && n != null && n > start && n <= start + 5 * 366 * kMsDay ? n : null;
   }
 
   /// Lê (do disco ou do servidor) limpando e limitando tudo; null se inválido.
@@ -279,6 +314,9 @@ class ClassSlot {
         mode: m['m'] == kModeOnline ? kModeOnline : (m['m'] == kModeInPerson ? kModeInPerson : kModeNone),
         link: m['m'] == kModeOnline ? (meetingUrl(m['l'] as String?) ?? '') : '',
         remindMin: _remindFrom(m['r']),
+        confirmFirst: m['cf'] == 1 || m['cf'] == true,
+        tzMin: _tzFrom(m['z']),
+        endMs: _endFrom(m['e'], start, m['w'] == 1 || m['w'] == true),
       );
     } catch (_) {
       return null;
@@ -424,6 +462,7 @@ SlotPlan planMoveOccurrence(ClassSlot slot, int occurrenceMs, int newStartMs, {r
       mode: slot.mode,
       link: slot.link,
       remindMin: slot.remindMin,
+      tzMin: slot.tzMin,
     ),
   ]);
 }
@@ -517,4 +556,22 @@ String fmtSlotWhen(DateTime when, DateTime now) {
   if (diff == 0) return tr('hoje, {0}', [hh]);
   if (diff == 1) return tr('amanhã, {0}', [hh]);
   return '${days[when.weekday - 1]}, ${fmtDayMonth(when)}, $hh';
+}
+
+/// Fuso como texto curto: "UTC-3" ou "UTC+5:30".
+String tzLabel(int minutes) {
+  final sign = minutes < 0 ? '-' : '+';
+  final a = minutes.abs();
+  final h = a ~/ 60;
+  final m = a % 60;
+  return 'UTC$sign$h${m == 0 ? '' : ':${m.toString().padLeft(2, '0')}'}';
+}
+
+/// A hora da aula no fuso de quem marcou, quando é diferente do fuso deste aparelho ("19:00 (UTC-3)"); null se for igual ou desconhecido.
+String? otherZoneNote(ClassSlot s, {required int localOffsetMin}) {
+  final z = s.tzMin;
+  if (z == null || z == localOffsetMin) return null;
+  final t = DateTime.fromMillisecondsSinceEpoch(s.startMs + z * kMsMinute, isUtc: true);
+  String two(int n) => n.toString().padLeft(2, '0');
+  return '${two(t.hour)}:${two(t.minute)} (${tzLabel(z)})';
 }

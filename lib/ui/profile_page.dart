@@ -7,6 +7,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../app_state.dart';
 import 'account_email.dart';
+import 'account_explainer.dart';
 import 'my_lessons_page.dart';
 import 'plan_page.dart';
 import 'safe_input.dart';
@@ -546,6 +547,10 @@ class _ProfilePageState extends State<ProfilePage> {
               _row(Icons.tune_rounded, tr('Turmas, instrumentos e métodos'),
                   sub: tr('Organize o que você ensina'), onTap: _openTeachingSetup),
             _section(tr('Conta')),
+            _row(Icons.badge_outlined, tr('Como funciona a sua conta'),
+                sub: app.keyPending ? tr('Falta guardar a chave de recuperação') : tr('Código, chave e o que fica no celular'),
+                onTap: () => showAccountExplainer(context, app,
+                    onKey: () => _open(tr('Chave de recuperação'), (_) => _keyBody()), onJoin: () => _push(JoinAccountPage(app: app)))),
             _row(Icons.shield_outlined, tr('Acesso e segurança'),
                 sub: app.keyPending ? tr('Você ainda não guardou a sua chave') : tr('Chave, aparelhos, e-mail e apagar dados'),
                 onTap: () => _open(tr('Acesso e segurança'), _securityBody)),

@@ -115,6 +115,7 @@ class StudentPage extends StatelessWidget {
                   PopupMenuItem(value: 'data', child: Text(tr('Copiar dados (para outro aparelho)'))),
                   PopupMenuItem(value: 'code', child: Text(tr('Código do aluno'))),
                   PopupMenuItem(value: 'rename', child: Text(tr('Renomear'))),
+                  PopupMenuItem(value: 'control', child: Text(tr('Controle do aluno'))),
                   PopupMenuItem(value: 'pause', child: Text(s.paused ? tr('Reativar aluno') : tr('Desativar aluno'))),
                   PopupMenuItem(value: 'delete', child: Text(tr('Excluir aluno'))),
                 ],
@@ -175,6 +176,8 @@ class StudentPage extends StatelessWidget {
         await editStudentCode(context, app, s);
       case 'rename':
         await renameStudent(context, app, s);
+      case 'control':
+        await showStudentControlSheet(context, app, s);
       case 'pause':
         await togglePauseStudent(context, app, s);
       case 'delete':
@@ -656,6 +659,13 @@ class StudentPage extends StatelessWidget {
         ]),
       ),
       const SizedBox(height: Ds.gap),
+      OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(Ds.tap)),
+        onPressed: () => _menu(context, s, 'control'),
+        icon: const Icon(Icons.tune_rounded),
+        label: Text(tr('Controle do aluno')),
+      ),
+      const SizedBox(height: Ds.s8),
       OutlinedButton.icon(
         style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(Ds.tap)),
         onPressed: () => _menu(context, s, 'pause'),

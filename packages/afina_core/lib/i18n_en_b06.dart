@@ -13,7 +13,6 @@ const Map<String, String> kEnB06 = {
   'Conheça o {0}: afinador, metrônomo e estudo para instrumentos. {1}': 'Meet {0}: tuner, metronome and study tools for instruments. {1}',
   'Enviar': 'Send',
   'O link da aula não é válido. Use um endereço https, como o do Meet ou do Zoom.': 'The lesson link isn\'t valid. Use an https address, like a Meet or Zoom one.',
-  'Aula atualizada.': 'Lesson updated.',
   'Aula marcada!': 'Lesson scheduled!',
   'O aluno': 'The student',
   'Toda {0}': 'Every {0}',

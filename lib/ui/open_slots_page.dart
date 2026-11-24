@@ -6,6 +6,7 @@ import 'meeting_link.dart';
 import 'remind_field.dart';
 import 'design_system.dart';
 import 'theme.dart';
+import 'undo_snack.dart';
 import 'widgets.dart';
 
 List<String> get _days => [tr('segunda'), tr('terça'), tr('quarta'), tr('quinta'), tr('sexta'), tr('sábado'), tr('domingo')];
@@ -80,7 +81,19 @@ class _OpenSlotsPageState extends State<OpenSlotsPage> {
                       child: Row(children: [
                         Icon(s.weekly ? Icons.repeat : Icons.event_available_outlined, color: AppColors.accent),
                         const SizedBox(width: 12),
-                        Expanded(child: Text(describeOpenSlot(s), style: const TextStyle(fontWeight: FontWeight.w700))),
+                        Expanded(
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(describeOpenSlot(s), style: const TextStyle(fontWeight: FontWeight.w700)),
+                            if (s.confirmFirst || s.endMs != null)
+                              Text(
+                                [
+                                  if (s.confirmFirst) tr('Você confirma antes'),
+                                  if (s.endMs != null) tr('até {0}', [fmtDayMonth(DateTime.fromMillisecondsSinceEpoch(s.endMs!))]),
+                                ].join(' · '),
+                                style: Ds.support(),
+                              ),
+                          ]),
+                        ),
                         if (s.pending == true) Text(tr('enviando…'), style: TextStyle(color: AppColors.textDim, fontSize: 12)),
                         IconButton(
                           tooltip: tr('Apagar horário'),
@@ -113,10 +126,27 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
   }();
   int duration = 60;
   bool weekly = false;
+  // "Confirmo antes": o aluno pede e o professor decide. Horário semanal já começa pedindo confirmação (é um compromisso toda semana).
+  bool confirm = false;
+  bool confirmTouched = false;
+  DateTime? endDay;
   String mode = kModeNone;
   String link = '';
   late int remind = widget.app.remindDefault;
   String? error;
+
+  Future<void> _pickEnd() async {
+    final now = DateTime.now();
+    final first = DateTime(date.year, date.month, date.day);
+    final d = await showDatePicker(
+      context: context,
+      initialDate: endDay != null && !endDay!.isBefore(first) ? endDay! : first.add(const Duration(days: 28)),
+      firstDate: first,
+      lastDate: DateTime(now.year + 5),
+      helpText: tr('Última aula'),
+    );
+    if (d != null) setState(() => endDay = d);
+  }
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
@@ -165,7 +195,31 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
             title: Text(tr('Repetir toda semana')),
             subtitle: Text(tr('Quem pegar fica com esse horário toda semana.')),
             value: weekly,
-            onChanged: (v) => setState(() => weekly = v),
+            onChanged: (v) => setState(() {
+              weekly = v;
+              if (!confirmTouched) confirm = v;
+            }),
+          ),
+          if (weekly)
+            Row(children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _pickEnd,
+                  icon: const Icon(Icons.event_busy_outlined, size: 18),
+                  label: Text(endDay == null ? tr('Sem data final') : tr('Até {0}', [fmtDayMonthYear(endDay!)])),
+                ),
+              ),
+              if (endDay != null) IconButton(tooltip: tr('Tirar a data final'), onPressed: () => setState(() => endDay = null), icon: const Icon(Icons.close)),
+            ]),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(tr('Eu confirmo antes')),
+            subtitle: Text(confirm ? tr('O aluno faz um pedido e você aceita ou recusa na agenda.') : tr('Quem pegar primeiro leva na hora, sem esperar você.')),
+            value: confirm,
+            onChanged: (v) => setState(() {
+              confirm = v;
+              confirmTouched = true;
+            }),
           ),
           if (widget.app.remindChoiceOn) ...[
             const SizedBox(height: 4),
@@ -206,6 +260,9 @@ class _NewOpenSlotDialogState extends State<_NewOpenSlotDialog> {
                 mode: online ? (mode == kModeNone ? kModeInPerson : mode) : kModeNone,
                 link: online && mode == kModeOnline ? (meetingUrl(link) ?? '') : '',
                 remindMin: widget.app.remindChoiceOn ? remind : null,
+                confirmFirst: confirm,
+                endMs: weekly && endDay != null ? DateTime(endDay!.year, endDay!.month, endDay!.day, 23, 59).millisecondsSinceEpoch : null,
+                tzMin: now.timeZoneOffset.inMinutes,
               ),
             );
           },
@@ -277,24 +334,45 @@ class _PickSlotPageState extends State<PickSlotPage> {
   }
 
   Future<void> _take(ClassSlot s) async {
+    final ask = s.confirmFirst;
     final ok = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
-        title: Text(tr('Pegar este horário?')),
-        content: Text(tr('{0}\n\nA aula entra na sua agenda e seu professor é avisado.', [describeOpenSlot(s)])),
+        title: Text(ask ? tr('Pedir este horário?') : tr('Pegar este horário?')),
+        content: Text(ask
+            ? tr('{0}\n\nO professor precisa confirmar. A aula só entra na sua agenda depois que ele aceitar.', [describeOpenSlot(s)])
+            : (s.weekly
+                ? tr('{0}\n\nA aula entra na sua agenda, se repete toda semana e seu professor é avisado. Se foi sem querer, dá para desfazer nos primeiros 10 minutos.', [describeOpenSlot(s)])
+                : tr('{0}\n\nA aula entra na sua agenda e seu professor é avisado. Se foi sem querer, dá para desfazer nos primeiros 10 minutos.', [describeOpenSlot(s)]))),
         actions: [
           TextButton(style: TextButton.styleFrom(minimumSize: const Size(0, Ds.tap)), onPressed: () => Navigator.pop(c, false), child: Text(tr('Cancelar'))),
-          FilledButton.icon(style: FilledButton.styleFrom(minimumSize: const Size(0, Ds.tap)), onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.event_available_outlined, size: 18), label: Text(tr('Pegar'))),
+          FilledButton.icon(style: FilledButton.styleFrom(minimumSize: const Size(0, Ds.tap)), onPressed: () => Navigator.pop(c, true), icon: const Icon(Icons.event_available_outlined, size: 18), label: Text(ask ? tr('Pedir') : tr('Pegar'))),
         ],
       ),
     );
     if (ok != true || !mounted) return;
     setState(() => taking = true);
-    final err = await app.takeOpenSlot(teacher!, s);
-    if (err == null) {
-      app.celebrate(tr('Horário garantido!'), detail: describeOpenSlot(s));
+    final messenger = ScaffoldMessenger.of(context);
+    final teacherCode = teacher!;
+    final out = await app.takeOpenSlot(teacherCode, s);
+    if (out.error != null) {
+      app.say(out.error!);
+    } else if (out.requested) {
+      app.say(tr('Pedido enviado. Você vê a resposta aqui e no sino.'));
     } else {
-      app.say(err);
+      app.celebrate(tr('Horário garantido!'), detail: describeOpenSlot(s));
+      final cid = out.classId;
+      if (cid != null) {
+        showUndoSnack(messenger,
+            message: tr('Pegou sem querer? Dá para desfazer.'),
+            undoLabel: tr('Desfazer'),
+            duration: const Duration(seconds: 10),
+            onUndo: () async {
+              final err = await app.undoPick(teacherCode, cid);
+              app.say(err ?? tr('Horário devolvido ao professor.'));
+              if (mounted) _load();
+            });
+      }
     }
     if (mounted) {
       setState(() => taking = false);
@@ -310,7 +388,14 @@ class _PickSlotPageState extends State<PickSlotPage> {
     final hm = '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
     // Dia e hora em cima, curtos (cabem numa linha); embaixo, se repete, quanto dura e se é online.
     final title = s.weekly ? '$dayName · $hm' : '${dayName.substring(0, 3)} ${fmtDayMonth(d)} · $hm';
-    final support = [s.weekly ? tr('Toda semana') : tr('Só neste dia'), tr('{0} min', [s.durationMin]), if (s.online) tr('online')].join(' · ');
+    final zone = otherZoneNote(s, localOffsetMin: DateTime.now().timeZoneOffset.inMinutes);
+    final support = [
+      s.weekly ? tr('Toda semana') : tr('Só neste dia'),
+      tr('{0} min', [s.durationMin]),
+      if (s.online) tr('online'),
+      if (s.weekly && s.endMs != null) tr('até {0}', [fmtDayMonth(DateTime.fromMillisecondsSinceEpoch(s.endMs!))]),
+      if (zone != null) tr('no fuso do professor: {0}', [zone]),
+    ].join(' · ');
     return Padding(
       padding: const EdgeInsets.only(bottom: Ds.s12),
       child: AppCard(
@@ -322,13 +407,18 @@ class _PickSlotPageState extends State<PickSlotPage> {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, height: 1.2)),
               Padding(padding: const EdgeInsets.only(top: Ds.s4), child: Text(support, style: Ds.support())),
+              if (s.confirmFirst)
+                Padding(
+                  padding: const EdgeInsets.only(top: Ds.s4),
+                  child: Text(tr('O professor confirma antes'), style: TextStyle(fontSize: Ds.fontSupport, fontWeight: FontWeight.w700, color: AppColors.attention)),
+                ),
             ]),
           ),
           const SizedBox(width: Ds.s12),
           FilledButton(
             style: FilledButton.styleFrom(minimumSize: const Size(88, Ds.tap)),
             onPressed: taking ? null : () => _take(s),
-            child: Text(tr('Pegar'), style: const TextStyle(fontWeight: FontWeight.w800)),
+            child: Text(s.confirmFirst ? tr('Pedir') : tr('Pegar'), style: const TextStyle(fontWeight: FontWeight.w800)),
           ),
         ]),
       ),
@@ -366,7 +456,16 @@ class _PickSlotPageState extends State<PickSlotPage> {
                     ),
                 ]),
               ),
-            if (loading)
+            if (who != null && who.noPick)
+              AppCard(
+                padding: const EdgeInsets.all(Ds.s24),
+                child: Column(children: [
+                  Icon(Icons.chat_bubble_outline_rounded, size: 36, color: AppColors.textDim),
+                  const SizedBox(height: Ds.s12),
+                  Text(tr('Seu professor prefere marcar os horários com você. Combine com ele e a aula aparece na sua agenda.'), textAlign: TextAlign.center, style: Ds.support()),
+                ]),
+              )
+            else if (loading)
               const Padding(padding: EdgeInsets.all(Ds.s32), child: Center(child: CircularProgressIndicator()))
             else if (failed)
               AppCard(
@@ -392,6 +491,24 @@ class _PickSlotPageState extends State<PickSlotPage> {
               )
             else
               for (final s in slots!) _slotCard(s),
+            if (teacher != null && app.requestsTo(teacher!).isNotEmpty) ...[
+              const SizedBox(height: Ds.s16),
+              Text(tr('Pedidos esperando resposta'), style: Ds.section()),
+              const SizedBox(height: Ds.s8),
+              for (final q in app.requestsTo(teacher!))
+                AppCard(
+                  child: Row(children: [
+                    Icon(Icons.hourglass_top_rounded, color: AppColors.attention),
+                    const SizedBox(width: Ds.s12),
+                    Expanded(
+                      child: Text(
+                        tr('{0}: esperando o professor responder', [fmtSlotWhen(DateTime.fromMillisecondsSinceEpoch(q.startMs), DateTime.now())]),
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ]),
+                ),
+            ],
           ],
         ],
       )),

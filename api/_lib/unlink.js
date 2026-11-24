@@ -6,6 +6,7 @@ const profiles = require('./profiles');
 
 const U = (c) => `u:${c}`, T = (c) => `ut:${c}`, S = (c) => `us:${c}`, UL = (c) => `ul:${c}`, SS = (c) => `ss:${c}`;
 const TK = (c) => `tk:${c}`, VD = (c) => `vd:${c}`, DN = (c) => `dn:${c}`;
+const PQ = (c) => `pq:${c}`, PW = (c) => `pw:${c}`, PA = (c) => `pa:${c}`;
 
 /** Apaga os campos de [key] que começam com [prefix]. */
 async function wipePrefix(store, key, prefix) {
@@ -30,6 +31,10 @@ async function unlinkPair(store, cmd, teacher, student, now) {
   const tk = await store.hgetall(TK(teacher)); // horários pegos por esse aluno (libera espaço)
   for (const [sid, who] of Object.entries(tk)) if (who === student) await store.hdel(TK(teacher), sid);
   await wipePrefix(store, VD(student), `${teacher}:`); // decisões do professor sobre as tarefas do aluno
+  await wipePrefix(store, PQ(teacher), `${student}:`); // pedidos de horário e avisos desse aluno
+  await wipePrefix(store, PW(teacher), `${student}:`);
+  await wipePrefix(store, PA(student), `r:${teacher}:`); // respostas desse professor
+  await wipePrefix(store, PA(student), `w:${teacher}:`);
   return hadLink;
 }
 

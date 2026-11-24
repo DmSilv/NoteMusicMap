@@ -20,6 +20,9 @@ Tudo guardado no servidor é anônimo: código de perfil, apelido, datas e o nec
 | `ps:<code>` | aparelhos com notificação: hash do endereço -> inscrição |
 | `av:<code>` | horários disponíveis do professor: idHorário -> JSON |
 | `tk:<code>` | horários já pegos (trava contra dois alunos): idHorário -> aluno |
+| `pq:<code>` | pedidos de horário "confirmo antes" ao professor: "aluno:idHorário" -> JSON |
+| `pw:<code>` | avisos dos alunos ao professor: "aluno:idAula:início" -> JSON |
+| `pa:<code>` | respostas do professor ao aluno: "r:professor:idHorário" \| "w:professor:idAula:início" -> JSON |
 | `vd:<code>` | decisões do professor sobre as tarefas deste aluno: "professor:idAula:idTarefa" -> JSON |
 | `lb:<code>` | acervo do professor: idItem -> JSON (só links) |
 | `sh:<code>` | resumo da semana de estudo (campo d), só quando o aluno escolhe compartilhar com os professores |
@@ -83,6 +86,7 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `activeStudent` | app_state.dart |
 | `adult_ok` | app_state.dart |
 | `ag_del` | app_state.dart |
+| `ag_log` | app_state.dart |
 | `agenda` | app_state.dart |
 | `agenda_in` | app_state.dart |
 | `agenda_rev` | app_state.dart |
@@ -145,6 +149,7 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `install_hide` | app_state.dart |
 | `instrument` | app_state.dart |
 | `keepAwake` | app_state.dart |
+| `key_nudged` | app_state.dart |
 | `lang` | app_state.dart |
 | `latency` | app_state.dart |
 | `lesson_active` | app_state.dart |
@@ -200,6 +205,8 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `scale_staff` | app_state.dart |
 | `scale_tol` | app_state.dart |
 | `sens` | app_state.dart |
+| `sent_reqs` | app_state.dart |
+| `sent_warns` | app_state.dart |
 | `sessions` | app_state.dart |
 | `sessions2` | app_state.dart |
 | `share_study` | app_state.dart |
@@ -238,6 +245,7 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `tunerMode` | app_state.dart |
 | `turma_hint_off` | app_state.dart |
 | `turmas` | app_state.dart |
+| `u` | app_state.dart |
 | `unlink_students` | app_state.dart |
 | `unlink_teachers` | app_state.dart |
 | `upd_hide` | app_state.dart |
@@ -245,4 +253,4 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `verdict_rev` | app_state.dart |
 | `verdicts` | app_state.dart |
 
-Total: **168** chaves locais.
+Total: **173** chaves locais.

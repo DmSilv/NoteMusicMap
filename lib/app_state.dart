@@ -21,6 +21,7 @@ import 'audio/pitch_source.dart';
 import 'data/repository.dart';
 import 'feedback/feedback_service.dart';
 import 'link/account_service.dart';
+import 'link/agenda_extras.dart';
 import 'link/link_service.dart';
 import 'link/mirror_engine.dart';
 import 'stats/error_service.dart';
@@ -1830,6 +1831,18 @@ class AppState extends ChangeNotifier {
       _ => null,
     };
     _picksRev = p.getInt('picks_rev') ?? 0;
+    agendaLog = AgendaLogEntry.listFrom(p.getString('ag_log'));
+    sentRequests = _listOf(p.getString('sent_reqs'), SentRequest.tryFrom);
+    sentWarns = _listOf(p.getString('sent_warns'), SentWarn.tryFrom);
+  }
+
+  static List<T> _listOf<T>(String? raw, T? Function(Object?) parse) {
+    if (raw == null || raw.isEmpty) return [];
+    try {
+      return [for (final x in (jsonDecode(raw) as List).take(200)) ?parse(x)];
+    } catch (_) {
+      return [];
+    }
   }
 
   // Lápides (ver mirror.dart): o que foi apagado de vez daqui. O que sumiu da lista desde a última gravação ganha uma lápide.
@@ -1903,14 +1916,18 @@ class AppState extends ChangeNotifier {
     final stamp = old == null ? now : (now > old.updatedMs ? now : old.updatedMs + 1);
     final saved = s.copyWith(updatedMs: stamp, pending: _canSendTo(st) ? true : null);
     final i = agenda.indexWhere((x) => x.id == s.id);
+    if (i < 0 && agenda.length >= kMaxSlotsPerTeacher) return tr('Limite de aulas marcadas atingido. Cancele algumas antigas.');
+    _snapAgenda();
     if (i >= 0) {
       agenda[i] = saved;
-    } else if (agenda.length >= kMaxSlotsPerTeacher) {
-      return tr('Limite de aulas marcadas atingido. Cancele algumas antigas.');
     } else {
       agenda.add(saved);
     }
+    logAgenda(old == null
+        ? tr('Você marcou aula com {0}: {1}.', [st.name, describeSlot(saved)])
+        : tr('Você mudou a aula de {0}: {1}.', [st.name, describeSlot(saved)]));
     _saveAgenda();
+    _offerUndo();
     notifyListeners();
     if (saved.pending == true) unawaited(flushAgenda());
     return null;
@@ -1922,12 +1939,15 @@ class AppState extends ChangeNotifier {
     if (i < 0) return;
     final st = studentByCode(agenda[i].studentCode);
     final now = DateTime.now().millisecondsSinceEpoch;
+    _snapAgenda();
+    logAgenda(tr('Você cancelou a aula de {0}.', [st?.name ?? tr('um aluno')]));
     agenda[i] = agenda[i].copyWith(
         canceled: true,
         updatedMs: now > agenda[i].updatedMs ? now : agenda[i].updatedMs + 1,
         pending: st != null && _canSendTo(st) ? true : null);
     _saveAgenda();
     notifyListeners();
+    _offerUndo();
     if (agenda[i].pending == true) unawaited(flushAgenda());
   }
 
@@ -1940,12 +1960,15 @@ class AppState extends ChangeNotifier {
     if (s.skipped.length >= kMaxSlotSkips) return;
     final st = studentByCode(s.studentCode);
     final now = DateTime.now().millisecondsSinceEpoch;
+    _snapAgenda();
+    logAgenda(tr('Você cancelou a aula de {0} do dia {1}.', [st?.name ?? tr('um aluno'), fmtSlotWhen(DateTime.fromMillisecondsSinceEpoch(startMs), DateTime.now())]));
     agenda[i] = s.copyWith(
         skipped: [...s.skipped, startMs],
         updatedMs: now > s.updatedMs ? now : s.updatedMs + 1,
         pending: st != null && _canSendTo(st) ? true : null);
     _saveAgenda();
     notifyListeners();
+    _offerUndo();
     if (agenda[i].pending == true) unawaited(flushAgenda());
   }
 
@@ -1999,6 +2022,353 @@ class AppState extends ChangeNotifier {
         notifyListeners();
       }
     }
+  }
+
+  // ---------------- Agenda com o professor no comando ----------------
+  // Regra do produto: o professor decide; o aluno informa e pede, e nada que ele faz muda a agenda do professor sem o professor
+  // decidir (a única exceção é pegar um horário que o professor mesmo deixou livre, e aí o professor pode pedir confirmação).
+
+  /// A agenda antes da última mudança (para "Desfazer"). Vale por 2 minutos ou até a próxima mudança.
+  List<ClassSlot>? _undoSnap;
+  int _undoAt = 0;
+
+  /// Quem mostra o aviso com o botão "Desfazer" (a tela principal liga isto).
+  void Function(String message, VoidCallback undo)? onUndoable;
+
+  void _snapAgenda() {
+    _undoSnap = List<ClassSlot>.of(agenda);
+    _undoAt = DateTime.now().millisecondsSinceEpoch;
+  }
+
+  void _offerUndo() {
+    if (_undoSnap == null) return;
+    onUndoable?.call(tr('Agenda alterada.'), undoAgenda);
+  }
+
+  /// Volta a agenda ao que era antes da última mudança; os alunos afetados recebem a versão restaurada.
+  void undoAgenda() {
+    final snap = _undoSnap;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (snap == null || now - _undoAt > 2 * kMsMinute) {
+      say(tr('Já não dá para desfazer.'));
+      return;
+    }
+    _undoSnap = null;
+    String sig(ClassSlot s) => jsonEncode({...s.toWire()}..remove('u'));
+    int stamp(ClassSlot cur) => now > cur.updatedMs ? now : cur.updatedMs + 1;
+    bool? pend(String code) {
+      final st = studentByCode(code);
+      return st != null && _canSendTo(st) ? true : null;
+    }
+
+    final byId = {for (final s in snap) s.id: s};
+    for (var i = 0; i < agenda.length; i++) {
+      final cur = agenda[i];
+      final old = byId.remove(cur.id);
+      if (old == null) {
+        if (!cur.canceled) agenda[i] = cur.copyWith(canceled: true, updatedMs: stamp(cur), pending: pend(cur.studentCode));
+      } else if (sig(old) != sig(cur)) {
+        agenda[i] = old.copyWith(updatedMs: stamp(cur), pending: pend(old.studentCode));
+      }
+    }
+    for (final old in byId.values) {
+      agenda.add(old.copyWith(updatedMs: now, pending: pend(old.studentCode)));
+    }
+    logAgenda(tr('Você desfez a última mudança na agenda.'));
+    _saveAgenda();
+    notifyListeners();
+    unawaited(flushAgenda());
+  }
+
+  /// Histórico da agenda (só no aparelho do professor): o que mudou e quem mudou.
+  List<AgendaLogEntry> agendaLog = [];
+
+  void logAgenda(String text) {
+    agendaLog.insert(0, AgendaLogEntry(DateTime.now().millisecondsSinceEpoch, text));
+    if (agendaLog.length > kMaxAgendaLog) agendaLog.removeRange(kMaxAgendaLog, agendaLog.length);
+    _prefs?.setString('ag_log', jsonEncode([for (final e in agendaLog) e.toJson()]));
+  }
+
+  String _studentLabel(String code) => studentByCode(code)?.name ?? tr('Um aluno');
+
+  // ---- PROFESSOR: pedidos de horário e avisos dos alunos ----
+  List<PickRequest> pickReqs = [];
+  List<StudentWarn> studentWarns = [];
+
+  /// O professor silenciou os avisos de todos os alunos.
+  bool warnsMuted = false;
+
+  int get inboxCount => pickReqs.length + studentWarns.length;
+  bool _inboxPulling = false;
+
+  /// Traz os pedidos e avisos (só quando o contador "ar" muda ou ao abrir a agenda).
+  Future<void> pullInbox() async {
+    if (_inboxPulling || !linkEnabled || linkUnavailable || students.isEmpty) return;
+    _inboxPulling = true;
+    try {
+      final r = await links.tInbox(profile.shareCode, profile.secret);
+      if (r.unavailable) return _markLinkUnavailable();
+      if (!r.ok) {
+        if (r.offline) linkOnline = false;
+        return;
+      }
+      linkOnline = true;
+      final seenReq = {for (final q in pickReqs) '${q.student}:${q.slotId}'};
+      final seenWarn = {for (final w in studentWarns) '${w.student}:${w.slotId}:${w.occ}'};
+      final newReqs = [for (final q in r.reqs) if (!seenReq.contains('${q.student}:${q.slotId}')) q];
+      final newWarns = [for (final w in r.warns) if (!seenWarn.contains('${w.student}:${w.slotId}:${w.occ}')) w];
+      pickReqs = r.reqs;
+      studentWarns = r.warns;
+      for (final q in newReqs) {
+        final at = fmtSlotWhen(DateTime.fromMillisecondsSinceEpoch(q.slot.startMs), DateTime.now());
+        final msg = tr('{0} pediu o horário de {1}. Aceite ou recuse na agenda.', [_studentLabel(q.student), at]);
+        logAgenda(msg);
+        addNotice('pick', msg);
+      }
+      for (final w in newWarns) {
+        final at = fmtSlotWhen(DateTime.fromMillisecondsSinceEpoch(w.occ), DateTime.now());
+        final what = switch (w.kind) {
+          'no' => tr('não vai conseguir ir'),
+          'rs' => tr('queria remarcar'),
+          _ => tr('vai se atrasar'),
+        };
+        final msg = tr('{0} avisou que {1} na aula de {2}.', [_studentLabel(w.student), what, at]);
+        logAgenda(msg);
+        addNotice('pick', msg);
+      }
+      if (newReqs.isNotEmpty || newWarns.isNotEmpty) {
+        final n = newReqs.length + newWarns.length;
+        say(n == 1 ? tr('Tem 1 pedido ou aviso de aluno na agenda.') : tr('Tem {0} pedidos e avisos de alunos na agenda.', [n]));
+      }
+      notifyListeners();
+    } finally {
+      _inboxPulling = false;
+    }
+  }
+
+  static String _inboxError(LinkReply r) {
+    if (r.unavailable) return tr('Sem conexão com o servidor. Tente de novo.');
+    if (r.offline) return tr('Sem internet. Tente de novo.');
+    return _slotError(r.error);
+  }
+
+  /// Aceita ([accept]) ou recusa um pedido de horário. Devolve o motivo se não deu; null se deu.
+  Future<String?> answerRequest(PickRequest q, bool accept) async {
+    final r = await links.reqAnswer(profile.shareCode, profile.secret, student: q.student, slotId: q.slotId, accept: accept);
+    if (!r.ok) {
+      if (r.error == 'req_gone' || r.error == 'slot_gone') {
+        pickReqs.removeWhere((x) => x.student == q.student && x.slotId == q.slotId);
+        notifyListeners();
+      }
+      return _inboxError(r);
+    }
+    pickReqs.removeWhere((x) => x.student == q.student && x.slotId == q.slotId);
+    logAgenda(accept ? tr('Você aceitou o pedido de {0}.', [_studentLabel(q.student)]) : tr('Você recusou o pedido de {0}.', [_studentLabel(q.student)]));
+    notifyListeners();
+    if (accept) unawaited(pullPicks());
+    return null;
+  }
+
+  /// Responde um aviso: 'ok' = falta justificada (registra na ficha), 'rs' = vai remarcar (a tela abre o remarcar), 'ig' = ignorar.
+  Future<String?> answerWarn(StudentWarn w, String decision) async {
+    final r = await links.warnAnswer(profile.shareCode, profile.secret, student: w.student, classId: w.slotId, occ: w.occ, decision: decision);
+    if (!r.ok) {
+      if (r.error == 'warn_gone') {
+        studentWarns.removeWhere((x) => x.student == w.student && x.slotId == w.slotId && x.occ == w.occ);
+        notifyListeners();
+      }
+      return _inboxError(r);
+    }
+    studentWarns.removeWhere((x) => x.student == w.student && x.slotId == w.slotId && x.occ == w.occ);
+    final st = studentByCode(w.student);
+    if (decision == 'ok' && st != null) {
+      recordAbsence(st, lessonMs: w.occ, kind: AbsenceKind.notified);
+      _saveTeacher();
+    }
+    logAgenda(switch (decision) {
+      'ok' => tr('Você registrou o aviso de {0} como falta justificada.', [_studentLabel(w.student)]),
+      'rs' => tr('Você vai remarcar a aula de {0}.', [_studentLabel(w.student)]),
+      _ => tr('Você ignorou o aviso de {0}.', [_studentLabel(w.student)]),
+    });
+    notifyListeners();
+    return null;
+  }
+
+  /// Liga ou desliga os avisos de todos os alunos.
+  Future<String?> setWarnsAllowed(bool on) async {
+    final r = await links.warnGlobal(profile.shareCode, profile.secret, on);
+    if (!r.ok) return _inboxError(r);
+    warnsMuted = !on;
+    notifyListeners();
+    return null;
+  }
+
+  /// Liga ou desliga "pegar horário" para UM aluno.
+  Future<String?> setStudentCanPick(Student s, bool on) async {
+    final code = s.code;
+    if (code == null) return tr('Este aluno ainda não está vinculado.');
+    final r = await links.pickAllow(profile.shareCode, profile.secret, student: code, on: on);
+    if (!r.ok) return _inboxError(r);
+    s.noPick = !on;
+    _saveTeacher();
+    notifyListeners();
+    return null;
+  }
+
+  /// Silencia ou não os avisos de UM aluno.
+  Future<String?> setStudentWarnsMuted(Student s, bool muted) async {
+    final code = s.code;
+    if (code == null) return tr('Este aluno ainda não está vinculado.');
+    final r = await links.warnMute(profile.shareCode, profile.secret, student: code, on: muted);
+    if (!r.ok) return _inboxError(r);
+    s.muted = muted;
+    _saveTeacher();
+    notifyListeners();
+    return null;
+  }
+
+  // ---- ALUNO: pedidos e avisos enviados ----
+  List<SentRequest> sentRequests = [];
+  List<SentWarn> sentWarns = [];
+  bool _studentInboxPulling = false;
+
+  void _saveSent() {
+    _prefs?.setString('sent_reqs', jsonEncode([for (final q in sentRequests) q.toJson()]));
+    _prefs?.setString('sent_warns', jsonEncode([for (final w in sentWarns) w.toJson()]));
+  }
+
+  /// O aviso que o aluno já mandou para esta aula (ou null).
+  SentWarn? warnFor(String teacher, String classId, int occ) {
+    for (final w in sentWarns) {
+      if (w.teacher == teacher && w.classId == classId && w.occ == occ) return w;
+    }
+    return null;
+  }
+
+  /// ALUNO: pedido de horário esperando resposta do [teacher].
+  List<SentRequest> requestsTo(String teacher) => [for (final q in sentRequests) if (q.teacher == teacher) q];
+
+  /// ALUNO: avisa o professor sobre uma aula (não muda a aula). [kind]: no | rs | late. Devolve o motivo se não deu.
+  Future<String?> sendWarn(ClassSlot slot, int occ, String kind) async {
+    final r = await links.warnPut(profile.shareCode, profile.secret, teacher: slot.teacherCode, classId: slot.id, occ: occ, kind: kind);
+    if (!r.ok) return _inboxError(r);
+    if (warnFor(slot.teacherCode, slot.id, occ) == null) {
+      sentWarns.add(SentWarn(slot.teacherCode, slot.id, occ, kind, DateTime.now().millisecondsSinceEpoch));
+      _saveSent();
+    }
+    notifyListeners();
+    return null;
+  }
+
+  /// ALUNO: traz as respostas do professor (só quando há algo esperando resposta).
+  Future<void> pullStudentInbox() async {
+    final waitingWarns = sentWarns.where((w) => w.state == 'wait').isNotEmpty;
+    if (_studentInboxPulling || !linkEnabled || linkUnavailable || (sentRequests.isEmpty && !waitingWarns)) return;
+    _studentInboxPulling = true;
+    try {
+      final r = await links.sInbox(profile.shareCode, profile.secret);
+      if (r.unavailable) return _markLinkUnavailable();
+      if (!r.ok) {
+        if (r.offline) linkOnline = false;
+        return;
+      }
+      linkOnline = true;
+      var changed = false;
+      for (final a in r.answers) {
+        final q = sentRequests.where((x) => x.answerKey == a.key).firstOrNull;
+        if (q != null) {
+          sentRequests.remove(q);
+          changed = true;
+          final who = myTeachers.where((t) => t.code == q.teacher).firstOrNull?.name ?? tr('O professor');
+          final msg = tr('{0} não pôde confirmar o horário que você pediu. Veja outro horário livre.', [who.isEmpty ? tr('O professor') : who]);
+          addNotice('pick', msg);
+          say(msg);
+          continue;
+        }
+        final w = sentWarns.where((x) => x.answerKey == a.key).firstOrNull;
+        if (w != null && w.state == 'wait') {
+          sentWarns[sentWarns.indexOf(w)] = w.withState(a.state);
+          changed = true;
+          final who = myTeachers.where((t) => t.code == w.teacher).firstOrNull?.name ?? '';
+          if (a.state == 'ok') {
+            say(tr('{0} registrou o seu aviso.', [who.isEmpty ? tr('O professor') : who]));
+          } else if (a.state == 'rs') {
+            say(tr('{0} vai remarcar a aula.', [who.isEmpty ? tr('O professor') : who]));
+          }
+        }
+      }
+      // pedidos antigos (mais de 7 dias) e avisos de aulas que já passaram há tempos saem da lista
+      final now = DateTime.now().millisecondsSinceEpoch;
+      final n0 = sentRequests.length + sentWarns.length;
+      sentRequests.removeWhere((q) => now - q.at > 7 * kMsDay);
+      sentWarns.removeWhere((w) => now - w.occ > 3 * kMsDay);
+      if (sentRequests.length + sentWarns.length != n0) changed = true;
+      if (changed) {
+        _saveSent();
+        notifyListeners();
+      }
+    } finally {
+      _studentInboxPulling = false;
+    }
+  }
+
+  /// ALUNO: desfaz um horário que acabou de pegar (poucos minutos). Devolve o motivo se não deu.
+  Future<String?> undoPick(String teacher, String classId) async {
+    final r = await links.pickUndo(profile.shareCode, profile.secret, teacher: teacher, classId: classId);
+    if (!r.ok) return _inboxError(r);
+    final i = myAgenda.indexWhere((s) => s.id == classId && s.teacherCode == teacher);
+    if (i >= 0) myAgenda[i] = myAgenda[i].copyWith(canceled: true);
+    _saveAgenda();
+    notifyListeners();
+    unawaited(pullAgenda(announce: false));
+    return null;
+  }
+
+  /// PROFESSOR: cancela de uma vez todas as aulas futuras de um aluno (ele é avisado). Devolve quantas aulas foram canceladas.
+  int cancelStudentClasses(String code) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final st = studentByCode(code);
+    var n = 0;
+    final mine = [for (var i = 0; i < agenda.length; i++) if (!agenda[i].canceled && agenda[i].studentCode == code && (agenda[i].weekly || agenda[i].startMs > now)) i];
+    if (mine.isEmpty) return 0;
+    _snapAgenda();
+    for (final i in mine) {
+      final s = agenda[i];
+      agenda[i] = s.copyWith(canceled: true, updatedMs: now > s.updatedMs ? now : s.updatedMs + 1, pending: st != null && _canSendTo(st) ? true : null);
+      n++;
+    }
+    logAgenda(tr('Você cancelou as aulas futuras de {0}.', [st?.name ?? tr('um aluno')]));
+    _saveAgenda();
+    notifyListeners();
+    _offerUndo();
+    unawaited(flushAgenda());
+    return n;
+  }
+
+  /// Aulas futuras de um aluno (as regras semanais contam como uma).
+  int futureClassesOf(String code) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    return agenda.where((s) => !s.canceled && s.studentCode == code && (s.weekly || s.startMs > now)).length;
+  }
+
+  /// O último horário que o aluno acabou de pegar (para o "Desfazer" dos primeiros 10 minutos).
+  ({String teacher, String classId, int at})? lastPick;
+
+  /// Dá para desfazer este horário agora?
+  bool canUndoPick(String teacher, String classId) {
+    final p = lastPick;
+    return p != null && p.teacher == teacher && p.classId == classId && DateTime.now().millisecondsSinceEpoch - p.at < 9 * kMsMinute;
+  }
+
+  // ---- Calendário do celular ----
+  /// Arquivo .ics com as aulas (do professor: as que marcou; do aluno: as que recebeu).
+  String agendaIcsText({required bool forTeacher}) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (forTeacher) {
+      return buildIcs(visibleAgenda, nowMs: now, titleOf: (s) => tr('Aula com {0}', [_studentLabel(s.studentCode)]));
+    }
+    return buildIcs([for (final s in myAgenda) if (!s.canceled) s],
+        nowMs: now, titleOf: (s) => tr('Aula com {0}', [s.teacherName.isNotEmpty ? s.teacherName : tr('o professor')]));
   }
 
   // ---------------- Horários disponíveis (professor) e pegar horário (aluno) ----------------
@@ -2083,6 +2453,16 @@ class AppState extends ChangeNotifier {
         'pick_limit' => tr('Você já tem muitas aulas marcadas com este professor.'),
         'student_conflict' => tr('Você já tem outra aula nesse horário.'),
         'student_paused' => tr('Suas aulas com este professor estão pausadas.'),
+        'needs_update' => tr('Atualize o app para pedir este horário.'),
+        'req_limit' => tr('Você já tem pedidos esperando resposta deste professor.'),
+        'pick_off' => tr('Seu professor prefere marcar os horários com você. Fale com ele.'),
+        'warn_off' => tr('Este professor não recebe avisos por aqui. Fale com ele diretamente.'),
+        'warn_limit' => tr('Você já enviou avisos demais hoje. Fale direto com o professor.'),
+        'class_gone' => tr('Esta aula não existe mais.'),
+        'class_past' => tr('Esta aula já passou.'),
+        'undo_closed' => tr('Já não dá para desfazer. Fale com o professor.'),
+        'req_gone' => tr('Este pedido não existe mais.'),
+        'warn_gone' => tr('Este aviso não existe mais.'),
         _ => code ?? tr('tente de novo.'),
       };
 
@@ -2100,8 +2480,18 @@ class AppState extends ChangeNotifier {
       linkOnline = true;
       final now = DateTime.now();
       final notes = <String>[];
+      final undone = <String>[];
       for (final s in r.picks) {
-        if (agenda.any((x) => x.id == s.id)) continue;
+        final idx = agenda.indexWhere((x) => x.id == s.id);
+        if (idx >= 0) {
+          // o aluno desfez o horário que tinha acabado de pegar: a aula some e o horário volta a ficar livre
+          if (s.canceled && !agenda[idx].canceled) {
+            agenda[idx] = agenda[idx].copyWith(canceled: true, updatedMs: s.updatedMs, pending: false);
+            undone.add(studentByCode(s.studentCode)?.name ?? tr('Um aluno'));
+          }
+          continue;
+        }
+        if (s.canceled) continue;
         final st = studentByCode(s.studentCode);
         if (st == null) continue;
         agenda.add(s.copyWith(pending: false));
@@ -2113,6 +2503,12 @@ class AppState extends ChangeNotifier {
       _picksRev = r.ar;
       _saveAgenda();
       notifyListeners();
+      if (undone.isNotEmpty) {
+        final msg = tr('{0} desfez o horário que tinha pegado.', [undone.join(', ')]);
+        logAgenda(msg);
+        say(msg);
+      }
+      unawaited(pullInbox());
       if (notes.isNotEmpty) {
         final msg = notes.length == 1 ? notes.first : tr('{0} alunos pegaram horários.', [notes.length]);
         addNotice('pick', msg);
@@ -2139,10 +2535,10 @@ class AppState extends ChangeNotifier {
   }
 
   /// ALUNO: pega o horário [slot] do professor [teacher]. Devolve o motivo se não der; null se pegou.
-  Future<String?> takeOpenSlot(String teacher, ClassSlot slot) async {
+  Future<PickOutcome> takeOpenSlot(String teacher, ClassSlot slot) async {
     // Trava contra toque duplo: só um pedido por vez (o servidor também impede dois alunos, mas assim
     // o mesmo aluno não dispara duas aulas).
-    if (_taking) return tr('Aguarde: o pedido anterior ainda está sendo enviado.');
+    if (_taking) return PickOutcome(error: tr('Aguarde: o pedido anterior ainda está sendo enviado.'));
     _taking = true;
     try {
       return await _takeOpenSlot(teacher, slot);
@@ -2153,18 +2549,29 @@ class AppState extends ChangeNotifier {
 
   bool _taking = false;
 
-  Future<String?> _takeOpenSlot(String teacher, ClassSlot slot) async {
+  Future<PickOutcome> _takeOpenSlot(String teacher, ClassSlot slot) async {
     crumb(tr('Pegar horário'));
     final now = DateTime.now().millisecondsSinceEpoch;
     final mine = myAgenda.where((s) => s.teacherCode == teacher && s.nextStart(now) != null).length;
     final p = checkPick(slot, teacherClasses: const [], studentUpcoming: mine, nowMs: now);
-    if (p != null && p != SlotProblem.conflict) return slotProblemText(p);
+    if (p != null && p != SlotProblem.conflict) return PickOutcome(error: slotProblemText(p));
     final r = await links.availTake(profile.shareCode, profile.secret, teacher: teacher, slotId: slot.id);
-    if (r.unavailable) return tr('Sem conexão com o servidor. Tente de novo.');
-    if (r.offline) return tr('Sem internet. Tente de novo.');
-    if (!r.ok) return _slotError(r.error);
+    if (r.unavailable) return PickOutcome(error: tr('Sem conexão com o servidor. Tente de novo.'));
+    if (r.offline) return PickOutcome(error: tr('Sem internet. Tente de novo.'));
+    if (!r.ok) return PickOutcome(error: _slotError(r.error));
+    if (r.requested) {
+      // "Confirmo antes": ficou um pedido; o professor decide. Guarda para o aluno ver que está esperando.
+      if (!sentRequests.any((q) => q.teacher == teacher && q.slotId == slot.id)) {
+        sentRequests.add(SentRequest(teacher, slot.id, now, slot.startMs));
+        _saveSent();
+        notifyListeners();
+      }
+      return const PickOutcome(requested: true);
+    }
     unawaited(pullAgenda(announce: false));
-    return null;
+    final cid = r.taken?.id;
+    if (cid != null) lastPick = (teacher: teacher, classId: cid, at: now);
+    return PickOutcome(classId: cid);
   }
 
   /// ALUNO: traz as aulas marcadas. Avisa se há aula nova, mudada ou cancelada.
@@ -2205,8 +2612,13 @@ class AppState extends ChangeNotifier {
       }
       myAgenda = next;
       _agendaRev = r.sr;
+      // pedido aceito: a aula já está na agenda, então o pedido não precisa mais ficar na lista de espera
+      final nReq = sentRequests.length;
+      sentRequests.removeWhere((q) => next.any((c) => !c.canceled && c.teacherCode == q.teacher && c.startMs == q.startMs));
+      if (sentRequests.length != nReq) _saveSent();
       _saveAgenda();
       notifyListeners();
+      if (sentRequests.isNotEmpty || sentWarns.any((w) => w.state == 'wait')) unawaited(pullStudentInbox());
       if (announce && notes.isNotEmpty) {
         final msg = notes.length == 1 ? notes.first : tr('{0} novidades na sua agenda de aulas.', [notes.length]);
         addNotice('lesson', msg);
@@ -3447,6 +3859,8 @@ class AppState extends ChangeNotifier {
     if (err != null) return err;
     final novas = plan.changed.where((c) => !agenda.any((x) => x.id == c.id)).length;
     if (agenda.length + novas > kMaxSlotsPerTeacher) return tr('Limite de aulas marcadas atingido. Cancele algumas antigas.');
+    _snapAgenda();
+    logAgenda(tr('Você mudou a agenda ({0}).', [crumbName]));
     for (final c in plan.changed) {
       final st = studentByCode(c.studentCode);
       final i = agenda.indexWhere((x) => x.id == c.id);
@@ -3460,6 +3874,7 @@ class AppState extends ChangeNotifier {
     }
     _saveAgenda();
     notifyListeners();
+    _offerUndo();
     unawaited(flushAgenda());
     return null;
   }
@@ -3477,6 +3892,10 @@ class AppState extends ChangeNotifier {
   void _applyFeatures(LinkReply r) {
     final f = r.ff.toSet();
     var changed = false;
+    if (warnsMuted != r.warnsOff) {
+      warnsMuted = r.warnsOff;
+      changed = true;
+    }
     // O plano Pro vem junto da sincronização (sem a data, o servidor diz que não há Pro).
     if (r.pro != proUntil) {
       proUntil = r.pro;
@@ -3673,6 +4092,8 @@ class AppState extends ChangeNotifier {
           linkState: 'active',
           remoteName: x.name,
           paused: x.paused,
+          noPick: x.noPick,
+          muted: x.muted,
         );
         students.add(s);
         activeStudentId ??= s.id;
@@ -3685,6 +4106,8 @@ class AppState extends ChangeNotifier {
         }
         s.linkState = 'active';
         s.paused = x.paused; // o servidor manda (outro aparelho do professor pode ter pausado)
+        s.noPick = x.noPick;
+        s.muted = x.muted;
         // Acompanha o apelido novo do aluno enquanto o professor não renomeou.
         final auto = s.name == (s.remoteName ?? '') || isDefaultStudentName(s.name, x.code);
         if (x.name.isNotEmpty && auto) s.name = x.name;
@@ -3722,6 +4145,11 @@ class AppState extends ChangeNotifier {
       say(newStudents.length == 1
           ? tr('{0} entrou na sua lista de alunos.', [newStudents.first])
           : tr('{0} alunos novos entraram na sua lista.', [newStudents.length]));
+    }
+    if ((newTeachers.isNotEmpty || newStudents.isNotEmpty) && keyPending && !(_prefs?.getBool('key_nudged') ?? false)) {
+      // Primeiro vínculo e a chave ainda não foi guardada: um lembrete só, no sino.
+      _prefs?.setBool('key_nudged', true);
+      addNotice('teacher', tr('Seu primeiro vínculo está feito. Guarde a sua chave de recuperação: sem ela, perder o celular é perder o vínculo. Veja em Minha conta › Como funciona a sua conta.'));
     }
     if (newTeachers.isNotEmpty) {
       for (final t in newTeachers) {

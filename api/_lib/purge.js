@@ -17,6 +17,7 @@ const RK = 'acct:rk'; // hash da chave de 25 caracteres -> código
 
 const U = (c) => `u:${c}`, T = (c) => `ut:${c}`, S = (c) => `us:${c}`, SL = (c) => `sl:${c}`, SS = (c) => `ss:${c}`;
 const LB = (c) => `lb:${c}`, UL = (c) => `ul:${c}`, DN = (c) => `dn:${c}`, VD = (c) => `vd:${c}`, AV = (c) => `av:${c}`;
+const PQ = (c) => `pq:${c}`, PW = (c) => `pw:${c}`, PA = (c) => `pa:${c}`;
 const TK = (c) => `tk:${c}`, PS = (c) => `ps:${c}`, PH = (c) => `ph:${c}`, MI = (c) => `mi:${c}`, MM = (c) => `mm:${c}`;
 
 /** Apaga o perfil [code]. Devolve { ok: true, links } ou { ok: false, missing: true } se o perfil não existe. */
@@ -32,12 +33,16 @@ async function purgeProfile(store, cmd, code, now) {
     await wipePrefix(SS(st), `${code}:`);
     await wipePrefix(UL(st), `${code}:`);
     await wipePrefix(VD(st), `${code}:`);
+    await wipePrefix(PA(st), `r:${code}:`);
+    await wipePrefix(PA(st), `w:${code}:`);
     await store.hset(U(st), 'kr', String(now));
     if ((await store.hlen(S(st))) === 0) await profiles.setRole(cmd, st, 's', false, now);
   }
   for (const te of Object.keys(teachers)) { // este perfil era o aluno deles
     await store.hdel(T(te), code);
     await wipePrefix(DN(te), `${code}:`);
+    await wipePrefix(PQ(te), `${code}:`);
+    await wipePrefix(PW(te), `${code}:`);
     const sl = await store.hgetall(SL(te));
     for (const [id, json] of Object.entries(sl)) {
       try { if (JSON.parse(json).sc === code) await store.hdel(SL(te), id); } catch (_) { /* linha ruim */ }
@@ -52,7 +57,7 @@ async function purgeProfile(store, cmd, code, now) {
   for (const id of Object.keys(features.FEATURES)) await cmd.cmd(['SREM', `ff:l:${id}`, code]);
   for (const g of features.groupsOf(prof)) await cmd.cmd(['SREM', `ff:gm:${g}`, code]);
   // Os dados do próprio perfil.
-  for (const key of [T, S, SL, SS, UL, DN, VD, AV, TK, PS, LB, PH, MI, MM, U]) {
+  for (const key of [T, S, SL, SS, UL, DN, VD, AV, TK, PQ, PW, PA, PS, LB, PH, MI, MM, U]) {
     for (const f of Object.keys(await store.hgetall(key(code)))) await store.hdel(key(code), f);
   }
   await inbox.adminDelete(store, code); // a conversa particular some junto com o perfil

@@ -342,11 +342,19 @@ Precisa do Upstash Redis. Sem ele devolve 503 e o app segue só neste aparelho.
 | `push_unsub` | — |
 | `avail_put` | Horários disponíveis: o PROFESSOR cria, muda ou apaga |
 | `avail_take` | O ALUNO pega um horário disponível: o primeiro que pega leva |
+| `t_inbox` | Caixa de entrada do PROFESSOR: pedidos de horário e avisos dos alunos (uma consulta só, feita quando "ar" muda) |
+| `req_answer` | PROFESSOR aceita ou recusa o pedido de um horário "confirmo antes" req_answer { other: aluno, slot: idHorário, accept: true\|false } |
+| `warn_put` | ALUNO avisa o professor (não muda a aula): "não vou", "queria remarcar" ou "vou atrasar" warn_put { other: professor, slot: idAula, occ: início da aula (ms), k: 'no' \| 'rs' \| 'late' } |
+| `warn_answer` | PROFESSOR responde um aviso: ok (falta justificada) \| rs (vai remarcar) \| ig (ignorar) warn_answer { other: aluno, slot, occ, d } |
+| `warn_global` | PROFESSOR liga ou desliga todos os avisos dos alunos (padrão: ligado) |
+| `s_inbox` | ALUNO: respostas do professor aos pedidos e avisos que enviou (consulta só quando há algo esperando) |
+| `pick_undo` | ALUNO desfaz um horário que acabou de pegar (poucos minutos) pick_undo { other: professor, slot: idAula } |
 | `meet_set` | Link padrão da aula online do professor (vale para os horários livres sem link) |
 | `sched_put` | Agenda: o PROFESSOR marca, muda ou cancela uma aula (e agenda o lembrete) |
 | `done` | O ALUNO marca (ou desmarca) como feita uma tarefa que recebeu de um professor vinculado. |
 | `verdict` | O PROFESSOR decide sobre uma tarefa de um aluno vinculado: 'ok' valida, 'back' devolve, vazio apaga a decisão. O aluno vê isso como o status oficial. |
 | `link` | — |
+| `pick_allow` | O PROFESSOR liga ou desliga, para UM aluno, "pegar horário" (np) e o recebimento dos avisos dele (wm). pick_allow { role: 'teacher', other: aluno, on }   on=false -> o aluno não pega horários livres warn_mute  { role: 'teacher', other: aluno, on }   on=true  -> silencia os avisos desse aluno |
 | `pause` | O PROFESSOR pausa (ou reativa) um aluno: o histórico fica, o aluno sai do dia a dia e não conta no limite grátis. |
 | `unlink` | — |
 

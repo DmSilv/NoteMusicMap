@@ -50,6 +50,8 @@ class _SlotFormPageState extends State<SlotFormPage> {
   }();
   late int duration = widget.edit?.durationMin ?? 60;
   late bool weekly = widget.edit?.weekly ?? false;
+  // Data final da aula semanal (null = sem fim): a última aula é a que começa até esse dia.
+  late DateTime? endDay = widget.edit?.endMs == null ? null : DateTime.fromMillisecondsSinceEpoch(widget.edit!.endMs!);
   late final note = TextEditingController(text: widget.edit?.note ?? '');
   late String mode = widget.edit?.mode ?? kModeNone;
   late String link = widget.edit?.link ?? '';
@@ -92,6 +94,19 @@ class _SlotFormPageState extends State<SlotFormPage> {
     if (t != null) setState(() => date = DateTime(date.year, date.month, date.day, t.hour, t.minute));
   }
 
+  Future<void> _pickEnd() async {
+    final now = DateTime.now();
+    final first = DateTime(date.year, date.month, date.day);
+    final d = await showDatePicker(
+      context: context,
+      initialDate: endDay != null && !endDay!.isBefore(first) ? endDay! : first.add(const Duration(days: 28)),
+      firstDate: first,
+      lastDate: DateTime(now.year + 5),
+      helpText: tr('Última aula'),
+    );
+    if (d != null) setState(() => endDay = d);
+  }
+
   void _save() {
     final c = code;
     if (c == null) {
@@ -117,6 +132,8 @@ class _SlotFormPageState extends State<SlotFormPage> {
       mode: online ? (mode == kModeNone ? kModeInPerson : mode) : (e?.mode ?? kModeNone),
       link: online ? (mode == kModeOnline ? (meetingUrl(link) ?? '') : '') : (e?.link ?? ''),
       remindMin: app.remindChoiceOn ? remind : e?.remindMin,
+      endMs: weekly && endDay != null ? DateTime(endDay!.year, endDay!.month, endDay!.day, 23, 59).millisecondsSinceEpoch : null,
+      tzMin: now.timeZoneOffset.inMinutes,
     );
     final err = app.saveSlot(slot);
     if (err != null) {
@@ -125,9 +142,7 @@ class _SlotFormPageState extends State<SlotFormPage> {
     }
     if (app.remindChoiceOn) app.setRemindDefault(remind);
     final st = app.studentByCode(c);
-    if (isEdit) {
-      app.say(tr('Aula atualizada.'));
-    } else {
+    if (!isEdit) {
       app.celebrate(tr('Aula marcada!'), detail: '${st?.name ?? tr('O aluno')} · ${describeOpenSlot(slot)}');
     }
     Navigator.pop(context, true);
@@ -204,6 +219,26 @@ class _SlotFormPageState extends State<SlotFormPage> {
                     value: weekly,
                     onChanged: (v) => setState(() => weekly = v),
                   ),
+                  if (weekly)
+                    Padding(
+                      padding: const EdgeInsets.only(top: Ds.s4),
+                      child: Row(children: [
+                        Expanded(
+                          child: DsPickTile(
+                            icon: Icons.event_busy_outlined,
+                            label: tr('Até quando'),
+                            value: endDay == null ? tr('Sem data final') : '${_dow[endDay!.weekday - 1].substring(0, 3)}, ${fmtDayMonthYear(endDay!)}',
+                            onTap: _pickEnd,
+                          ),
+                        ),
+                        if (endDay != null)
+                          IconButton(
+                            tooltip: tr('Tirar a data final'),
+                            onPressed: () => setState(() => endDay = null),
+                            icon: const Icon(Icons.close),
+                          ),
+                      ]),
+                    ),
                 ]),
               ),
               if (hasDetails) ...[

@@ -70,4 +70,6 @@ ClassSlot classFromOpen(ClassSlot open, {required String studentCode, required S
       updatedMs: nowMs,
       pending: false,
       remindMin: open.remindMin,
+      tzMin: open.tzMin,
+      endMs: open.endMs,
     );

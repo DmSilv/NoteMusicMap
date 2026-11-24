@@ -10,6 +10,7 @@ import 'app_state.dart';
 import 'stats/error_service.dart';
 import 'stats/stats_service.dart';
 import 'ui/app_locale.dart';
+import 'ui/undo_snack.dart';
 import 'ui/app_logo.dart';
 import 'ui/bottom_nav.dart';
 import 'ui/desktop_dock.dart' show DesktopRail, DeskMiniScreen;
@@ -305,6 +306,12 @@ class _AfinaAppState extends State<AfinaApp> with WidgetsBindingObserver {
           showSuccessMoment(ctx, title, detail: detail);
         })
         ..scheduleFrame();
+    };
+    // Mudança na agenda do professor: aviso com "Desfazer" (a rede de segurança de quem ainda está aprendendo).
+    widget.app.onUndoable = (msg, undo) {
+      final m = _messengerKey.currentState;
+      if (!mounted || m == null) return;
+      showUndoSnack(m, message: msg, undoLabel: tr('Desfazer'), onUndo: undo);
     };
     // Avisos curtos ao ligar/desligar funções.
     widget.app.onMessage = (msg) {

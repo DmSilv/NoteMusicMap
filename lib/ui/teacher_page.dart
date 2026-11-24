@@ -803,6 +803,8 @@ class _TeacherPageState extends State<TeacherPage> {
                         await editStudentCode(context, app, s);
                       case 'instrument':
                         await showStudentInstrumentSheet(context, app, s);
+                      case 'control':
+                        await showStudentControlSheet(context, app, s);
                       case 'pause':
                         await togglePauseStudent(context, app, s);
                       case 'delete':
@@ -819,6 +821,7 @@ class _TeacherPageState extends State<TeacherPage> {
                     PopupMenuItem(value: 'rename', child: Text(tr('Renomear'))),
                     PopupMenuItem(value: 'code', child: Text(tr('Código do aluno'))),
                     PopupMenuItem(value: 'instrument', child: Text(tr('Instrumento do aluno'))),
+                    PopupMenuItem(value: 'control', child: Text(tr('Controle do aluno'))),
                     PopupMenuItem(value: 'pause', child: Text(s.paused ? tr('Reativar aluno') : tr('Desativar aluno'))),
                     PopupMenuItem(value: 'delete', child: Text(tr('Excluir aluno'))),
                   ],

@@ -15,6 +15,7 @@
 | `lib/dev/frame_meter.dart` | Medidor de fluidez, SÓ para builds de desenvolvimento (kDevDemo). Enquanto a simulação roda, mede a cada quadro: - o INTERVALO entre quadros (quanto tempo a tela leva para ser atualizada); - o CUSTO do quadro: do… |
 | `lib/feedback/feedback_service.dart` | Nota do app e pesquisa rápida (1 ou 2 perguntas por aparelho). - Só envia quando a pessoa toca em "Enviar". Vai a resposta, a versão do app e um código do aparelho que o servidor embaralha. Sem nome, e-mail ou áudio.… |
 | `lib/link/account_service.dart` | Um aparelho em que a conta está aberta (o servidor nunca manda o segredo dele). |
+| `lib/link/agenda_extras.dart` | Peças pequenas da agenda com o professor no comando: histórico, pedidos e avisos enviados, resultado de "pegar horário". |
 | `lib/link/link_service.dart` | Cliente da API de vínculo (`/api/link`): vincular, aulas, tarefas feitas, decisões do professor, agenda, horários livres e notificações. Fala só com o servidor do app. |
 | `lib/link/mirror_engine.dart` | Onde o motor guarda o que já foi trocado (um texto por nome). |
 | `lib/link/pay_service.dart` | Um pagamento do histórico do professor. |
@@ -22,6 +23,9 @@
 | `lib/platform/hard_reset.dart` | Apagar tudo e recarregar o app (botão "Apagar tudo e recomeçar"): escolhe a versão da web ou a de celular (importação condicional). |
 | `lib/platform/hard_reset_stub.dart` | Fora da web não há cache de página para limpar. |
 | `lib/platform/hard_reset_web.dart` | Desregistra o service worker, apaga os caches e os dados do site e recarrega, para o usuário receber a versão mais nova mesmo se a página ficou "presa". |
+| `lib/platform/save_text.dart` | _(sem descrição no cabeçalho)_ |
+| `lib/platform/save_text_stub.dart` | Fora da web não há download de navegador: quem chama usa o compartilhar do sistema. |
+| `lib/platform/save_text_web.dart` | Na web o navegador baixa o arquivo. |
 | `lib/platform/web_install.dart` | Instalar o app na tela inicial (PWA): detecta se já está instalado e abre o convite de instalação; escolhe a versão web ou a de celular. |
 | `lib/platform/web_install_stub.dart` | Fora da web (app nativo) não há o que instalar pelo navegador. |
 | `lib/platform/web_install_web.dart` | O app já está aberto "como app instalado" (tela cheia, sem barra do navegador)? |
@@ -34,8 +38,10 @@
 | `lib/stats/error_service.dart` | Envia um relatório de erro (anônimo e já higienizado) para o servidor. Falha em silêncio: relatar um erro nunca pode causar outro. Em teste local (localhost) não envia. |
 | `lib/stats/stats_service.dart` | Estatísticas ANÔNIMAS de uso (para o painel do administrador). Manda um aviso ao abrir o app e uma batida a cada ~5 minutos enquanto ele está à frente. Vai só: um código aleatório do aparelho (que NÃO é o código de… |
 | `lib/ui/account_email.dart` | "E-mail da conta" (Minha conta): liga um e-mail ao perfil para recuperá-lo em outro aparelho, SEM senha. O app pede um código, o servidor manda 6 dígitos para o e-mail e a pessoa digita aqui. Mesma tela para "Entrar… |
+| `lib/ui/account_explainer.dart` | "Como funciona a sua conta": explica, em quatro blocos curtos, que a pessoa já tem uma conta mesmo sem cadastro, o que fica no celular, o que a chave faz e como entrar em outro aparelho. |
 | `lib/ui/agenda_actions.dart` | Controle da agenda do professor: remarcar só uma aula, trocar horários entre dois alunos e pausar um período. Toda mudança mostra antes o que vai acontecer e quem é avisado, e só vale se couber na agenda (sem choque). |
 | `lib/ui/agenda_calendar.dart` | Calendário do mês para as agendas (professor e aluno): a semana começa na segunda, cada dia com aula leva pontinhos (um por aula, até 3), o dia de hoje tem um anel e o dia escolhido fica preenchido. |
+| `lib/ui/agenda_control_ui.dart` | Tudo da agenda que dá controle ao professor e explica o fluxo para os dois lados: caixa de pedidos e avisos, histórico, ajustes, guia "Qual escolher?", ajuda do aluno, aviso do aluno e calendário do celular. |
 | `lib/ui/agenda_page.dart` | Agenda do PROFESSOR: as aulas marcadas, por semana ou por mês. Marcar, mudar, cancelar uma aula (ou só um dia de uma aula semanal) e ligar o lembrete de 15 minutos. |
 | `lib/ui/agenda_sheets.dart` | Modais da agenda do professor (remarcar uma aula, trocar horários, confirmar). Cada ação é UM modal só: o que vai mudar aparece antes (de → para), a conferência de choque é feita ao vivo e o botão só liga quando cabe… |
 | `lib/ui/app_locale.dart` | O app fala português do Brasil ou inglês: os textos do próprio Flutter (seletor de data e hora, "OK"/"Cancelar", copiar/colar, nomes de mês e dia) seguem o idioma escolhido (veja `Lang` e `tr()` em afina_core). Custo… |
@@ -147,6 +153,7 @@
 | `packages/afina_core/lib/absence.dart` | Falta do aluno a uma aula, registrada pelo professor (só neste aparelho; faz parte da ficha do aluno). [noShow]: faltou sem avisar. [notified]: avisou que não vem. |
 | `packages/afina_core/lib/afina_core.dart` | Ponto de entrada do núcleo: reexporta todos os módulos de `packages/afina_core/lib`. |
 | `packages/afina_core/lib/agenda.dart` | Agenda de aulas: o professor marca aulas com os alunos (uma vez ou toda semana) e o aluno vê as suas. Dart puro e testável: o relógio é sempre passado de fora. A aula que se repete toda semana é UMA regra só (não uma… |
+| `packages/afina_core/lib/agenda_ics.dart` | Exporta aulas para o calendário do celular (arquivo .ics, padrão iCalendar). Dart puro e testável: nada vai ao servidor. |
 | `packages/afina_core/lib/class_rules.dart` | Regra única das aulas: em que fase está cada aula, o que dá para mudar nela e quais aulas entram na agenda mostrada. Hub (Meu espaço), agenda e lembretes usam estas mesmas funções, para nunca mostrarem números ou… |
 | `packages/afina_core/lib/device_tags.dart` | Rótulos curtos e ANÔNIMOS de aparelho para as estatísticas do painel. Só categorias (nunca o texto cru do navegador): cada rótulo tem até 10 letras ou números minúsculos, o que permite combinar filtros sem… |
 | `packages/afina_core/lib/error_report.dart` | Montagem do relatório de erro que o app envia ao servidor: trilha de telas (breadcrumbs), ambiente (versão, aparelho), modo de envio e freio contra repetição. Dart puro e testável. Nada de conteúdo pessoal: só nomes… |
@@ -222,6 +229,7 @@
 | Arquivo | O que faz |
 |---|---|
 | `packages/afina_core/test/absence_test.dart` | Testes do módulo `absence`. |
+| `packages/afina_core/test/agenda_plus_test.dart` | Testes do módulo `agenda_plus`. |
 | `packages/afina_core/test/agenda_test.dart` | 18/11/2026 é quarta-feira. |
 | `packages/afina_core/test/arpeggio_test.dart` | Testes do módulo `arpeggio`. |
 | `packages/afina_core/test/class_rules_test.dart` | Testes do módulo `class_rules`. |
@@ -355,6 +363,7 @@
 | `api/admin_push.test.js` | Aviso de bug grave ao admin (Web Push), precisão dos bugs e busca por nome, sem rede: `node --test api/admin_push.test.js` |
 | `api/agenda.test.js` | Testes da agenda e dos lembretes, sem rede: `node --test api/agenda.test.js` |
 | `api/agenda_control.test.js` | Testes do controle da agenda (trocar o aluno de uma aula, remarcar uma data, pausar): `node --test api/agenda_control.test.js` |
+| `api/agenda_plus.test.js` | Agenda com o professor no comando: "confirmo antes", pedidos, desfazer, avisos do aluno, "pegar horário" por aluno, data final, fuso. `node --test api/agenda_plus.test.js` |
 | `api/avail.test.js` | Testes dos horários disponíveis (professor) e de "pegar horário" (aluno), sem rede: `node --test api/avail.test.js` |
 | `api/cloud_copy.test.js` | Cópia das fichas na nuvem com 1 aparelho (chave copia_nuvem + aceite): `node --test api/cloud_copy.test.js` |
 | `api/coach.test.js` | Testes da IA (vários serviços + fila) sem rede e sem chaves reais: `node --test api/` |
@@ -418,4 +427,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **375** arquivos mapeados.
+Total: **384** arquivos mapeados.

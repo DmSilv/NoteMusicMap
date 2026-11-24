@@ -119,7 +119,6 @@ const Map<String, String> kEnB04 = {
   'O link da aula não é válido.': 'The lesson link isn\'t valid.',
   'Publicar': 'Publish',
   'Pegar este horário?': 'Take this slot?',
-  '{0}\n\nA aula entra na sua agenda e seu professor é avisado.': '{0}\n\nThe lesson goes on your schedule and your teacher is notified.',
   'Pegar': 'Take',
   'Horário garantido!': 'Slot secured!',
   'Você ainda não tem um professor vinculado. Peça o convite a ele.': 'You don\'t have a linked teacher yet. Ask them for the invite.',

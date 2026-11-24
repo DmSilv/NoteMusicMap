@@ -226,6 +226,10 @@ class Student {
   /// Aluno desativado (pausado) pelo professor: sai do dia a dia, mantém o histórico e não conta no limite do plano grátis.
   bool paused;
 
+  /// O professor desligou "pegar horário" para este aluno e/ou silenciou os avisos dele (a verdade fica no servidor).
+  bool noPick;
+  bool muted;
+
   /// Foto do aluno (texto base64 de uma imagem pequena). Só neste aparelho: o professor escolhe; nunca vai para o servidor.
   String? photo;
 
@@ -252,6 +256,8 @@ class Student {
     this.linkState,
     this.remoteName,
     this.paused = false,
+    this.noPick = false,
+    this.muted = false,
     this.photo,
     this.instrument,
     this.turma,
@@ -276,6 +282,8 @@ class Student {
         if (linkState != null) 'lk': linkState,
         if (remoteName != null) 'rn': remoteName,
         if (paused) 'pz': 1,
+        if (noPick) 'np': 1,
+        if (muted) 'wm': 1,
         if (photo != null) 'ph': photo,
         if (instrument != null) 'ins': instrument,
         if (turma != null) 'tu': turma,
@@ -296,6 +304,8 @@ class Student {
         linkState: (j['lk'] as String?),
         remoteName: (j['rn'] as String?) == null ? null : cleanText(j['rn'] as String?, max: kMaxName),
         paused: j['pz'] == 1 || j['pz'] == true,
+        noPick: j['np'] == 1 || j['np'] == true,
+        muted: j['wm'] == 1 || j['wm'] == true,
         photo: cleanPhoto(j['ph'] as String?),
         instrument: teachingById(j['ins'] as String?)?.id,
         turma: RegExp(r'^t[a-z0-9]{1,20}$').hasMatch((j['tu'] as String?) ?? '') ? j['tu'] as String : null,

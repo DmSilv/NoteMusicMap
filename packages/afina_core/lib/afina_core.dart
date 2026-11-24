@@ -2,6 +2,7 @@ library;
 
 export 'absence.dart';
 export 'agenda.dart';
+export 'agenda_ics.dart';
 export 'i18n.dart';
 export 'scale_spelling.dart';
 export 'staff_notation.dart';

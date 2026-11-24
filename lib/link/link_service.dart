@@ -18,9 +18,13 @@ class LinkedPerson {
 
   /// O professor pausou este vínculo (o histórico fica; não há aulas novas até reativar).
   final bool paused;
-  const LinkedPerson(this.code, this.name, this.since, [this.pv = '', this.paused = false]);
 
-  Map<String, dynamic> toJson() => {'code': code, 'name': name, 'since': since, if (pv.isNotEmpty) 'pv': pv, if (paused) 'pz': 1};
+  /// O professor desligou "pegar horário" para este aluno (np) e/ou silenciou os avisos dele (wm).
+  final bool noPick;
+  final bool muted;
+  const LinkedPerson(this.code, this.name, this.since, [this.pv = '', this.paused = false, this.noPick = false, this.muted = false]);
+
+  Map<String, dynamic> toJson() => {'code': code, 'name': name, 'since': since, if (pv.isNotEmpty) 'pv': pv, if (paused) 'pz': 1, if (noPick) 'np': 1, if (muted) 'wm': 1};
   static LinkedPerson? tryFrom(Object? j) {
     try {
       final m = (j as Map).cast<String, dynamic>();
@@ -29,7 +33,72 @@ class LinkedPerson {
       if (code == null) return null;
       final since = ((m['since'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000);
       final pv = (m['pv'] as String?) ?? '';
-      return LinkedPerson(code, cleanText(m['name'] as String?, max: kMaxName), since, RegExp(r'^[0-9a-f]{8}$').hasMatch(pv) ? pv : '', m['pz'] == 1 || m['pz'] == true);
+      return LinkedPerson(code, cleanText(m['name'] as String?, max: kMaxName), since, RegExp(r'^[0-9a-f]{8}$').hasMatch(pv) ? pv : '', m['pz'] == 1 || m['pz'] == true, m['np'] == 1 || m['np'] == true, m['wm'] == 1 || m['wm'] == true);
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+/// Pedido de um horário "confirmo antes" feito por um aluno (caixa de entrada do professor).
+class PickRequest {
+  final String student;
+  final String slotId;
+  final int at;
+  final ClassSlot slot;
+  const PickRequest(this.student, this.slotId, this.at, this.slot);
+
+  static PickRequest? tryFrom(Object? x) {
+    try {
+      final m = (x as Map).cast<String, dynamic>();
+      final st = formatShareCode((m['st'] as String?) ?? '');
+      final slot = ClassSlot.tryFrom(m['slot']);
+      final sid = '${m['sid']}';
+      if (st == null || slot == null || !RegExp(r'^[a-z0-9]{2,40}$').hasMatch(sid)) return null;
+      return PickRequest(st, sid, ((m['t'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000), slot);
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+/// Aviso de um aluno ao professor: no = não vou, rs = queria remarcar, late = vou atrasar.
+class StudentWarn {
+  final String student;
+  final String slotId;
+  final int occ;
+  final String kind;
+  final int at;
+  final bool late;
+  const StudentWarn(this.student, this.slotId, this.occ, this.kind, this.at, this.late);
+
+  static StudentWarn? tryFrom(Object? x) {
+    try {
+      final m = (x as Map).cast<String, dynamic>();
+      final st = formatShareCode((m['st'] as String?) ?? '');
+      final sl = '${m['sl']}';
+      final k = '${m['k']}';
+      if (st == null || !RegExp(r'^[a-z0-9]{2,40}$').hasMatch(sl) || !['no', 'rs', 'late'].contains(k)) return null;
+      return StudentWarn(st, sl, (m['occ'] as num).toInt(), k, ((m['t'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000), m['late'] == true);
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+/// Resposta do professor a um pedido ou aviso do aluno (chave: r:professor:horário | w:professor:aula:início).
+class InboxAnswer {
+  final String key;
+  final String state;
+  final int at;
+  const InboxAnswer(this.key, this.state, this.at);
+
+  static InboxAnswer? tryFrom(Object? x) {
+    try {
+      final m = (x as Map).cast<String, dynamic>();
+      final f = '${m['f']}';
+      if (!RegExp(r'^[rw]:[A-Z0-9-]{9}:[a-z0-9:]{2,60}$').hasMatch(f)) return null;
+      return InboxAnswer(f, '${m['st']}', ((m['t'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000));
     } catch (_) {
       return null;
     }
@@ -96,6 +165,16 @@ class LinkReply {
   final List<ClassSlot> open;
   final List<ClassSlot> picks;
   final ClassSlot? taken;
+
+  /// Pedido enviado (o horário é "confirmo antes"), o professor desligou "pegar horário" (off) e o professor silenciou todos os avisos (wm).
+  final bool requested;
+  final bool pickOff;
+  final bool warnsOff;
+
+  /// Caixa de entrada do professor (pedidos e avisos) e respostas que o aluno recebeu.
+  final List<PickRequest> reqs;
+  final List<StudentWarn> warns;
+  final List<InboxAnswer> answers;
 
   /// Notificações: chave pública do servidor (vazia = lembretes desligados no servidor).
   final String pushKey;
@@ -174,6 +253,12 @@ class LinkReply {
     this.open = const [],
     this.picks = const [],
     this.taken,
+    this.requested = false,
+    this.pickOff = false,
+    this.warnsOff = false,
+    this.reqs = const [],
+    this.warns = const [],
+    this.answers = const [],
     this.verdicts = const [],
     this.slots = const [],
     this.pushKey = '',
@@ -308,6 +393,12 @@ class LinkService {
         open: [for (final x in ((j['open'] as List?) ?? const []).take(kMaxOpenSlots)) ?ClassSlot.tryFrom(x)],
         picks: [for (final x in ((j['slots'] as List?) ?? const []).take(kMaxSlotsPerTeacher)) if (j.containsKey('ar')) ?ClassSlot.tryFrom(x)],
         taken: j['slot'] == null ? null : ClassSlot.tryFrom(j['slot']),
+        requested: j['requested'] == true,
+        pickOff: j['off'] == 1,
+        warnsOff: j['wm'] == 1,
+        reqs: [for (final x in ((j['reqs'] as List?) ?? const []).take(50)) ?PickRequest.tryFrom(x)],
+        warns: [for (final x in ((j['warns'] as List?) ?? const []).take(50)) ?StudentWarn.tryFrom(x)],
+        answers: [for (final x in ((j['answers'] as List?) ?? const []).take(100)) ?InboxAnswer.tryFrom(x)],
         verdicts: [
           for (final x in ((j['verdicts'] as List?) ?? const []).take(1500)) ?VerdictEntry.tryFromWire(x)
         ],
@@ -522,7 +613,40 @@ class LinkService {
 
   /// ALUNO: pega o horário [slotId] do professor [teacher] (o primeiro que pega leva).
   Future<LinkReply> availTake(String code, String secret, {required String teacher, required String slotId}) =>
-      _post({..._auth(code, secret, null), 'action': 'avail_take', 'other': teacher, 'slot': slotId});
+      _post({..._auth(code, secret, null), 'action': 'avail_take', 'other': teacher, 'slot': slotId, 'cv': 2});
+
+  /// ALUNO: desfaz um horário que acabou de pegar (poucos minutos).
+  Future<LinkReply> pickUndo(String code, String secret, {required String teacher, required String classId}) =>
+      _post({..._auth(code, secret, null), 'action': 'pick_undo', 'other': teacher, 'slot': classId});
+
+  /// ALUNO: avisa o professor (não muda a aula). [kind]: no | rs | late. [occ]: início da aula (ms).
+  Future<LinkReply> warnPut(String code, String secret, {required String teacher, required String classId, required int occ, required String kind}) =>
+      _post({..._auth(code, secret, null), 'action': 'warn_put', 'other': teacher, 'slot': classId, 'occ': occ, 'k': kind});
+
+  /// ALUNO: respostas do professor aos pedidos e avisos.
+  Future<LinkReply> sInbox(String code, String secret) => _post({..._auth(code, secret, null), 'action': 's_inbox'});
+
+  /// PROFESSOR: pedidos de horário e avisos dos alunos.
+  Future<LinkReply> tInbox(String code, String secret) => _post({..._auth(code, secret, null), 'action': 't_inbox'});
+
+  /// PROFESSOR: aceita ou recusa um pedido de horário.
+  Future<LinkReply> reqAnswer(String code, String secret, {required String student, required String slotId, required bool accept}) =>
+      _post({..._auth(code, secret, null), 'action': 'req_answer', 'other': student, 'slot': slotId, 'accept': accept});
+
+  /// PROFESSOR: responde um aviso: ok (falta justificada), rs (vai remarcar) ou ig (ignorar).
+  Future<LinkReply> warnAnswer(String code, String secret, {required String student, required String classId, required int occ, required String decision}) =>
+      _post({..._auth(code, secret, null), 'action': 'warn_answer', 'other': student, 'slot': classId, 'occ': occ, 'd': decision});
+
+  /// PROFESSOR: liga ou desliga os avisos de todos os alunos.
+  Future<LinkReply> warnGlobal(String code, String secret, bool on) => _post({..._auth(code, secret, null), 'action': 'warn_global', 'on': on});
+
+  /// PROFESSOR: liga ou desliga "pegar horário" de UM aluno.
+  Future<LinkReply> pickAllow(String code, String secret, {required String student, required bool on}) =>
+      _post({..._auth(code, secret, null), 'action': 'pick_allow', 'role': 'teacher', 'other': student, 'on': on});
+
+  /// PROFESSOR: silencia ou não os avisos de UM aluno.
+  Future<LinkReply> warnMute(String code, String secret, {required String student, required bool on}) =>
+      _post({..._auth(code, secret, null), 'action': 'warn_mute', 'role': 'teacher', 'other': student, 'on': on});
 
   /// PROFESSOR: aulas que alunos pegaram.
   Future<LinkReply> picks(String code, String secret) => _post({..._auth(code, secret, null), 'action': 'picks'});

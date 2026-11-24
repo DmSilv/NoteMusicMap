@@ -48,7 +48,7 @@ Nada de Flutter nem `dart:io` (assim roda no navegador e nos testes de linha de 
 | Estudo | `pomodoro`, `study_clock` | Temporizadores |
 | Identidade e entrada | `identity`, `input_guard` | Perfil, código com dígito verificador, limpeza de tudo que se digita/cola/lê de QR |
 | Professor/aluno | `teacher`, `lesson`, `lesson_week`, `methods`, `task_status`, `photo`, `teaching`, `turma`, `mirror`, `news` | Alunos, tarefas, aulas, "esta semana", métodos, **status oficial** (resumo, decisão, `VerdictEntry`), foto pequena de perfil e de aluno (`cleanPhoto`), instrumentos que o professor ensina com métodos e repertório prontos (`kTeachingInstruments`), fila de validação (`reviewQueue`) e rótulo de alunos de mesmo nome (`studentLabel`) e leitura do boletim (`parseNews`) e da pesquisa ativa (`survey`, `parseSurvey`) |
-| Agenda e horários | `agenda`, `class_rules`, `open_slots` | `ClassSlot`, ocorrências, conflito, **fase e permissões da aula**, regras do horário livre |
+| Agenda e horários | `agenda`, `agenda_ics`, `class_rules`, `open_slots` | `ClassSlot` (com data final, fuso e "confirmo antes"), ocorrências, conflito, **fase e permissões da aula**, regras do horário livre, arquivo `.ics` do calendário |
 | Faltas do aluno | `absence` | `Absence`, `addAbsence`, `lessonForAbsence` (a aula que o aluno está perdendo agora) |
 | Hub | `hub`, `hub_view` | Destaque e blocos do Meu espaço; **visões Aluno/Professor** sem destino repetido |
 | Comece por aqui | `start_checklist` | Os 3 passos do professor novo (vincular, marcar aula, passar tarefa) e o próximo que falta; também os 3 passos do músico solo ("Seu primeiro passo") |

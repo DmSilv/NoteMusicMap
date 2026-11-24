@@ -4,6 +4,7 @@ import '../app_state.dart';
 import 'design_system.dart';
 import 'plan_page.dart';
 import 'theme.dart';
+import 'widgets.dart';
 import 'package:afina_core/afina_core.dart';
 
 /// PROFESSOR: desativa ou reativa um aluno, com a explicação antes e o aviso do limite do plano grátis depois.
@@ -24,6 +25,19 @@ Future<void> togglePauseStudent(BuildContext context, AppState app, Student s) a
   switch (r) {
     case null:
       app.say(s.paused ? tr('{0} foi desativado. O histórico ficou guardado.', [name]) : tr('{0} voltou para a sua lista.', [name]));
+      final code = s.code;
+      final n = s.paused && code != null ? app.futureClassesOf(code) : 0;
+      if (n > 0) {
+        final cancel = await showDsConfirm(
+          context,
+          title: tr('Cancelar as aulas futuras de {0}?', [name]),
+          body: tr('{0} ainda tem aulas marcadas pela frente. Se cancelar, ele é avisado e a sua agenda fica livre. Dá para desfazer logo depois.', [name]),
+          confirmLabel: tr('Cancelar as aulas'),
+          cancelLabel: tr('Manter as aulas'),
+          icon: Icons.event_busy_rounded,
+        );
+        if (cancel) app.cancelStudentClasses(code!);
+      }
     case 'limit':
       final go = await showDsConfirm(
         context,
@@ -78,4 +92,50 @@ class PausedBanner extends StatelessWidget {
       ),
     );
   }
+}
+
+/// PROFESSOR: o que ESTE aluno pode fazer na agenda (pegar horários livres e mandar avisos). Tudo ligado por padrão.
+Future<void> showStudentControlSheet(BuildContext context, AppState app, Student s) {
+  return showDsSheet(context, title: tr('Controle do aluno'), listenable: app, children: (c) {
+    final linked = s.code != null && s.linkState == 'active';
+    if (!linked) {
+      return [Text(tr('Estas opções valem quando o aluno está vinculado online. Depois do vínculo, você decide aqui o que {0} pode fazer na agenda.', [app.labelOf(s)]), style: Ds.support())];
+    }
+    return [
+      Text(tr('A agenda é sua. Aqui você escolhe o que {0} pode fazer sozinho.', [app.labelOf(s)]), style: Ds.support()),
+      const SizedBox(height: Ds.s12),
+      AppCard(
+        padding: EdgeInsets.zero,
+        child: Column(children: [
+          SwitchListTile(
+            secondary: Icon(Icons.add_task_rounded, color: AppColors.textDim),
+            title: Text(tr('Pode pegar horários livres'), style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(
+              s.noPick ? tr('Desligado: {0} não vê os seus horários livres. Você marca as aulas com ele.', [app.labelOf(s)]) : tr('Ligado: {0} vê os horários livres (os que você liberou) e pega ou pede.', [app.labelOf(s)]),
+              style: Ds.support(),
+            ),
+            value: !s.noPick,
+            onChanged: (v) async {
+              final err = await app.setStudentCanPick(s, v);
+              if (err != null) app.say(err);
+            },
+          ),
+          const Divider(height: 1),
+          SwitchListTile(
+            secondary: Icon(Icons.mark_email_unread_outlined, color: AppColors.textDim),
+            title: Text(tr('Recebo os avisos dele'), style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text(
+              s.muted ? tr('Silenciado: se {0} tentar avisar, ele vê que deve falar com você direto.', [app.labelOf(s)]) : tr('Ligado: {0} pode avisar "não vou" ou "queria remarcar". A aula só muda quando você decide.', [app.labelOf(s)]),
+              style: Ds.support(),
+            ),
+            value: !s.muted,
+            onChanged: (v) async {
+              final err = await app.setStudentWarnsMuted(s, !v);
+              if (err != null) app.say(err);
+            },
+          ),
+        ]),
+      ),
+    ];
+  });
 }

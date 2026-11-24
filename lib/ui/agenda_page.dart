@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../app_state.dart';
 import 'agenda_actions.dart';
 import 'agenda_calendar.dart';
+import 'agenda_control_ui.dart';
 import 'design_system.dart';
 import 'meeting_link.dart';
 import 'reminder_card.dart';
@@ -43,6 +44,7 @@ class _AgendaPageState extends State<AgendaPage> {
     super.initState();
     app.watchLinks(); // aula marcada pendente sai assim que o vínculo confirma
     app.markTab('agenda');
+    app.pullInbox(); // pedidos e avisos dos alunos
   }
 
   @override
@@ -111,6 +113,7 @@ class _AgendaPageState extends State<AgendaPage> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(14, 6, 14, 96),
               children: [
+                TeacherInboxCard(app: app),
                 ChipGrid(
                   labels: [Text(tr('Mês')), Text(tr('Semana'))],
                   selected: _month ? 0 : 1,
@@ -128,6 +131,11 @@ class _AgendaPageState extends State<AgendaPage> {
                 if (_month) ..._monthView() else ..._weekView(),
                 // O que explica e configura fica no fim: o calendário é a primeira coisa que se vê.
                 const SizedBox(height: Ds.sectionGap),
+                AppCard(
+                  padding: EdgeInsets.zero,
+                  child: DsNavRow(Icons.tune_rounded, tr('Controle da agenda'), tr('Avisos, histórico e calendário'), () => showAgendaControlSheet(context, app)),
+                ),
+                const SizedBox(height: 10),
                 const AgendaBanner(teacher: true),
                 const SizedBox(height: 10),
                 ReminderCard(app: app),
@@ -400,6 +408,12 @@ class _MyAgendaPageState extends State<MyAgendaPage> {
           appBar: AppBar(
             title: Text(tr('Agenda do aluno')),
             actions: [
+              IconButton(tooltip: tr('Como funciona'), icon: const Icon(Icons.help_outline), onPressed: () => showStudentAgendaHelp(context)),
+              IconButton(
+                tooltip: tr('Adicionar ao calendário do celular'),
+                icon: const Icon(Icons.calendar_month_outlined),
+                onPressed: () => exportAgendaCalendar(context, app, forTeacher: false),
+              ),
               TextButton(
                 onPressed: () => setState(() {
                   _anchor = today;
@@ -459,6 +473,12 @@ class _MyAgendaPageState extends State<MyAgendaPage> {
     final s = o.slot;
     final who = s.teacherName.isNotEmpty ? s.teacherName : tr('Professor {0}', [s.teacherCode]);
     final ongoing = !o.start.isAfter(now);
+    final zone = otherZoneNote(s, localOffsetMin: now.timeZoneOffset.inMinutes);
+    final warn = app.warnFor(s.teacherCode, s.id, o.startMs);
+    final upcoming = o.startMs + s.endOffsetMs > now.millisecondsSinceEpoch;
+    final warnText = warnStatusText(warn);
+    final canWarn = upcoming && warn == null && !ongoing && app.myTeachers.any((t) => t.code == s.teacherCode && !t.paused);
+    final canUndo = app.canUndoPick(s.teacherCode, s.id);
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(12),
@@ -467,13 +487,15 @@ class _MyAgendaPageState extends State<MyAgendaPage> {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: ongoing ? AppColors.accent : AppColors.outline, width: ongoing ? 1.6 : 1),
       ),
-      child: Row(children: [
+      child: Column(children: [
+        Row(children: [
         Icon(s.weekly ? Icons.event_repeat : Icons.event, color: AppColors.textDim),
         const SizedBox(width: 12),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('${fmtSlotWhen(o.start, now)} – ${_hm(o.end)}', style: const TextStyle(fontWeight: FontWeight.w800)),
             Text(who, style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+            if (zone != null) Text(tr('No fuso do professor: {0}', [zone]), style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
             if (s.note.isNotEmpty) Text(s.note, style: const TextStyle(fontSize: 12.5, height: 1.3)),
             if (s.online)
               Text(s.hasLink ? tr('Aula online') : tr('Aula online · o professor ainda vai enviar o link'),
@@ -494,6 +516,44 @@ class _MyAgendaPageState extends State<MyAgendaPage> {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(8)),
             child: Text(tr('agora'), style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800, color: AppColors.accent)),
+          ),
+        ]),
+        if (warnText != null)
+          Padding(
+            padding: const EdgeInsets.only(top: Ds.s8),
+            child: Row(children: [
+              Icon(warn!.state == 'wait' ? Icons.hourglass_top_rounded : Icons.check_circle_outline, size: 16, color: AppColors.attention),
+              const SizedBox(width: 6),
+              Expanded(child: Text(warnText, style: TextStyle(color: AppColors.attention, fontSize: 12.5, fontWeight: FontWeight.w700))),
+            ]),
+          ),
+        if (canWarn || canUndo)
+          Padding(
+            padding: const EdgeInsets.only(top: Ds.s8),
+            child: Row(children: [
+              if (canWarn)
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(minimumSize: const Size(0, 42)),
+                    onPressed: () => showWarnSheet(context, app, o),
+                    icon: const Icon(Icons.mark_email_unread_outlined, size: 17),
+                    label: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('Avisar o professor'), style: const TextStyle(fontWeight: FontWeight.w700))),
+                  ),
+                ),
+              if (canWarn && canUndo) const SizedBox(width: Ds.s8),
+              if (canUndo)
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(minimumSize: const Size(0, 42)),
+                    onPressed: () async {
+                      final err = await app.undoPick(s.teacherCode, s.id);
+                      app.say(err ?? tr('Horário devolvido ao professor.'));
+                    },
+                    icon: const Icon(Icons.undo_rounded, size: 17),
+                    label: FittedBox(fit: BoxFit.scaleDown, child: Text(tr('Desfazer horário'), style: const TextStyle(fontWeight: FontWeight.w700))),
+                  ),
+                ),
+            ]),
           ),
       ]),
     );
