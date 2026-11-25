@@ -52,7 +52,11 @@ bool isPristineStudent(Student s) =>
 String studentToSection(Student s) {
   final j = s.toJson()
     ..remove('lk')
-    ..remove('rn');
+    ..remove('rn')
+    // o número do aluno e os lembretes ficam só no aparelho: nunca vão ao servidor
+    ..remove('wa')
+    ..remove('rdw')
+    ..remove('rdm');
   return jsonEncode(j);
 }
 

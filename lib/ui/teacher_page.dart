@@ -17,6 +17,7 @@ import 'student_identity.dart';
 import 'student_page.dart';
 import 'plan_page.dart';
 import 'pause_ui.dart';
+import 'study_nudge_ui.dart';
 export 'student_page.dart' show StudentPage;
 import 'teaching_ui.dart';
 import 'materials_sheet.dart';
@@ -476,6 +477,7 @@ class _TeacherPageState extends State<TeacherPage> {
         LessonBanner(app: app),
         const SizedBox(height: 10),
         _summaryStrip(),
+        if (!_manage) NudgeListCard(app: app),
         if (app.turmas.isEmpty && app.students.length >= 3 && !app.turmaHintOff)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),

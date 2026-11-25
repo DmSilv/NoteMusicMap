@@ -2,7 +2,6 @@ import 'package:afina_core/afina_core.dart';
 import 'package:test/test.dart';
 
 void main() {
-  reminderTextTests();
   group('treinador: quando abre', () {
     test('fechado até 60 minutos de estudo somados; depois abre', () {
       expect(coachGate(studySeconds: {}).open, isFalse);
@@ -69,16 +68,3 @@ void main() {
   });
 }
 
-void reminderTextTests() {
-  group('mensagem do WhatsApp para lembrar o aluno', () {
-    test('com tarefas em aberto cita até três; sem tarefas faz só o convite', () {
-      final com = studyReminderText('Ana', ['Escala de Ré', '  ', 'Lição 4', 'Peça nova', 'Quarta tarefa']);
-      expect(com, contains('Ana'));
-      expect(com, contains('Escala de Ré, Lição 4, Peça nova'));
-      expect(com, isNot(contains('Quarta tarefa')));
-      final sem = studyReminderText('Ana', const []);
-      expect(sem, contains('15 minutos'));
-      expect(sem, isNot(contains('Ficou para estudar')));
-    });
-  });
-}

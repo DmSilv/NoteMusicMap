@@ -2701,6 +2701,71 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  // ---------------- Lembretes que o professor manda pelo WhatsApp ----------------
+  /// Quem pode precisar de um empurrãozinho (só com o que o professor já vê: tarefas, marcações e estudo compartilhado).
+  List<NudgeSuggestion> get nudgeSuggestions => teacherMode ? whoNeedsNudge(students, DateTime.now(), shares: studyShares) : const [];
+
+  /// Guarda (ou apaga, com null) o WhatsApp do aluno. O número fica só neste aparelho; o aluno vinculado é avisado de que foi guardado.
+  void setStudentWhats(Student s, String? number) {
+    s.whats = number;
+    _saveTeacher();
+    notifyListeners();
+    unawaited(_tellContact(s));
+  }
+
+  /// Conta ao servidor só a marca (tem / não tem número) quando ela muda; se não der agora, tenta na próxima sincronização.
+  Future<void> _tellContact(Student s) async {
+    final code = s.code;
+    if (code == null || s.linkState != 'active' || !linkEnabled || linkUnavailable) return;
+    final told = {...?_prefs?.getStringList('wa_told')};
+    final has = s.whats != null;
+    if (told.contains(code) == has) return;
+    final r = await links.contactNote(profile.shareCode, profile.secret, student: code, on: has);
+    if (!r.ok) return;
+    final now = {...?_prefs?.getStringList('wa_told')};
+    has ? now.add(code) : now.remove(code);
+    _prefs?.setStringList('wa_told', now.toList());
+  }
+
+  void toggleRemindDay(Student s, int weekday) {
+    final days = {...s.remindDays};
+    days.contains(weekday) ? days.remove(weekday) : days.add(weekday);
+    s.remindDays = days.toList()..sort();
+    _saveTeacher();
+    notifyListeners();
+  }
+
+  /// O professor abriu a conversa para lembrar o aluno: ele descansa da lista por uns dias.
+  void markReminded(Student s) {
+    s.remindedMs = DateTime.now().millisecondsSinceEpoch;
+    _saveTeacher();
+    notifyListeners();
+  }
+
+  /// Um aviso no sino, uma vez por dia, quando há alunos marcados para hoje.
+  void _noticeScheduledReminders() {
+    if (!teacherMode || _prefs == null) return;
+    final today = dayKey(DateTime.now());
+    if (_prefs!.getString('rem_day') == today) return;
+    final names = [for (final n in nudgeSuggestions) if (n.reason == NudgeReason.scheduled) n.student.name.split(' ').first];
+    if (names.isEmpty) return;
+    _prefs!.setString('rem_day', today);
+    addNotice('done', tr('Hoje é dia de mandar um lembrete para {0}. Abra a lista de alunos.', [names.take(4).join(', ')]));
+  }
+
+  /// ALUNO: um aviso simples quando um professor guarda o número dele (e de novo se apagar e guardar outra vez).
+  void _noticeContacts(List<LinkedPerson> teachers) {
+    if (_prefs == null) return;
+    final seen = {...?_prefs!.getStringList('wa_seen')};
+    final now = {for (final t in teachers) if (t.hasMyNumber) t.code};
+    for (final t in teachers) {
+      if (t.hasMyNumber && !seen.contains(t.code)) {
+        addNotice('teacher', tr('{0} guardou o seu WhatsApp para mandar lembretes de estudo. O número fica só no aparelho dele. Se preferir que não, é só falar com ele.', [t.name.isEmpty ? tr('Seu professor') : t.name]));
+      }
+    }
+    if (now.length != seen.length || !now.containsAll(seen)) _prefs!.setStringList('wa_seen', now.toList());
+  }
+
   // ---------------- Lembrete de estudo (automático, só entre o sistema e o aluno) ----------------
   /// A pessoa desligou o lembrete de estudo (a verdade fica no servidor).
   bool studyNudgeOff = false;
@@ -4186,6 +4251,11 @@ class AppState extends ChangeNotifier {
       if (formerTeachers.containsKey(x.code)) _restoreTeacher(x.code);
     }
     final newTeachers = [for (final x in serverTeachers) if (!before.contains(x.code)) x];
+    _noticeContacts(serverTeachers);
+    for (final s in students) {
+      if (s.whats != null || (_prefs?.getStringList('wa_told')?.contains(s.code) ?? false)) unawaited(_tellContact(s));
+    }
+    _noticeScheduledReminders();
 
     _saveLinks();
     _saveTeacher();

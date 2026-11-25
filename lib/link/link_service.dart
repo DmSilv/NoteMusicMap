@@ -22,9 +22,12 @@ class LinkedPerson {
   /// O professor desligou "pegar horário" para este aluno (np) e/ou silenciou os avisos dele (wm).
   final bool noPick;
   final bool muted;
-  const LinkedPerson(this.code, this.name, this.since, [this.pv = '', this.paused = false, this.noPick = false, this.muted = false]);
 
-  Map<String, dynamic> toJson() => {'code': code, 'name': name, 'since': since, if (pv.isNotEmpty) 'pv': pv, if (paused) 'pz': 1, if (noPick) 'np': 1, if (muted) 'wm': 1};
+  /// O professor guardou o WhatsApp deste aluno no aparelho dele (o número não vem: é só a marca).
+  final bool hasMyNumber;
+  const LinkedPerson(this.code, this.name, this.since, [this.pv = '', this.paused = false, this.noPick = false, this.muted = false, this.hasMyNumber = false]);
+
+  Map<String, dynamic> toJson() => {'code': code, 'name': name, 'since': since, if (pv.isNotEmpty) 'pv': pv, if (paused) 'pz': 1, if (noPick) 'np': 1, if (muted) 'wm': 1, if (hasMyNumber) 'wa': 1};
   static LinkedPerson? tryFrom(Object? j) {
     try {
       final m = (j as Map).cast<String, dynamic>();
@@ -33,7 +36,7 @@ class LinkedPerson {
       if (code == null) return null;
       final since = ((m['since'] as num?)?.toInt() ?? 0).clamp(0, 4102444800000);
       final pv = (m['pv'] as String?) ?? '';
-      return LinkedPerson(code, cleanText(m['name'] as String?, max: kMaxName), since, RegExp(r'^[0-9a-f]{8}$').hasMatch(pv) ? pv : '', m['pz'] == 1 || m['pz'] == true, m['np'] == 1 || m['np'] == true, m['wm'] == 1 || m['wm'] == true);
+      return LinkedPerson(code, cleanText(m['name'] as String?, max: kMaxName), since, RegExp(r'^[0-9a-f]{8}$').hasMatch(pv) ? pv : '', m['pz'] == 1 || m['pz'] == true, m['np'] == 1 || m['np'] == true, m['wm'] == 1 || m['wm'] == true, m['wa'] == 1 || m['wa'] == true);
     } catch (_) {
       return null;
     }
@@ -672,6 +675,10 @@ class LinkService {
   /// Registra a inscrição de notificação deste aparelho.
   Future<LinkReply> pushSub(String code, String secret, Map<String, dynamic> sub) =>
       _post({..._auth(code, secret, null), 'action': 'push_sub', 'sub': sub, 'tz': DateTime.now().timeZoneOffset.inMinutes});
+
+  /// PROFESSOR: avisa o aluno de que o WhatsApp dele foi guardado (ou apagado). O número NUNCA é enviado.
+  Future<LinkReply> contactNote(String code, String secret, {required String student, required bool on}) =>
+      _post({..._auth(code, secret, null), 'action': 'contact_note', 'role': 'teacher', 'other': student, 'on': on});
 
   /// A própria pessoa liga ou desliga o lembrete de estudo.
   Future<LinkReply> nudgeSet(String code, String secret, bool on) => _post({..._auth(code, secret, null), 'action': 'nudge_set', 'on': on});

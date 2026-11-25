@@ -230,6 +230,16 @@ class Student {
   bool noPick;
   bool muted;
 
+  /// WhatsApp do aluno, preenchido pelo professor (só dígitos, com o país). Fica SÓ neste aparelho: não vai ao servidor,
+  /// nem à cópia entre aparelhos, nem ao "Copiar dados" ou aos relatórios.
+  String? whats;
+
+  /// Dias da semana (1 = segunda ... 7 = domingo) em que o professor quer ser lembrado de lembrar este aluno.
+  List<int> remindDays;
+
+  /// Quando o professor abriu a conversa para lembrar este aluno pela última vez (ms).
+  int? remindedMs;
+
   /// Foto do aluno (texto base64 de uma imagem pequena). Só neste aparelho: o professor escolhe; nunca vai para o servidor.
   String? photo;
 
@@ -258,6 +268,9 @@ class Student {
     this.paused = false,
     this.noPick = false,
     this.muted = false,
+    this.whats,
+    List<int>? remindDays,
+    this.remindedMs,
     this.photo,
     this.instrument,
     this.turma,
@@ -267,7 +280,8 @@ class Student {
     List<SessionRecord>? sessions,
     List<LessonRecord>? lessons,
     List<Absence>? absences,
-  })  : created = created ?? DateTime.now(),
+  })  : remindDays = remindDays ?? [],
+        created = created ?? DateTime.now(),
         absences = absences ?? [],
         lessons = lessons ?? [],
         notes = notes ?? [],
@@ -284,6 +298,9 @@ class Student {
         if (paused) 'pz': 1,
         if (noPick) 'np': 1,
         if (muted) 'wm': 1,
+        if (whats != null) 'wa': whats,
+        if (remindDays.isNotEmpty) 'rdw': remindDays,
+        if (remindedMs != null) 'rdm': remindedMs,
         if (photo != null) 'ph': photo,
         if (instrument != null) 'ins': instrument,
         if (turma != null) 'tu': turma,
@@ -306,6 +323,9 @@ class Student {
         paused: j['pz'] == 1 || j['pz'] == true,
         noPick: j['np'] == 1 || j['np'] == true,
         muted: j['wm'] == 1 || j['wm'] == true,
+        whats: RegExp(r'^\d{8,15}$').hasMatch('${j['wa'] ?? ''}') ? '${j['wa']}' : null,
+        remindDays: ({for (final d in ((j['rdw'] as List?) ?? const [])) if (d is int && d >= 1 && d <= 7) d}.toList()..sort()),
+        remindedMs: (j['rdm'] as num?)?.toInt(),
         photo: cleanPhoto(j['ph'] as String?),
         instrument: teachingById(j['ins'] as String?)?.id,
         turma: RegExp(r'^t[a-z0-9]{1,20}$').hasMatch((j['tu'] as String?) ?? '') ? j['tu'] as String : null,
@@ -489,7 +509,11 @@ String studentReport(Student s, {bool? flats = false}) {
 }
 
 /// Dados do aluno em texto (JSON) para copiar/colar.
-String exportStudent(Student s) => jsonEncode(s.toJson()..remove('ph')); // a foto fica no aparelho
+String exportStudent(Student s) => jsonEncode(s.toJson()
+  ..remove('ph') // a foto fica no aparelho
+  ..remove('wa') // o número do aluno também, e os lembretes que dependem dele
+  ..remove('rdw')
+  ..remove('rdm'));
 
 /// Lê os dados colados; null se não forem válidos.
 Student? importStudent(String text) {

@@ -210,7 +210,7 @@ function parseLinks(h) {
   for (const [code, raw] of Object.entries(h)) {
     try {
       const j = JSON.parse(raw);
-      out.push({ code, name: j.n || '', since: j.t || 0, by: j.by || '', ...(j.pv ? { pv: j.pv } : {}), ...(j.pz ? { pz: 1 } : {}), ...(j.np ? { np: 1 } : {}), ...(j.wm ? { wm: 1 } : {}) });
+      out.push({ code, name: j.n || '', since: j.t || 0, by: j.by || '', ...(j.pv ? { pv: j.pv } : {}), ...(j.pz ? { pz: 1 } : {}), ...(j.np ? { np: 1 } : {}), ...(j.wm ? { wm: 1 } : {}), ...(j.wa ? { wa: 1 } : {}) });
     } catch (_) { /* linha ruim */ }
   }
   return out.sort((a, b) => a.since - b.since);
@@ -1214,9 +1214,11 @@ function makeHandler(deps = {}) {
       // O PROFESSOR liga ou desliga, para UM aluno, "pegar horário" (np) e o recebimento dos avisos dele (wm).
       //   pick_allow { role: 'teacher', other: aluno, on }   on=false -> o aluno não pega horários livres
       //   warn_mute  { role: 'teacher', other: aluno, on }   on=true  -> silencia os avisos desse aluno
-      if (action === 'pick_allow' || action === 'warn_mute') {
+      //   contact_note { role: 'teacher', other: aluno, on } on=true  -> o professor guardou o WhatsApp do aluno no aparelho dele
+      //                                                  (o número NUNCA vem ao servidor: é só a marca para avisar o aluno)
+      if (action === 'pick_allow' || action === 'warn_mute' || action === 'contact_note') {
         if (role !== 'teacher') return send(403, { error: 'Só o professor decide isso.' });
-        const flag = action === 'pick_allow' ? 'np' : 'wm';
+        const flag = action === 'pick_allow' ? 'np' : action === 'warn_mute' ? 'wm' : 'wa';
         const want = action === 'pick_allow' ? b.on !== true && b.on !== 1 : b.on === true || b.on === 1;
         const rawT = await store.hget(T(me), student);
         if (rawT === undefined) return send(404, { error: 'Este aluno não está vinculado a você.' });

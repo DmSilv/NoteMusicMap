@@ -213,6 +213,7 @@
 | `packages/afina_core/lib/staff_layout.dart` | Distribuição da partitura na largura da tela: quebra em linhas (sistemas), espaça as notas, calcula hastes, barras, tercinas e linhas suplementares. Tudo em "espaços de pauta" (1 espaço = a distância entre duas… |
 | `packages/afina_core/lib/staff_notation.dart` | Partitura de escalas e arpejos (clave de Sol, compasso 4/4, como no "sistema de escalas" de Flesch). Esta parte é só MÚSICA, em Dart puro e testável: posição da nota na pauta, armadura de clave, quando aparece ♯ ♭ ♮… |
 | `packages/afina_core/lib/start_checklist.dart` | "Comece por aqui": o que o professor novo precisa fazer para o app render (vincular, marcar aula, passar tarefa). Dart puro: o app diz o que já aconteceu e esta lógica diz o que falta e qual é o próximo passo. |
+| `packages/afina_core/lib/student_reminder.dart` | Lembretes que o PROFESSOR manda pelo WhatsApp: número do aluno (fica só no aparelho do professor), mensagens amigáveis, quem pode precisar de um empurrãozinho e os dias em que o professor quer ser lembrado de… |
 | `packages/afina_core/lib/study_clock.dart` | Relógios de estudo: CRONÔMETRO (conta para cima) e MINUTERIA (conta para baixo até um tempo escolhido). Dart puro: o relógio de parede é passado de fora (ms), então dá para testar e para retomar depois de fechar o app. |
 | `packages/afina_core/lib/study_context.dart` | O que o treinador (IA) recebe além dos números das escalas: o estudo da semana, as tarefas em aberto do professor e, só se a pessoa autorizar, as observações dele. Nunca áudio, nunca nomes: tarefas e observações… |
 | `packages/afina_core/lib/study_streak.dart` | Dias seguidos de estudo (com perdão de 1 dia) e o resumo da semana. Dart puro: o app passa o mapa "dia (AAAA-MM-DD) -> segundos estudados" e a data de hoje; aqui sai o que mostrar. |
@@ -288,6 +289,7 @@
 | `packages/afina_core/test/start_checklist_test.dart` | Testes do módulo `start_checklist`. |
 | `packages/afina_core/test/student_label_test.dart` | Testes do módulo `student_label`. |
 | `packages/afina_core/test/student_paused_test.dart` | Testes do módulo `student_paused`. |
+| `packages/afina_core/test/student_reminder_test.dart` | Testes do módulo `student_reminder`. |
 | `packages/afina_core/test/study_clock_test.dart` | Testes do módulo `study_clock`. |
 | `packages/afina_core/test/study_context_test.dart` | Testes do módulo `study_context`. |
 | `packages/afina_core/test/study_streak_test.dart` | estudou 0,1,3,5,6: faltaram 2 e 4; o 2º vazio vem logo depois do 1º perdão -> quebra |
@@ -433,4 +435,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **390** arquivos mapeados.
+Total: **392** arquivos mapeados.

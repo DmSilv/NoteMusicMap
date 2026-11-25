@@ -359,7 +359,7 @@ Precisa do Upstash Redis. Sem ele devolve 503 e o app segue só neste aparelho.
 | `done` | O ALUNO marca (ou desmarca) como feita uma tarefa que recebeu de um professor vinculado. |
 | `verdict` | O PROFESSOR decide sobre uma tarefa de um aluno vinculado: 'ok' valida, 'back' devolve, vazio apaga a decisão. O aluno vê isso como o status oficial. |
 | `link` | — |
-| `pick_allow` | O PROFESSOR liga ou desliga, para UM aluno, "pegar horário" (np) e o recebimento dos avisos dele (wm). pick_allow { role: 'teacher', other: aluno, on }   on=false -> o aluno não pega horários livres warn_mute  { role: 'teacher', other: aluno, on }   on=true  -> silencia os avisos desse aluno |
+| `pick_allow` | warn_mute  { role: 'teacher', other: aluno, on }   on=true  -> silencia os avisos desse aluno contact_note { role: 'teacher', other: aluno, on } on=true  -> o professor guardou o WhatsApp do aluno no aparelho dele (o número NUNCA vem ao servidor: é só a marca para avisar o aluno) |
 | `pause` | O PROFESSOR pausa (ou reativa) um aluno: o histórico fica, o aluno sai do dia a dia e não conta no limite grátis. |
 | `unlink` | — |
 

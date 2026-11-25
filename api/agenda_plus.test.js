@@ -352,3 +352,17 @@ test('segurança: ações novas exigem o segredo, dados ruins viram 400 e nada v
   const t = (await as(H, PROF, { action: 't_inbox' })).body;
   assert.ok(!t.includes(sec(PROF)));
 });
+
+// ---------------- o professor guardou o WhatsApp do aluno (só o aviso; o número nunca vem ao servidor) ----------------
+test('contato guardado: o aluno vê a marca, só o professor dele marca e o número não é aceito nem guardado', async () => {
+  const H = await setup([ALU]);
+  const r = await as(H, PROF, { action: 'contact_note', role: 'teacher', other: ALU, on: true, number: '5511912345678', whats: '5511912345678' });
+  assert.equal(r.statusCode, 200);
+  const sync = (await as(H, ALU, { action: 'sync' })).body;
+  assert.equal(JSON.parse(sync).asStudent[0].wa, 1);
+  assert.ok(!JSON.stringify([...hashes.entries()].map(([k, v]) => [k, v instanceof Map ? [...v] : v])).includes('5511912345678'), 'o número não fica em lugar nenhum do servidor');
+  assert.equal((await as(H, ALU, { action: 'contact_note', role: 'student', other: PROF, on: true })).statusCode, 403);
+  assert.equal((await as(H, PROF2, { action: 'contact_note', role: 'teacher', other: ALU, on: true })).statusCode, 404);
+  await as(H, PROF, { action: 'contact_note', role: 'teacher', other: ALU, on: false });
+  assert.equal((await as(H, ALU, { action: 'sync' })).json().asStudent[0].wa, undefined);
+});

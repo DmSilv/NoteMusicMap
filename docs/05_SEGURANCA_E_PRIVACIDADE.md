@@ -56,3 +56,4 @@ O painel permite **bloquear/liberar** e **excluir dados** (com confirmação dig
 - **Aviso de novo acesso** (e-mail): agora manda a pessoa ir em Minha conta › Aparelhos, tirar o que não reconhece e gerar uma nova chave de recuperação, já que entrar acrescenta o aparelho em vez de trocar o dono.
 
 - **Lembrete de estudo:** o servidor usa o último uso do app (que já guardava para o painel) para decidir, sozinho, se manda um lembrete a quem ligou as notificações. Nada disso é mostrado ao professor. Guarda no perfil só a data da próxima conferência, as datas dos últimos envios, o fuso e se a pessoa desligou o lembrete. A pessoa desliga quando quiser, e excluir a conta apaga tudo.
+- **WhatsApp do aluno:** quem preenche é o professor, e o número fica só no aparelho dele (fora do servidor, das cópias, da exportação e da IA). O servidor guarda apenas a marca de que há um número, para avisar o aluno.

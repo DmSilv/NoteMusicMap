@@ -34,13 +34,6 @@ String buildStudyContext({
   return b.toString().trim();
 }
 
-/// Mensagem pronta que o professor manda pelo WhatsApp para lembrar o aluno de estudar (ele pode mudar antes de enviar).
-String studyReminderText(String firstName, List<String> openTasks) {
-  final tasks = [for (final t in openTasks) if (t.trim().isNotEmpty) _cut(t, 60)].take(3).toList();
-  if (tasks.isEmpty) return tr('Oi, {0}! Que tal separar 15 minutos hoje para estudar? Qualquer dúvida, é só me chamar.', [firstName]);
-  return tr('Oi, {0}! Ficou para estudar: {1}. Consegue separar uns 15 minutos hoje? Qualquer dúvida, é só me chamar.', [firstName, tasks.join(', ')]);
-}
-
 String _cut(String s, int max) {
   final t = s.replaceAll(RegExp(r'\s+'), ' ').trim();
   return t.length <= max ? t : '${t.substring(0, max - 1)}…';
