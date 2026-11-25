@@ -62,6 +62,12 @@ const FEATURES = {
     scope: 'professor',
     students: false,
   },
+  lembrete_estudo: {
+    name: 'Lembrete de estudo automático',
+    desc: 'Quem ligou as notificações e está há 2 dias sem abrir o app recebe um lembrete leve (no máximo 2 por semana, às 18h). Quem usa bastante não recebe, e o professor não vê nada. Libere para o ALUNO (por código ou para todos).',
+    scope: 'professor',
+    students: true,
+  },
 };
 
 const MODES = ['off', 'list', 'pct', 'all'];

@@ -2701,6 +2701,50 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  // ---------------- Lembrete de estudo (automático, só entre o sistema e o aluno) ----------------
+  /// A pessoa desligou o lembrete de estudo (a verdade fica no servidor).
+  bool studyNudgeOff = false;
+
+  bool get studyNudgeAvailable => hasFeature('lembrete_estudo');
+
+  /// Vale a pena olhar o aparelho para oferecer o lembrete: já recebeu aula do professor e ainda não respondeu ao convite.
+  bool get studyPromptWanted => studyNudgeAvailable && !studyNudgeOff && linkEnabled && myLessons.isNotEmpty && !(_prefs?.getBool('nudge_prompt_done') ?? false);
+
+  bool get showStudyPrompt => studyPromptWanted && (pushStatus == PushStatus.off || pushStatus == PushStatus.needsInstall);
+
+  void dismissStudyPrompt() {
+    _prefs?.setBool('nudge_prompt_done', true);
+    notifyListeners();
+  }
+
+  /// Liga ou desliga o lembrete de estudo. Devolve o motivo se não deu.
+  Future<String?> setStudyNudge(bool on) async {
+    final r = await links.nudgeSet(profile.shareCode, profile.secret, on);
+    if (!r.ok) return _inboxError(r);
+    studyNudgeOff = !on;
+    notifyListeners();
+    return null;
+  }
+
+  bool _nudgeRegistering = false;
+
+  /// Quem já tinha a notificação ligada antes deste recurso avisa o servidor uma vez (é o que liga o lembrete de estudo).
+  Future<void> _registerForNudge() async {
+    if (_nudgeRegistering || !linkEnabled || linkUnavailable || (_prefs?.getBool('nudge_reg') ?? false) || !(_prefs?.getBool('push_on') ?? false)) return;
+    _nudgeRegistering = true;
+    try {
+      if (!webPushSupported() || webPushPermission() != 'granted') return;
+      final subJson = await webPushCurrent();
+      if (subJson == null) return;
+      final r = await links.pushSub(profile.shareCode, profile.secret, (jsonDecode(subJson) as Map).cast<String, dynamic>());
+      if (r.ok) _prefs?.setBool('nudge_reg', true);
+    } catch (_) {
+      // tenta de novo numa próxima sincronização
+    } finally {
+      _nudgeRegistering = false;
+    }
+  }
+
   /// Liga os lembretes neste aparelho (precisa vir de um toque). Devolve uma mensagem se não deu.
   Future<String?> enablePush() async {
     if (!webPushSupported()) {
@@ -3896,6 +3940,11 @@ class AppState extends ChangeNotifier {
       warnsMuted = r.warnsOff;
       changed = true;
     }
+    if (studyNudgeOff != r.nudgeOff) {
+      studyNudgeOff = r.nudgeOff;
+      changed = true;
+    }
+    if (r.ff.contains('lembrete_estudo')) unawaited(_registerForNudge());
     // O plano Pro vem junto da sincronização (sem a data, o servidor diz que não há Pro).
     if (r.pro != proUntil) {
       proUntil = r.pro;

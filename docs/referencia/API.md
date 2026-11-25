@@ -344,6 +344,7 @@ Precisa do Upstash Redis. Sem ele devolve 503 e o app segue só neste aparelho.
 | `lib_report` | — |
 | `push_sub` | Notificações: inscrição do navegador deste aparelho |
 | `push_unsub` | — |
+| `nudge_set` | A própria pessoa liga ou desliga o lembrete de estudo (o professor não vê nem muda isso). |
 | `avail_put` | Horários disponíveis: o PROFESSOR cria, muda ou apaga |
 | `avail_take` | O ALUNO pega um horário disponível: o primeiro que pega leva |
 | `t_inbox` | Caixa de entrada do PROFESSOR: pedidos de horário e avisos dos alunos (uma consulta só, feita quando "ar" muda) |

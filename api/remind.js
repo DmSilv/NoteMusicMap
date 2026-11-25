@@ -12,6 +12,8 @@ const { nextStart, validRemindSig, remindersEnabled, scheduleNext, verifyQstashJ
 const { sendPush, validSubscription } = require('./_lib/webpush');
 const { serverError } = require('./_lib/error_store');
 const { bump } = require('./_lib/metrics');
+const nudge = require('./_lib/nudge');
+const features = require('./_lib/features');
 
 const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 function normCode(s) {
@@ -53,6 +55,26 @@ function makeHandler(deps = {}) {
     if (!validRemindSig(cfg, m) || !verifyQstashJwt(cfg, jwt, Math.floor(clock() / 1000))) {
       return send(401, { error: 'Assinatura inválida.' });
     }
+    // Lembrete de estudo (mensagem própria, sem professor nem aula).
+    if (m.k === 'nudge') {
+      const who = normCode(m.sc);
+      const ver = Number(m.u);
+      if (!who || !Number.isFinite(ver) || !Number.isFinite(Number(m.o))) return send(400, { error: 'Mensagem inválida.' });
+      try {
+        const dup = await store.incr(`lnkrem:nudge:${who}:${ver}`, 86400);
+        if (dup.n > 1) return send(200, { ok: true, ignored: 'duplicada' });
+        const fcfg = await features.loadCfg(store, clock());
+        const out = await nudge.fire(cfg, fetchImpl, store, who, ver, clock(), (prof) => features.isOn(fcfg, nudge.FEATURE, who, prof, null));
+        if (out.sent > 0) await bump(cfg, fetchImpl, clock, { allowMemory: !!deps.allowMemory }, 'remind');
+        return send(200, { ok: true, ...out });
+      } catch (e) {
+        if (String(e.message) === 'no-redis') return send(503, { error: 'sync_unavailable' });
+        console.error('nudge error', e && e.message);
+        await serverError({ cfg, fetchImpl, clock, allowMemory: !!deps.allowMemory }, 'remind', e);
+        return send(500, { error: 'Erro ao enviar o lembrete.' });
+      }
+    }
+
     const t = normCode(m.t), sc = normCode(m.sc);
     const id = String(m.id || '');
     const o = Number(m.o), u = Number(m.u);

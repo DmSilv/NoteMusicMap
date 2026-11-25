@@ -117,6 +117,7 @@
 | `lib/ui/student_page.dart` | Confirma uma exclusão que não tem volta: o botão só libera depois de digitar uma palavra simples (EXCLUIR). |
 | `lib/ui/study_card.dart` | "Seu estudo": o tempo estudado hoje, os dias seguidos, a meta diária e o cronômetro/Pomodoro num cartão só. Mora na aba Hoje da página Estudo; os dados e gráficos ficam na aba Evolução. |
 | `lib/ui/study_hub.dart` | A primeira frase útil do plano (sem "##" nem "-"), para o cartão do Meu espaço. |
+| `lib/ui/study_nudge_ui.dart` | Convite para ligar o lembrete, na hora em que ele faz sentido: quando o aluno já recebeu a primeira aula do professor. |
 | `lib/ui/study_page.dart` | "Meu espaço": o foco é a AGENDA (próxima aula e o que vem depois), os alunos, as tarefas e o acervo. O estudo (resumo, cronômetro e Pomodoro) mora na aba Metrônomo (`study_card.dart`). |
 | `lib/ui/study_timers.dart` | Bloco "Como você quer estudar?": submenu com Pomodoro, Cronômetro e Meu tempo, cada um com uma explicação curta de quando usar. |
 | `lib/ui/success_moment.dart` | "Momento de sucesso": uma folha que sobe de baixo com um ✓ desenhado, uma frase e um detalhe, e some sozinha. Serve para os poucos momentos em que algo importante deu certo (pegar um horário, marcar uma aula, enviar… |
@@ -338,6 +339,7 @@
 | `api/_lib/metrics.js` | Métricas anônimas de uso: nomes das chaves, o dia (fuso de Brasília) e o contador que o servidor soma sozinho quando algo acontece (aula enviada, vínculo criado...). Falhar aqui NUNCA pode derrubar o que o usuário… |
 | `api/_lib/mirror.js` | Espelho da conta entre aparelhos: o que o professor (e a pessoa) guarda só no aparelho — alunos com tarefas, observações e aulas, agenda, métodos, histórico de estudo — passa a ficar também no servidor, para o outro… |
 | `api/_lib/news.js` | Boletim do app ("Novidades"): textos curtos que o administrador escreve, publica, oculta ou exclui no painel. O app só LÊ a lista publicada (GET /api/news, com cache de CDN), então o custo por usuário é praticamente… |
+| `api/_lib/nudge.js` | Lembrete de estudo automático (recurso "lembrete_estudo"). Fica só entre o sistema e o aluno: o professor não vê nada. Como funciona sem varrer o banco: cada pessoa com notificação ligada tem no máximo UMA mensagem… |
 | `api/_lib/pay.js` | Pagamento do plano Pro do professor por Pix (Mercado Pago, Checkout API). TUDO DESLIGADO por padrão: sem PAY_ENABLED=1 nada responde. Modelo: Pix avulso por período (sem renovação automática). O professor paga 30… |
 | `api/_lib/pay_ledger.js` | Livro dos pagamentos do Pix: cada Pix é um hash `pay:<id>` (c = perfil, p = plano, a = valor, t = criado, s = status do Mercado Pago, g = quando o Pro foi liberado, n = o que você recebeu líquido, f = a taxa, r =… |
 | `api/_lib/profiles.js` | Índice dos perfis anônimos (código + apelido) para o painel do administrador: quando entrou, última atividade, papel (professor / aluno) e bloqueio. NÃO há cadastro nem login. Custo: 3 comandos quando o perfil nasce;… |
@@ -385,6 +387,7 @@
 | `api/link.test.js` | Testes do vínculo professor-aluno, sem rede: `node --test api/link.test.js` |
 | `api/mirror.test.js` | Espelho da conta entre aparelhos, sem rede: `node --test api/mirror.test.js` |
 | `api/news.test.js` | Boletim do app: o painel escreve, publica, oculta e exclui; o app só lê o que está publicado. `node --test api/news.test.js` |
+| `api/nudge.test.js` | Lembrete de estudo automático, sem rede: `node --test api/nudge.test.js` |
 | `api/online.test.js` | Testes da aula online (link da aula, modo online/presencial, link padrão): `node --test api/online.test.js` |
 | `api/painel_precisao.test.js` | Painel mais preciso: saúde, custos, coortes, período anterior, horas, limpeza e erros do servidor. `node --test api/painel_precisao.test.js` |
 | `api/pause.test.js` | Aluno pausado, vários professores (conflito de horário) e resumo de estudo por professor: `node --test api/pause.test.js` |
@@ -430,4 +433,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **387** arquivos mapeados.
+Total: **390** arquivos mapeados.

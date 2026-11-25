@@ -173,3 +173,14 @@ O treinador (Gemini, ChatGPT e os outros serviços do servidor) custa e tem limi
 4. **O servidor só aceita pergunta da lista.** O app manda o `qid`; o servidor monta o texto (`api/_lib/coach_questions.js`) e descarta qualquer pergunta que veio no resumo. Pergunta fora da lista é recusada (400). Apps antigos continuam funcionando só com as 3 perguntas antigas. Um teste confere que os ids do servidor e do app são os mesmos.
 5. **Escopo fechado nos prompts** (todos os tipos): só estudo de instrumento de arco; assunto de fora, pedido para mudar regras, revelar instruções ou assumir outro papel faz a IA responder só `FORA_DO_ESCOPO`, e o servidor devolve 422 com uma explicação (o pedido já conta no limite). Sem links, sem código, sem dados pessoais, sem diagnóstico de dor ou lesão. A resposta ainda passa por uma limpeza que tira links e blocos de código.
 6. **Limites que continuam:** 5 pedidos por dia por aparelho, intervalo entre pedidos, limite global do dia e fila.
+
+## 21. Lembrete de estudo automático (25/11/2026) — liberado por chave
+Recurso `lembrete_estudo` (aba Recursos; nasce desligado; libere para o **aluno**, por código ou para todos). Fica só entre o sistema e o aluno: **o professor não vê nada** (nem se o aluno abriu o app, nem se recebeu lembrete). Código: `api/_lib/nudge.js`, testes `api/nudge.test.js`.
+1. **Quem pode receber:** quem ligou as notificações no aparelho. Quem só ensina não recebe.
+2. **Quando:** a conferência é marcada para 2 dias à frente, às **18h** no fuso da pessoa. Na hora, se ela está há cerca de 2 dias sem abrir o app, recebe um lembrete ("Que tal 10 minutos na tarefa de {professor} hoje?", ou sem o nome se há zero ou vários professores).
+3. **Quem não precisa não recebe:** usou o app em **3 dias ou mais** na última semana, ou abriu há pouco: nada é enviado.
+4. **Freios:** no máximo **2 por 7 dias**; depois de **3 ignorados** o sistema para e só volta a conferir quando a pessoa abrir o app de novo.
+5. **Desligar:** interruptor "Lembrete de estudo" no cartão de lembretes (agenda). Vale no servidor (`nudge_set`, campo `ngz`).
+6. **Convite na hora certa:** o aluno que já recebeu uma aula e não ligou as notificações vê "Quer um lembrete da tarefa?" no Meu espaço (uma vez; no iPhone explica como instalar o app).
+7. **Custo:** uma mensagem no QStash a cada 2 ou 3 dias por pessoa com notificação ligada (o plano grátis tem 1.000 por dia, divididas com os lembretes de aula) e poucos comandos no Redis. Abrir o app com a conferência já marcada não gasta nada. Não há varredura do banco.
+8. **Lembrar no WhatsApp (professor):** botão na ficha do aluno com mensagem pronta (tarefas em aberto); abre o WhatsApp e quem escolhe o contato e envia é o professor. Não usa servidor nem notificação.

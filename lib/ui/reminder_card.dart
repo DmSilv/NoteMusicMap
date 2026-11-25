@@ -120,6 +120,14 @@ class _ReminderCardState extends State<ReminderCard> {
                   icon: const Icon(Icons.cloud_outlined, size: 18),
                   label: Text(tr('Ligar vínculo online')),
                 ),
+              if (st == PushStatus.on && app.studyNudgeAvailable)
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(tr('Lembrete de estudo'), style: const TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text(tr('Um toque leve se você ficar uns dias sem abrir o app. No máximo 2 por semana.'), style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+                  value: !app.studyNudgeOff,
+                  onChanged: _busy ? null : (v) => _run(() => app.setStudyNudge(v)),
+                ),
               if (st == PushStatus.on)
                 TextButton(
                   style: TextButton.styleFrom(padding: EdgeInsets.zero, alignment: Alignment.centerLeft),

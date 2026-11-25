@@ -112,6 +112,27 @@ self.addEventListener('push', (event) => {
     );
     return;
   }
+  // Lembrete de estudo: um convite leve, sem cobrança.
+  if (d.kind === 'study') {
+    event.waitUntil(
+      (async () => {
+        const en = (await currentLang()) === 'en';
+        const who = typeof d.who === 'string' && d.who ? d.who.slice(0, 40) : '';
+        const body = who
+          ? (en ? `How about 10 minutes on ${who}'s task today?` : `Que tal 10 minutos na tarefa de ${who} hoje?`)
+          : (en ? 'How about 10 minutes of practice today?' : 'Que tal 10 minutos de estudo hoje?');
+        await self.registration.showNotification(en ? 'A little practice?' : 'Bora estudar um pouco?', {
+          body,
+          icon: '/icons/Icon-192.png',
+          badge: '/icons/badge-96.png',
+          tag: 'estudo', // um lembrete só na bandeja
+          renotify: false,
+          data: { url: '/' },
+        });
+      })(),
+    );
+    return;
+  }
   if (d.kind !== 'lesson' || !Number.isFinite(Number(d.start))) return;
   event.waitUntil(
     (async () => {

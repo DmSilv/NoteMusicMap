@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../ai/coach_ai.dart';
 import '../app_state.dart';
 import 'design_system.dart';
+import 'study_nudge_ui.dart';
 import 'evolution_page.dart';
 import 'gamify_ui.dart';
 import 'markdown_lite.dart';
@@ -93,6 +94,7 @@ class StudyHubCard extends StatelessWidget {
         final mins = [for (final d in days) (app.studySeconds[AppState.dayKey(d)] ?? 0) / 60];
         final maxV = [goal, ...mins].reduce((a, b) => a > b ? a : b).clamp(5.0, 600.0);
         return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          StudyNudgePrompt(app: app),
           // O treinador primeiro: é o que diz o que fazer.
           Material(
             color: AppColors.surface,

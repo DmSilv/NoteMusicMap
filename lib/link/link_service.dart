@@ -171,6 +171,9 @@ class LinkReply {
   final bool pickOff;
   final bool warnsOff;
 
+  /// A pessoa desligou o lembrete de estudo (vem na sincronização).
+  final bool nudgeOff;
+
   /// Caixa de entrada do professor (pedidos e avisos) e respostas que o aluno recebeu.
   final List<PickRequest> reqs;
   final List<StudentWarn> warns;
@@ -256,6 +259,7 @@ class LinkReply {
     this.requested = false,
     this.pickOff = false,
     this.warnsOff = false,
+    this.nudgeOff = false,
     this.reqs = const [],
     this.warns = const [],
     this.answers = const [],
@@ -396,6 +400,7 @@ class LinkService {
         requested: j['requested'] == true,
         pickOff: j['off'] == 1,
         warnsOff: j['wm'] == 1,
+        nudgeOff: j['nz'] == 1,
         reqs: [for (final x in ((j['reqs'] as List?) ?? const []).take(50)) ?PickRequest.tryFrom(x)],
         warns: [for (final x in ((j['warns'] as List?) ?? const []).take(50)) ?StudentWarn.tryFrom(x)],
         answers: [for (final x in ((j['answers'] as List?) ?? const []).take(100)) ?InboxAnswer.tryFrom(x)],
@@ -666,7 +671,10 @@ class LinkService {
 
   /// Registra a inscrição de notificação deste aparelho.
   Future<LinkReply> pushSub(String code, String secret, Map<String, dynamic> sub) =>
-      _post({..._auth(code, secret, null), 'action': 'push_sub', 'sub': sub});
+      _post({..._auth(code, secret, null), 'action': 'push_sub', 'sub': sub, 'tz': DateTime.now().timeZoneOffset.inMinutes});
+
+  /// A própria pessoa liga ou desliga o lembrete de estudo.
+  Future<LinkReply> nudgeSet(String code, String secret, bool on) => _post({..._auth(code, secret, null), 'action': 'nudge_set', 'on': on});
 
   Future<LinkReply> pushUnsub(String code, String secret, String endpoint) =>
       _post({..._auth(code, secret, null), 'action': 'push_unsub', 'endpoint': endpoint});

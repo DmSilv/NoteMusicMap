@@ -7,6 +7,7 @@ import 'agenda_actions.dart' show absenceFlow;
 import 'hub_section.dart' show shareTeacherInvite;
 import 'safe_input.dart';
 import 'pause_ui.dart';
+import 'study_nudge_ui.dart';
 import '../ai/coach_ai.dart';
 import 'design_system.dart';
 import 'gamify_ui.dart' show StudyShareCard;
@@ -115,6 +116,7 @@ class StudentPage extends StatelessWidget {
                   PopupMenuItem(value: 'data', child: Text(tr('Copiar dados (para outro aparelho)'))),
                   PopupMenuItem(value: 'code', child: Text(tr('Código do aluno'))),
                   PopupMenuItem(value: 'rename', child: Text(tr('Renomear'))),
+                  PopupMenuItem(value: 'whats', child: Text(tr('Lembrar no WhatsApp'))),
                   PopupMenuItem(value: 'control', child: Text(tr('Controle do aluno'))),
                   PopupMenuItem(value: 'pause', child: Text(s.paused ? tr('Reativar aluno') : tr('Desativar aluno'))),
                   PopupMenuItem(value: 'delete', child: Text(tr('Excluir aluno'))),
@@ -151,6 +153,15 @@ class StudentPage extends StatelessWidget {
                 ValidationCard(app: app, student: s),
                 _deliveryCard(context, s),
                 _tasks(context, s),
+                if (!s.paused) ...[
+                  const SizedBox(height: Ds.s8),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(Ds.tap)),
+                    onPressed: () => showWhatsReminderSheet(context, app, s),
+                    icon: const Icon(Icons.send_rounded, size: 18),
+                    label: Text(tr('Lembrar no WhatsApp')),
+                  ),
+                ],
                 const SizedBox(height: Ds.gap),
                 _more(context, s, sum, tips),
               ],
@@ -176,6 +187,8 @@ class StudentPage extends StatelessWidget {
         await editStudentCode(context, app, s);
       case 'rename':
         await renameStudent(context, app, s);
+      case 'whats':
+        await showWhatsReminderSheet(context, app, s);
       case 'control':
         await showStudentControlSheet(context, app, s);
       case 'pause':
@@ -659,6 +672,15 @@ class StudentPage extends StatelessWidget {
         ]),
       ),
       const SizedBox(height: Ds.gap),
+      if (!s.paused) ...[
+        OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(Ds.tap)),
+          onPressed: () => _menu(context, s, 'whats'),
+          icon: const Icon(Icons.send_rounded, size: 18),
+          label: Text(tr('Lembrar no WhatsApp')),
+        ),
+        const SizedBox(height: Ds.s8),
+      ],
       OutlinedButton.icon(
         style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(Ds.tap)),
         onPressed: () => _menu(context, s, 'control'),

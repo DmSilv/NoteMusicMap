@@ -42,6 +42,7 @@ const library = require('./_lib/library');
 const features = require('./_lib/features');
 const { purgeProfile } = require('./_lib/purge');
 const inbox = require('./_lib/inbox');
+const nudge = require('./_lib/nudge');
 
 const ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
 const MAX_LINKS = 300;
@@ -418,7 +419,9 @@ function makeHandler(deps = {}) {
         const stuList = parseLinks(asStudent);
         const feats = await features.forProfile(store, me, prof, legacy, clock());
         const libT = stuList.length ? await features.many(cmd, store, 'acervo', stuList.map((x) => x.code), legacy, clock()) : new Set();
-        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: stuList, ff: feats, ...(Number(prof.pro) > clock() ? { pro: Number(prof.pro) } : {}), ...(feats.includes('aula_online') && prof.ml ? { ml: prof.ml } : {}), lb: feats.includes('acervo') ? 1 : 0, lbT: stuList.map((x) => x.code).filter((c) => libT.has(c)), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...(prof.wm === '1' ? { wm: 1 } : {}), ...(await mirrorFlags(store, me, prof, clock())), ...(prof.cn === '1' ? { cn: 1 } : {}), ...noticeOf(prof) });
+        // Lembrete de estudo: a pessoa está usando o app, então marca a próxima conferência (se ainda não houver uma).
+        try { await nudge.arm(cfg, fetchImpl, store, me, prof, clock(), feats.includes(nudge.FEATURE)); } catch (_) { /* lembrete nunca atrapalha a sincronização */ }
+        return send(200, { ok: true, asTeacher: parseLinks(asTeacher), asStudent: stuList, ff: feats, ...(Number(prof.pro) > clock() ? { pro: Number(prof.pro) } : {}), ...(feats.includes('aula_online') && prof.ml ? { ml: prof.ml } : {}), lb: feats.includes('acervo') ? 1 : 0, lbT: stuList.map((x) => x.code).filter((c) => libT.has(c)), lr: Number(prof.lr) || 0, dr: Number(prof.dr) || 0, kr: Number(prof.kr) || 0, sr: Number(prof.sr) || 0, vr: Number(prof.vr) || 0, ar: Number(prof.ar) || 0, ...(prof.wm === '1' ? { wm: 1 } : {}), ...(prof.ngz === '1' ? { nz: 1 } : {}), ...(await mirrorFlags(store, me, prof, clock())), ...(prof.cn === '1' ? { cn: 1 } : {}), ...noticeOf(prof) });
       }
 
       // ---------------- excluir a própria conta (Ajustes › Excluir minha conta) ----------------
@@ -741,11 +744,27 @@ function makeHandler(deps = {}) {
           if (oldest) await store.hdel(PS(me), oldest[0]);
         }
         await store.hset(PS(me), field, JSON.stringify({ ...sub, t: clock() }));
+        const tz = String(nudge.cleanTz(b.tz));
+        if (prof.ngp !== '1') { await store.hset(U(me), 'ngp', '1'); prof.ngp = '1'; }
+        if (prof.ngt !== tz) { await store.hset(U(me), 'ngt', tz); prof.ngt = tz; }
+        try { await nudge.arm(cfg, fetchImpl, store, me, prof, clock(), features.isOn(await features.loadCfg(store, clock()), nudge.FEATURE, me, prof, null)); } catch (_) { /* nunca atrapalha ligar a notificação */ }
         return send(200, { ok: true });
       }
       if (action === 'push_unsub') {
         await store.hdel(PS(me), sha(String(b.endpoint || '')).slice(0, 24));
+        if ((await store.hlen(PS(me))) === 0) await store.hdel(U(me), 'ngp');
         return send(200, { ok: true });
+      }
+      // A própria pessoa liga ou desliga o lembrete de estudo (o professor não vê nem muda isso).
+      if (action === 'nudge_set') {
+        if (b.on === true || b.on === 1) {
+          await store.hdel(U(me), 'ngz');
+          delete prof.ngz;
+          try { await nudge.arm(cfg, fetchImpl, store, me, prof, clock(), features.isOn(await features.loadCfg(store, clock()), nudge.FEATURE, me, prof, null)); } catch (_) { /* ignora */ }
+        } else {
+          await store.hset(U(me), 'ngz', '1');
+        }
+        return send(200, { ok: true, on: b.on === true || b.on === 1 });
       }
 
       // ---- Horários disponíveis: o PROFESSOR cria, muda ou apaga ----
