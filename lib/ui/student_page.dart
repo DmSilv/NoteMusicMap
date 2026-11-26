@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../app_state.dart';
 import 'agenda_actions.dart' show absenceFlow;
 import 'hub_section.dart' show shareTeacherInvite;
+import 'link_bar.dart' show ensureTeacherLink;
 import 'safe_input.dart';
 import 'pause_ui.dart';
 import 'study_nudge_ui.dart';
@@ -81,9 +82,27 @@ Future<void> editStudentCode(BuildContext context, AppState app, Student s) asyn
   final err = app.checkStudentCode(c, exceptId: s.id);
   if (err != null) {
     app.say(err);
-  } else {
-    app.setStudentCode(s.id, c);
+    return;
   }
+  if (c.trim().isNotEmpty && context.mounted) {
+    await ensureTeacherLink(context, app, tr('Para vincular este aluno o app precisa conectar. Sem isso, ele fica só neste aparelho.'));
+  }
+  app.setStudentCode(s.id, c);
+}
+
+/// Enviar sem estar conectado: pergunta antes. "Agora não" não manda nada e a tarefa continua esperando.
+Future<bool> _connectToSend(BuildContext context, AppState app) =>
+    ensureTeacherLink(context, app, tr('Para a tarefa chegar ao aluno, o app precisa conectar.'));
+
+/// Abre a ficha do aluno já com o formulário de nova tarefa por cima ("Passar a primeira tarefa").
+void openStudentNewTask(BuildContext context, AppState app, String studentId) {
+  final nav = Navigator.of(context);
+  final page = StudentPage(app: app, studentId: studentId);
+  nav.push(MaterialPageRoute<void>(builder: (_) => page));
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    final s = app.studentById(studentId);
+    if (s != null && nav.mounted) page._taskDialog(nav.context, s);
+  });
 }
 
 /// Detalhe de um aluno: evolução, orientações, tarefas e observações.
@@ -349,7 +368,7 @@ class StudentPage extends StatelessWidget {
         color: AppColors.flat,
         actionLabel: tr('Convidar de novo'),
         actionIcon: Icons.send_rounded,
-        onAction: () => shareTeacherInvite(app),
+        onAction: () => shareTeacherInvite(context, app),
       ));
     }
     final open = app.openTaskCount(s);
@@ -816,7 +835,7 @@ class StudentPage extends StatelessWidget {
             else ...[
               if (showInvite)
                 FilledButton.icon(
-                  onPressed: () => shareTeacherInvite(app),
+                  onPressed: () => shareTeacherInvite(context, app),
                   icon: const Icon(Icons.send, size: 18),
                   label: Text(tr('Enviar convite')),
                 ),
@@ -1044,9 +1063,14 @@ class StudentPage extends StatelessWidget {
                       : tr('{0} itens ainda não enviados a {1}.', [n, s.name])),
               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
         ),
-        FilledButton.tonal(
-          onPressed: () => app.say(app.sendPendingTasks(s)),
-          child: Text(tr('Enviar')),
+        Builder(
+          builder: (context) => FilledButton.tonal(
+            onPressed: () async {
+              if (!await _connectToSend(context, app)) return;
+              app.say(app.sendPendingTasks(s));
+            },
+            child: Text(tr('Enviar')),
+          ),
         ),
       ]),
     );
@@ -1107,10 +1131,18 @@ class StudentPage extends StatelessWidget {
       app.addAssignment(s,
           title: d.title, kind: d.kind, subject: d.subject, detail: d.detail, note: d.note);
     }
+    var delivery = rule;
+    if (d.sendNow && rule.canSend && !app.linkEnabled) {
+      if (!context.mounted || !await _connectToSend(context, app)) {
+        app.say(tr('Tarefa passada. Ainda não foi enviada: use "Enviar" na ficha ou ela vai com a próxima aula.'));
+        return;
+      }
+      delivery = app.deliveryFor(s);
+    }
     if (rule.mode == DeliveryMode.inLesson) {
       app.say(tr('Tarefa passada. Vai para {0} quando você encerrar a aula.', [s.name]));
-    } else if (d.sendNow && rule.canSend) {
-      if (rule.mode == DeliveryMode.now) app.celebrateNextDelivery(s.code);
+    } else if (d.sendNow && delivery.canSend) {
+      if (delivery.mode == DeliveryMode.now) app.celebrateNextDelivery(s.code);
       app.say(app.sendPendingTasks(s));
     } else if (rule.mode == DeliveryMode.localOnly) {
       app.say(tr('Tarefa passada. Fica só na sua ficha: {0} ainda não pode receber.', [s.name]));
@@ -1138,7 +1170,14 @@ class StudentPage extends StatelessWidget {
               '${tr('Aula {0}', [lessonDisplayId(l.id)])}\n${tr('{0} tarefa{1}{2} · {3}', [l.taskCount, l.taskCount == 1 ? '' : 's', l.noteCount > 0 ? tr(', {0} observaç{1}', [l.noteCount, l.noteCount == 1 ? tr('ão') : tr('ões')]) : '', l.sent == true ? tr('enviada ao aluno') : (l.sent == false ? tr('aguardando envio') : tr('só neste aparelho'))])}',
               style: Ds.support(),
             ),
-            trailing: l.sent == false ? TextButton(onPressed: app.flushLessons, child: Text(tr('Enviar'))) : null,
+            trailing: l.sent == false
+                ? Builder(
+                    builder: (c) => TextButton(
+                        onPressed: () async {
+                          if (await _connectToSend(c, app)) await app.flushLessons();
+                        },
+                        child: Text(tr('Enviar'))))
+                : null,
           ),
       ],
     );
@@ -1276,7 +1315,9 @@ class _LessonCardState extends State<_LessonCard> {
     final rec = app.endLesson();
     if (rec == null) return;
     app.say(rec.sent == false
-        ? tr('Aula encerrada. Enviando para {0}…', [s.name])
+        ? (app.linkEnabled
+            ? tr('Aula encerrada. Enviando para {0}…', [s.name])
+            : tr('Aula encerrada e guardada. Vai para {0} quando você conectar.', [s.name]))
         : tr('Aula encerrada e guardada neste aparelho.'));
   }
 

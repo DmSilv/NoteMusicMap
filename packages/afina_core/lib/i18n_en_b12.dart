@@ -17,7 +17,6 @@ const Map<String, String> kEnB12 = {
   'Partitura clara': 'Light sheet music',
   'Partitura escura': 'Dark sheet music',
   'Mostrar a partitura': 'Show the sheet music',
-  '"Comece por aqui" escondido. Para ver de novo: toque em "Mostrar o tutorial" aqui no Meu espaço ou em Ajustes › Rever tutoriais.': '"Start here" hidden. To see it again: tap "Show the tutorial" here in My space or go to Settings › Review tutorials.',
   'Desfazer': 'Undo',
   'Mostrar o tutorial': 'Show the tutorial',
   'Bemol': 'Flat',

@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 import '../app_state.dart';
 import 'agenda_page.dart';
 import 'hub_section.dart' show shareTeacherInvite;
+import 'join_student_card.dart';
+import 'link_bar.dart' show askTeacherLink, ensureTeacherLink;
 import 'safe_input.dart';
 import 'design_system.dart';
 import 'teacher_setup_page.dart' show requireAdult;
@@ -118,11 +120,18 @@ Future<bool> _checkStudentLimit(BuildContext context, AppState app) async {
   return false;
 }
 
+/// Aluno com código e professor sem conexão: pergunta antes. "Agora não" guarda o aluno só no aparelho.
+Future<void> _askToLinkCode(BuildContext context, AppState app, String? code) async {
+  if ((code ?? '').trim().isEmpty) return;
+  await ensureTeacherLink(context, app, tr('Para vincular este aluno o app precisa conectar. Sem isso, ele fica só neste aparelho.'));
+}
+
 Future<void> _addByName(BuildContext context, AppState app, {String? code0}) async {
   if (!await _checkStudentLimit(context, app)) return;
   if (!context.mounted) return;
   final r = await _newStudentDialog(context, app, code0: code0);
   if (r == null) return;
+  if (context.mounted) await _askToLinkCode(context, app, r.$2);
   final s = app.addStudent(r.$1, code: r.$2);
   app.say(tr('{0} foi adicionado à sua lista.', [s.name]));
   if (context.mounted) Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => StudentPage(app: app, studentId: s.id)));
@@ -180,7 +189,7 @@ Future<void> showAddStudent(BuildContext context, AppState app) {
         sub: tr('Mande o link por mensagem. Quando o aluno abrir, ele aparece aqui sozinho.'),
         onTap: () {
           Navigator.of(c).pop();
-          shareTeacherInvite(app);
+          shareTeacherInvite(context, app);
         },
       ),
       option(
@@ -223,6 +232,7 @@ Future<void> handleIncomingStudentCode(BuildContext context, AppState app) async
     app.say(problem);
     return;
   }
+  var asked = false;
   if (!app.teacherMode) {
     final on = await showDialog<bool>(
       context: context,
@@ -239,12 +249,16 @@ Future<void> handleIncomingStudentCode(BuildContext context, AppState app) async
     if (!await requireNickname(context, app, reason: tr('Para ser professor, seus alunos precisam ver o seu nome.'))) return;
     if (!context.mounted || !await requireAdult(context, app)) return;
     if (!context.mounted) return;
-    app.setTeacherMode(true);
+    // Aqui a pessoa já disse que quer ser professor: fechar a pergunta vale como "Agora não" (senão o código se perderia).
+    final connect = await askTeacherLink(context, app) ?? false;
+    asked = true;
+    app.setTeacherMode(true, connect: connect);
   }
-  if (!await _checkStudentLimit(context, app)) return;
+  if (!context.mounted || !await _checkStudentLimit(context, app)) return;
   if (!context.mounted) return;
   final r = await _newStudentDialog(context, app, code0: code);
   if (r != null) {
+    if (!asked && context.mounted) await _askToLinkCode(context, app, r.$2);
     app.addStudent(r.$1, code: r.$2);
     app.say(tr('{0} foi adicionado à sua lista.', [r.$1]));
   }
@@ -436,11 +450,11 @@ class _TeacherPageState extends State<TeacherPage> {
                     },
                     itemBuilder: (c) => [
                       PopupMenuItem(value: 'import', child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(Icons.download), title: Text(tr('Importar aluno')))),
-                      PopupMenuItem(
+                      if (!app.teacherBasics) PopupMenuItem(
                         value: 'methods',
                         child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: const Icon(Icons.library_books_outlined), title: Text(tr('Métodos e repertório'))),
                       ),
-                      PopupMenuItem(value: 'turmas', child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: const Icon(Icons.workspaces_outline), title: Text(tr('Turmas')))),
+                      if (!app.teacherBasics) PopupMenuItem(value: 'turmas', child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: const Icon(Icons.workspaces_outline), title: Text(tr('Turmas')))),
                       PopupMenuItem(
                         value: 'pin',
                         child: ListTile(dense: true, contentPadding: EdgeInsets.zero, leading: Icon(app.teacherPinHash == null ? Icons.lock_open : Icons.lock_outline), title: Text(app.teacherPinHash == null ? tr('Senha desta tela') : tr('Trocar ou remover a senha'))),
@@ -478,7 +492,8 @@ class _TeacherPageState extends State<TeacherPage> {
         const SizedBox(height: 10),
         _summaryStrip(),
         if (!_manage) NudgeListCard(app: app),
-        if (app.turmas.isEmpty && app.students.length >= 3 && !app.turmaHintOff)
+        if (app.joinOffers.isNotEmpty) Padding(padding: const EdgeInsets.only(bottom: 10), child: JoinStudentCard(app: app)),
+        if (!app.teacherBasics && app.turmas.isEmpty && app.students.length >= 3 && !app.turmaHintOff)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: AppCard(

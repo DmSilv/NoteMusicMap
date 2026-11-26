@@ -10,8 +10,10 @@
   <meta property="og:site_name" content="Notemusic">
   <meta property="og:locale" content="pt_BR">
   <meta property="og:title" content="Notemusic: afinador, metrônomo e estudo para instrumentos de corda">
-  <meta property="og:description" content="Grátis, sem cadastro e sem anúncios. Afinador, metrônomo com modo desafio, grade de afinação, escalas guiadas e área do professor.">
-  <meta property="og:image" content="https://notemusicmap.vercel.app/icons/Icon-512.png">
+  <meta property="og:description" content="Para professores e alunos de cordas: a tarefa da aula, afinador, escalas e metrônomo no mesmo app. Grátis e sem cadastro.">
+  <meta property="og:image" content="https://notemusicmap.vercel.app/preview.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <meta property="og:url" content="https://notemusicmap.vercel.app/sobre">
   <meta name="theme-color" content="#101418">
   <link rel="icon" type="image/png" href="favicon.png">
@@ -59,6 +61,11 @@
     .card p { margin: 0; font-size: 15px; }
     details { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; margin: 8px 0; }
     summary { cursor: pointer; font-weight: 700; color: var(--text); }
+    .prof { background: var(--card); border: 2px solid var(--accent); border-radius: 18px; padding: 18px 18px 8px; margin-top: 26px; }
+    .prof h2 { margin: 0 0 8px; }
+    .prof ol { padding-left: 20px; margin: 8px 0; }
+    .prof li { margin: 6px 0; }
+    .more { margin: 6px 0 0; }
     footer { margin-top: 40px; color: var(--dim); font-size: 14px; }
     a { color: var(--accent); }
   </style>
@@ -69,6 +76,18 @@
   <h1>Afinador, metrônomo e estudo para quem toca instrumento de corda</h1>
   <p class="lead">Grátis, sem cadastro e sem anúncios. Abra no celular ou no computador, toque em <strong>Instalar</strong> e use como um app, até sem internet.</p>
   <a class="cta" href="/?o=site">Abrir o Notemusic</a>
+  <p class="more"><a href="#professores">Você dá aula? Veja o que o app faz pelo estudo do seu aluno.</a></p>
+
+  <section class="prof" id="professores">
+    <h2>Para professores: ajude seu aluno a estudar entre uma aula e outra</h2>
+    <ol>
+      <li><strong>Na aula, você passa a tarefa:</strong> uma escala, uma lição ou um trecho de peça.</li>
+      <li><strong>O aluno estuda no mesmo app,</strong> com afinador, escalas guiadas e metrônomo.</li>
+      <li><strong>Você vê o que ele marcou</strong> e dá um empurrãozinho quando precisar.</li>
+    </ol>
+    <p>Sem cadastro e hoje grátis. A agenda de aulas e os horários livres vêm junto.</p>
+    <p><a class="cta" href="/?o=site">Começar como professor</a><br>No primeiro acesso, escolha <strong>Sou professor</strong>.</p>
+  </section>
 
   <h2>O que tem dentro</h2>
   <div class="grid">
@@ -80,7 +99,7 @@
     <div class="card"><h3>Estudo</h3><p>Pomodoro, cronômetro, meta diária e sequência de dias estudando.</p></div>
   </div>
 
-  <h2>Para professores e alunos</h2>
+  <h2>Como funciona o vínculo entre professor e aluno</h2>
   <p>Opcional e sem login. O professor cadastra os alunos, passa tarefas (escala, método e lição, repertório), <strong>valida o que o aluno fez</strong>, marca aulas com <strong>lembrete 15 minutos antes</strong> e publica <strong>horários livres</strong> para o aluno escolher. O aluno acompanha tudo no próprio celular. A ligação é feita por um código ou QR, e o aluno decide o que compartilha.</p>
 
   <h2>Instrumentos</h2>

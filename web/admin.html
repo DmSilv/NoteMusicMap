@@ -968,7 +968,7 @@
     syschecks: ['Variáveis configuradas', 'Mostra se cada serviço tem as variáveis na Vercel. "Obrigatório" sem variável quebra o app; os opcionais só desligam o recurso (lembretes, notificações, IA).'],
     library: ['Acervo dos professores de teste', 'Lista de professores liberados (variável LIBRARY_TESTERS na Vercel; vazio = ninguém) e quantos materiais cada um cadastrou. O acervo guarda só links (Drive, IMSLP, YouTube…), nenhum arquivo. Denúncias feitas por alunos aparecem abaixo: Esconder tira o item da vista dos alunos (o professor continua vendo).'],
     visitors: ['Visitantes', 'Quem abriu o app sem ter cadastro (professor ou aluno vinculado). Mostra quantos aparelhos acessaram hoje, quantos são novos, quantos voltaram, de qual divulgação vieram (YouTube, Instagram…) e o que usaram. É o painel para medir o efeito de cada vídeo postado.'],
-    origin: ['De onde vieram', 'Cada link de divulgação leva uma marca no fim (ex.: ?o=yt para YouTube, ?o=ig Instagram, ?o=tt TikTok, ?o=zap WhatsApp, ?o=site página /sobre). O app guarda a do PRIMEIRO acesso do aparelho e avisa uma vez por dia; aqui aparecem os aparelhos de hoje por origem. Sem marca = acesso direto.'],
+    origin: ['De onde vieram', 'Cada link de divulgação leva uma marca no fim (ex.: ?o=yt para YouTube, ?o=ig Instagram, ?o=tt TikTok, ?o=zap WhatsApp, ?o=site página /sobre; o app marca sozinho ?o=prof nos convites do professor, ?o=aluno nos do aluno e ?o=amigo em "Compartilhar o app"; ?o=kit é o guia do professor). O app guarda a do PRIMEIRO acesso do aparelho e avisa uma vez por dia; aqui aparecem os aparelhos de hoje por origem. Sem marca = acesso direto.'],
     bugs: ['Bugs', 'Erros do app e do servidor agrupados pelo mesmo problema. "Graves" derrubam algo importante; "de ação" falharam numa ação; "de conexão" são falhas de internet.'],
     rate100: ['Erros por 100 aberturas', 'Erros de hoje divididos pelas aberturas de hoje, vezes 100. Acima de 5 o painel fica em atenção. Só aparece com pelo menos 20 aberturas.'],
     bill: ['Contas', 'Quanto custa manter o app no ar. HOJE usa os contadores dos últimos 30 dias. Os cenários (100, 1.000, 5.000, 10.000 e o número que você escolher) multiplicam o consumo de um usuário ativo: pode ser o SIMULADO (um teste com usuários fictícios, `node scripts/simulate_load.js`) ou o REAL medido aqui. Preços de tabela dos serviços, em dólar, convertidos pela cotação que você digitar. Não inclui impostos, picos de acesso nem o custo da IA acima das cotas gratuitas.'],
@@ -2234,7 +2234,7 @@
   function loadCosts() { post({ action: 'costs' }).then(function (r) { if (r.status === 200) renderCosts(r.j); else fail(r.status); }).catch(function () {}); }
 
   // ---------------- Visitantes (sem cadastro) ----------------
-  var ORG_NAME = { yt: 'YouTube', ig: 'Instagram', tt: 'TikTok', zap: 'WhatsApp', site: 'Site (/sobre)', l: 'Site' };
+  var ORG_NAME = { yt: 'YouTube', ig: 'Instagram', tt: 'TikTok', zap: 'WhatsApp', site: 'Site (/sobre)', l: 'Site', prof: 'Convite de professor', aluno: 'Convite de aluno', amigo: 'Indicação (Compartilhar o app)', kit: 'Guia do professor' };
   var TAB_NAME = { tuner: 'Afinador', metronome: 'Metrônomo', grid: 'Grade', scales: 'Escalas', study: 'Meu espaço', pedal: 'Pedal' };
   function pct(a, b) { return b > 0 ? Math.round((a / b) * 100) + '%' : '–'; }
   function rowBar(el, name, n, of) {
@@ -2259,7 +2259,7 @@
     // origens por dia
     var keys = {};
     j.days.forEach(function (d) { Object.keys(d.origins).forEach(function (k) { keys[k] = 1; }); });
-    var order = ['yt', 'ig', 'tt', 'zap', 'site', 'l'].filter(function (k) { return keys[k]; });
+    var order = ['prof', 'aluno', 'amigo', 'kit', 'yt', 'ig', 'tt', 'zap', 'site', 'l'].filter(function (k) { return keys[k]; });
     Object.keys(keys).forEach(function (k) { if (order.indexOf(k) < 0) order.push(k); });
     var head = $('vOrgHead'); head.innerHTML = '';
     var htr = document.createElement('tr');

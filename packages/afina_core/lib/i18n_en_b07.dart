@@ -19,8 +19,6 @@ const Map<String, String> kEnB07 = {
   'Aula descartada.': 'Lesson discarded.',
   'Para dar uma aula, abra o aluno e toque em "Começar a aula".': 'To give a lesson, open the student and tap "Start lesson".',
   '{0} com {1}': '{0} with {1}',
-  'Comece por aqui': 'Start here',
-  'Três passos para o app render: vincular um aluno, marcar uma aula e passar uma tarefa.': 'Three steps to get the most out of the app: link a student, schedule a lesson and assign a task.',
   'Veja a semana ou o mês, marque aulas e mude horários. Tem remarcar só uma aula e pausar as férias.': 'See the week or the month, schedule lessons and change times. You can reschedule just one lesson and pause for vacations.',
   'Publique horários e o primeiro aluno que pegar fica com ele. A aula entra na agenda dos dois.': 'Publish slots and the first student to take one keeps it. The lesson goes on both schedules.',
   'Seus alunos': 'Your students',

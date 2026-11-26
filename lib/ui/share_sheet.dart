@@ -26,7 +26,8 @@ String shareLink() {
 
 /// Janela de compartilhar: QR code que abre o app + link para copiar/enviar.
 Future<void> showShareSheet(BuildContext context) {
-  final link = shareLink();
+  // A marca no fim diz que a pessoa chegou por indicação (vale para o QR também). Os convites têm marcas próprias.
+  final link = '${shareLink()}/?o=amigo';
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,

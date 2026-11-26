@@ -45,6 +45,43 @@ bool isPristineStudent(Student s) =>
     s.turma == null &&
     (s.code != null && (s.name == (s.remoteName ?? '') || isDefaultStudentName(s.name, s.code!)));
 
+// ---------------- aluno que entrou pelo convite e já estava cadastrado pelo nome ----------------
+
+String _firstName(String s) {
+  final t = s.trim().toLowerCase();
+  final i = t.indexOf(' ');
+  return i < 0 ? t : t.substring(0, i);
+}
+
+/// Quem pode ser a MESMA pessoa que [linked] (que acabou de se vincular e ainda está "de fábrica"): os alunos cadastrados só
+/// pelo nome, sem código. Os de mesmo primeiro nome vêm primeiro. Quem decide é sempre o professor.
+List<Student> joinCandidates(Student linked, Iterable<Student> all) {
+  if (linked.code == null || linked.linkState != 'active' || !isPristineStudent(linked)) return const [];
+  final first = _firstName(linked.name);
+  final out = [for (final s in all) if (s.id != linked.id && s.code == null && !s.paused) s];
+  out.sort((a, b) {
+    final ra = _firstName(a.name) == first ? 0 : 1;
+    final rb = _firstName(b.name) == first ? 0 : 1;
+    return ra != rb ? ra.compareTo(rb) : b.created.compareTo(a.created);
+  });
+  return out;
+}
+
+/// Dá a [local] o vínculo de [linked]: fica o cadastro do professor (nome, tarefas, observações, número) com o código do aluno.
+/// Quem chama tira [linked] da lista (sem encerrar o vínculo).
+void adoptLink(Student local, Student linked) {
+  local.code = linked.code;
+  local.linkState = linked.linkState;
+  local.remoteName = linked.remoteName;
+  local.paused = linked.paused;
+  local.noPick = linked.noPick;
+  local.muted = linked.muted;
+  // O que o professor digitou no cadastro que vai sair não se perde (o que já estava no dele prevalece).
+  local.whats ??= linked.whats;
+  if (local.remindDays.isEmpty) local.remindDays = [...linked.remindDays];
+  local.remindedMs ??= linked.remindedMs;
+}
+
 // ---------------- aluno ----------------
 
 /// O aluno como seção. Fora ficam o que depende de cada aparelho: o estado do vínculo e o apelido que o aluno registrou

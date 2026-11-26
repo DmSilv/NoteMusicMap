@@ -53,7 +53,7 @@ Nada de Flutter nem `dart:io` (assim roda no navegador e nos testes de linha de 
 | Agenda e horários | `agenda`, `agenda_ics`, `class_rules`, `open_slots` | `ClassSlot` (com data final, fuso e "confirmo antes"), ocorrências, conflito, **fase e permissões da aula**, regras do horário livre, arquivo `.ics` do calendário |
 | Faltas do aluno | `absence` | `Absence`, `addAbsence`, `lessonForAbsence` (a aula que o aluno está perdendo agora) |
 | Hub | `hub`, `hub_view` | Destaque e blocos do Meu espaço; **visões Aluno/Professor** sem destino repetido |
-| Comece por aqui | `start_checklist` | Os 3 passos do professor novo (vincular, marcar aula, passar tarefa) e o próximo que falta; também os 3 passos do músico solo ("Seu primeiro passo") |
+| Primeiros passos | `start_checklist` | Os 3 passos do professor novo (aluno, tarefa, tarefa entregue), o próximo que falta e quando o avançado aparece (`teacherBasicsOnly`); também os 3 passos do músico solo ("Seu primeiro passo") |
 | Dias seguidos e semana | `study_streak` | Dias seguidos de estudo com perdão de 1 dia e o resumo dos últimos 7 dias (minutos, dias, meta, comparação com a semana anterior) |
 | Treinador (contexto da IA) | `study_context` | Monta o texto que acompanha o pedido ao treinador (estudo da semana, tarefas em aberto, observações só se autorizadas), a impressão do que foi enviado e a regra de quando pedir um plano novo |
 | Gamificação do estudo | `gamify` | Meta da semana (a diária em 5 dias), as 8 conquistas com o que falta, e o resumo da semana que o aluno pode mostrar ao professor (`buildStudyShare`) e como o professor o lê (`StudyShare`) |

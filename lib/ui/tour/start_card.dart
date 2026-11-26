@@ -2,15 +2,17 @@ import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
 import '../../app_state.dart';
-import '../agenda_page.dart';
+import '../hub_section.dart' show shareTeacherInvite;
+import '../link_bar.dart' show ensureTeacherLink;
+import '../student_page.dart' show StudentPage, openStudentNewTask;
 import '../design_system.dart';
 import '../undo_snack.dart';
 import '../teacher_page.dart';
 import '../theme.dart';
 import 'tour.dart';
 
-/// "Comece por aqui": três passos para o professor novo (vincular, marcar aula, passar tarefa), com o progresso,
-/// um atalho para cada passo e o tutorial "Ver como funciona". Some sozinho quando tudo foi feito e dá para esconder.
+/// Os primeiros passos do professor, abertos pela promessa do app: ajudar o aluno a estudar entre uma aula e outra.
+/// Três passos (aluno, tarefa, tarefa entregue) e UM botão grande para o próximo. Some quando tudo foi feito; dá para esconder.
 class StartCard extends StatelessWidget {
   final AppState app;
   const StartCard({super.key, required this.app});
@@ -22,30 +24,79 @@ class StartCard extends StatelessWidget {
   static bool hiddenFor(AppState app) => app.startCardHidden && !allStartDone(items(app));
 
   static List<StartItem> items(AppState app) => teacherStartItems(
-        hasLinkedStudent: app.students.any((s) => s.linkState == 'active'),
-        hasClass: app.agenda.any((s) => !s.canceled),
+        hasStudent: app.students.isNotEmpty,
         hasTask: app.students.any((s) => s.tasks.isNotEmpty),
+        delivered: app.students.any((s) => s.linkState == 'active' && s.tasks.any((t) => t.sent != false)),
       );
 
-  void _open(BuildContext context, StartItem i) {
-    final nav = Navigator.of(context);
+  String _first(Student s) => app.labelOf(s).split(' ').first;
+
+  /// O botão grande: o que fazer agora para o próximo passo que falta.
+  (String, IconData, VoidCallback) _next(BuildContext context, StartItem i) {
+    final active = [for (final s in app.students) if (!s.paused) s];
+    void open(Widget page) => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => page));
     switch (i.id) {
-      case 'link':
-        showAddStudent(context, app);
-      case 'class':
-        nav.push(MaterialPageRoute<void>(builder: (_) => AgendaPage(app: app)));
+      case 'student':
+        return (tr('Adicionar o primeiro aluno'), Icons.person_add_alt_1, () => showAddStudent(context, app));
+      case 'task':
+        // Quem já pode receber vem primeiro; senão, o cadastrado por último.
+        final linked = active.where((s) => s.linkState == 'active').toList();
+        final recent = [...active]..sort((a, b) => b.created.compareTo(a.created));
+        final s = linked.isNotEmpty ? linked.first : (recent.isEmpty ? null : recent.first);
+        return (tr('Passar a primeira tarefa'), Icons.add_task_rounded, () => s == null ? open(TeacherPage(app: app)) : openStudentNewTask(context, app, s.id));
       default:
-        final s = app.students.isEmpty ? null : app.students.first;
-        nav.push(MaterialPageRoute<void>(builder: (_) => s == null ? TeacherPage(app: app) : StudentPage(app: app, studentId: s.id)));
+        final waiting = active.where((s) => s.linkState == 'active' && s.tasks.any((t) => t.sent == false)).toList();
+        if (waiting.isEmpty) return (tr('Convidar o aluno para receber'), Icons.send_rounded, () => shareTeacherInvite(context, app));
+        final s = waiting.first;
+        return app.deliveryFor(s).canSend
+            ? (tr('Enviar a tarefa para {0}', [_first(s)]), Icons.send_rounded, () async {
+                if (await ensureTeacherLink(context, app, tr('Para a tarefa chegar ao aluno, o app precisa conectar.'))) app.say(app.sendPendingTasks(s));
+              })
+            : (tr('Ficha de {0}', [_first(s)]), Icons.person_outline, () => open(StudentPage(app: app, studentId: s.id)));
     }
   }
 
+  Widget _step(int n, StartItem i, bool current) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            width: 26,
+            height: 26,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: i.done ? AppColors.accent : Colors.transparent,
+              border: Border.all(color: i.done || current ? AppColors.accent : AppColors.outline, width: current ? 2 : 1),
+            ),
+            child: i.done
+                ? Icon(Icons.check, size: 16, color: AppColors.bg)
+                : Text('$n', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: current ? AppColors.text : AppColors.textDim)),
+          ),
+          const SizedBox(width: Ds.s12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Padding(
+                padding: const EdgeInsets.only(top: 3),
+                child: Text(i.title,
+                    style: TextStyle(
+                        fontSize: Ds.fontBody,
+                        height: 1.25,
+                        fontWeight: current ? FontWeight.w800 : FontWeight.w600,
+                        decoration: i.done ? TextDecoration.lineThrough : null,
+                        color: current ? AppColors.text : AppColors.textDim)),
+              ),
+              if (current) Text(i.hint, style: Ds.support()),
+            ]),
+          ),
+        ]),
+      );
+
   Future<void> _tour(BuildContext context) async {
     final ok = await runTour(context, [
-      TourStep(TourKeys.startCard, tr('Comece por aqui'), tr('Três passos para o app render: vincular um aluno, marcar uma aula e passar uma tarefa.')),
+      TourStep(TourKeys.startCard, tr('O que fazer primeiro'), tr('Adicione um aluno, passe a tarefa da aula e faça ela chegar nele. O botão leva ao próximo passo.')),
+      TourStep(TourKeys.hubStudents, tr('Seus alunos'), tr('A ficha de cada aluno, as tarefas que você passou e o que ele já fez.')),
       TourStep(TourKeys.hubAgenda, tr('Agenda completa'), tr('Veja a semana ou o mês, marque aulas e mude horários. Tem remarcar só uma aula e pausar as férias.')),
       TourStep(TourKeys.hubOpenSlots, tr('Horários livres'), tr('Publique horários e o primeiro aluno que pegar fica com ele. A aula entra na agenda dos dois.')),
-      TourStep(TourKeys.hubStudents, tr('Seus alunos'), tr('A ficha de cada aluno, as tarefas que você passou e o que ele já fez.')),
     ]);
     if (ok) app.markTourSeen('hub_teacher');
   }
@@ -53,48 +104,31 @@ class StartCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final list = items(app);
-    final done = startDoneCount(list);
-    final next = nextStartItem(list);
+    final next = nextStartItem(list) ?? list.last;
+    final (label, icon, action) = _next(context, next);
     return Container(
       key: TourKeys.startCard,
-      margin: const EdgeInsets.only(top: Ds.s12),
-      padding: const EdgeInsets.fromLTRB(Ds.s16, Ds.s16, Ds.s16, Ds.s8),
+      padding: const EdgeInsets.fromLTRB(Ds.s20, Ds.s20, Ds.s20, Ds.s8),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(Ds.radiusCard),
-        border: Border.all(color: AppColors.outline),
+        border: Border.all(color: AppColors.accent, width: 1.6),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(child: Text(tr('Comece por aqui'), style: Ds.title())),
-          Text(tr('{0} de {1}', [done, list.length]), style: Ds.support()),
-        ]),
-        const SizedBox(height: Ds.s8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: done / list.length),
-            duration: const Duration(milliseconds: 500),
-            curve: Curves.easeOutCubic,
-            builder: (c, v, _) => LinearProgressIndicator(value: v, minHeight: 6, backgroundColor: AppColors.outline, color: AppColors.accent),
+        Text(tr('Ajude seu aluno a estudar entre uma aula e outra'), style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w800, height: 1.2)),
+        const SizedBox(height: Ds.s12),
+        for (var n = 0; n < list.length; n++) _step(n + 1, list[n], identical(list[n], next)),
+        const SizedBox(height: Ds.s12),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+            onPressed: action,
+            icon: Icon(icon, size: 20),
+            label: Text(label, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
           ),
         ),
-        const SizedBox(height: Ds.s8),
-        for (final i in list)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            dense: true,
-            leading: Icon(i.done ? Icons.check_circle : Icons.radio_button_unchecked,
-                color: i.done ? AppColors.accent : (identical(i, next) ? AppColors.text : AppColors.textDim)),
-            title: Text(i.title,
-                style: TextStyle(
-                    fontWeight: identical(i, next) ? FontWeight.w800 : FontWeight.w600,
-                    decoration: i.done ? TextDecoration.lineThrough : null,
-                    color: i.done ? AppColors.textDim : null)),
-            subtitle: i.done ? null : Text(i.hint, style: Ds.support()),
-            trailing: i.done ? null : const Icon(Icons.chevron_right),
-            onTap: i.done ? null : () => _open(context, i),
-          ),
+        const SizedBox(height: Ds.s4),
         Row(children: [
           TextButton.icon(onPressed: () => _tour(context), icon: const Icon(Icons.play_circle_outline, size: 18), label: Text(tr('Ver como funciona'))),
           const Spacer(),
@@ -103,7 +137,7 @@ class StartCard extends StatelessWidget {
               final messenger = ScaffoldMessenger.of(context); // antes de esconder: o cartão some e leva o contexto junto
               app.hideStartCard();
               showUndoSnack(messenger,
-                  message: tr('"Comece por aqui" escondido. Para ver de novo: toque em "Mostrar o tutorial" aqui no Meu espaço ou em Ajustes › Rever tutoriais.'),
+                  message: tr('Primeiros passos escondidos. Para ver de novo, toque em "Mostrar o tutorial" no Meu espaço.'),
                   undoLabel: tr('Desfazer'),
                   onUndo: app.showStartCard);
             },

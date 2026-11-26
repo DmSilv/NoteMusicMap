@@ -20,6 +20,9 @@ void main() {
     test('valor antigo ligado continua ligado', () {
       expect(on(legacy: true), isTrue);
     });
+    test('professor que disse "Agora não" (escolha gravada) continua desligado ao abrir o app de novo', () {
+      expect(on(pref: 'off', teacher: true), isFalse);
+    });
     test('escolha explícita de desligar vence tudo', () {
       expect(on(pref: 'off', teacher: true, teachers: true, students: true, legacy: true), isFalse);
     });
@@ -29,14 +32,13 @@ void main() {
   });
 
   group('aviso de vínculo desligado', () {
-    test('desligado com alunos, professores ou modo professor: precisa de atenção', () {
-      expect(linkNeedsAttention(enabled: false, teacherMode: true, hasTeachers: false, hasStudentsWithCode: false), isTrue);
-      expect(linkNeedsAttention(enabled: false, teacherMode: false, hasTeachers: true, hasStudentsWithCode: false), isTrue);
-      expect(linkNeedsAttention(enabled: false, teacherMode: false, hasTeachers: false, hasStudentsWithCode: true), isTrue);
+    test('desligado com professor ou aluno com código: precisa de atenção', () {
+      expect(linkNeedsAttention(enabled: false, hasTeachers: true, hasStudentsWithCode: false), isTrue);
+      expect(linkNeedsAttention(enabled: false, hasTeachers: false, hasStudentsWithCode: true), isTrue);
     });
-    test('ligado, ou desligado sem ninguém, não avisa', () {
-      expect(linkNeedsAttention(enabled: true, teacherMode: true, hasTeachers: true, hasStudentsWithCode: true), isFalse);
-      expect(linkNeedsAttention(enabled: false, teacherMode: false, hasTeachers: false, hasStudentsWithCode: false), isFalse);
+    test('ligado, ou desligado sem ninguém dependendo (professor que disse "Agora não"), não avisa', () {
+      expect(linkNeedsAttention(enabled: true, hasTeachers: true, hasStudentsWithCode: true), isFalse);
+      expect(linkNeedsAttention(enabled: false, hasTeachers: false, hasStudentsWithCode: false), isFalse);
     });
   });
 }

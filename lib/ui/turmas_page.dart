@@ -1,6 +1,7 @@
 import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
+import 'link_bar.dart' show ensureTeacherLink;
 import '../app_state.dart';
 import 'design_system.dart';
 import 'materials_sheet.dart';
@@ -161,6 +162,10 @@ class _TurmaPageState extends State<TurmaPage> {
     final to = members.where((s) => picked.contains(s.id)).toList();
     final d = await openTaskForm(context, app, to.first);
     if (d == null) return;
+    // Sem conexão, pergunta uma vez para a turma inteira. "Agora não" deixa a tarefa na ficha, sem dizer que foi enviada.
+    if (d.sendNow && !app.linkEnabled && to.any((s) => app.deliveryFor(s).canSend)) {
+      if (mounted) await ensureTeacherLink(context, app, tr('Para a tarefa chegar ao aluno, o app precisa conectar.'));
+    }
     var sent = 0;
     for (final s in to) {
       if (d.kind == TaskKind.scale) {
@@ -169,7 +174,7 @@ class _TurmaPageState extends State<TurmaPage> {
         app.addAssignment(s, title: d.title, kind: d.kind, subject: d.subject, detail: d.detail, note: d.note);
       }
       final rule = app.deliveryFor(s);
-      if (d.sendNow && rule.canSend && rule.mode != DeliveryMode.inLesson) {
+      if (d.sendNow && app.linkEnabled && rule.canSend && rule.mode != DeliveryMode.inLesson) {
         app.sendPendingTasks(s);
         sent++;
       }

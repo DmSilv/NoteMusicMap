@@ -22,10 +22,10 @@ bool linkShouldBeOn({
 }
 
 /// O vínculo está desligado mesmo havendo gente que depende dele? (para avisar a pessoa)
+/// Só o modo professor não conta: quem disse "Agora não" e ainda não tem aluno vinculado não fica com um aviso fixo.
 bool linkNeedsAttention({
   required bool enabled,
-  required bool teacherMode,
   required bool hasTeachers,
   required bool hasStudentsWithCode,
 }) =>
-    !enabled && (teacherMode || hasTeachers || hasStudentsWithCode);
+    !enabled && (hasTeachers || hasStudentsWithCode);

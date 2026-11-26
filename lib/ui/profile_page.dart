@@ -518,8 +518,10 @@ class _ProfilePageState extends State<ProfilePage> {
                     if (v) {
                       if (!await requireNickname(context, app, reason: tr('Para ser professor, seus alunos precisam ver o seu nome.'))) return;
                       if (!context.mounted || !await requireAdult(context, app)) return;
-                      if (!context.mounted || !await confirmTeacherLink(context, app)) return;
-                      app.setTeacherMode(true);
+                      if (!context.mounted) return;
+                      final connect = await askTeacherLink(context, app);
+                      if (connect == null) return;
+                      app.setTeacherMode(true, connect: connect);
                     } else {
                       if (!await confirmTurnOffTeacher(context, app)) return;
                       app.setTeacherMode(false);
@@ -742,7 +744,9 @@ class _ProfilePageState extends State<ProfilePage> {
           Text(
             mode == 0
                 ? tr('Mostre ao seu professor: ele aponta a câmera e o Notemusic abre com o seu código. Ele só vê seus exercícios se você aceitar o convite.')
-                : tr('Seus alunos leem este QR em Meus professores, ou digitam o código. Quem se vincular entra sozinho na sua lista.'),
+                : (app.linkEnabled
+                    ? tr('Seus alunos leem este QR em Meus professores, ou digitam o código. Quem se vincular entra sozinho na sua lista.')
+                    : tr('Você não está conectado: quem ler este QR só aparece na sua lista depois que você conectar.')),
             textAlign: TextAlign.center,
             style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
           ),
@@ -750,9 +754,9 @@ class _ProfilePageState extends State<ProfilePage> {
             const SizedBox(height: 8),
             Center(
               child: OutlinedButton.icon(
-                onPressed: () => app.setLinkEnabled(true),
+                onPressed: () => ensureTeacherLink(context, app, tr('Conectado, quem ler o seu QR entra sozinho na sua lista.')),
                 icon: const Icon(Icons.cloud_outlined),
-                label: Text(tr('Ligar o vínculo online')),
+                label: Text(tr('Conectar')),
               ),
             ),
           ],
@@ -966,6 +970,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _registerTeacher(String code) async {
     if (!await requireNickname(context, app, reason: tr('Para vincular a um professor, ele precisa saber quem você é.'))) return;
+    if (!mounted || !await confirmStudentLink(context, app)) return;
     final err = await app.addMyTeacher(code);
     if (err != null) app.say(err);
   }
@@ -1136,6 +1141,7 @@ Future<void> handleIncomingTeacherCode(BuildContext context, AppState app) async
   );
   if (ok == true) {
     if (!context.mounted || !await requireNickname(context, app, reason: tr('Para vincular a um professor, ele precisa saber quem você é.'))) return;
+    if (!context.mounted || !await confirmStudentLink(context, app)) return;
     final err = await app.addMyTeacher(code);
     if (err != null) app.say(err);
   }

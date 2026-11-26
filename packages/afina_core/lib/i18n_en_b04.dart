@@ -200,7 +200,6 @@ const Map<String, String> kEnB04 = {
   'Para meus alunos': 'For my students',
   'Mostre ao seu professor: ele aponta a câmera e o Notemusic abre com o seu código. Ele só vê seus exercícios se você aceitar o convite.': 'Show this to your teacher: they point the camera and Notemusic opens with your code. They only see your exercises if you accept the invite.',
   'Seus alunos leem este QR em Meus professores, ou digitam o código. Quem se vincular entra sozinho na sua lista.': 'Your students scan this QR in My teachers, or type the code. Whoever links joins your list on their own.',
-  'Ligar o vínculo online': 'Turn on the online link',
   'Código': 'Code',
   'Copiar código': 'Copy code',
   'Reconectar agora': 'Reconnect now',

@@ -55,23 +55,54 @@ class LinkOffBar extends StatelessWidget {
   }
 }
 
-/// Antes de ligar o modo professor: se o vínculo online ainda está desligado, ele será ligado junto, e isso manda código, apelido
-/// e tarefas ao servidor. Pergunta uma vez (sem pergunta se o vínculo já está ligado).
-Future<bool> confirmTeacherLink(BuildContext context, AppState app) async {
-  if (app.linkEnabled) return true;
-  final ok = await showDialog<bool>(
-    context: context,
-    builder: (c) => AlertDialog(
+Widget _connectDialog(BuildContext c, String title, String text, {String? note}) => AlertDialog(
       icon: Icon(Icons.cloud_outlined, color: AppColors.textDim),
-      title: Text(tr('Ligar o modo professor?')),
-      content: Text(tr('Para enviar tarefas e receber avisos dos alunos, o app conecta online (só código, apelido e tarefas).')),
+      title: Text(title),
+      content: note == null
+          ? Text(text)
+          : Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(text),
+              const SizedBox(height: 10),
+              Text(note, style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+            ]),
       actions: [
         TextButton(onPressed: () => Navigator.pop(c, false), child: Text(tr('Agora não'))),
-        FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Ligar e conectar'))),
+        FilledButton(onPressed: () => Navigator.pop(c, true), child: Text(tr('Conectar'))),
       ],
-    ),
+    );
+
+/// Ao ligar o modo professor com o vínculo desligado: pergunta se quer conectar. **Ser professor não depende disso.**
+/// true = conectar; false = "Agora não" (entra como professor sem conectar); null = fechou sem escolher (não liga nada).
+/// Sem pergunta (true) se já está conectado.
+Future<bool?> askTeacherLink(BuildContext context, AppState app) async {
+  if (app.linkEnabled) return true;
+  return showDialog<bool>(
+    context: context,
+    builder: (c) => _connectDialog(c, tr('Conectar com os alunos?'),
+        tr('Conectado, as tarefas chegam a eles (vão código, apelido, tarefas e aulas). Pode ficar para depois.')),
   );
-  return ok == true;
+}
+
+/// Antes de uma ação que só funciona conectado (convidar, vincular, enviar). [why] diz para que serve agora.
+/// Devolve true se está conectado (já estava ou a pessoa aceitou); "Agora não" não conecta nada.
+Future<bool> ensureTeacherLink(BuildContext context, AppState app, String why) async {
+  if (app.linkEnabled) return true;
+  if (!await _askConnectNow(context, why)) return false;
+  app.setLinkEnabled(true);
+  return true;
+}
+
+Future<bool> _askConnectNow(BuildContext context, String why) async =>
+    await showDialog<bool>(
+        context: context,
+        builder: (c) => _connectDialog(c, tr('Conectar agora?'), why, note: tr('Ao conectar vão: código, apelido, tarefas e aulas.'))) ==
+    true;
+
+/// Quem está sem conexão e guarda alunos com código (mesmo com o modo professor desligado) vai se vincular como ALUNO: o vínculo
+/// é um só, então esses alunos também vão. Só pergunta: quem conecta é o próprio addMyTeacher, que sincroniza em seguida.
+Future<bool> confirmStudentLink(BuildContext context, AppState app) async {
+  if (app.linkEnabled || !app.students.any((s) => s.code != null)) return true;
+  return _askConnectNow(context, tr('Isso conecta o app todo: seus alunos com código, tarefas e aulas guardados também vão.'));
 }
 
 /// Antes de desligar o modo professor: diz o que some da tela e que nada é apagado. Devolve true se a pessoa confirmou.

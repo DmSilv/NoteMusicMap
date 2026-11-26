@@ -18,7 +18,7 @@ import 'teacher_page.dart';
 import 'teacher_setup_page.dart';
 import 'open_slots_page.dart';
 import 'hello_bar.dart';
-import 'link_bar.dart' show confirmTeacherLink;
+import 'link_bar.dart' show askTeacherLink, confirmStudentLink, ensureTeacherLink;
 import 'meeting_link.dart';
 import 'gamify_ui.dart' show StudyRankCard;
 import 'study_hub.dart';
@@ -27,6 +27,7 @@ import 'library_page.dart' show openLibrary;
 import 'materials_sheet.dart';
 import 'turmas_page.dart';
 import 'widgets.dart' show AppCard;
+import 'join_student_card.dart';
 import 'tour/first_step_card.dart';
 import 'tour/start_card.dart';
 import 'tour/tour.dart';
@@ -66,26 +67,36 @@ class HubSection extends StatelessWidget {
         hasTeacher: app.hasTeacherSide,
         next: cls,
         todayCount: today,
-        hasStudents: app.students.isNotEmpty);
+        hasStudents: app.students.isNotEmpty || (isT && StartCard.visibleFor(app)));
     final layout = hubLayout(view, hasTeacherSide: app.hasTeacherSide);
     if (!isT && hero.kind == HeroKind.noTeacher) return _newcomer(context);
 
+    // Professor novo: a promessa e o próximo passo vêm no topo. Só uma aula acontecendo (ou prestes a começar) passa na frente.
+    final starting = isT && StartCard.visibleFor(app);
+    final urgent = hero.kind == HeroKind.ongoing || hero.kind == HeroKind.soon;
+    // E vê só o essencial até ter um aluno e uma tarefa (ou pedir para ver tudo).
+    final basics = isT && app.teacherBasics;
     // O bloco de agenda do aluno já está no destaque: não repete como cartão.
     final tiles = [for (final d in layout.tiles) if (d != HubDest.agendaStudent) _tileFor(context, d, now)];
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       _viewSwitch(context, view),
       _statusChip(context),
       ..._news(context, view),
-      _heroCard(context, hero, nc, view, extra: _agendaExtra(context, view, nc, layout.tools, now)),
-      if (isT && StartCard.visibleFor(app)) StartCard(app: app) else if (isT && StartCard.hiddenFor(app)) StartCardReturn(app: app),
+      if (isT && !app.teacherLocked && app.joinOffers.isNotEmpty) Padding(padding: const EdgeInsets.only(bottom: Ds.s12), child: JoinStudentCard(app: app)),
+      if (starting && !urgent) Padding(padding: const EdgeInsets.only(bottom: Ds.s12), child: StartCard(app: app)),
+      _heroCard(context, hero, nc, view, starting: starting, extra: _agendaExtra(context, view, nc, layout.tools, now)),
+      if (starting && urgent)
+        Padding(padding: const EdgeInsets.only(top: Ds.s12), child: StartCard(app: app))
+      else if (isT && StartCard.hiddenFor(app))
+        StartCardReturn(app: app),
       // Quem chegou sozinho vê aqui o mesmo "Seu primeiro passo" do Afinador (some ao concluir ou ao esconder).
       if (!isT && app.firstStepVisible) Padding(padding: const EdgeInsets.only(top: Ds.s12), child: FirstStepCard(app: app)),
       if (!isT) ...[const SizedBox(height: Ds.s12), StudyHubCard(app: app)],
       if (isT && !app.teacherLocked) Padding(padding: const EdgeInsets.only(top: Ds.s12), child: NudgeListCard(app: app)),
-      if (isT) ...[const SizedBox(height: Ds.s12), StudyRankCard(app: app)],
+      if (isT && !basics) ...[const SizedBox(height: Ds.s12), StudyRankCard(app: app)],
       const SizedBox(height: Ds.gap),
       // Tela larga (tablet ou computador em pé): o bloco de alunos e a organização ficam lado a lado, em vez de esticar na largura toda.
-      if (isT && wide && tiles.length == 1)
+      if (isT && wide && !basics && tiles.length == 1)
         IntrinsicHeight(
           child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
             Expanded(flex: 5, child: tiles.first),
@@ -97,8 +108,17 @@ class HubSection extends StatelessWidget {
         if (tiles.length == 2) _pair(tiles[0], tiles[1]) else if (tiles.length == 1) tiles.first,
         if (tiles.isNotEmpty) const SizedBox(height: Ds.gap),
         // Atalhos de quem organiza as aulas: a um toque, sem passar por Minha conta nem pelo menu da lista.
-        if (isT) _organization(context),
+        if (isT && !basics) _organization(context),
       ],
+      if (basics)
+        Center(
+          child: TextButton.icon(
+            style: TextButton.styleFrom(minimumSize: const Size(Ds.tap, Ds.tap)),
+            onPressed: app.showAllTeacherTools,
+            icon: const Icon(Icons.unfold_more_rounded, size: 20),
+            label: Text(tr('Mostrar todas as ferramentas')),
+          ),
+        ),
       if (isT && wide) const SizedBox(height: Ds.gap),
     ]);
   }
@@ -162,12 +182,14 @@ class HubSection extends StatelessWidget {
     }
     if (!await requireNickname(context, app, reason: tr('Para ser professor, seus alunos precisam ver o seu nome.'))) return;
     if (!context.mounted || !await requireAdult(context, app)) return;
-    if (!context.mounted || !await confirmTeacherLink(context, app)) return;
-    app.setTeacherMode(true);
+    if (!context.mounted) return;
+    final connect = await askTeacherLink(context, app);
+    if (connect == null) return;
+    app.setTeacherMode(true, connect: connect);
   }
 
   /// Alternador Aluno | Professor, sempre à vista no topo. Escolher "Professor" com o modo professor desligado segue o mesmo
-  /// caminho do antigo "Sou professor": pede o nome, confirma que conecta online e liga o modo.
+  /// caminho do antigo "Sou professor": pede o nome, pergunta se quer conectar (pode ficar para depois) e liga o modo.
   Widget _viewSwitch(BuildContext context, HubView view) => Padding(
         padding: const EdgeInsets.only(bottom: Ds.s16),
         child: SizedBox(
@@ -294,7 +316,7 @@ class HubSection extends StatelessWidget {
   }
 
   // ---------------- Destaque ----------------
-  Widget _heroCard(BuildContext context, HubHero h, SlotOccurrence? nc, HubView view, {Widget? extra}) {
+  Widget _heroCard(BuildContext context, HubHero h, SlotOccurrence? nc, HubView view, {bool starting = false, Widget? extra}) {
     final urgent = h.kind == HeroKind.ongoing || h.kind == HeroKind.soon;
     final student = nc == null || nc.slot.studentCode.isEmpty ? null : app.studentByCode(nc.slot.studentCode);
     final buttons = <Widget>[];
@@ -311,9 +333,10 @@ class HubSection extends StatelessWidget {
           buttons.add(primary(urgent ? tr('Abrir ficha') : tr('Ficha de {0}', [first]), Icons.person_outline,
               () => _push(context, StudentPage(app: app, studentId: student.id))));
         case HubDest.markClass:
-          buttons.add(primary(tr('Marcar aula'), Icons.add, () => openSlotForm(context, app)));
+          // Com os primeiros passos na tela, o botão principal é o deles.
+          buttons.add((starting ? soft : primary)(tr('Marcar aula'), Icons.add, () => openSlotForm(context, app)));
         case HubDest.inviteStudent:
-          buttons.add(primary(tr('Adicionar aluno'), Icons.person_add_alt_1, () => showAddStudent(context, app)));
+          if (!starting) buttons.add(primary(tr('Adicionar aluno'), Icons.person_add_alt_1, () => showAddStudent(context, app)));
         case HubDest.scanTeacher:
           buttons.add(primary(tr('Ler QR ou digitar código'), Icons.qr_code_scanner, () => _scanTeacher(context)));
           if (!app.teacherMode) {
@@ -404,7 +427,7 @@ class HubSection extends StatelessWidget {
             key: isT ? TourKeys.hubAgenda : null,
             child: act(Icons.calendar_month_outlined, tr('Agenda completa'),
                 () => _push(context, isT ? AgendaPage(app: app) : MyAgendaPage(app: app)))),
-      if (tools.contains(HubDest.openSlots))
+      if (tools.contains(HubDest.openSlots) && !app.teacherBasics)
         KeyedSubtree(key: TourKeys.hubOpenSlots, child: act(Icons.event_available_outlined, tr('Horários livres'), () => _push(context, OpenSlotsPage(app: app)))),
       if (tools.contains(HubDest.pickSlot))
         act(Icons.event_available_outlined, tr('Pegar horário'), () => _push(context, PickSlotPage(app: app))),
@@ -536,16 +559,17 @@ Future<void> linkTeacherByScan(BuildContext context, AppState app) async {
   if (!context.mounted) return;
   final s = await scanShareCode(context,
       title: tr('Vincular com professor'), want: 'professor', check: app.checkTeacherCode, onCamera: app.setCameraStatus);
-  if (s == null) return;
+  if (s == null || !context.mounted || !await confirmStudentLink(context, app)) return;
   final err = await app.addMyTeacher(s.code);
   if (err != null) app.say(err);
 }
 
 /// Envia (ou copia) o link que abre o app já pedindo ao aluno para vincular este professor.
 /// Abrir o link também liga o "Vínculo online" no app do aluno.
-Future<void> shareTeacherInvite(AppState app) async {
-  final link = '${shareLink()}/?professor=${app.profile.shareCode}';
-  final text = tr('Sou seu professor no {0}. Abra este link e toque em "Vincular" para eu acompanhar suas tarefas: {1}', [kAppName, link]);
+Future<void> shareTeacherInvite(BuildContext context, AppState app) async {
+  if (!await ensureTeacherLink(context, app, tr('Sem conectar, o aluno abre o convite e não aparece para você.'))) return;
+  final link = '${shareLink()}/?professor=${app.profile.shareCode}&o=prof'; // o=prof: veio por convite de professor
+  final text = tr('Vou passar seu estudo da semana pelo {0}. Abra o link e toque em "Vincular" para a tarefa chegar: {1}', [kAppName, link]);
   try {
     await SharePlus.instance.share(ShareParams(text: text, title: kAppName));
   } catch (_) {
@@ -557,7 +581,7 @@ Future<void> shareTeacherInvite(AppState app) async {
 /// Aluno → professor: envia (ou copia) o link que abre o app do professor já no cadastro, com o código do aluno preenchido.
 /// É o mesmo link do QR do perfil (`?aluno=`), para quando o professor não está ao lado.
 Future<void> shareStudentLink(AppState app) async {
-  final link = '${shareLink()}/?aluno=${app.profile.shareCode}';
+  final link = '${shareLink()}/?aluno=${app.profile.shareCode}&o=aluno'; // o=aluno: veio por convite de aluno
   final name = (app.profile.name ?? '').trim();
   final text = name.isEmpty
       ? tr('Quero ser seu aluno no {0}. Abra este link para me adicionar: {1}', [kAppName, link])

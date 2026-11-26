@@ -562,10 +562,10 @@ class _WelcomeTourState extends State<WelcomeTour> {
           children: _teacherSide
               ? [
                   _title([
-                    ("${tr('Agenda e alunos')} ", false),
-                    (tr('num lugar'), true),
+                    ("${tr('O aluno estuda')} ", false),
+                    (tr('entre as aulas'), true),
                   ]),
-                  _sub(tr('Marque aulas e abra a ficha de cada aluno.')),
+                  _sub(tr('Passe a tarefa na aula e acompanhe o que ele fez.')),
                 ]
               : [
                   _title([
@@ -592,7 +592,7 @@ class _WelcomeTourState extends State<WelcomeTour> {
             tr('Ler o QR do professor')
           ),
         TourChoice.teacher => (
-            tr('Cadastre alunos, marque aulas e envie tarefas.'),
+            tr('Passe a tarefa na aula, veja o que o aluno marcou e dê um empurrãozinho.'),
             tr('Criar meu perfil de professor')
           ),
         _ => null,
@@ -726,7 +726,7 @@ class _WelcomeTourState extends State<WelcomeTour> {
               const SizedBox(height: 28),
               _pick(Icons.graphic_eq_rounded, tr('Quero estudar'), tr('Afinador, escalas e metrônomo'), TourChoice.study),
               _pick(Icons.qr_code_scanner_rounded, tr('Tenho professor'), tr('Leia o QR ou digite o código'), TourChoice.hasTeacher),
-              _pick(Icons.person_add_alt_1_rounded, tr('Sou professor'), tr('Alunos, agenda e tarefas'), TourChoice.teacher),
+              _pick(Icons.person_add_alt_1_rounded, tr('Sou professor'), tr('Passe tarefas e acompanhe o estudo'), TourChoice.teacher),
               _doorCard(),
             ],
           ),

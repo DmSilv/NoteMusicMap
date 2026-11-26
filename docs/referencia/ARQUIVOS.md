@@ -70,6 +70,7 @@
 | `lib/ui/hub_section.dart` | "Meu espaço": o topo da aba. Um destaque grande (o que importa agora), dois blocos do que pede ação e uma faixa de ferramentas. Muda conforme o papel (aluno, professor ou os dois). |
 | `lib/ui/install_banner.dart` | Faixa "Instale o Notemusic no celular" (só no navegador, enquanto não instalou). |
 | `lib/ui/join_account_page.dart` | Link que, aberto no aparelho novo, já traz o código de pareamento (a câmera comum do celular abre o app). |
+| `lib/ui/join_student_card.dart` | Alguém entrou pelo convite e o professor já tinha alunos cadastrados só pelo nome: é um deles? Juntar leva o vínculo para o cadastro do professor (com as tarefas que esperavam). Um de cada vez; quem decide é o professor. |
 | `lib/ui/library_page.dart` | Abre o acervo. Sem [teacher]: o próprio professor (edita). Com [teacher]: o aluno (só abre e denuncia). [focusTitle] e [folder] vêm de uma tarefa "Material do professor": filtram e destacam o item. |
 | `lib/ui/link_bar.dart` | Aviso do alto da tela quando o vínculo online está DESLIGADO mas há quem dependa dele (modo professor, professor ou aluno vinculado): sem ele, nada chega ao aparelho. |
 | `lib/ui/markdown_lite.dart` | Mostra um texto em Markdown simples (o que a IA devolve): títulos com `##`, tópicos com `-`, listas numeradas, **negrito** e *itálico*. A leitura dos trechos mora no núcleo (`parseInline`), com testes; aqui só se… |
@@ -131,7 +132,7 @@
 | `lib/ui/toast.dart` | Aviso curto no TOPO da tela: aparece deslizando, some sozinho e pode ser arrastado para dispensar. Não cobre os botões de baixo nem exige toque. O tipo (sucesso, atenção, informação) vem do texto, ou de [kind]; muda… |
 | `lib/ui/toast_kind.dart` | Tipos de aviso curto: o tipo define cor, ícone e quanto tempo fica na tela. |
 | `lib/ui/tour/first_step_card.dart` | "Seu primeiro passo": para o músico que chegou sozinho (afinar, tocar uma escala, estudar 5 min). Aparece no Afinador depois da primeira corda afinada, numa linha só (para não empurrar o afinador): mostra o progresso… |
-| `lib/ui/tour/start_card.dart` | "Comece por aqui": três passos para o professor novo (vincular, marcar aula, passar tarefa), com o progresso, um atalho para cada passo e o tutorial "Ver como funciona". Some sozinho quando tudo foi feito e dá para… |
+| `lib/ui/tour/start_card.dart` | Os primeiros passos do professor, abertos pela promessa do app: ajudar o aluno a estudar entre uma aula e outra. Três passos (aluno, tarefa, tarefa entregue) e UM botão grande para o próximo. Some quando tudo foi… |
 | `lib/ui/tour/tour.dart` | Tutorial guiado: escurece a tela, deixa um buraco redondo no botão e mostra uma caixinha com o que ele faz. Nunca é obrigatório (sempre tem "Pular") e nunca trava: se um botão não estiver na tela, o passo é pulado. O… |
 | `lib/ui/trainer_editor.dart` | Ajustes do "Acelerar aos poucos", em quatro perguntas simples e um resumo em frase: 1. Quando aumentar (por tempo ou por compassos), 2. Quanto aumentar, 3. Até quantos BPM, 4. "Fica assim: …". Só botões de escolha e… |
 | `lib/ui/transitions.dart` | Troca "sai e depois entra" para usar no `AnimatedSwitcher`. O padrão (fade cruzado) deixa os dois textos um em cima do outro por um instante, o que parece bagunçado. Aqui quem sai some depressa (e encolhe um pouco) e… |
@@ -212,7 +213,7 @@
 | `packages/afina_core/lib/speed_trainer.dart` | Ajudantes do "Acelerar aos poucos": opções prontas, textos em linguagem simples e o tempo até o teto. Dart puro (sem Flutter), testado em test/speed_trainer_test.dart. |
 | `packages/afina_core/lib/staff_layout.dart` | Distribuição da partitura na largura da tela: quebra em linhas (sistemas), espaça as notas, calcula hastes, barras, tercinas e linhas suplementares. Tudo em "espaços de pauta" (1 espaço = a distância entre duas… |
 | `packages/afina_core/lib/staff_notation.dart` | Partitura de escalas e arpejos (clave de Sol, compasso 4/4, como no "sistema de escalas" de Flesch). Esta parte é só MÚSICA, em Dart puro e testável: posição da nota na pauta, armadura de clave, quando aparece ♯ ♭ ♮… |
-| `packages/afina_core/lib/start_checklist.dart` | "Comece por aqui": o que o professor novo precisa fazer para o app render (vincular, marcar aula, passar tarefa). Dart puro: o app diz o que já aconteceu e esta lógica diz o que falta e qual é o próximo passo. |
+| `packages/afina_core/lib/start_checklist.dart` | Os primeiros passos do professor (aluno, tarefa, tarefa entregue) e quando as ferramentas avançadas aparecem. A promessa do app para ele: "ajude seu aluno a estudar entre uma aula e outra". A agenda ajuda, mas não é… |
 | `packages/afina_core/lib/student_reminder.dart` | Lembretes que o PROFESSOR manda pelo WhatsApp: número do aluno (fica só no aparelho do professor), mensagens amigáveis, quem pode precisar de um empurrãozinho e os dias em que o professor quer ser lembrado de… |
 | `packages/afina_core/lib/study_clock.dart` | Relógios de estudo: CRONÔMETRO (conta para cima) e MINUTERIA (conta para baixo até um tempo escolhido). Dart puro: o relógio de parede é passado de fora (ms), então dá para testar e para retomar depois de fechar o app. |
 | `packages/afina_core/lib/study_context.dart` | O que o treinador (IA) recebe além dos números das escalas: o estudo da semana, as tarefas em aberto do professor e, só se a pessoa autorizar, as observações dele. Nunca áudio, nunca nomes: tarefas e observações… |
@@ -250,6 +251,7 @@
 | `packages/afina_core/test/identity_test.dart` | Troca de um caractere por outro diferente do alfabeto. |
 | `packages/afina_core/test/input_guard_test.dart` | Testes do módulo `input_guard`. |
 | `packages/afina_core/test/instrument_focus_test.dart` | Soma de harmônicos de uma altura que varia no tempo ([freqAt] em Hz por segundo), com [noise] de ruído. |
+| `packages/afina_core/test/join_student_test.dart` | Testes do módulo `join_student`. |
 | `packages/afina_core/test/lesson_delivery_test.dart` | dados antigos (sem a chave) continuam lendo, como "não se aplica" |
 | `packages/afina_core/test/lesson_test.dart` | Testes do módulo `lesson`. |
 | `packages/afina_core/test/lesson_week_test.dart` | Testes do módulo `lesson_week`. |
@@ -435,4 +437,4 @@
 | `scripts/gen_docs.js` | Gera as partes da documentação que vêm direto do código (para nunca ficarem velhas): docs/referencia/ARQUIVOS.md mapa de todos os arquivos, com a descrição do cabeçalho de cada um docs/referencia/API.md endpoints e… |
 | `scripts/check_docs.js` | Verifica se a documentação continua em dia com o código. Falha (código 1) se: 1. a referência gerada (docs/referencia) estiver desatualizada; 2. algum link relativo entre os documentos estiver quebrado; 3. um módulo… |
 
-Total: **392** arquivos mapeados.
+Total: **394** arquivos mapeados.

@@ -72,7 +72,7 @@ Afinador (instrumento + Ajustes, Ouvir fixo), Metrônomo (BPM, play e Modo desaf
 - **Sem modal dentro de modal.** Os ajustes de uma tela ficam numa única folha, em seções com título (ESCALA, COMO TOCAR, PARTITURA, AFINAÇÃO), com a escolha à mostra (chips, segmentos, amostras), e a **mesma folha** abre na aba e na tela do exercício (`scale_settings.dart`). A pessoa não precisa lembrar onde está cada coisa. Só uma escolha longa e rara (Afinação) abre folha própria.
 - **O que muda a leitura vai no próprio cartão.** A cor da partitura tem o botão **sol/lua** direto no cartão (duas amostras, uma branca e uma preta, a que vale com borda de destaque) e, na folha, três amostras de verdade (clara, escura, igual ao app). Alvo de 48 px nos dois.
 - **Proporção das telas de escala:** na aba Escalas a partitura é o bloco principal e **enche o espaço** entre o cartão de resumo e o botão de iniciar, que fica **fixo embaixo** (não pula quando a página da partitura muda); o botão sol/lua e o "1 / 2" ficam encostados no fundo do cartão. No exercício a altura da partitura acompanha a tela (altura − 560 px, entre 220 e 400). A tônica é escolhida pela **letra** (Dó a Si) e pelo **acidente** (♭ ♮ ♯, com os que não existem apagados), em duas linhas.
-- **Esconder algo tem Desfazer e caminho de volta:** toda ação que some com um cartão mostra um aviso de 8 s com **Desfazer** (`undo_snack.dart`) e deixa uma linha para trazê-lo de volta no mesmo lugar (o "Comece por aqui": *Mostrar o tutorial* no Meu espaço, mais *Ajustes › Rever tutoriais*).
+- **Esconder algo tem Desfazer e caminho de volta:** toda ação que some com um cartão mostra um aviso de 8 s com **Desfazer** (`undo_snack.dart`) e deixa uma linha para trazê-lo de volta no mesmo lugar (os primeiros passos do professor: *Mostrar o tutorial* no Meu espaço, mais *Ajustes › Rever tutoriais*).
 
 ## Tema claro suave e folhas que acompanham o tema
 - **Claro sem brilho excessivo:** fundo cinza-azulado `#D9E1E9`, cartões `#EDF1F5` (nunca branco puro sobre branco), bordas `#A9B8C7`, texto `#0E1822` e texto apagado `#3F5063`. O teste `theme_light_test.dart` exige: fundo e cartão abaixo de certa luminância, cartão que se destaca do fundo, texto com contraste 7:1 e texto apagado 4,5:1. A partitura clara usa papel quebrado `#FAFAF6`. O tema escuro não mudou (o painel do administrador usa as mesmas cores).
@@ -102,3 +102,7 @@ O verde não decora. Cada cor tem um papel, lido nos tokens de `AppColors`:
 - **Laranja (`attention`)**: o que espera por você: para validar, pendente, aviso, chave por guardar.
 - **Neutro (`textDim` / `surface2`)**: o resto: ícones de bloco, cartões, botões secundários (contorno neutro), avatar.
 Nas telas de afinação os papéis antigos continuam (azul grave, verde afinado, laranja agudo). Diálogos e folhas novos usam `showDsConfirm` e `showDsFormSheet`.
+
+## Quem chega vê o propósito antes das ferramentas
+- **A primeira tela diz para que serve** (a promessa) e mostra **um botão grande** com o próximo passo. Os outros botões da tela ficam secundários enquanto ele estiver à vista.
+- **O avançado aparece depois do básico.** Esconder nunca pode tirar nada de quem já usava, tem que se liberar sozinho com ações da própria pessoa e ter um link **Mostrar todas as ferramentas**. Depois de liberado, não volta a esconder.

@@ -149,6 +149,7 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `install_done` | app_state.dart |
 | `install_hide` | app_state.dart |
 | `instrument` | app_state.dart |
+| `join_no` | app_state.dart |
 | `keepAwake` | app_state.dart |
 | `key_nudged` | app_state.dart |
 | `lang` | app_state.dart |
@@ -234,6 +235,8 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `sub` | app_state.dart |
 | `system` | app_state.dart |
 | `teach_inst` | app_state.dart |
+| `teacher_all_tools` | app_state.dart |
+| `teacher_tools_seen` | app_state.dart |
 | `teacherMode` | repository.dart |
 | `teacherPin` | app_state.dart |
 | `theme` | app_state.dart |
@@ -259,4 +262,4 @@ No navegador aparecem no `localStorage` com o prefixo `flutter.`. Tudo fica no a
 | `wa_seen` | app_state.dart |
 | `wa_told` | app_state.dart |
 
-Total: **179** chaves locais.
+Total: **182** chaves locais.

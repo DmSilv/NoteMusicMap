@@ -87,7 +87,6 @@ const Map<String, String> kEnB03 = {
   'Agenda completa': 'Full schedule',
   'Depois': 'Later',
   'Para vincular a um professor, ele precisa saber quem você é.': 'To link with a teacher, they need to know who you are.',
-  'Sou seu professor no {0}. Abra este link e toque em "Vincular" para eu acompanhar suas tarefas: {1}': 'I\'m your teacher on {0}. Open this link and tap "Link" so I can follow your tasks: {1}',
   'Convite copiado. Cole numa conversa para enviar.': 'Invite copied. Paste it in a chat to send.',
   'Instalado! Procure o ícone do Notemusic na tela inicial.': 'Installed! Look for the Notemusic icon on the home screen.',
   'Toque em Compartilhar': 'Tap Share',

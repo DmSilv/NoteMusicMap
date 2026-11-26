@@ -61,7 +61,7 @@ void main() {
         ); // o seletor da tela 3
         await tester.tap(find.text('Sou professor'));
         await tester.pumpAndSettle();
-        expect(find.textContaining('Agenda e alunos'), findsOneWidget);
+        expect(find.textContaining('entre as aulas'), findsOneWidget); // o propósito do lado do professor
         await tester.tap(find.text('Continuar'));
         await tester.pumpAndSettle();
         expect(find.text('Quero estudar'), findsOneWidget);

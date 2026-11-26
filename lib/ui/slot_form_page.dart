@@ -1,6 +1,7 @@
 import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
+import 'link_bar.dart' show ensureTeacherLink;
 import '../app_state.dart';
 import 'design_system.dart';
 import 'dictation_button.dart';
@@ -107,7 +108,7 @@ class _SlotFormPageState extends State<SlotFormPage> {
     if (d != null) setState(() => endDay = d);
   }
 
-  void _save() {
+  Future<void> _save() async {
     final c = code;
     if (c == null) {
       setState(() => error = tr('Escolha o aluno.'));
@@ -135,6 +136,9 @@ class _SlotFormPageState extends State<SlotFormPage> {
       endMs: weekly && endDay != null ? DateTime(endDay!.year, endDay!.month, endDay!.day, 23, 59).millisecondsSinceEpoch : null,
       tzMin: now.timeZoneOffset.inMinutes,
     );
+    // O aluno só recebe conectado. "Agora não" marca a aula do mesmo jeito, só neste aparelho.
+    if (!app.linkEnabled) await ensureTeacherLink(context, app, tr('Para o aluno receber esta aula, o app precisa conectar.'));
+    if (!mounted) return;
     final err = app.saveSlot(slot);
     if (err != null) {
       setState(() => error = err);

@@ -1,6 +1,7 @@
 import 'package:afina_core/afina_core.dart';
 import 'package:flutter/material.dart';
 
+import 'link_bar.dart' show ensureTeacherLink;
 import '../app_state.dart';
 import 'meeting_link.dart';
 import 'remind_field.dart';
@@ -46,8 +47,9 @@ class _OpenSlotsPageState extends State<OpenSlotsPage> {
   Future<void> _add() async {
     final slot = await showDialog<ClassSlot>(context: context, builder: (_) => _NewOpenSlotDialog(app: app));
     if (slot == null || !mounted) return;
+    final connected = await ensureTeacherLink(context, app, tr('Os alunos só veem este horário se o app estiver conectado.'));
     final err = app.saveOpenSlot(slot);
-    app.say(err ?? tr('Horário publicado. Seus alunos já podem pegá-lo.'));
+    app.say(err ?? (connected ? tr('Horário publicado. Seus alunos já podem pegá-lo.') : tr('Horário guardado. Os alunos veem depois que você conectar.')));
   }
 
   @override

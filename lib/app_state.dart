@@ -841,10 +841,19 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setTeacherMode(bool v) {
+  /// [connect] false = "Agora não": vira professor sem conectar, e a escolha fica gravada (senão o app conectaria sozinho ao
+  /// ser aberto de novo, porque o padrão de quem é professor é ligado).
+  void setTeacherMode(bool v, {bool connect = true}) {
     teacherMode = v;
-    // Professor precisa receber os avisos dos alunos: liga o vínculo junto (e grava a escolha, mesmo que antes estivesse "desligado").
-    if (v) _ensureLinkOn(quiet: true);
+    if (v) {
+      if (connect) {
+        _ensureLinkOn(quiet: true);
+      } else if (!linkEnabled) {
+        linkPref = 'off';
+        _prefs?.setString('link_pref', 'off');
+        _prefs?.setBool('link_on', false);
+      }
+    }
     if (!v) {
       activeStudentId = null; // sem modo professor, tudo volta a ser do próprio usuário
       teacherUnlocked = false;
@@ -1404,10 +1413,9 @@ class AppState extends ChangeNotifier {
 
   bool get _hasStudentsWithCode => students.any((s) => s.code != null);
 
-  /// Desligado, mas há quem dependa dele (modo professor, professor ou aluno vinculado).
+  /// Desligado, mas há quem dependa dele (professor vinculado ou aluno com código).
   bool get linkNeedsAttention => core.linkNeedsAttention(
       enabled: linkEnabled,
-      teacherMode: teacherMode,
       hasTeachers: myTeachers.isNotEmpty,
       hasStudentsWithCode: _hasStudentsWithCode);
 
@@ -1419,7 +1427,7 @@ class AppState extends ChangeNotifier {
     _prefs?.setString('link_pref', 'on');
   }
 
-  /// Uma ação que depende do vínculo (virar professor, adicionar aluno com código, vincular professor) liga o vínculo e
+  /// Uma ação que depende do vínculo e que a pessoa já aceitou (virar professor conectando, conta em outro aparelho) liga o vínculo e
   /// grava a escolha como "ligado": sem isso, um "desligado" antigo desligava tudo de novo ao abrir o app.
   /// Avisa uma vez quando foi preciso ligar sozinho.
   void _ensureLinkOn({bool quiet = false}) {
@@ -1874,6 +1882,7 @@ class AppState extends ChangeNotifier {
   void _saveAgenda() {
     final p = _prefs;
     if (p == null) return;
+    _latchTeacherTools();
     final a = _tomb(_agendaDeleted, _agendaIds, agenda);
     final o = _tomb(_openDeleted, _openIds, openSlots);
     _agendaDeleted = a.$1;
@@ -2153,7 +2162,11 @@ class AppState extends ChangeNotifier {
   }
 
   /// Aceita ([accept]) ou recusa um pedido de horário. Devolve o motivo se não deu; null se deu.
+  /// Controles que só existem no servidor: com o vínculo desligado, avisa em vez de chamar.
+  String? get _offlineControl => linkEnabled ? null : tr('Você não está conectado. Ligue o vínculo online em Minha conta.');
+
   Future<String?> answerRequest(PickRequest q, bool accept) async {
+    if (!linkEnabled) return _offlineControl;
     final r = await links.reqAnswer(profile.shareCode, profile.secret, student: q.student, slotId: q.slotId, accept: accept);
     if (!r.ok) {
       if (r.error == 'req_gone' || r.error == 'slot_gone') {
@@ -2171,6 +2184,7 @@ class AppState extends ChangeNotifier {
 
   /// Responde um aviso: 'ok' = falta justificada (registra na ficha), 'rs' = vai remarcar (a tela abre o remarcar), 'ig' = ignorar.
   Future<String?> answerWarn(StudentWarn w, String decision) async {
+    if (!linkEnabled) return _offlineControl;
     final r = await links.warnAnswer(profile.shareCode, profile.secret, student: w.student, classId: w.slotId, occ: w.occ, decision: decision);
     if (!r.ok) {
       if (r.error == 'warn_gone') {
@@ -2196,6 +2210,7 @@ class AppState extends ChangeNotifier {
 
   /// Liga ou desliga os avisos de todos os alunos.
   Future<String?> setWarnsAllowed(bool on) async {
+    if (!linkEnabled) return _offlineControl;
     final r = await links.warnGlobal(profile.shareCode, profile.secret, on);
     if (!r.ok) return _inboxError(r);
     warnsMuted = !on;
@@ -2207,6 +2222,7 @@ class AppState extends ChangeNotifier {
   Future<String?> setStudentCanPick(Student s, bool on) async {
     final code = s.code;
     if (code == null) return tr('Este aluno ainda não está vinculado.');
+    if (!linkEnabled) return _offlineControl;
     final r = await links.pickAllow(profile.shareCode, profile.secret, student: code, on: on);
     if (!r.ok) return _inboxError(r);
     s.noPick = !on;
@@ -2219,6 +2235,7 @@ class AppState extends ChangeNotifier {
   Future<String?> setStudentWarnsMuted(Student s, bool muted) async {
     final code = s.code;
     if (code == null) return tr('Este aluno ainda não está vinculado.');
+    if (!linkEnabled) return _offlineControl;
     final r = await links.warnMute(profile.shareCode, profile.secret, student: code, on: muted);
     if (!r.ok) return _inboxError(r);
     s.muted = muted;
@@ -3771,8 +3788,9 @@ class AppState extends ChangeNotifier {
   /// Vincula online um aluno cadastrado com código (o professor leu o QR ou digitou o código).
   Future<void> linkStudentOnline(Student s) async {
     final code = s.code;
-    if (code == null) return;
-    _ensureLinkOn();
+    // Nunca conecta sozinho: quem pergunta é a tela. Sem conexão o aluno fica no aparelho e é vinculado quando ligar
+    // (o syncLinks vincula quem tem código e ainda não está vinculado).
+    if (code == null || !linkEnabled) return;
     final r = await links.link(profile.shareCode, profile.secret, role: 'teacher', other: code, name: profile.name);
     if (r.unavailable) {
       _markLinkUnavailable();
@@ -3842,6 +3860,86 @@ class AppState extends ChangeNotifier {
   /// O cartão "Comece por aqui" foi escondido pelo professor.
   bool startCardHidden = false;
   Set<String> _toursSeen = {};
+
+  // ---------------- Professor novo vê só o essencial ----------------
+  /// Já vê todas as ferramentas. Uma vez liberado, não volta a esconder.
+  bool teacherAllTools = false;
+
+  bool get _usesAdvancedTools => turmas.isNotEmpty || openSlots.isNotEmpty || methodLibrary.isNotEmpty || repertoireLibrary.isNotEmpty;
+
+  /// Esconder turmas, métodos, acervo, ranking e horários livres de quem acabou de chegar.
+  bool get teacherBasics => teacherBasicsOnly(
+      unlocked: teacherAllTools, hasStudent: students.isNotEmpty, hasTask: students.any((s) => s.tasks.isNotEmpty), usesAdvanced: _usesAdvancedTools);
+
+  void showAllTeacherTools() {
+    _unlockTeacherTools();
+    notifyListeners();
+  }
+
+  void _unlockTeacherTools() {
+    if (teacherAllTools) return;
+    teacherAllTools = true;
+    _prefs?.setBool('teacher_all_tools', true);
+  }
+
+  /// Guarda a liberação assim que ela acontece (senão apagar uma tarefa voltaria a esconder tudo).
+  void _latchTeacherTools() {
+    if (!teacherAllTools && !teacherBasics) _unlockTeacherTools();
+  }
+
+  void _loadTeacherTools(SharedPreferences p) {
+    teacherAllTools = p.getBool('teacher_all_tools') ?? false;
+    if (!(p.getBool('teacher_tools_seen') ?? false)) {
+      // Primeira abertura desta versão: quem já usava como professor continua vendo tudo.
+      p.setBool('teacher_tools_seen', true);
+      if (students.isNotEmpty || agenda.isNotEmpty || _usesAdvancedTools) {
+        teacherAllTools = true;
+        p.setBool('teacher_all_tools', true);
+      }
+    }
+    if (!teacherAllTools && !teacherBasics) {
+      teacherAllTools = true;
+      p.setBool('teacher_all_tools', true);
+    }
+  }
+
+  // ---------------- Quem entrou pelo convite e já estava cadastrado pelo nome ----------------
+  /// Alunos que acabaram de se vincular e podem ser alguém que o professor já tinha cadastrado só pelo nome. Sem juntar,
+  /// a tarefa passada no cadastro antigo nunca chegaria.
+  List<(Student, List<Student>)> get joinOffers {
+    if (!teacherMode) return const [];
+    final no = {...?_prefs?.getStringList('join_no')};
+    final out = <(Student, List<Student>)>[];
+    for (final s in students) {
+      if (s.code == null || no.contains(s.code)) continue;
+      final c = joinCandidates(s, students);
+      if (c.isNotEmpty) out.add((s, c));
+    }
+    return out;
+  }
+
+  /// "Não, é outro aluno": não pergunta de novo sobre este.
+  void dismissJoin(Student linked) {
+    final code = linked.code;
+    if (code == null) return;
+    _prefs?.setStringList('join_no', {...?_prefs?.getStringList('join_no'), code}.toList());
+    notifyListeners();
+  }
+
+  /// É a mesma pessoa: o cadastro do professor ganha o vínculo e o outro sai da lista (sem encerrar o vínculo).
+  /// Devolve a mensagem do envio das tarefas que esperavam, ou null se não havia o que enviar.
+  String? joinStudents(Student linked, Student local) {
+    if (!joinCandidates(linked, students).contains(local)) return null;
+    adoptLink(local, linked);
+    students.removeWhere((x) => x.id == linked.id);
+    relinkOffers.remove(linked.id);
+    if (activeStudentId == linked.id) activeStudentId = local.id;
+    _saveTeacher();
+    notifyListeners();
+    unawaited(_tellContact(local));
+    if (local.tasks.any((t) => t.sent == false) && deliveryFor(local).canSend) return sendPendingTasks(local);
+    return null;
+  }
 
   void hideStartCard() {
     startCardHidden = true;
@@ -4100,7 +4198,8 @@ class AppState extends ChangeNotifier {
         }
         _unlinkTeachers.remove(c);
       }
-      // 2) Lista do servidor.
+      // 2) Lista do servidor. Só quem já era vinculado quando ela foi pedida pode ser dado como "encerrado" por ela.
+      var activeBefore = _activeStudentCodes();
       var r = await links.sync(own, secret, name: profile.name);
       if (r.unavailable) return _markLinkUnavailable();
       if (r.revoked) return _deviceRevoked();
@@ -4141,13 +4240,14 @@ class AppState extends ChangeNotifier {
         }
       }
       if (sent) {
+        activeBefore = _activeStudentCodes();
         r = await links.sync(own, secret, name: profile.name);
         if (!r.ok) {
           notifyListeners();
           return;
         }
       }
-      _applyLinkLists(r);
+      _applyLinkLists(r, activeBefore);
       unawaited(_syncPeerPhotos(r));
       if (_photoDirty) unawaited(_pushMyPhoto());
       _applyLibraryFlags(r);
@@ -4189,7 +4289,12 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  void _applyLinkLists(LinkReply r) {
+  Set<String> _activeStudentCodes() => {
+        for (final s in students)
+          if (s.code != null && s.linkState == 'active') s.code!
+      };
+
+  void _applyLinkLists(LinkReply r, Set<String> activeBefore) {
     final newStudents = <String>[];
     final endedStudents = <String>[];
     final returnedStudents = <String>[];
@@ -4229,7 +4334,7 @@ class AppState extends ChangeNotifier {
       }
     }
     for (final s in students) {
-      if (s.code != null && s.linkState == 'active' && !srvStudents.containsKey(s.code)) {
+      if (s.code != null && s.linkState == 'active' && activeBefore.contains(s.code) && !srvStudents.containsKey(s.code)) {
         s.linkState = 'ended';
         endedStudents.add(s.name);
       }
@@ -4342,6 +4447,7 @@ class AppState extends ChangeNotifier {
   void _saveTeacher() {
     final p = _prefs;
     if (p == null) return;
+    _latchTeacherTools();
     _repo?.saveProfile(profile);
     if (teacherPinHash == null) {
       p.remove('teacherPin');
@@ -5948,6 +6054,7 @@ class AppState extends ChangeNotifier {
     _loadClocks(p);
     await _loadTeacher(p);
     _loadLinks(p);
+    _loadTeacherTools(p);
     stats.load(p);
     _startStats();
     cameraGranted = p.getBool('cam_granted');
@@ -6651,6 +6758,7 @@ class AppState extends ChangeNotifier {
     relinkOffers.clear();
     methodLibrary = [];
     repertoireLibrary = [];
+    teacherAllTools = false;
     activeStudentId = null;
     teacherPinHash = null;
     teacherUnlocked = false;
